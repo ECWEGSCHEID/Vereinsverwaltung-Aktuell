@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.8.1</title>
+<title>Vereins-Informationssystem – V2.8.2</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -526,7 +526,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='2.8.1';
+const APP_VERSION='2.8.2';
 const DBKEY='verein_info_test_v2';
 const OLD_DBKEY='verein_info_test_v1';
 const DEFAULT_DB={tournaments:{},ownTournaments:{},news:[],photos:[],photoAlbums:{},settings:{tournamentPerPage:12},users:[{id:'admin',name:'Administrator',protected:true}]};
@@ -768,6 +768,8 @@ if(firebaseReady&&window.firebaseAuth){
    if(label)label.textContent=user?(user.email||user.uid):'';
    await loadAppPermissions(user);
    if(user)await loadExternalLinkPreferences();
+   // V2.8.2: zentrale Startseiten-Konfiguration laden, bevor die Startseite angezeigt wird.
+   if(user)await shLoadFromFirebase(false);
    if(user){window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();}
    if(user && !userSwitchPending && prefersPresentationStart()){window.__adminPreviewMode=false;currentUser=null;showView('startseite');}
    if(user) setFirebaseStatus('Firebase verbunden · '+(user.email||user.uid));
@@ -1055,7 +1057,146 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
   return o});
  return d}
 let SH=(function(){try{return shSane(JSON.parse(localStorage.getItem(SH_KEY)))}catch(e){return shSane({})}})();
-function shSave(){try{localStorage.setItem(SH_KEY,JSON.stringify(SH))}catch(e){showToast('Speichern nicht möglich (Bild evtl. zu groß)')}}
+
+/* ===== V2.8.2: zentrale Startseiten-Speicherung in Firebase =====
+   Lokal bleibt weiterhin eine Zwischensicherung im Browser bestehen.
+   Die freigegebene/produktive Startseite liegt zentral in Firestore. */
+const SH_FB_COLLECTION='appSettings';
+const SH_FB_DOC='startseite';
+let shFirebaseDirty=false;
+let shFirebaseBusy=false;
+let shFirebaseUpdatedAt='';
+let shFirebaseUpdatedBy='';
+
+function shSave(markDirty=true){
+ try{
+   localStorage.setItem(SH_KEY,JSON.stringify(SH));
+   if(markDirty)shMarkDirty();
+ }catch(e){showToast('Speichern nicht möglich (Bild evtl. zu groß)')}
+}
+function shMarkDirty(){
+ shFirebaseDirty=true;
+ shUpdateFirebaseStatus();
+}
+function shFormatFirebaseTime(v){
+ if(!v)return '';
+ try{
+   const d=new Date(v);
+   if(Number.isNaN(d.getTime()))return String(v);
+   return d.toLocaleString('de-DE');
+ }catch(e){return String(v)}
+}
+function shUpdateFirebaseStatus(message){
+ const el=document.getElementById('shFirebaseStatus');
+ if(!el)return;
+ if(message){el.textContent=message;return;}
+ if(shFirebaseBusy){el.textContent='Firebase wird verarbeitet …';return;}
+ if(shFirebaseDirty){
+   el.textContent='Ungespeicherte Änderungen – noch nicht zentral in Firebase gespeichert.';
+   return;
+ }
+ if(shFirebaseUpdatedAt){
+   el.textContent='Zentral gespeichert: '+shFormatFirebaseTime(shFirebaseUpdatedAt)+(shFirebaseUpdatedBy?' · '+shFirebaseUpdatedBy:'');
+   return;
+ }
+ el.textContent='Noch kein zentraler Firebase-Speicherstand geladen.';
+}
+
+async function shSaveToFirebase(){
+ if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return false;}
+ if(!firebaseReady||!firestoreDb||!firebaseAuthUser){
+   showToast('Firebase ist nicht verbunden oder kein Benutzer ist angemeldet.',5000);
+   shUpdateFirebaseStatus('Speichern nicht möglich: Firebase/Anmeldung fehlt.');
+   return false;
+ }
+ if(shFirebaseBusy)return false;
+ shFirebaseBusy=true;shUpdateFirebaseStatus();
+ const btn=document.getElementById('shFirebaseSaveBtn');if(btn)btn.disabled=true;
+ try{
+   const now=new Date().toISOString();
+   const by=firebaseAuthUser.email||firebaseAuthUser.uid||'';
+   await fbTimeout(
+     firestoreDb.collection(SH_FB_COLLECTION).doc(SH_FB_DOC).set({
+       config:JSON.parse(JSON.stringify(SH)),
+       updatedAt:now,
+       updatedBy:by,
+       appVersion:APP_VERSION
+     }),
+     60000,
+     'Startseite speichern'
+   );
+   shFirebaseUpdatedAt=now;
+   shFirebaseUpdatedBy=by;
+   shFirebaseDirty=false;
+   shSave(false);
+   shUpdateFirebaseStatus();
+   showToast('Startseite zentral in Firebase gespeichert ✓',3500);
+   return true;
+ }catch(e){
+   console.error('Startseite Firebase speichern:',e);
+   const msg=(typeof firebaseErrorText==='function')?firebaseErrorText(e):(e?.message||String(e));
+   shUpdateFirebaseStatus('Firebase-Speichern fehlgeschlagen: '+msg);
+   showToast('Startseite konnte nicht in Firebase gespeichert werden.',5000);
+   return false;
+ }finally{
+   shFirebaseBusy=false;
+   if(btn)btn.disabled=false;
+   if(!shFirebaseDirty)shUpdateFirebaseStatus();
+ }
+}
+
+async function shLoadFromFirebase(showMessage=true){
+ if(!firebaseReady||!firestoreDb||!firebaseAuthUser)return false;
+ if(shFirebaseBusy)return false;
+ shFirebaseBusy=true;
+ if(showMessage)shUpdateFirebaseStatus('Lade Startseite aus Firebase …');
+ const btn=document.getElementById('shFirebaseLoadBtn');if(btn)btn.disabled=true;
+ try{
+   const snap=await fbTimeout(
+     firestoreDb.collection(SH_FB_COLLECTION).doc(SH_FB_DOC).get(),
+     30000,
+     'Startseite laden'
+   );
+   if(!snap.exists){
+     shFirebaseUpdatedAt='';
+     shFirebaseUpdatedBy='';
+     shFirebaseDirty=false;
+     if(showMessage){
+       shUpdateFirebaseStatus('In Firebase ist noch keine Startseite gespeichert. Der lokale Stand bleibt erhalten.');
+       showToast('Noch keine zentrale Startseite in Firebase vorhanden.',3500);
+     }
+     return false;
+   }
+   const data=snap.data()||{};
+   const cfg=data.config||data.startseite||data;
+   SH=shSane(cfg);
+   shFirebaseUpdatedAt=data.updatedAt||'';
+   shFirebaseUpdatedBy=data.updatedBy||'';
+   shFirebaseDirty=false;
+   shSave(false);
+   shOpen=-1;
+   shRender();
+   if(document.getElementById('admin')?.classList.contains('active') && document.getElementById('shFirebaseStatus')){
+     // Oberfläche nur aktualisieren, wenn gerade die Startseiten-Verwaltung sichtbar ist.
+     renderStartseiteAdmin();
+   }
+   if(showMessage)showToast('Startseite aus Firebase geladen ✓',3000);
+   return true;
+ }catch(e){
+   console.error('Startseite Firebase laden:',e);
+   const msg=(typeof firebaseErrorText==='function')?firebaseErrorText(e):(e?.message||String(e));
+   if(showMessage){
+     shUpdateFirebaseStatus('Firebase-Laden fehlgeschlagen: '+msg);
+     showToast('Startseite konnte nicht aus Firebase geladen werden.',5000);
+   }
+   return false;
+ }finally{
+   shFirebaseBusy=false;
+   if(btn)btn.disabled=false;
+   if(!showMessage)shUpdateFirebaseStatus();
+ }
+}
+
 function shSafeUrl(u){u=(u||'').trim();if(!u||/^(javascript|data|vbscript):/i.test(u))return '';
  if(/^[a-z][a-z0-9+.-]*:/i.test(u)||/^[#/.?]/.test(u))return u;return 'https://'+u}
 var shOpen=-1;
@@ -1100,7 +1241,8 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
  const a=document.getElementById('adminMain'),st=a.scrollTop;
  a.innerHTML='<h2>Startseite bearbeiten</h2>'
  +'<div class="card"><label>Link zur Startseite</label><div class="row"><input type="text" readonly id="shLinkField" value="'+esc(shLink())+'" onclick="this.select()" style="flex:3"><button onclick="shCopy(this)">Kopieren</button><button onclick="window.open(shLink(),\'_blank\')">Öffnen</button></div>'
- +'<p class="small">Änderungen werden sofort übernommen und in diesem Browser gespeichert.</p></div>'
+ +'<p class="small">Änderungen werden sofort angezeigt und zunächst lokal in diesem Browser zwischengespeichert.</p></div>'
+ +'<div class="card" style="margin-top:12px;border:2px solid rgba(255,255,255,.28)"><h3 style="margin-top:0">Zentrale Startseite</h3><p class="small">Mit „Startseite speichern“ wird dieser Stand zentral in Firebase gespeichert. Beim nächsten Anmelden lädt PC/Whiteboard automatisch genau diesen Stand.</p><div class="row"><button id="shFirebaseSaveBtn" class="primary" onclick="shSaveToFirebase()">Startseite speichern</button><button id="shFirebaseLoadBtn" onclick="shLoadFromFirebase(true)">Aus Firebase laden</button></div><div id="shFirebaseStatus" class="small" style="margin-top:10px;font-weight:bold"></div></div>'
  +'<div class="card" style="margin-top:12px"><label>Text auf der Startseite</label><input type="text" value="'+esc(SH.title)+'" oninput="shSet(\'title\',this.value)">'
  +'<label>Buttons pro Reihe</label><select onchange="shSet(\'cols\',+this.value,true)">'+[2,3,4].map(n=>'<option'+(n===SH.cols?' selected':'')+'>'+n+'</option>').join('')+'</select>'
  +'<label>Hintergrundbild (16:9, wird automatisch verkleinert)</label><input type="file" accept="image/*" onchange="shBg(this)"><div style="margin-top:8px"><button onclick="shBgReset()">Originalbild wiederherstellen</button></div></div>'
@@ -1108,7 +1250,9 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
  +SH.buttons.map(shAdminRow).join('')
  +'<div class="row" style="margin:10px 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>'
  +'<div class="card"><div class="row"><button onclick="shExport()">Konfiguration exportieren</button><button class="danger" onclick="shReset()">Alles zurücksetzen</button></div><label>Konfiguration importieren (.json)</label><input type="file" accept=".json,application/json" onchange="shImport(this)"></div>';
- a.scrollTop=st}
+ a.scrollTop=st;
+ shUpdateFirebaseStatus();
+}
 var shAdminOpen=new WeakSet();
 function shAdminRow(b,i){
  const subs=b.sub||[],open=shAdminOpen.has(b);
