@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.8.3</title>
+<title>Vereins-Informationssystem – V2.8.4</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -526,7 +526,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='2.8.3';
+const APP_VERSION='2.8.4';
 const DBKEY='verein_info_test_v2';
 const OLD_DBKEY='verein_info_test_v1';
 const DEFAULT_DB={tournaments:{},ownTournaments:{},news:[],photos:[],photoAlbums:{},settings:{tournamentPerPage:12},users:[{id:'admin',name:'Administrator',protected:true}]};
@@ -768,7 +768,7 @@ if(firebaseReady&&window.firebaseAuth){
    if(label)label.textContent=user?(user.email||user.uid):'';
    await loadAppPermissions(user);
    if(user)await loadExternalLinkPreferences();
-   // V2.8.3: zentrale Startseiten-Konfiguration laden, bevor die Startseite angezeigt wird.
+   // V2.8.2: zentrale Startseiten-Konfiguration laden, bevor die Startseite angezeigt wird.
    if(user)await shLoadFromFirebase(false);
    if(user){window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();}
    if(user && !userSwitchPending && prefersPresentationStart()){window.__adminPreviewMode=false;currentUser=null;showView('startseite');}
@@ -1058,7 +1058,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  return d}
 let SH=(function(){try{return shSane(JSON.parse(localStorage.getItem(SH_KEY)))}catch(e){return shSane({})}})();
 
-/* ===== V2.8.3: zentrale Startseiten-Speicherung in Firebase =====
+/* ===== V2.8.4: zentrale Startseiten-Speicherung in Firebase =====
    Lokal bleibt weiterhin eine Zwischensicherung im Browser bestehen.
    Die freigegebene/produktive Startseite liegt zentral in Firestore. */
 const SH_FB_COLLECTION='appSettings';
@@ -1200,16 +1200,65 @@ async function shLoadFromFirebase(showMessage=true){
 function shSafeUrl(u){u=(u||'').trim();if(!u||/^(javascript|data|vbscript):/i.test(u))return '';
  if(/^[a-z][a-z0-9+.-]*:/i.test(u)||/^[#/.?]/.test(u))return u;return 'https://'+u}
 var shOpen=-1;
-function shMakeBtn(b,idx){const a=document.createElement('a'),u=shSafeUrl(b.u);
- a.className='shbtn';a.textContent=b.t;
- const routePerm=(shInternalHash(u)||String(b.u||'')).replace(/^.*#/,'').split('?')[0]; const routeMap={'turnierliste':'tp','turniere-monatsuebersicht':'t','eigene-turniere':'o','nachrichten':'n','fotos':'p','fotos-sponsoren':'sp','mitglieder':'mv','mannschaften':'m','links':'lk'}; const pk=routeMap[routePerm]; if(pk&&!canViewApp(pk)){a.classList.add('app-disabled');a.setAttribute('aria-disabled','true');a.title='Für diesen Benutzer nicht freigegeben';a.href='#';a.onclick=e=>e.preventDefault();return a;}
- if(idx>=0&&(b.sub||[]).length){a.classList.add('hassub');a.href='#';a.onclick=e=>{e.preventDefault();shOpen=idx;shRender()}}
- else if(u){a.href=u;const h=shInternalHash(u);if(h)a.onclick=e=>{e.preventDefault();shGo(h)};else if(externalWebUrl(u)){if(shouldEmbedExternal(u,b.t))a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t)};else{a.target='_blank';a.rel='noopener noreferrer';}}else if(isWhiteboardUser()){
-   // V2.8.3: nicht pauschal blockieren; dieselbe Linklogik wie im Ansichtsmodus verwenden.
-   a.removeAttribute('target');
+function shMakeBtn(b,idx){
+ try{
+  b=b||{};
+  const a=document.createElement('a'),u=shSafeUrl(b.u);
+  a.className='shbtn';a.textContent=String(b.t||'');
+  const routePerm=(shInternalHash(u)||String(b.u||'')).replace(/^.*#/,'').split('?')[0];
+  const routeMap={'turnierliste':'tp','turniere-monatsuebersicht':'t','eigene-turniere':'o','nachrichten':'n','fotos':'p','fotos-sponsoren':'sp','mitglieder':'mv','mannschaften':'m','links':'lk'};
+  const pk=routeMap[routePerm];
+  if(pk&&!canViewApp(pk)){
+   a.classList.add('app-disabled');a.setAttribute('aria-disabled','true');
+   a.title='Für diesen Benutzer nicht freigegeben';a.href='#';
+   a.onclick=e=>e.preventDefault();return a;
+  }
+  if(idx>=0&&Array.isArray(b.sub)&&b.sub.length){
+   a.classList.add('hassub');a.href='#';
+   a.onclick=e=>{e.preventDefault();shOpen=idx;shRender();};
+   return a;
+  }
+  if(!u){
+   a.classList.add('nolink');
+   a.href='#';
+   a.onclick=e=>{e.preventDefault();showToast('Für diesen Button ist noch kein Link hinterlegt.');};
+   return a;
+  }
+
+  a.href=u;
+  const h=shInternalHash(u);
+  if(h){
+   a.onclick=e=>{e.preventDefault();shGo(h);};
+   return a;
+  }
+
+  if(externalWebUrl(u)){
+   if(isWhiteboardUser()){
+    // V2.8.4: Externe Links am Whiteboard direkt durch den Browser öffnen.
+    // Kein iframe/Sandbox-Zwang – dadurch verhalten sie sich wie im Ansichtsmodus.
+    a.target='_blank';
+    a.rel='noopener noreferrer';
+   }else if(shouldEmbedExternal(u,b.t)){
+    a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
+   }else{
+    a.target='_blank';a.rel='noopener noreferrer';
+   }
+   return a;
+  }
+
+  // Sonstige zulässige Links nicht speziell blockieren.
+  return a;
+ }catch(err){
+  console.error('Startseiten-Button konnte nicht erzeugt werden:',b,err);
+  const a=document.createElement('a');
+  a.className='shbtn app-disabled';
+  a.href='#';
+  a.textContent=String((b&&b.t)||'Link');
+  a.title='Dieser Link konnte nicht geladen werden';
+  a.onclick=e=>e.preventDefault();
+  return a;
  }
- else{a.classList.add('nolink');a.onclick=()=>showToast('Für diesen Button ist noch kein Link hinterlegt.')}
- return a}
+}
 function closeStartSubmenu(){shOpen=-1;shRender();}
 function shRender(){
  const art=document.getElementById('shArt');if(!art)return;
@@ -1224,7 +1273,13 @@ function shRender(){
  const g=document.getElementById('shGrid'),rows=Math.max(1,Math.ceil(total/SH.cols));
  g.style.setProperty('--cd',SH.cols);g.style.setProperty('--rd',rows);g.style.setProperty('--rp',Math.ceil(total/2)||1);
  const els=[];
- items.forEach((b,i)=>els.push(shMakeBtn(b,grp?-1:i)));
+ items.forEach((b,i)=>{
+  try{els.push(shMakeBtn(b,grp?-1:i))}
+  catch(e){
+   console.error('Startseiten-Button:',e);
+   const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
+  }
+ });
  g.replaceChildren(...els);shUpdateBack();updateWhiteboardScreenControls()}
 function shNorm(u){return String(u).split('#')[0].split('?')[0].replace(/index\.html$/i,'')}
 function shInternalHash(u){let x;try{x=new URL(u,location.href)}catch(e){return ''}
@@ -1643,8 +1698,8 @@ function updateWhiteboardScreenControls(){
  const fs=document.getElementById('shFs');if(fs)fs.hidden=wb||full;
  const prompt=document.getElementById('whiteboardFullscreenPrompt');
  if(prompt)prompt.hidden=!(wb&&!full&&document.documentElement.requestFullscreen);
- const newTab=document.getElementById('externalNewTab');if(newTab)newTab.hidden=false;
- const note=document.getElementById('externalEmbedNote');if(note)note.textContent='Falls die Seite leer bleibt oder das Einbetten verhindert: „In neuem Tab öffnen“ verwenden.';
+ const newTab=document.getElementById('externalNewTab');if(newTab)newTab.hidden=wb;
+ const note=document.getElementById('externalEmbedNote');if(note)note.textContent=wb?'Externe Webseiten werden im Whiteboard angezeigt. Falls eine Seite das Einbetten sperrt, bitte zum Hauptmenü zurückkehren.':'Falls die Seite leer bleibt oder das Einbetten verhindert: „In neuem Tab öffnen“ verwenden.';
 }
 async function startWhiteboardFullscreen(){await enterPresentationFullscreen();updateWhiteboardScreenControls();}
 document.addEventListener('fullscreenchange',updateWhiteboardScreenControls);
@@ -1703,11 +1758,7 @@ function openExternalPage(value,title){
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  const direct=document.getElementById('externalNewTab');direct.href=url;
  showView('externalPage');
- const frame=document.getElementById('externalFrame');
- // V2.8.3: Whiteboard und Ansichtsmodus verwenden dieselben Rechte.
- // Dadurch funktionieren externe Seiten/Unterseiten auf dem Whiteboard genauso wie in der Vorschau.
- frame.setAttribute('sandbox','allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads');
- updateWhiteboardScreenControls();frame.title=String(title||'Externe Webseite');frame.src=url;
+ const frame=document.getElementById('externalFrame');frame.setAttribute('sandbox',isWhiteboardUser()?'allow-scripts allow-forms allow-same-origin':'allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads');updateWhiteboardScreenControls();frame.title=String(title||'Externe Webseite');frame.src=url;
 }
 function backExternalPrevious(){
  clearExternalPage();window.__adminPreviewMode=false;
