@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.8.4</title>
+<title>Vereins-Informationssystem – V2.8.5</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -439,11 +439,12 @@ transition:transform .18s,box-shadow .18s,background .18s}
 </section>
 
 <section id="tournamentPlanner" class="view">
-  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 3.0.1</div></div>
+  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.8.5</div></div>
   <div id="tpStats" class="tp-stats"></div>
   <div id="routeDiag" class="small" style="padding:0 60px 6px;display:none"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
-  <div class="tp-toolbar"><div id="tpListNote" class="small tp-list-note"></div><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button></div>
+  <div class="tp-toolbar"><div id="tpListNote" class="small tp-list-note"></div><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button></div>
+  <div id="tpFirebaseStatus" class="small" style="padding:0 60px 6px"></div>
   <div id="tpContent" class="tp-list"></div>
   <div class="bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
 </section>
@@ -526,7 +527,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='2.8.4';
+const APP_VERSION='2.8.5';
 const DBKEY='verein_info_test_v2';
 const OLD_DBKEY='verein_info_test_v1';
 const DEFAULT_DB={tournaments:{},ownTournaments:{},news:[],photos:[],photoAlbums:{},settings:{tournamentPerPage:12},users:[{id:'admin',name:'Administrator',protected:true}]};
@@ -1816,7 +1817,7 @@ function showView(id){
  if(id==='turnierverwaltung')tvMount(document.getElementById('tvPage'),'public');
   if(id==='teams')renderTeamsOverview();
  if(id==='teamDetail')renderTeamDetail();
- if(id==='tournamentPlanner'){renderTournamentPlanner();loadTournamentPlannerFromFirebase().then(renderTournamentPlanner).catch(()=>{});}
+ if(id==='tournamentPlanner'){renderTournamentPlanner();tpRefreshFromFirebase(false).catch(e=>console.error('Turnierplaner aktualisieren:',e));}
  if(id==='photos'||id==='sponsorPhotos'){pCollection=(id==='sponsorPhotos')?'sponsorPhotos':'photos';loadPhotoPresentation(pCollection).catch(e=>console.error('Fotoanzeige:',e));}
  updateWhiteboardScreenControls();
  if(id==='admin'){const u=data.users.find(x=>x.id===currentUser);const lab=document.getElementById('currentUserLabel');if(lab)lab.textContent=firebaseAuthUser?.email||(u?u.name:'');const _bk=window.__adminBack||(appPermissions.admin?'t':Object.keys(APP_PERMISSIONS).find(k=>!k.endsWith('View')&&hasAppPermission(k)))||'password';window.__adminBack=null;adminSection(_bk);}
@@ -2517,32 +2518,62 @@ function tpTypeChanged(id,selectEl){if(isWhiteboardUser()){showToast('Whiteboard
   });
   if(!allow)tpUpdateField(id,'reportedBy',null,'');
 }
-function tpUpdateField(id,field,idx,value){
+async function tpUpdateField(id,field,idx,value){
   if(isWhiteboardUser()&&(!['players','reportedBy'].includes(field)||(field==='players'&&(!Number.isInteger(idx)||idx<0||idx>3)))){showToast('Dieses Feld ist für das Whiteboard gesperrt.');return;}
   if(!tpRequirePlannerEdit())return;
   const item=tpFindEvent(id);if(!item)return;
+  const oldPlayers=Array.isArray(item.players)?item.players.slice():['','','',''];
+  const oldReportedBy=String(item.reportedBy||'');
   if(field==='players'){item.players=(item.players&&item.players.length===4)?item.players:['','','',''];item.players[idx]=value}
   else{item[field]=value}
   save();
-  tpSyncEventToFirebase(item);
   tpRenderStats();
   tpRefreshHistoryIfOpen();
-  showToast('Änderung gespeichert');
+  const status=document.getElementById('tpFirebaseStatus');
+  if(status)status.textContent='Änderung wird in Firebase gespeichert …';
+  const ok=await tpSyncEventToFirebase(item);
+  if(ok){
+    if(status)status.textContent='✓ Änderung in Firebase gespeichert · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    showToast('✓ In Firebase gespeichert');
+  }else{
+    // Bei fehlgeschlagenem Whiteboard-Speichern lokalen Wert zurücksetzen,
+    // damit nicht der Eindruck entsteht, die Änderung sei zentral gespeichert.
+    if(isWhiteboardUser()){
+      item.players=oldPlayers;
+      item.reportedBy=oldReportedBy;
+      save();
+      renderTournamentPlanner();
+    }
+  }
 }
 function tpRefreshHistoryIfOpen(){
   if(document.getElementById('tpHistoryModal')?.classList.contains('show'))renderTpHistory();
 }
 async function tpSyncEventToFirebase(item){
-  if(!firebaseReady||!firestoreDb)return;
+  if(!firebaseReady||!firestoreDb){
+    showToast('Firebase ist nicht verbunden',5000);
+    return false;
+  }
   if(isWhiteboardUser()){
     try{
-      await firestoreDb.collection('tournamentPlanner').doc(String(item.id)).update({
-        reportedBy:String(item.reportedBy||''),
-        players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
-        updatedAt:new Date().toISOString()
-      });
-    }catch(e){console.error('Whiteboard-Terminplaner:',e);showToast('Änderung konnte nicht in Firebase gespeichert werden: '+(e.code||e.message),6000);}
-    return;
+      await fbTimeout(
+        firestoreDb.collection('tournamentPlanner').doc(String(item.id)).update({
+          reportedBy:String(item.reportedBy||''),
+          players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
+          updatedAt:new Date().toISOString()
+        }),
+        30000,
+        'Turnierplaner speichern'
+      );
+      return true;
+    }catch(e){
+      console.error('Whiteboard-Turnierplaner:',e);
+      const status=document.getElementById('tpFirebaseStatus');
+      const msg=(typeof firebaseErrorText==='function')?firebaseErrorText(e):(e.code||e.message||String(e));
+      if(status)status.textContent='Speichern fehlgeschlagen: '+msg;
+      showToast('Änderung konnte nicht in Firebase gespeichert werden: '+msg,7000);
+      return false;
+    }
   }
 
   try{
@@ -2551,7 +2582,12 @@ async function tpSyncEventToFirebase(item){
       reportedBy:String(item.reportedBy||''),players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
       location:String(item.location||''),type:String(item.type||''),internal:!!item.internal,calendarExported:!!item.calendarExported,updatedAt:new Date().toISOString()
     },{merge:true}),20000,'Firebase');
-  }catch(e){console.error('Firebase Turnierplaner:',e);showToast('Änderung nur lokal gespeichert – Firebase nicht erreichbar',4500);}
+    return true;
+  }catch(e){
+    console.error('Firebase Turnierplaner:',e);
+    showToast('Änderung nur lokal gespeichert – Firebase nicht erreichbar',4500);
+    return false;
+  }
 }
 function tpPad(n){return String(n).padStart(2,'0')}
 function tpIcsEscape(s){return String(s||'').replace(/[\\;,]/g,m=>'\\'+m).replace(/\n/g,'\\n')}
@@ -2831,14 +2867,54 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
     return {ok:false,error};
   }
 }
-async function loadTournamentPlannerFromFirebase(){
-  if(!firebaseReady||!firestoreDb)return;
+async function loadTournamentPlannerFromFirebase(forceServer=false){
+  if(!firebaseReady||!firestoreDb||!firebaseAuthUser)return false;
   try{
-    const snap=await firestoreDb.collection('tournamentPlanner').get();
+    let snap;
+    if(forceServer){
+      try{snap=await firestoreDb.collection('tournamentPlanner').get({source:'server'});}
+      catch(serverErr){
+        console.warn('Firebase Server-Abruf nicht möglich, Fallback:',serverErr);
+        snap=await firestoreDb.collection('tournamentPlanner').get();
+      }
+    }else{
+      snap=await firestoreDb.collection('tournamentPlanner').get();
+    }
     const list=[];
-    snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported})});
-    if(snap.size){data.tournamentPlanner=list;save()}
-  }catch(e){console.warn('Firebase Turnierplaner:',e);}
+    snap.forEach(doc=>{const x=doc.data()||{};list.push({
+      id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
+      reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
+      location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,
+      calendarExported:!!x.calendarExported,updatedAt:String(x.updatedAt||'')
+    })});
+    // Firebase ist für die Whiteboard-Ansicht die führende Quelle – auch eine leere Liste wird übernommen.
+    data.tournamentPlanner=list;
+    save();
+    return true;
+  }catch(e){
+    console.warn('Firebase Turnierplaner:',e);
+    return false;
+  }
+}
+async function tpRefreshFromFirebase(showMessage=true){
+  const btn=document.getElementById('tpRefreshBtn');
+  const status=document.getElementById('tpFirebaseStatus');
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='Turnierliste wird frisch aus Firebase geladen …';
+  try{
+    const ok=await loadTournamentPlannerFromFirebase(true);
+    if(ok){
+      renderTournamentPlanner();
+      if(status)status.textContent='✓ Turnierliste aktuell · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      if(showMessage)showToast('Turnierliste aus Firebase aktualisiert ✓',3000);
+      return true;
+    }
+    if(status)status.textContent='Turnierliste konnte nicht aus Firebase geladen werden.';
+    if(showMessage)showToast('Firebase-Laden fehlgeschlagen',5000);
+    return false;
+  }finally{
+    if(btn)btn.disabled=false;
+  }
 }
 function tpSaveCalendarSettings(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   if(!data.settings)data.settings={};
