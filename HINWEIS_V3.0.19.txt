@@ -1,0 +1,16 @@
+EC Wegscheid Vereinsverwaltung V3.0.19
+
+Namensprüfung:
+- 44 klare Schreibvarianten erkannt
+- 127 Personenfelder werden beim Import automatisch vereinheitlicht
+- mehrdeutige Einträge bleiben unverändert
+
+Import:
+Admin > Turnierplaner > Excel 2023–2025
+1. Veranstaltungsarten kontrollieren
+2. Namensvorschau kontrollieren
+3. "Fehlende Termine 2023–2025 in Firebase importieren"
+
+Es werden nur fehlende Termine geschrieben.
+Bestehende Termine werden nicht überschrieben oder gelöscht.
+Gemeldet von sowie Spieler 1–4 werden übernommen.
