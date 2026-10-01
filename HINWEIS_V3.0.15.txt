@@ -1,0 +1,25 @@
+EC Wegscheid Vereinsverwaltung V3.0.15
+Turnierverwaltung 2.8
+
+Prüfung nach Firebase-Migration:
+
+Korrigiert:
+- Zwei Excel-Hilfszeilen wurden fälschlich als Vereine erkannt:
+  "Summe Vereine"
+  "Legende: ..."
+  Diese werden ab V3.0.15 nicht mehr importiert oder angezeigt.
+- Falls diese Zeilen durch V3.0.14 bereits in Firebase angelegt wurden,
+  werden sie von der Anwendung ignoriert. Es werden keine echten Vereinsdaten gelöscht.
+- Historische Vereinsnamen werden vor der Entdoppelung kanonisiert.
+  Dadurch werden alte Excel-Teilnahmen und migrierte Firebase-Meldungen zuverlässiger
+  als dieselbe Teilnahme erkannt.
+- Historischer Grundbestand enthält jetzt 100 echte Vereine.
+
+Unverändert:
+- Migrierte Turniere bleiben erhalten.
+- Migrierte Mannschaftsmeldungen bleiben erhalten.
+- Historie wird durch neue Firestore-Turniere/Meldungen weitergeführt.
+- Kategorien Herren / Damen / Mixed.
+- E-Mail-Vorauswahl Herren / Damen / Mixed / Alle.
+- Vereinslisten-Felderanzeige und CSV-Export.
+- Admin-Zugriff und Firebase-Anmeldung.

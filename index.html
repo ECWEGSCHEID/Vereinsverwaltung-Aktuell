@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.12 Drag & Drop FIX</title>
+<title>Vereins-Informationssystem – V3.0.15 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -421,7 +421,7 @@ transition:transform .18s,box-shadow .18s,background .18s}
 
 </style>
 </head>
-<body><div id="appVersion" class="app-version">Version 3.0.12</div>
+<body><div id="appVersion" class="app-version">Version 3.0.13</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
 </section>
@@ -521,10 +521,8 @@ transition:transform .18s,box-shadow .18s,background .18s}
   <div class="bottom" id="sponsorPhotoNav"><button id="sponsorPhotoPrev" onclick="changePhotoAlbum(-1)">Voriger Monat</button><button id="sponsorPhotoNext" onclick="changePhotoAlbum(1)">Nächster Monat</button><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
 </section>
 
-<section id="turnierverwaltung" class="view">
-  <div class="header"><div><div class="title">Turnierverwaltung</div><div class="subtitle">Mannschaften zu bestehenden Turnieren hinzufügen</div></div></div>
-  <div id="tvPage" style="flex:1;min-height:0;overflow:auto;margin-top:14px"></div>
-  <div class="row" style="margin-top:12px"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
+<section id="turnierverwaltung" class="view" style="padding:0">
+  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="turnierverwaltung.html" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
 </section>
 
 <section id="tournamentPlanner" class="view">
@@ -620,7 +618,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.12';
+const APP_VERSION='3.0.14';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -2563,7 +2561,7 @@ function showView(id){
  if(id==='news')renderNews();
  if(id==='startseite')shRender();
  if(id==='userPassword')renderUserPasswordPanel();
- if(id==='turnierverwaltung')tvMount(document.getElementById('tvPage'),'public');
+ if(id==='turnierverwaltung'){if(!appPermissions.admin){showToast('Turnierverwaltung ist nur für Administratoren freigegeben.');showView('admin');return;}const f=document.getElementById('turnierverwaltungFrame');if(f&&!f.src)f.src='turnierverwaltung.html';}
   if(id==='teams')renderTeamsOverview();
  if(id==='teamDetail')renderTeamDetail();
  if(id==='tournamentPlanner'){renderTournamentPlanner();if(!centralFirebaseReady)tpRefreshFromFirebase(false).catch(e=>console.error('Turnierplaner aktualisieren:',e));}
@@ -5864,11 +5862,9 @@ window.__tvRoot=document.getElementById("tvRoot");
 })();
 function tvMount(c,mode){const r=window.__tvRoot;if(!c)return false;if(!r){alert("Die Turnierverwaltung konnte nicht geladen werden.");return false}c.innerHTML="";c.appendChild(r);r.classList.toggle("tv-public",mode==="public");const n=document.getElementById("tv_navTurniere");if(n)n.click();return true}
 function renderTurnierverwaltungAdmin(){
- if(!isAdminNow())return;
- const a=document.getElementById("adminMain");
- if(!a)return;
- a.innerHTML="<h2>Turnierverwaltung</h2><div id=\"tvAdminSlot\"></div>";
- tvMount(document.getElementById("tvAdminSlot"),"admin");
+ const a=document.getElementById('adminMain');
+ if(!appPermissions.admin){a.innerHTML='<h2>Turnierverwaltung</h2><div class="card">Nur für Administratoren freigegeben.</div>';return}
+ a.innerHTML='<h2>Turnierverwaltung</h2><div class="card small" style="margin-bottom:10px">Die Turnierverwaltung verwendet dieselbe Firebase-Anmeldung. Smartphone-Zugang und QR-Code findest du direkt in der Turnierverwaltung.</div><iframe title="Turnierverwaltung Admin" src="turnierverwaltung.html" style="width:100%;height:calc(100vh - 190px);min-height:650px;border:0;border-radius:10px;background:#fff"></iframe>';
 }
 </script>
 <script type="text/plain" id="mvSource"><!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
