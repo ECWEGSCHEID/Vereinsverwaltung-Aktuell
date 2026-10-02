@@ -1,0 +1,10 @@
+EC Wegscheid Vereinsverwaltung V3.0.43
+
+Turnierverwaltung Vorschau:
+- Beim Öffnen über die Vorschau im Verwaltungsmenü wird die Turnierverwaltung jetzt als echtes Vollbild dargestellt.
+- Die Ansicht nutzt 100 % der Browserbreite und 100 % der Browserhöhe.
+- Keine seitlichen Ränder oder Verwaltungsleisten mehr sichtbar.
+- Der vorhandene Button "← Zurück zum Menü" bleibt als feste Schaltfläche oben links sichtbar.
+- Beim Zurückgehen wird der Vollbildmodus sauber beendet und die Verwaltungsansicht wieder angezeigt.
+
+Die normale Turnierverwaltung außerhalb der Vorschau bleibt unverändert.
