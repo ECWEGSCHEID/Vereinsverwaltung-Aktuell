@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.43 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.44 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -509,6 +509,15 @@ transition:transform .18s,box-shadow .18s,background .18s}
 }
 body.tv-preview-open{overflow:hidden!important}
 
+
+.page-slot.press-pair{display:grid!important;grid-template-columns:1fr 1fr;gap:2px;background:#111}
+.page-slot.press-pair img{min-width:0;width:100%;height:100%;object-fit:contain}
+.admin-tournament-slot.press-pair{display:grid!important;grid-template-columns:1fr 1fr;gap:2px;background:#eee}
+.admin-tournament-slot.press-pair img{min-width:0;width:100%;height:100%;object-fit:contain}
+.inv-zoom-images{height:100vh;height:100dvh;max-width:100vw;display:flex;align-items:center;justify-content:center;gap:4px}
+.inv-zoom-images img{height:100%;width:auto;max-width:100vw;object-fit:contain}
+.inv-zoom-images.pair img{height:96vh;height:96dvh;max-width:49vw}
+
 </style>
 </head>
 <body><div id="appVersion" class="app-version">Version 3.0.13</div>
@@ -574,7 +583,7 @@ body.tv-preview-open{overflow:hidden!important}
 </section>
 
 <section id="tournamentMonths" class="view">
-  <div class="header"><div><div class="title" id="tMonthsTitle">Turniereinladungen</div><div class="subtitle">Monatsübersicht</div></div></div>
+  <div class="header"><div><div class="title" id="tMonthsTitle">Turniereinladungen</div><div class="subtitle" id="tMonthsSubtitle">Monatsübersicht</div></div></div>
   <div id="tMonthOverview" class="month-overview"></div>
   <div class="bottom tournament-bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
 </section>
@@ -658,12 +667,12 @@ body.tv-preview-open{overflow:hidden!important}
       <h2>Bereiche</h2>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tp" onclick="adminSection('tp')">Turnierplaner</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('tp')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="t" onclick="adminSection('t')">Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('t')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="t" onclick="adminSection('zr')">Zeitungsberichte EC Wegscheid</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="t" title="Vorschau öffnen" onclick="adminPreviewOpen('zr')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tv" onclick="adminSection('tv')">Turnierverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="tv" title="Vorschau öffnen" onclick="adminPreviewOpen('tv')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="o" onclick="adminSection('o')">Eigene Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('o')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="n" onclick="adminSection('n')">Vereinsnachrichten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('n')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="p" onclick="adminSection('p')">Fotos für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('p')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="sp" onclick="adminSection('sp')">Fotos Sponsoren für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sp')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="t" onclick="adminSection('zr')">Zeitungsberichte EC Wegscheid</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="t" title="Vorschau öffnen" onclick="adminPreviewOpen('zr')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="mv" onclick="adminSection('mv')">Mitgliederverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="mv" title="Vorschau öffnen" onclick="adminPreviewOpen('mv')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="m" onclick="adminSection('m')">Mannschaften</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('m')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite bearbeiten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
@@ -710,7 +719,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.43';
+const APP_VERSION='3.0.44';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -757,7 +766,31 @@ function pAlbums(){const k=pCfg().albums;return data[k]||(data[k]={})}
 function tInfoElId(){return tCollection==='ownTournaments'?'firebaseOwnTournamentInfo':(tCollection==='pressReports'?'firebasePressReportInfo':'firebaseTournamentInfo')}
 function tFileInputId(){return tCollection==='pressReports'?'zrfiles':'tfiles'}
 function tStore(){const k=tCfg().store;return data[k]||(data[k]={})}
-function updateTournamentTitles(){const l=(tCollection==='ownTournaments')?'Nächste eigene Turniere':tCfg().label;const a=document.getElementById('tMonthsTitle');if(a)a.textContent=l;const b=document.getElementById('tTitle');if(b)b.textContent=l;}
+function pressFolderList(){
+  data.settings=data.settings||{};
+  const explicit=Array.isArray(data.settings.pressReportFolders)?data.settings.pressReportFolders:[];
+  const keys=Object.keys(data.pressReports||{});
+  return [...new Set([...explicit,...keys].map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+}
+function pressEnsureFolder(name){
+  const n=String(name||'').trim();
+  if(!n)return '';
+  data.settings=data.settings||{};
+  const list=pressFolderList();
+  if(!list.includes(n))list.push(n);
+  data.settings.pressReportFolders=[...new Set(list)].sort((a,b)=>a.localeCompare(b,'de'));
+  data.pressReports=data.pressReports||{};
+  if(!Array.isArray(data.pressReports[n]))data.pressReports[n]=[];
+  return n;
+}
+function pressFolderLabel(k){return String(k||'').trim()||'Ordner'}
+function tGroupLabel(k){return tCollection==='pressReports'?pressFolderLabel(k):monthLabel(k)}
+function updateTournamentTitles(){
+ const l=(tCollection==='ownTournaments')?'Nächste eigene Turniere':tCfg().label;
+ const a=document.getElementById('tMonthsTitle');if(a)a.textContent=l;
+ const b=document.getElementById('tTitle');if(b)b.textContent=l;
+ const sub=document.getElementById('tMonthsSubtitle');if(sub)sub.textContent=tCollection==='pressReports'?'Ordner auswählen':'Monatsübersicht';
+}
 function openTournamentSection(kind){
  const perm=kind==='ownTournaments'?'o':'t';
  if(!canViewApp(perm)){showToast('Dieser Bereich ist für diesen Benutzer nicht freigegeben.',4000);return;}
@@ -794,12 +827,15 @@ function allMediaItems(){const a=[];['tournaments','ownTournaments','pressReport
 async function migrateLegacyMedia(){let migrated=0;for(const {kind,item} of allMediaItems()){if(item.data&&String(item.data).startsWith('data:')){try{const id=mediaId(kind,item.id||Date.now()+Math.random());await mediaPut(id,dataUrlToBlob(item.data));item.mediaId=id;migrated++;}catch(e){console.error(e)}}}if(migrated){save();showToast(migrated+' große Datei(en) in den neuen Speicher übernommen')}}
 async function hydrateMedia(){
  for(const {item} of allMediaItems()){
-  if(!item.mediaId||item.data&&String(item.data).startsWith('data:'))continue;
-  try{const blob=await mediaGet(item.mediaId);if(blob){const previous=item.data;item.data=URL.createObjectURL(blob);mediaObjectUrls.push(item.data);if(previous&&String(previous).startsWith('blob:'))URL.revokeObjectURL(previous);}}
-  catch(e){console.error('Medien laden:',e);}
+  if(item.mediaId && !(item.data&&String(item.data).startsWith('data:'))){
+   try{const blob=await mediaGet(item.mediaId);if(blob){const previous=item.data;item.data=URL.createObjectURL(blob);mediaObjectUrls.push(item.data);if(previous&&String(previous).startsWith('blob:'))URL.revokeObjectURL(previous);}}catch(e){console.error('Medien laden:',e);}
+  }
+  if(item.mediaId2 && !(item.data2&&String(item.data2).startsWith('data:'))){
+   try{const blob2=await mediaGet(item.mediaId2);if(blob2){const previous2=item.data2;item.data2=URL.createObjectURL(blob2);mediaObjectUrls.push(item.data2);if(previous2&&String(previous2).startsWith('blob:'))URL.revokeObjectURL(previous2);}}catch(e){console.error('Zweite Medienseite laden:',e);}
+  }
  }
 }
-function stripMediaData(x){if(!x||typeof x!=='object')return x;const c={};for(const k in x){if(k!=='data')c[k]=x[k]}return c}
+function stripMediaData(x){if(!x||typeof x!=='object')return x;const c={};for(const k in x){if(k!=='data'&&k!=='data2')c[k]=x[k]}return c}
 function save(){
   try{
     // Nur Metadaten in localStorage: Bilddaten (data) bleiben draußen. Es wird nichts geklont,
@@ -820,7 +856,7 @@ function save(){
   }
 }
 async function showStorageInfo(){const el=document.getElementById('storageInfo');if(!el)return;try{const all=await mediaAll(),bytes=all.reduce((n,x)=>n+(x.blob?.size||0),0);el.innerHTML='Gespeicherte Dateien: <b>'+all.length+'</b><br>Belegter Dateispeicher: <b>'+((bytes/1024/1024).toFixed(1))+' MB</b>'; }catch(e){el.textContent='IndexedDB ist in diesem Browser nicht verfügbar.'}}
-async function clearLocalMedia(){if(!confirm('Wirklich alle lokal gespeicherten Bilder und PDF-Seiten löschen?'))return;await mediaClear();['tournaments','ownTournaments'].forEach(key=>Object.keys(data[key]||{}).forEach(m=>(data[key][m]||[]).forEach(x=>{if(x){delete x.mediaId;delete x.data}})));(data.photos||[]).forEach(x=>{if(x){delete x.mediaId;delete x.data}});(data.sponsorPhotos||[]).forEach(x=>{if(x){delete x.mediaId;delete x.data}});save();renderTournamentAdminList();renderPhotoAdminList();showStorageInfo();showToast('Lokale Bilder und PDF-Seiten wurden gelöscht')}
+async function clearLocalMedia(){if(!confirm('Wirklich alle lokal gespeicherten Bilder und PDF-Seiten löschen?'))return;await mediaClear();['tournaments','ownTournaments','pressReports'].forEach(key=>Object.keys(data[key]||{}).forEach(m=>(data[key][m]||[]).forEach(x=>{if(x){delete x.mediaId;delete x.data;delete x.mediaId2;delete x.data2}})));(data.photos||[]).forEach(x=>{if(x){delete x.mediaId;delete x.data}});(data.sponsorPhotos||[]).forEach(x=>{if(x){delete x.mediaId;delete x.data}});save();renderTournamentAdminList();renderPhotoAdminList();showStorageInfo();showToast('Lokale Bilder und PDF-Seiten wurden gelöscht')}
 try{cleanupOldTournaments()}catch(e){console.error('Automatische Bereinigung:',e)}
 (async()=>{try{await migrateLegacyMedia();await hydrateMedia()}catch(e){console.error('Medien-Speicher:',e)}})();
 // Verhindert, dass der Browser die lokal gespeicherten Bilder bei Platzmangel selbstständig löscht.
@@ -843,8 +879,16 @@ async function getLocalTournamentDataUrl(item){
   }
   return '';
 }
+async function getLocalTournamentDataUrl2(item){
+  if(item?.data2 && String(item.data2).startsWith('data:')) return item.data2;
+  if(item?.mediaId2){
+    const b=await mediaGet(item.mediaId2);
+    if(b)return await dataUrlFromBlob(b);
+  }
+  return '';
+}
 function firebaseDocId(month,index,item){
-  return String(month).replace(/[^0-9-]/g,'_')+'_'+String(index)+'_'+String(item?.id||'x').replace(/[^a-zA-Z0-9_-]/g,'_');
+  return String(month).replace(/[^a-zA-Z0-9_-]/g,'_')+'_'+String(index)+'_'+String(item?.id||'x').replace(/[^a-zA-Z0-9_-]/g,'_');
 }
 const FIREBASE_MAX_CHARS=900000; // Firestore-Dokumente dürfen max. ~1 MiB groß sein
 let pendingMediaDeletes=[];
@@ -896,42 +940,67 @@ function loadPdfJs(){
   pdfJsPromise.then(ok=>{if(!ok)pdfJsPromise=null});
   return pdfJsPromise;
 }
+
+async function shrinkDataUrlToMax(dataUrl,maxChars){
+ if(!dataUrl||dataUrl.length<=maxChars)return dataUrl;
+ try{
+   const img=await fileToImage(dataUrl);
+   let scale=1,quality=.68,last=dataUrl;
+   for(let attempt=0;attempt<18;attempt++){
+     const w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+     const h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+     const c=document.createElement('canvas');c.width=w;c.height=h;
+     c.getContext('2d').drawImage(img,0,0,w,h);
+     last=c.toDataURL('image/jpeg',quality);
+     if(last.length<=maxChars)return last;
+     if(quality>.4)quality=Math.max(.4,quality-.06);else scale*=.82;
+   }
+   return last;
+ }catch(e){return dataUrl}
+}
 async function syncTournamentsToFirebase(){
   if(!ecwRequireCentralSave(tCfg().label+' speichern'))return {ok:false,error:'Firebase ist nicht verfügbar'};
-  const desiredCount=Object.keys(tStore()).reduce((sum,month)=>sum+(tStore()[month]||[]).filter(Boolean).length,0);
+  const store=tStore();
+  const desiredCount=(tCollection==='pressReports'?pressFolderList().length:0)+Object.keys(store).reduce((sum,group)=>sum+(store[group]||[]).filter(Boolean).length,0);
   try{await ecwSafetyPreflight(tCfg().fb,desiredCount,tCfg().label);}
   catch(e){const msg=e?.message||String(e);showToast(msg,8000);return {ok:false,error:msg}}
   const info=document.getElementById(tInfoElId());
   if(info)info.textContent='Übertragung wird vorbereitet …';
   try{
-    let count=0,failed=0;
-    const store=tStore();
-    for(const month of Object.keys(store).sort()){
-      const arr=store[month]||[];
+    let count=0,failed=0;const desiredIds=new Set();
+    if(tCollection==='pressReports'){
+      for(const folder of pressFolderList()){
+        const markerId='folder_'+String(folder).replace(/[^a-zA-Z0-9_-]/g,'_');
+        desiredIds.add(markerId);
+        await fbTimeout(firestoreDb.collection(tCfg().fb).doc(markerId).set({kind:'folder',folder:String(folder),updatedAt:new Date().toISOString()}),90000,'Firebase');
+      }
+    }
+    for(const group of Object.keys(store).sort()){
+      const arr=store[group]||[];
       for(let i=0;i<arr.length;i++){
-        const item=arr[i]; if(!item)continue;
-        let dataUrl=await getLocalTournamentDataUrl(item);
+        const item=arr[i];if(!item)continue;
+        let dataUrl=await getLocalTournamentDataUrl(item),dataUrl2=await getLocalTournamentDataUrl2(item);
         if(!dataUrl){failed++;continue;}
-        if(dataUrl.length>FIREBASE_MAX_CHARS)dataUrl=await shrinkDataUrlForFirebase(dataUrl);
-        if(!dataUrl||dataUrl.length>FIREBASE_MAX_CHARS){failed++;continue;}
-        const id=firebaseDocId(month,i,item);
+        if(dataUrl2){
+          dataUrl=await shrinkDataUrlToMax(dataUrl,390000);
+          dataUrl2=await shrinkDataUrlToMax(dataUrl2,390000);
+        }else if(dataUrl.length>FIREBASE_MAX_CHARS)dataUrl=await shrinkDataUrlForFirebase(dataUrl);
+        if(!dataUrl||dataUrl.length>FIREBASE_MAX_CHARS||(dataUrl2&&(dataUrl.length+dataUrl2.length)>850000)){failed++;continue;}
+        const id=firebaseDocId(group,i,item);desiredIds.add(id);
         if(info)info.textContent='Übertrage '+(tCollection==='pressReports'?'Bericht ':'Einladung ')+(count+1)+' …';
-        await fbTimeout(firestoreDb.collection(tCfg().fb).doc(id).set({
-          month:month,index:i,id:String(item.id||id),name:String(item.name||''),endDate:String(item.endDate||''),
-          data:dataUrl,updatedAt:new Date().toISOString()
-        }),90000,'Firebase');
+        const payload={month:group,folder:tCollection==='pressReports'?group:'',index:i,id:String(item.id||id),name:String(item.name||''),name2:String(item.name2||''),endDate:String(item.endDate||''),data:dataUrl,updatedAt:new Date().toISOString()};
+        if(dataUrl2)payload.data2=dataUrl2;
+        await fbTimeout(firestoreDb.collection(tCfg().fb).doc(id).set(payload),90000,'Firebase');
         count++;
       }
     }
-    await removeFirebaseDocsNotInSet(tCfg().fb, new Set(Object.keys(store).flatMap(month=>(store[month]||[]).map((item,i)=>item?firebaseDocId(month,i,item):null)).filter(Boolean)));
+    await removeFirebaseDocsNotInSet(tCfg().fb,desiredIds);
     const message=count+' '+(tCollection==='pressReports'?'Bericht(e)':'Einladung(en)')+' zu Firebase übertragen'+(failed?' · '+failed+' ohne Datei/zu groß übersprungen':'')+'.';
     if(info)info.textContent=message;
     return {ok:failed===0,count,failed,message};
   }catch(e){
-    console.error(e);
-    const error=firebaseErrorText(e);
-    if(info)info.textContent='Fehler: '+error;
-    return {ok:false,error};
+    console.error(e);const error=firebaseErrorText(e);
+    if(info)info.textContent='Fehler: '+error;return {ok:false,error};
   }
 }
 async function loadTournamentsFromFirebase(){
@@ -939,27 +1008,27 @@ async function loadTournamentsFromFirebase(){
   const info=document.getElementById(tInfoElId());
   if(info)info.textContent='Firebase-Daten werden geladen …';
   try{
-    const snap=await firestoreDb.collection(tCfg().fb).get();
-    const tournaments={};
+    const snap=await firestoreDb.collection(tCfg().fb).get(),tournaments={},folders=[];
     snap.forEach(doc=>{
       const x=doc.data()||{};
-      if(!x.month||!x.data)return;
-      (tournaments[x.month]||(tournaments[x.month]=[]))[Number.isFinite(x.index)?x.index:0]={
-        id:x.id||doc.id,name:x.name||'',endDate:x.endDate||'',data:x.data
-      };
+      if(tCollection==='pressReports'&&x.kind==='folder'&&x.folder){folders.push(String(x.folder));return;}
+      const group=tCollection==='pressReports'?(x.folder||x.month):x.month;
+      if(!group||!x.data)return;
+      (tournaments[group]||(tournaments[group]=[]))[Number.isFinite(x.index)?x.index:0]={id:x.id||doc.id,name:x.name||'',name2:x.name2||'',endDate:x.endDate||'',data:x.data,data2:x.data2||''};
     });
     data[tCfg().store]=tournaments;
-    save();
-    await hydrateMedia();
-    currentMonth=null;currentPage=0;
+    if(tCollection==='pressReports'){
+      data.settings=data.settings||{};
+      data.settings.pressReportFolders=[...new Set([...folders,...Object.keys(tournaments)])].sort((a,b)=>a.localeCompare(b,'de'));
+    }
+    save();await hydrateMedia();currentMonth=null;currentPage=0;
     renderTournamentAdminList();renderTournamentAdminPreview();
-    if(document.getElementById('tournaments').classList.contains('active'))renderTournaments();
-    const count=snap.size;
+    if(document.getElementById('tournaments')?.classList.contains('active'))renderTournaments();
+    const count=Object.values(tournaments).reduce((n,a)=>n+(a||[]).filter(Boolean).length,0);
     if(info)info.textContent=count+' '+(tCollection==='pressReports'?'Bericht(e)':'Einladung(en)')+' aus Firebase geladen.';
     showToast(count+' '+(tCollection==='pressReports'?'Bericht(e)':'Einladung(en)')+' aus Firebase geladen');
   }catch(e){
-    console.error(e);
-    if(info)info.textContent='Fehler: '+(e?.message||e);
+    console.error(e);if(info)info.textContent='Fehler: '+(e?.message||e);
     showToast('Firebase-Laden fehlgeschlagen: '+(e?.code||'Regeln prüfen'));
   }
 }
@@ -1508,7 +1577,7 @@ function adminPreviewOpen(kind){
   else if(kind==='sp'){ openPublicSection('sponsorPhotos'); window.__adminPreviewMode=true; }
   else if(kind==='m'){ openTeams().then(()=>{window.__adminPreviewMode=true}); }
   else if(kind==='sh'){ showView('startseite'); window.__adminPreviewMode=true; shUpdateBack(); }
-  else if(kind==='tv'){ window.__adminPreviewMode=true; showView('turnierverwaltung'); updateAdminPreviewBackButtons(); }
+  else if(kind==='tv'){ window.__adminPreviewMode=true; showView('turnierverwaltung'); updateAdminPreviewBackButtons(); try{enterPresentationFullscreen()}catch(e){} }
   else if(kind==='mv'){ window.__adminPreviewMode=true; openMemberManagement(); }
   else if(kind==='zr'){ window.__adminPreviewMode=true; openTournamentSection('pressReports'); }
   updateAdminPreviewBackButtons();
@@ -2656,7 +2725,7 @@ function showView(id){
  }
  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
  document.getElementById(id).classList.add('active');
- if(isWhiteboardUser()||['externalPage','tournamentMonths','tournaments','news','photos','sponsorPhotos','tournamentPlanner','teams','teamDetail'].includes(id)){
+ if(isWhiteboardUser()||['externalPage','tournamentMonths','tournaments','news','photos','sponsorPhotos','tournamentPlanner','teams','teamDetail','turnierverwaltung'].includes(id)){
    enterPresentationFullscreen();
  }else{
    leavePresentationFullscreen();
@@ -2674,7 +2743,18 @@ function showView(id){
  if(id==='photos'||id==='sponsorPhotos'){pCollection=(id==='sponsorPhotos')?'sponsorPhotos':'photos';loadPhotoPresentation(pCollection).catch(e=>console.error('Fotoanzeige:',e));}
  updateWhiteboardScreenControls();
  updateAdminPreviewBackButtons();
- if(id==='admin'){const u=data.users.find(x=>x.id===currentUser);const lab=document.getElementById('currentUserLabel');if(lab)lab.textContent=firebaseAuthUser?.email||(u?u.name:'');const _bk=window.__adminBack||(appPermissions.admin?'t':Object.keys(APP_PERMISSIONS).find(k=>!k.endsWith('View')&&hasAppPermission(k)))||'password';window.__adminBack=null;adminSection(_bk);}
+ if(id==='admin'){
+   const u=data.users.find(x=>x.id===currentUser);
+   const lab=document.getElementById('currentUserLabel');
+   if(lab)lab.textContent=firebaseAuthUser?.email||(u?u.name:'');
+   const requested=window.__adminBack;
+   window.__adminBack=null;
+   if(requested==='menu')renderAdminMenuLanding();
+   else{
+     const _bk=requested||(appPermissions.admin?'t':Object.keys(APP_PERMISSIONS).find(k=>!k.endsWith('View')&&hasAppPermission(k)))||'password';
+     adminSection(_bk);
+   }
+ }
 }
 
 function authErrorText(e){
@@ -2811,8 +2891,9 @@ function returnToAdminManagementView(){
  const tvView=document.getElementById('turnierverwaltung');
  if(tvView)tvView.classList.remove('tv-fullscreen');
  document.body.classList.remove('tv-preview-open');
+ try{leavePresentationFullscreen()}catch(e){}
  updateAdminPreviewBackButtons();
- window.__adminBack='t';
+ window.__adminBack='menu';
  showView('admin');
 }
 function returnFromAdminPreviewToMenu(){
@@ -2846,10 +2927,26 @@ function monthKey(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1
 function monthLabel(k){const [y,m]=k.split('-').map(Number);return new Intl.DateTimeFormat('de-DE',{month:'long',year:'numeric'}).format(new Date(y,m-1,1))}
 function jsArg(v){return "'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;')+"'"}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function existingMonths(){const st=tStore();return Object.keys(st).filter(k=>(st[k]||[]).some(Boolean)).sort()}
-function renderTournamentMonthOverview(){const el=document.getElementById('tMonthOverview');if(!el)return;const now=new Date();const arr=[];for(let i=0;i<12;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);arr.push(monthKey(d))}el.innerHTML=arr.map(k=>{const count=(tStore()[k]||[]).filter(Boolean).length;return '<button type="button" class="month-tile '+(count?'has-items':'')+'" data-month="'+esc(k)+'"><b>'+monthLabel(k)+'</b><span>'+(count?count+' '+(tCollection==='pressReports'?'Bericht'+(count===1?'':'e'):'Einladung'+(count===1?'':'en')):(tCollection==='pressReports'?'keine Berichte':'keine Einladung'))+'</span></button>'}).join('');el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month),{once:true}))}
+function existingMonths(){if(tCollection==='pressReports')return pressFolderList();const st=tStore();return Object.keys(st).filter(k=>(st[k]||[]).some(Boolean)).sort()}
+function renderTournamentMonthOverview(){
+ const el=document.getElementById('tMonthOverview');if(!el)return;
+ if(tCollection==='pressReports'){
+   const folders=pressFolderList();
+   if(!folders.length){el.innerHTML='<div class="empty">Noch keine Zeitungsbericht-Ordner vorhanden.</div>';return;}
+   el.innerHTML=folders.map(k=>{
+     const count=(tStore()[k]||[]).filter(Boolean).length;
+     return '<button type="button" class="month-tile '+(count?'has-items':'')+'" data-month="'+esc(k)+'"><b>'+esc(pressFolderLabel(k))+'</b><span>'+count+' Bericht'+(count===1?'':'e')+'</span></button>';
+   }).join('');
+   el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month),{once:true}));
+   return;
+ }
+ const now=new Date(),arr=[];
+ for(let i=0;i<12;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);arr.push(monthKey(d))}
+ el.innerHTML=arr.map(k=>{const count=(tStore()[k]||[]).filter(Boolean).length;return '<button type="button" class="month-tile '+(count?'has-items':'')+'" data-month="'+esc(k)+'"><b>'+monthLabel(k)+'</b><span>'+(count?count+' Einladung'+(count===1?'':'en'):'keine Einladung')+'</span></button>'}).join('');
+ el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month),{once:true}));
+}
 async function openTournamentMonth(k){currentMonth=String(k);currentPage=0;adminTournamentPage=0;await showView('tournaments')}
-function initTournaments(){const ms=existingMonths();currentMonth=currentMonth&&ms.includes(currentMonth)?currentMonth:(ms[0]||monthKey());currentPage=0;adminTournamentPage=0;renderTournaments()}
+function initTournaments(){const ms=existingMonths();currentMonth=currentMonth&&ms.includes(currentMonth)?currentMonth:(ms[0]||(tCollection==='pressReports'?'':monthKey()));currentPage=0;adminTournamentPage=0;renderTournaments()}
 function monthKeyOffset(offset){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);return monthKey(d)}
 function tournamentMonthOptions(){
   const set=new Set(existingMonths());
@@ -2979,56 +3076,39 @@ function renderOwnTournaments(){
 function renderTournaments(){
  if(tCollection==='ownTournaments')return renderOwnTournaments();
  const fEl=document.getElementById('tFooter');if(fEl)fEl.style.display='none';
- const mbEl=document.getElementById('tMonthsBtn');if(mbEl)mbEl.style.display='block';
- const ms=existingMonths();if(!currentMonth)currentMonth=ms[0]||monthKey();
- const rawItems=tStore()[currentMonth]||[];
- // Die Präsentation muss dieselbe Position je Einladung zeigen wie die Vorschau.
- // Beim Umsortieren entstehen freie Plätze (null); diese werden bewusst behalten,
- // damit "Platz N" in der Vorschau und die Seite N in der Präsentation übereinstimmen.
- const items=[];
+ const mbEl=document.getElementById('tMonthsBtn');
+ if(mbEl){mbEl.style.display='block';mbEl.textContent=tCollection==='pressReports'?'Ordnerübersicht':'Monatsübersicht';}
+ const ms=existingMonths();
+ if(!currentMonth)currentMonth=ms[0]||(tCollection==='pressReports'?'':monthKey());
+ const rawItems=tStore()[currentMonth]||[],items=[];
  for(let i=0;i<rawItems.length;i++)items.push(rawItems[i]||null);
  const perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12));
  const totalPages=Math.max(1,Math.ceil(items.length/perPage));currentPage=Math.max(0,Math.min(currentPage,totalPages-1));
  const shown=items.slice(currentPage*perPage,currentPage*perPage+perPage);
- document.getElementById('tMonth').textContent=monthLabel(currentMonth)+(items.some(Boolean)?'':' – noch keine Einladungen');
+ const title=document.getElementById('tMonth');
+ if(title)title.textContent=tGroupLabel(currentMonth)+(items.some(Boolean)?'':(tCollection==='pressReports'?' – noch keine Berichte':' – noch keine Einladungen'));
  const c=document.getElementById('tContent');c.innerHTML='';const n=shown.length;
- if(!n){c.style.gridTemplateColumns='1fr';c.style.gridTemplateRows='1fr';c.innerHTML='<div class="empty">Für diesen Monat sind noch keine '+(tCollection==='pressReports'?'Zeitungsberichte':'Turniereinladungen')+' vorhanden.</div>'}
- else{
-   const rows=2,cols=Math.ceil(perPage/2);
-   /* Im Vollbild zählt ausschließlich der tatsächlich sichtbare Bereich.
-      Die Navigation liegt rechts; der verfügbare Bereich wird deshalb
-      zunächst für die A4-Seiten berechnet. Wenn die Seiten durch die Höhe
-      kleiner als die verfügbare Breite sind, wird der Zwischenabstand
-      automatisch vergrößert, sodass die gesamte Breite genutzt wird. */
-   const availableH=Math.max(300,c.clientHeight);
-   const availableW=Math.max(300,c.clientWidth);
-   const minGap=4;
-   const slotH=Math.floor((availableH-(rows-1)*minGap)/rows);
-   const slotWByHeight=Math.floor(slotH*(210/297));
-   const widthLimit=Math.floor((availableW-(cols-1)*minGap)/cols);
-   const slotW=Math.max(70,Math.min(slotWByHeight,widthLimit));
-   let gap=minGap;
-   if(cols>1){
-     const free=availableW-(cols*slotW);
-     gap=Math.max(minGap,Math.floor(free/(cols-1)));
-   }
-   c.style.gridTemplateColumns='repeat('+cols+','+slotW+'px)';
-   c.style.gridTemplateRows='repeat('+rows+','+slotH+'px)';
-   c.style.alignContent='start';
-   c.style.columnGap=gap+'px';
-   c.style.rowGap=minGap+'px';
-   c.style.justifyContent='start';
+ if(!n){
+   c.style.gridTemplateColumns='1fr';c.style.gridTemplateRows='1fr';
+   c.innerHTML='<div class="empty">'+(tCollection==='pressReports'?'In diesem Ordner sind noch keine Zeitungsberichte vorhanden.':'Für diesen Monat sind noch keine Turniereinladungen vorhanden.')+'</div>';
+ }else{
+   const rows=2,cols=Math.ceil(perPage/2),availableH=Math.max(300,c.clientHeight),availableW=Math.max(300,c.clientWidth),minGap=4;
+   const slotH=Math.floor((availableH-(rows-1)*minGap)/rows),slotWByHeight=Math.floor(slotH*(210/297)),widthLimit=Math.floor((availableW-(cols-1)*minGap)/cols),slotW=Math.max(70,Math.min(slotWByHeight,widthLimit));
+   let gap=minGap;if(cols>1){const free=availableW-(cols*slotW);gap=Math.max(minGap,Math.floor(free/(cols-1)));}
+   c.style.gridTemplateColumns='repeat('+cols+','+slotW+'px)';c.style.gridTemplateRows='repeat('+rows+','+slotH+'px)';c.style.alignContent='start';c.style.columnGap=gap+'px';c.style.rowGap=minGap+'px';c.style.justifyContent='start';
    shown.forEach(x=>{
      const slot=document.createElement('div');
      if(!x){slot.className='page-slot page-slot-empty';c.appendChild(slot);return}
-     slot.className='page-slot';
-     slot.innerHTML='<img src="'+x.data+'" alt="'+esc(x.name)+'">';
-     slot.onclick=()=>openInvitationZoom(x);
-     c.appendChild(slot)
+     slot.className='page-slot'+(x.data2?' press-pair':'');
+     slot.innerHTML='<img src="'+x.data+'" alt="'+esc(x.name)+'">'+(x.data2?'<img src="'+x.data2+'" alt="'+esc(x.name2||x.name+' Seite 2')+'">':'');
+     slot.onclick=()=>openInvitationZoom(x);c.appendChild(slot);
    });
  }
- document.getElementById('prevPageBtn').style.display=currentPage>0?'block':'none';document.getElementById('nextPageBtn').style.display=currentPage<totalPages-1?'block':'none';
- const idx=ms.indexOf(currentMonth);document.getElementById('prevMonthBtn').style.display=idx>0?'block':'none';document.getElementById('nextMonthBtn').style.display=idx>=0&&idx<ms.length-1?'block':'none';
+ document.getElementById('prevPageBtn').style.display=currentPage>0?'block':'none';
+ document.getElementById('nextPageBtn').style.display=currentPage<totalPages-1?'block':'none';
+ const idx=ms.indexOf(currentMonth),prev=document.getElementById('prevMonthBtn'),next=document.getElementById('nextMonthBtn');
+ if(prev){prev.style.display=idx>0?'block':'none';prev.textContent=tCollection==='pressReports'?'Voriger Ordner':'Voriger Monat';}
+ if(next){next.style.display=idx>=0&&idx<ms.length-1?'block':'none';next.textContent=tCollection==='pressReports'?'Nächster Ordner':'Nächster Monat';}
 }
 function openInvitationZoom(x){
  if(!x||!x.data)return;
@@ -3036,15 +3116,11 @@ function openInvitationZoom(x){
  if(!ov){
    ov=document.createElement('div');ov.id='invZoom';ov.className='inv-zoom';
    ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
-   ov.innerHTML='<img id="invZoomImg" alt=""><button type="button" class="inv-zoom-close" aria-label="Schließen">✕</button>';
-   ov.onclick=closeInvitationZoom;
-   document.body.appendChild(ov);
+   ov.onclick=closeInvitationZoom;document.body.appendChild(ov);
    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeInvitationZoom()});
-   void ov.offsetWidth; // Startzustand festschreiben, damit die Einblendung animiert wird
  }
- const img=ov.querySelector('#invZoomImg');
- img.src=x.data;img.alt=x.name||'Einladung';
- requestAnimationFrame(()=>ov.classList.add('show'));
+ ov.innerHTML='<div class="inv-zoom-images'+(x.data2?' pair':'')+'"><img src="'+x.data+'" alt="'+esc(x.name||'Seite 1')+'">'+(x.data2?'<img src="'+x.data2+'" alt="'+esc(x.name2||'Seite 2')+'">':'')+'</div><button type="button" class="inv-zoom-close" aria-label="Schließen">✕</button>';
+ void ov.offsetWidth;requestAnimationFrame(()=>ov.classList.add('show'));
 }
 function closeInvitationZoom(){
  const ov=document.getElementById('invZoom');
@@ -4429,6 +4505,52 @@ function tpAdminSubSection(sub){if(isWhiteboardUser()){showToast('Whiteboard: nu
   if(b)b.className=(k===sub?'primary':'');
  });
 }
+
+function renderAdminMenuLanding(){
+  const a=document.getElementById('adminMain');
+  if(!a)return;
+  try{a.classList.remove('mv-mode')}catch(e){}
+  a.innerHTML='<h2>Verwaltung</h2><div class="card"><h3>Bereich auswählen</h3><p class="small">Bitte links im Verwaltungsmenü den gewünschten Bereich auswählen.</p></div>';
+}
+
+function pressFolderOptions(selected=''){
+ const folders=pressFolderList();
+ if(!folders.length)return '<option value="">Bitte zuerst Ordner erstellen</option>';
+ return folders.map(f=>'<option value="'+esc(f)+'" '+(f===selected?'selected':'')+'>'+esc(f)+'</option>').join('');
+}
+function pressRefreshAdminFolderSelects(selected=''){
+ const folders=pressFolderList();
+ const sel=selected||currentMonth||folders[0]||'';
+ ['zrFolderSelect','tadminmonth'].forEach(id=>{
+   const el=document.getElementById(id);if(!el)return;
+   el.innerHTML=pressFolderOptions(sel);el.value=sel;
+ });
+ currentMonth=sel;
+ renderTournamentAdminPreview();renderTournamentAdminList();
+}
+function pressCreateFolder(){
+ const inp=document.getElementById('zrNewFolder'),name=String(inp?.value||'').trim();
+ if(!name){showToast('Bitte einen Ordnernamen eingeben.');return;}
+ pressEnsureFolder(name);currentMonth=name;if(inp)inp.value='';save();
+ pressRefreshAdminFolderSelects(name);
+ showToast('Ordner „'+name+'“ erstellt.');
+}
+async function pressDeleteSelectedFolder(){
+ const folder=document.getElementById('zrFolderSelect')?.value||currentMonth;
+ if(!folder)return;
+ const arr=(data.pressReports&&data.pressReports[folder])||[];
+ if(!confirm('Ordner „'+folder+'“ mit '+arr.filter(Boolean).length+' Bericht(en) löschen?'))return;
+ for(const item of arr){
+   if(!item)continue;
+   try{if(item.mediaId)await mediaDelete(item.mediaId)}catch(e){}
+   try{if(item.mediaId2)await mediaDelete(item.mediaId2)}catch(e){}
+ }
+ delete data.pressReports[folder];
+ data.settings.pressReportFolders=pressFolderList().filter(x=>x!==folder);
+ currentMonth=pressFolderList()[0]||'';
+ save();pressRefreshAdminFolderSelects(currentMonth);
+ showToast('Ordner gelöscht. Bitte „Zeitungsberichte speichern“ drücken, um Firebase zu aktualisieren.');
+}
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
@@ -4441,7 +4563,7 @@ function adminSection(s){
  if(s==='u'){openUserRightsAdmin();return}
  if(s==='mv'){renderMemberAdmin();return}
  if(s==='ov'){renderOverviewAdmin();return}
- if(s==='tv'){renderTurnierverwaltungAdmin();return}
+ if(s==='tv'){adminPreviewOpen('tv');return}
  if(s==='m'){renderTeamsAdmin();return}
  if(s==='lk'){renderLinksAdmin();return}
   if(s==='sh'){renderStartseiteAdmin();return}
@@ -4455,18 +4577,24 @@ function adminSection(s){
   document.getElementById('tadminmonth').onchange=()=>{currentMonth=document.getElementById('tadminmonth').value;currentPage=0;adminTournamentPage=0;renderTournamentAdminPreview();renderTournamentAdminList();};
  }else if(s==='zr'){
   tCollection='pressReports';
-  const tmonths=existingMonths(); const selectedAdminMonth=tmonths.includes(currentMonth)?currentMonth:(tmonths[0]||monthKey());
+  const folders=pressFolderList();
+  currentMonth=(currentMonth&&folders.includes(currentMonth))?currentMonth:(folders[0]||'');
   const directUrl=getBaseUrl()+'#zeitungsberichte';
   a.innerHTML='<h2>Zeitungsberichte EC Wegscheid</h2>'
    +'<div class="card"><label>Direktlink</label><div class="row"><input type="text" readonly value="'+esc(directUrl)+'" onclick="this.select()" style="flex:1"><button type="button" onclick="navigator.clipboard?.writeText('+jsArg(directUrl)+');showToast(\'Link kopiert\')">Link kopieren</button></div></div>'
-   +'<div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select>'
-   +'<label style="margin-top:10px">Zeitungsberichte hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg">'
-   +'<div id="firebasePressReportInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die Berichte werden wie Turniereinladungen im Programm dargestellt und zentral in Firebase gespeichert. PDF-Dateien werden seitenweise übernommen.</p></div>'
-   +'<h3>Vorhandene Zeitungsberichte</h3><div class="card"><label>Monat auswählen</label><select id="tadminmonth">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div>'
-   +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="saveTournamentFiles()">Speichern</button></div>';
+   +'<div class="card"><h3>Ordner</h3><div class="row"><input id="zrNewFolder" type="text" placeholder="z. B. Passauer Neue Presse 2026" style="flex:1"><button type="button" onclick="pressCreateFolder()">Ordner erstellen</button></div>'
+   +'<label style="margin-top:12px">Ordner für neue Berichte auswählen</label><select id="zrFolderSelect">'+pressFolderOptions(currentMonth)+'</select>'
+   +'<div class="row" style="margin-top:8px"><button type="button" class="danger" onclick="pressDeleteSelectedFolder()">Ausgewählten Ordner löschen</button></div></div>'
+   +'<div class="card"><label>Zeitungsberichte hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg">'
+   +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>Jeweils 2 zusammengehörige Seiten auf einem Platzhalter anzeigen</span></label>'
+   +'<div class="small" style="margin-top:6px">Bei PDF: Seite 1+2, 3+4 usw. Bei Bildern: jeweils zwei nacheinander ausgewählte Dateien.</div>'
+   +'<div id="firebasePressReportInfo" class="small" style="margin-top:10px"></div></div>'
+   +'<h3>Vorhandene Zeitungsberichte</h3><div class="card"><label>Ordner auswählen</label><select id="tadminmonth">'+pressFolderOptions(currentMonth)+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div>'
+   +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="savePressReportFiles()">Zeitungsberichte speichern</button></div>';
   renderTournamentAdminList();renderTournamentAdminPreview();
-  document.getElementById('tm').onchange=()=>{currentMonth=document.getElementById('tm').value};
-  document.getElementById('tadminmonth').onchange=()=>{currentMonth=document.getElementById('tadminmonth').value;currentPage=0;adminTournamentPage=0;renderTournamentAdminPreview();renderTournamentAdminList();};
+  const zfs=document.getElementById('zrFolderSelect'),zas=document.getElementById('tadminmonth');
+  if(zfs)zfs.onchange=()=>{currentMonth=zfs.value;if(zas)zas.value=currentMonth;currentPage=0;adminTournamentPage=0;renderTournamentAdminPreview();renderTournamentAdminList();};
+  if(zas)zas.onchange=()=>{currentMonth=zas.value;if(zfs)zfs.value=currentMonth;currentPage=0;adminTournamentPage=0;renderTournamentAdminPreview();renderTournamentAdminList();};
  }else if(s==='o'){
   tCollection='ownTournaments';
   a.innerHTML='<h2>Eigene Turniereinladungen</h2><div class="card"><label>Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="ofiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><button class="primary" style="width:100%;margin-top:10px" onclick="saveOwnTournamentFiles()">Speichern</button><div id="firebaseOwnTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Es werden maximal 7 Einladungen gleichzeitig angezeigt – zuerst die mit dem nächsten Enddatum. PDF-Dateien werden automatisch seitenweise übernommen.</p></div><h3>Vorhandene Einladungen</h3><div id="oAdminList"></div>';
@@ -4563,8 +4691,62 @@ function saveTournamentPerPage(){
    if(document.getElementById('tournaments').classList.contains('active')) renderTournaments();
  }
 }
-function renderTournamentAdminList(){const el=document.getElementById('tAdminList');if(!el)return;const m=document.getElementById('tadminmonth')?.value||currentMonth;el.innerHTML='';const items=tStore()[m]||[];const count=items.filter(Boolean).length;if(count){const h=document.createElement('h4');h.textContent=monthLabel(m)+' – '+count+' Einladung(en)';el.appendChild(h);items.forEach((x,i)=>{if(!x)return;const d=document.createElement('div');d.className='list-item';d.innerHTML='<span>'+esc(x.name)+'</span><div><button class="admin-crop-btn" onclick="cropOpenTournament('+jsArg(m)+','+i+')">✂ Zuschneiden</button><button class="danger" onclick="deleteTournament('+jsArg(m)+','+i+')">Löschen</button></div>';el.appendChild(d)})}else el.innerHTML='<div class="small">Für den ausgewählten Monat sind noch keine Einladungen vorhanden.</div>';}
-function renderTournamentAdminPreview(){const el=document.getElementById('tAdminPreview');const m=document.getElementById('tadminmonth')?.value||currentMonth;if(!el||!m)return;const items=tStore()[m]||[],perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12)),totalPages=Math.max(1,Math.ceil(items.length/perPage));adminTournamentPage=Math.max(0,Math.min(adminTournamentPage,totalPages-1));const start=adminTournamentPage*perPage;const cols=Math.ceil(perPage/2),rows=2;el.innerHTML='';const controls=document.createElement('div');controls.className='admin-preview-controls';controls.innerHTML='<button '+(adminTournamentPage<=0?'disabled':'')+' onclick=\"changeAdminTournamentPage(-1)\">◀ Vorige Seite</button><div class=\"admin-preview-pageinfo\">Präsentationsseite '+(adminTournamentPage+1)+' / '+totalPages+'</div><button '+(adminTournamentPage>=totalPages-1?'disabled':'')+' onclick=\"changeAdminTournamentPage(1)\">Nächste Seite ▶</button>';el.appendChild(controls);const page=document.createElement('div');page.className='admin-tournament-page';page.style.gridTemplateColumns='repeat('+cols+',minmax(110px,1fr))';page.style.gridTemplateRows='repeat('+rows+',minmax(170px,auto))';for(let pos=0;pos<perPage;pos++){const absolute=start+pos,x=items[absolute],d=document.createElement('div');d.className='admin-tournament-slot'+(x?' filled':'');d.dataset.pos=String(absolute);d.innerHTML='<div class=\"admin-tournament-position\">Platz '+(pos+1)+'</div>'+(x?'<img src=\"'+x.data+'\" alt=\"'+esc(x.name)+'\"><button class=\"danger admin-tournament-delete\" onclick=\"event.stopPropagation();deleteTournament('+jsArg(m)+','+absolute+')\">Löschen</button>':'<div class=\"admin-tournament-placeholder\">Freier Platz<br>Einladung hierher ziehen</div>');d.draggable=!!x;d.ondragstart=e=>{if(!x)return;e.dataTransfer.setData('text/plain',String(absolute));d.style.opacity='.5'};d.ondragend=()=>d.style.opacity='1';d.ondragover=e=>{e.preventDefault();d.classList.add('drag-over')};d.ondragleave=()=>d.classList.remove('drag-over');d.ondrop=e=>{e.preventDefault();d.classList.remove('drag-over');const from=Number(e.dataTransfer.getData('text/plain')),to=Number(d.dataset.pos);if(!Number.isFinite(from)||from===to)return;const arr=tStore()[m]||[];if(from<0||from>=arr.length||!arr[from])return;const moved=arr[from];arr[from]=null;if(to>=arr.length)arr.length=to+1;arr[to]=moved;while(arr.length&&arr[arr.length-1]==null)arr.pop();renderTournamentAdminPreview();renderTournamentAdminList();showToast('Reihenfolge geändert – bitte Speichern')};page.appendChild(d)}el.appendChild(page);const help=document.createElement('div');help.className='small admin-preview-help';help.textContent='Die Platzhalter entsprechen den Positionen der Präsentationsseite. Per Drag & Drop können Einladungen frei umsortiert werden.';el.appendChild(help)}
+function renderTournamentAdminList(){
+ const el=document.getElementById('tAdminList');if(!el)return;
+ const m=document.getElementById('tadminmonth')?.value||currentMonth;
+ el.innerHTML='';
+ if(!m){el.innerHTML='<div class="small">'+(tCollection==='pressReports'?'Bitte zuerst einen Ordner erstellen.':'Kein Zeitraum ausgewählt.')+'</div>';return;}
+ const items=tStore()[m]||[],count=items.filter(Boolean).length;
+ if(count){
+   const h=document.createElement('h4');
+   h.textContent=tGroupLabel(m)+' – '+count+' '+(tCollection==='pressReports'?'Bericht'+(count===1?'':'e'):'Einladung(en)');
+   el.appendChild(h);
+   items.forEach((x,i)=>{
+     if(!x)return;
+     const d=document.createElement('div');d.className='list-item';
+     const pair=x.data2||x.mediaId2;
+     d.innerHTML='<span>'+esc(x.name)+(pair?' <b>· 2 Seiten</b>':'')+'</span><div><button class="admin-crop-btn" onclick="cropOpenTournament('+jsArg(m)+','+i+')">✂ Zuschneiden</button><button class="danger" onclick="deleteTournament('+jsArg(m)+','+i+')">Löschen</button></div>';
+     el.appendChild(d);
+   });
+ }else el.innerHTML='<div class="small">'+(tCollection==='pressReports'?'In diesem Ordner sind noch keine Zeitungsberichte vorhanden.':'Für den ausgewählten Monat sind noch keine Einladungen vorhanden.')+'</div>';
+}
+function renderTournamentAdminPreview(){
+ const el=document.getElementById('tAdminPreview'),m=document.getElementById('tadminmonth')?.value||currentMonth;
+ if(!el)return;
+ if(!m){el.innerHTML='<div class="small">Bitte zuerst einen Ordner auswählen.</div>';return;}
+ const items=tStore()[m]||[],perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12)),totalPages=Math.max(1,Math.ceil(items.length/perPage));
+ adminTournamentPage=Math.max(0,Math.min(adminTournamentPage,totalPages-1));
+ const start=adminTournamentPage*perPage,cols=Math.ceil(perPage/2),rows=2;
+ el.innerHTML='';
+ const controls=document.createElement('div');controls.className='admin-preview-controls';
+ controls.innerHTML='<button '+(adminTournamentPage<=0?'disabled':'')+' onclick="changeAdminTournamentPage(-1)">◀ Vorige Seite</button><div class="admin-preview-pageinfo">'+esc(tGroupLabel(m))+' · Präsentationsseite '+(adminTournamentPage+1)+' / '+totalPages+'</div><button '+(adminTournamentPage>=totalPages-1?'disabled':'')+' onclick="changeAdminTournamentPage(1)">Nächste Seite ▶</button>';
+ el.appendChild(controls);
+ const page=document.createElement('div');page.className='admin-tournament-page';
+ page.style.gridTemplateColumns='repeat('+cols+',minmax(110px,1fr))';page.style.gridTemplateRows='repeat('+rows+',minmax(170px,auto))';
+ for(let pos=0;pos<perPage;pos++){
+   const absolute=start+pos,x=items[absolute],d=document.createElement('div');
+   d.className='admin-tournament-slot'+(x?' filled':'')+(x&&(x.data2||x.mediaId2)?' press-pair':'');
+   d.dataset.pos=String(absolute);
+   let body='<div class="admin-tournament-placeholder">Freier Platz<br>'+(tCollection==='pressReports'?'Bericht':'Einladung')+' hierher ziehen</div>';
+   if(x){
+     body='<img src="'+x.data+'" alt="'+esc(x.name)+'">';
+     if(x.data2)body+='<img src="'+x.data2+'" alt="'+esc(x.name2||x.name+' Seite 2')+'">';
+     body+='<button class="danger admin-tournament-delete" onclick="event.stopPropagation();deleteTournament('+jsArg(m)+','+absolute+')">Löschen</button>';
+   }
+   d.innerHTML='<div class="admin-tournament-position">Platz '+(pos+1)+(x&&(x.data2||x.mediaId2)?' · 2 Seiten':'')+'</div>'+body;
+   d.draggable=!!x;
+   d.ondragstart=e=>{if(!x)return;e.dataTransfer.setData('text/plain',String(absolute));d.style.opacity='.5'};
+   d.ondragend=()=>d.style.opacity='1';
+   d.ondragover=e=>{e.preventDefault();d.classList.add('drag-over')};
+   d.ondragleave=()=>d.classList.remove('drag-over');
+   d.ondrop=e=>{e.preventDefault();d.classList.remove('drag-over');const from=Number(e.dataTransfer.getData('text/plain')),to=Number(d.dataset.pos);if(!Number.isFinite(from)||from===to)return;const arr=tStore()[m]||[];if(from<0||from>=arr.length||!arr[from])return;const moved=arr[from];arr[from]=null;if(to>=arr.length)arr.length=to+1;arr[to]=moved;while(arr.length&&arr[arr.length-1]==null)arr.pop();renderTournamentAdminPreview();renderTournamentAdminList();showToast('Reihenfolge geändert – bitte Speichern')};
+   page.appendChild(d);
+ }
+ el.appendChild(page);
+ const help=document.createElement('div');help.className='small admin-preview-help';
+ help.textContent=tCollection==='pressReports'?'Ein Platzhalter kann eine oder zwei zusammengehörige Zeitungsseiten enthalten. Per Drag & Drop können die Berichte frei sortiert werden.':'Die Platzhalter entsprechen den Positionen der Präsentationsseite. Per Drag & Drop können Einladungen frei umsortiert werden.';
+ el.appendChild(help);
+}
 function changeAdminTournamentPage(d){adminTournamentPage+=d;renderTournamentAdminPreview()}
 function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
 async function compressInvitationCanvas(sourceCanvas){
@@ -4612,6 +4794,75 @@ async function addTournamentPdfFile(file,month){
    const st=tStore();const arr=st[month]||(st[month]=[]);let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;arr[slot]={id,name:file.name+' – Seite '+n,mediaId:stored.id,data:stored.url};
  }
 }
+
+async function pressExtractPages(file){
+ const out=[];
+ if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
+   if(!(await loadPdfJs()))throw new Error('PDF.js konnte nicht geladen werden');
+   const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+   for(let n=1;n<=pdf.numPages;n++){
+     const pg=await pdf.getPage(n),vp=pg.getViewport({scale:2}),can=document.createElement('canvas');
+     can.width=Math.ceil(vp.width);can.height=Math.ceil(vp.height);
+     await pg.render({canvasContext:can.getContext('2d'),viewport:vp}).promise;
+     out.push({name:file.name+' – Seite '+n,dataUrl:await compressInvitationCanvas(can)});
+   }
+   return out;
+ }
+ if(/\.(png|bmp|jpe?g)$/i.test(file.name)||/^image\/(png|bmp|jpeg)$/i.test(file.type)){
+   const raw=await readFile(file);
+   const img=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=reject;x.src=raw});
+   const maxSide=1600,scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+   const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+   c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+   out.push({name:file.name,dataUrl:await compressInvitationCanvas(c)});
+   return out;
+ }
+ throw new Error('Nur PDF, PNG, JPG oder BMP sind erlaubt');
+}
+async function pressStorePage(dataUrl,name){
+ const id=Date.now()+'_'+Math.random().toString(36).slice(2),stored=await storeMedia('zr',id,dataUrl);
+ return {id:String(id),name,mediaId:stored.id,data:stored.url};
+}
+async function savePressReportFiles(){
+ const folder=document.getElementById('zrFolderSelect')?.value||currentMonth;
+ const files=[...(document.getElementById('zrfiles')?.files||[])];
+ const pair=!!document.getElementById('zrPairPages')?.checked;
+ const info=document.getElementById('firebasePressReportInfo');
+ if(!folder){showToast('Bitte zuerst einen Ordner erstellen und auswählen.');return;}
+ if(!files.length){showToast('Bitte mindestens eine Datei auswählen.');return;}
+ pressEnsureFolder(folder);
+ if(info)info.textContent='Zeitungsberichte werden vorbereitet …';
+ try{
+   const pages=[];
+   for(const file of files)pages.push(...await pressExtractPages(file));
+   const arr=data.pressReports[folder]||(data.pressReports[folder]=[]);
+   for(let i=0;i<pages.length;i+=(pair?2:1)){
+     const p1=pages[i],p2=pair?pages[i+1]:null,a=await pressStorePage(p1.dataUrl,p1.name);
+     const item={id:a.id,name:a.name,mediaId:a.mediaId,data:a.data};
+     if(p2){
+       const b=await pressStorePage(p2.dataUrl,p2.name);
+       item.name2=b.name;item.mediaId2=b.mediaId;item.data2=b.data;
+     }
+     let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;arr[slot]=item;
+   }
+   if(!save())throw new Error('Lokales Speichern fehlgeschlagen');
+   currentMonth=folder;currentPage=0;adminTournamentPage=0;
+   await hydrateMedia();renderTournamentAdminPreview();renderTournamentAdminList();
+   if(info)info.textContent='Lokal gespeichert. Firebase wird aktualisiert …';
+   const fb=await syncTournamentsToFirebase();
+   const inp=document.getElementById('zrfiles');if(inp)inp.value='';
+   if(fb.ok){
+     if(info)info.textContent=fb.message;
+     showToast(pages.length+' Seite(n) gespeichert'+(pair?' · bis zu 2 Seiten pro Platzhalter':'')+' · Firebase aktualisiert');
+   }else{
+     if(info)info.textContent='Lokal gespeichert · Firebase-Fehler: '+(fb.error||fb.message||'unbekannt');
+     showToast('Lokal gespeichert, Firebase fehlgeschlagen: '+(fb.error||fb.message||''),8000);
+   }
+ }catch(e){
+   console.error(e);if(info)info.textContent='Fehler: '+(e?.message||e);
+   showToast('Speichern fehlgeschlagen: '+(e?.message||e),7000);
+ }
+}
 async function saveTournamentFiles(){
  const month=document.getElementById('tm')?.value||document.getElementById('tadminmonth')?.value||monthKey();
  const files=[...(document.getElementById(tFileInputId())?.files||[])];
@@ -4653,8 +4904,8 @@ async function deleteTournament(m,i){
  const st=tStore();const arr=st[m]||[];
  const item=arr[i];
  if(!item)return;
- if(!confirm('Einladung wirklich löschen?'))return;
- try{if(item.mediaId)await mediaDelete(item.mediaId)}catch(e){console.error('Medienlöschung:',e)}
+ if(!confirm((tCollection==='pressReports'?'Zeitungsbericht':'Einladung')+' wirklich löschen?'))return;
+ try{if(item.mediaId)await mediaDelete(item.mediaId);if(item.mediaId2)await mediaDelete(item.mediaId2)}catch(e){console.error('Medienlöschung:',e)}
  arr.splice(i,1);
  if(!arr.filter(Boolean).length)delete st[m];
  else st[m]=arr;
@@ -4663,7 +4914,7 @@ async function deleteTournament(m,i){
  adminTournamentPage=Math.max(0,adminTournamentPage);
  renderTournamentAdminList();renderTournamentAdminPreview();
  if(document.getElementById('tournaments')?.classList.contains('active'))renderTournaments();
- showToast('Einladung gelöscht. Bitte jetzt unten auf „Speichern“ drücken.');
+ showToast((tCollection==='pressReports'?'Zeitungsbericht':'Einladung')+' gelöscht. Bitte jetzt unten auf „Speichern“ drücken.');
 }
 function resizeImage(file,maxSide=1600,quality=.82){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{let w=img.naturalWidth,h=img.naturalHeight,scale=Math.min(1,maxSide/Math.max(w,h));w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
 function updatePhotoAlbumForm(){const m=document.getElementById('pmonth')?.value;if(!m)return;const a=pAlbums()[m]||{};document.getElementById('palbum').value=a.name||'';document.getElementById('pmode').value=a.mode||'slideshow';document.getElementById('pdur').value=a.duration||5}
@@ -5076,10 +5327,19 @@ async function autoLoadPublicFirebaseDataV1245(){
   const loadZR=async()=>{
     try{
       const snap=await firestoreDb.collection('pressReports').get();
-      const reports={};
-      snap.forEach(doc=>{const x=doc.data()||{};if(x.month&&x.data){const i=Number.isFinite(x.index)?x.index:0;(reports[x.month]||(reports[x.month]=[]))[i]={id:x.id||doc.id,name:x.name||'',data:x.data};}});
+      const reports={},folders=[];
+      snap.forEach(doc=>{
+        const x=doc.data()||{};
+        if(x.kind==='folder'&&x.folder){folders.push(String(x.folder));return;}
+        const group=x.folder||x.month;
+        if(group&&x.data){
+          const i=Number.isFinite(x.index)?x.index:0;
+          (reports[group]||(reports[group]=[]))[i]={id:x.id||doc.id,name:x.name||'',name2:x.name2||'',data:x.data,data2:x.data2||''};
+        }
+      });
       if(snap.size && currentUser!=='admin'){
-        data.pressReports=reports;
+        data.pressReports=reports;data.settings=data.settings||{};
+        data.settings.pressReportFolders=[...new Set([...folders,...Object.keys(reports)])].sort((a,b)=>a.localeCompare(b,'de'));
         if(tCollection==='pressReports'){
           currentPage=0;
           if(document.getElementById('tournamentMonths')?.classList.contains('active'))renderTournamentMonthOverview();

@@ -1,0 +1,21 @@
+EC Wegscheid Vereinsverwaltung V3.0.44
+
+ZEITUNGSBERICHTE
+- Monatsverwaltung entfernt.
+- Frei benennbare Ordner statt Monate.
+- Ordner erstellen, auswählen und löschen.
+- Anzeige verwendet Ordnerübersicht.
+- Ein Platzhalter kann 1 oder 2 zusammengehörige Seiten enthalten.
+- Bei PDF: Seite 1+2, 3+4 usw.
+- Bei Bildern: jeweils zwei nacheinander ausgewählte Dateien.
+- Doppelseiten werden nebeneinander im selben Platzhalter und in der Großansicht dargestellt.
+- Ordner und Berichte werden in Firebase gespeichert.
+- Leere Ordner werden in Firebase als Ordner-Markierung gespeichert.
+
+VERWALTUNGSMENÜ
+- "Zeitungsberichte EC Wegscheid" steht direkt unter "Fotos Sponsoren für Diashow".
+
+TURNIERVERWALTUNG
+- Normaler Verwaltungsbutton und Vorschau öffnen jetzt Vollbild.
+- Der Zurück-Button geht genau eine Ebene zurück ins Verwaltungsmenü.
+- Keine neue Anmeldung.
