@@ -1,0 +1,22 @@
+EC Wegscheid Vereinsverwaltung V3.0.46
+
+ZEITUNGSBERICHTE – FIREBASE
+- pressReports wird jetzt beim zentralen Firebase-Start wie die anderen Bereiche geladen.
+- pressReports wird zusätzlich live überwacht.
+- Beim Speichern wartet der Bereich bis zu 10 Sekunden auf die Wiederherstellung der gespeicherten Firebase-Anmeldung.
+- Falls Firebase noch nicht bereit ist, bleiben die Berichte lokal gespeichert und es wird eine klare Meldung angezeigt.
+- Danach kann der Speichervorgang erneut ausgelöst werden.
+
+ZEITUNGSBERICHTE – ZURÜCK
+- Neuer Button oben:
+  "← Zurück zum Verwaltungsmenü"
+- Führt genau eine Ebene zurück ins Verwaltungsmenü.
+
+ZEITUNGSBERICHTE – 1/2-SEITIG
+- Standard: alle Seiten einzeln.
+- Option:
+  "Aktuellen Upload paarweise zusammenfassen (1+2, 3+4, …)"
+- Wenn aktiviert, werden ALLE Seiten des aktuellen Uploads paarweise zusammengefasst.
+- Bei ungerader Seitenzahl bleibt die letzte Seite einzeln.
+- Nach dem Speichern wird die Option automatisch deaktiviert.
+- Dadurch können nur die Dateien eines bewusst ausgewählten Uploads zusammengefasst werden.

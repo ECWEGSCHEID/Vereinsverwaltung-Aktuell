@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.45 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.46 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -719,7 +719,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.45';
+const APP_VERSION='3.0.46';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1297,7 +1297,25 @@ async function centralFirebaseBootstrap(){
   centralSetStatus('Firebase · zentrale Daten werden geladen …',true);
   try{
     const jobs=[];
-    if(canViewApp('t')) jobs.push(centralServerGet('tournamentInvitations').then(s=>centralApplyTournamentInvitations(s,false)));
+    if(canViewApp('t')){
+      jobs.push(centralServerGet('tournamentInvitations').then(s=>centralApplyTournamentInvitations(s,false)));
+      jobs.push(centralServerGet('pressReports').then(snap=>{
+        const reports={},folders=[];
+        snap.forEach(doc=>{
+          const x=doc.data()||{};
+          if(x.kind==='folder'&&x.folder){folders.push(String(x.folder));return;}
+          const group=x.folder||x.month;
+          if(group&&x.data){
+            const i=Number.isFinite(x.index)?x.index:0;
+            (reports[group]||(reports[group]=[]))[i]={id:x.id||doc.id,name:x.name||'',name2:x.name2||'',data:x.data,data2:x.data2||''};
+          }
+        });
+        data.pressReports=reports;
+        data.settings=data.settings||{};
+        data.settings.pressReportFolders=[...new Set([...folders,...Object.keys(reports)])].sort((a,b)=>a.localeCompare(b,'de'));
+        save();
+      }));
+    }
     if(canViewApp('o')) jobs.push(centralServerGet('ownTournamentInvitations').then(s=>centralApplyTournamentInvitations(s,true)));
     if(canViewApp('n')) jobs.push(centralServerGet('news').then(centralApplyNews));
     if(canViewApp('p')) jobs.push(centralServerGet('photos').then(s=>centralApplyPhotos(s,'photos')));
@@ -1331,7 +1349,29 @@ function centralStartListeners(){
       centralFirebaseUnsubs.push(unsub);
     }catch(e){console.warn('Listener '+collection,e)}
   };
-  if(canViewApp('t'))watch('tournamentInvitations',s=>centralApplyTournamentInvitations(s,false));
+  if(canViewApp('t')){
+    watch('tournamentInvitations',s=>centralApplyTournamentInvitations(s,false));
+    watch('pressReports',snap=>{
+      const reports={},folders=[];
+      snap.forEach(doc=>{
+        const x=doc.data()||{};
+        if(x.kind==='folder'&&x.folder){folders.push(String(x.folder));return;}
+        const group=x.folder||x.month;
+        if(group&&x.data){
+          const i=Number.isFinite(x.index)?x.index:0;
+          (reports[group]||(reports[group]=[]))[i]={id:x.id||doc.id,name:x.name||'',name2:x.name2||'',data:x.data,data2:x.data2||''};
+        }
+      });
+      data.pressReports=reports;
+      data.settings=data.settings||{};
+      data.settings.pressReportFolders=[...new Set([...folders,...Object.keys(reports)])].sort((a,b)=>a.localeCompare(b,'de'));
+      save();
+      if(tCollection==='pressReports'){
+        if(document.getElementById('tournamentMonths')?.classList.contains('active'))renderTournamentMonthOverview();
+        if(document.getElementById('tournaments')?.classList.contains('active'))renderTournaments();
+      }
+    });
+  }
   if(canViewApp('o'))watch('ownTournamentInvitations',s=>centralApplyTournamentInvitations(s,true));
   if(canViewApp('n'))watch('news',centralApplyNews);
   if(canViewApp('p'))watch('photos',s=>centralApplyPhotos(s,'photos'));
@@ -4580,14 +4620,14 @@ function adminSection(s){
   const folders=pressFolderList();
   currentMonth=(currentMonth&&folders.includes(currentMonth))?currentMonth:(folders[0]||'');
   const directUrl=getBaseUrl()+'#zeitungsberichte';
-  a.innerHTML='<h2>Zeitungsberichte EC Wegscheid</h2>'
+  a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Zeitungsberichte EC Wegscheid</h2><button type="button" onclick="returnToAdminManagementView()">← Zurück zum Verwaltungsmenü</button></div>'
    +'<div class="card"><label>Direktlink</label><div class="row"><input type="text" readonly value="'+esc(directUrl)+'" onclick="this.select()" style="flex:1"><button type="button" onclick="navigator.clipboard?.writeText('+jsArg(directUrl)+');showToast(\'Link kopiert\')">Link kopieren</button></div></div>'
    +'<div class="card"><h3>Ordner</h3><div class="row"><input id="zrNewFolder" type="text" placeholder="z. B. Passauer Neue Presse 2026" style="flex:1"><button type="button" onclick="pressCreateFolder()">Ordner erstellen</button></div>'
    +'<label style="margin-top:12px">Ordner für neue Berichte auswählen</label><select id="zrFolderSelect">'+pressFolderOptions(currentMonth)+'</select>'
    +'<div class="row" style="margin-top:8px"><button type="button" class="danger" onclick="pressDeleteSelectedFolder()">Ausgewählten Ordner löschen</button></div></div>'
    +'<div class="card"><label>Zeitungsberichte hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg">'
-   +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>2 zusammengehörige Seiten gemeinsam hinzufügen</span></label>'
-   +'<div class="small" style="margin-top:6px">Standard: jede Seite wird einzeln gespeichert. Wenn aktiviert, werden nur die ersten beiden Seiten dieses Uploads gemeinsam auf einem Platzhalter gespeichert; weitere Seiten bleiben einzeln.</div>'
+   +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>Aktuellen Upload paarweise zusammenfassen (1+2, 3+4, …)</span></label>'
+   +'<div class="small" style="margin-top:6px">Standard: jede Seite wird einzeln gespeichert. Wenn aktiviert, werden alle Seiten dieses Uploads paarweise zusammengefasst: 1+2, 3+4 usw. Eine ungerade letzte Seite bleibt einzeln. Nach dem Speichern wird die Option automatisch wieder deaktiviert.</div>'
    +'<div id="firebasePressReportInfo" class="small" style="margin-top:10px"></div></div>'
    +'<h3>Vorhandene Zeitungsberichte</h3><div class="card"><label>Ordner auswählen</label><select id="tadminmonth">'+pressFolderOptions(currentMonth)+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div>'
    +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="savePressReportFiles()">Zeitungsberichte speichern</button></div>';
@@ -4823,10 +4863,19 @@ async function pressStorePage(dataUrl,name){
  const id=Date.now()+'_'+Math.random().toString(36).slice(2),stored=await storeMedia('zr',id,dataUrl);
  return {id:String(id),name,mediaId:stored.id,data:stored.url};
 }
+
+async function pressEnsureFirebaseReady(timeoutMs=10000){
+  const start=Date.now();
+  while(Date.now()-start<timeoutMs){
+    if(firebaseReady&&firestoreDb&&firebaseAuthUser&&!centralFirebaseOffline)return true;
+    await new Promise(r=>setTimeout(r,250));
+  }
+  return !!(firebaseReady&&firestoreDb&&firebaseAuthUser&&!centralFirebaseOffline);
+}
 async function savePressReportFiles(){
  const folder=document.getElementById('zrFolderSelect')?.value||currentMonth;
  const files=[...(document.getElementById('zrfiles')?.files||[])];
- const pairFirstTwo=!!document.getElementById('zrPairPages')?.checked;
+ const pairCurrentUpload=!!document.getElementById('zrPairPages')?.checked;
  const info=document.getElementById('firebasePressReportInfo');
  if(!folder){showToast('Bitte zuerst einen Ordner erstellen und auswählen.');return;}
  if(!files.length){showToast('Bitte mindestens eine Datei auswählen.');return;}
@@ -4837,50 +4886,58 @@ async function savePressReportFiles(){
    for(const file of files)pages.push(...await pressExtractPages(file));
    const arr=data.pressReports[folder]||(data.pressReports[folder]=[]);
 
-   let index=0;
-
-   // Nur die ersten beiden Seiten dieses Uploads gemeinsam speichern.
-   if(pairFirstTwo && pages.length>=2){
-     const p1=pages[0],p2=pages[1];
-     const a=await pressStorePage(p1.dataUrl,p1.name);
-     const b=await pressStorePage(p2.dataUrl,p2.name);
-     const item={
-       id:a.id,name:a.name,mediaId:a.mediaId,data:a.data,
-       name2:b.name,mediaId2:b.mediaId,data2:b.data
-     };
-     let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;
-     arr[slot]=item;
-     index=2;
-   }
-
-   // Alle übrigen Seiten immer einzeln speichern.
-   for(;index<pages.length;index++){
-     const p=pages[index];
-     const a=await pressStorePage(p.dataUrl,p.name);
-     const item={id:a.id,name:a.name,mediaId:a.mediaId,data:a.data};
-     let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;
-     arr[slot]=item;
+   if(pairCurrentUpload){
+     for(let i=0;i<pages.length;i+=2){
+       const p1=pages[i],p2=pages[i+1]||null;
+       const a=await pressStorePage(p1.dataUrl,p1.name);
+       const item={id:a.id,name:a.name,mediaId:a.mediaId,data:a.data};
+       if(p2){
+         const b=await pressStorePage(p2.dataUrl,p2.name);
+         item.name2=b.name;item.mediaId2=b.mediaId;item.data2=b.data;
+       }
+       let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;
+       arr[slot]=item;
+     }
+   }else{
+     for(const p of pages){
+       const a=await pressStorePage(p.dataUrl,p.name);
+       const item={id:a.id,name:a.name,mediaId:a.mediaId,data:a.data};
+       let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;
+       arr[slot]=item;
+     }
    }
 
    if(!save())throw new Error('Lokales Speichern fehlgeschlagen');
    currentMonth=folder;currentPage=0;adminTournamentPage=0;
    await hydrateMedia();renderTournamentAdminPreview();renderTournamentAdminList();
-   if(info)info.textContent='Lokal gespeichert. Firebase wird aktualisiert …';
 
+   const pairBox=document.getElementById('zrPairPages');
+   if(pairBox)pairBox.checked=false;
+
+   if(info)info.textContent='Lokal gespeichert. Firebase-Anmeldung wird geprüft …';
+
+   const ready=await pressEnsureFirebaseReady(10000);
+   if(!ready){
+     if(info)info.textContent='Lokal gespeichert ✓ · Firebase/Anmeldung noch nicht verfügbar.';
+     showToast('Zeitungsberichte lokal gespeichert. Firebase ist noch nicht bereit – bitte kurz warten und erneut „Zeitungsberichte speichern“ drücken.',8000);
+     return;
+   }
+
+   if(info)info.textContent='Lokal gespeichert. Firebase wird aktualisiert …';
    const fb=await syncTournamentsToFirebase();
    const inp=document.getElementById('zrfiles');if(inp)inp.value='';
-   const pairBox=document.getElementById('zrPairPages');if(pairBox)pairBox.checked=false;
 
    if(fb.ok){
      if(info)info.textContent=fb.message;
-     const pairText=pairFirstTwo&&pages.length>=2?' · erste 2 Seiten gemeinsam':'';
+     const pairText=pairCurrentUpload?' · paarweise zusammengefasst':' · einzeln gespeichert';
      showToast(pages.length+' Seite(n) gespeichert'+pairText+' · Firebase aktualisiert');
    }else{
-     if(info)info.textContent='Lokal gespeichert · Firebase-Fehler: '+(fb.error||fb.message||'unbekannt');
+     if(info)info.textContent='Lokal gespeichert ✓ · Firebase-Fehler: '+(fb.error||fb.message||'unbekannt');
      showToast('Lokal gespeichert, Firebase fehlgeschlagen: '+(fb.error||fb.message||''),8000);
    }
  }catch(e){
-   console.error(e);if(info)info.textContent='Fehler: '+(e?.message||e);
+   console.error(e);
+   if(info)info.textContent='Fehler: '+(e?.message||e);
    showToast('Speichern fehlgeschlagen: '+(e?.message||e),7000);
  }
 }
