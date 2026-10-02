@@ -1191,7 +1191,7 @@ copy of the Program in return for a fee.
   <header>
     <div>
       <h1>EC Wegscheid – Turnierverwaltung</h1>
-      <div class="version">Version 2.10 · Vereinsverwaltung V3.0.38</div>
+      <div class="version">Version 2.11 · Vereinsverwaltung V3.0.39</div>
     <div id="userStatus"></div></div><div><button id="logoutBtn">Abmelden</button></div>
   </header>
 
@@ -1315,6 +1315,13 @@ copy of the Program in return for a fee.
     <!-- VEREINE -->
     <section id="viewVereine" class="hidden">
       <div class="section-intro"><h2>Vereine organisieren</h2><p>Vereinsadressen zentral in Firebase verwalten und für Excel exportieren. <strong>Teilnahmen seit 2021</strong></p></div>
+      <div class="card desktop-mobile-access">
+        <h3>Vereine unterwegs bearbeiten</h3>
+        <p class="meta">QR-Code mit Smartphone oder Tablet scannen. Nach der ersten Anmeldung bleibt der Zugang auf diesem Gerät gespeichert.</p>
+        <div class="inline-actions">
+          <button class="secondary" id="clubMobileQrBtn" type="button">Vereine bearbeiten – QR-Code</button>
+        </div>
+      </div>
       <div class="card">
         <h3 id="vereinFormTitle">Verein / Adresse anlegen</h3>
         <input type="hidden" id="vEditId">
@@ -1413,7 +1420,7 @@ copy of the Program in return for a fee.
   </main>
 </div>
 
-<div id="mobileLinkDialog" class="link-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="mobileLinkTitle"><div class="card"><div class="inline-actions"><h3 id="mobileLinkTitle">Smartphone-Zugang</h3><button class="secondary" id="mobileCloseBtn">Schließen</button></div><div id="mobileQr"></div><p class="meta" id="mobileLinkInfo"></p><label for="mobileUrl">Smartphone-Link</label><input id="mobileUrl" readonly><button class="secondary" id="mobileCopyBtn">Link kopieren</button></div></div>
+<div id="mobileLinkDialog" class="link-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="mobileLinkTitle"><div class="card"><div class="inline-actions"><h3 id="mobileLinkTitle">Smartphone-Zugang</h3><button class="secondary" id="mobileCloseBtn">Schließen</button></div><div id="mobileQr"></div><p class="meta" id="mobileLinkInfo"></p><label for="mobileUrl">Smartphone-Link</label><input id="mobileUrl" readonly><div class="inline-actions"><button class="secondary" id="mobileCopyBtn">Link kopieren</button><button class="secondary" id="mobileSaveQrBtn" disabled>QR-Code speichern</button></div></div></div>
 <div id="message" class="hidden" role="status" aria-live="polite"></div>
 <script>/*!
 
@@ -4176,7 +4183,7 @@ function stopListeners() {
   document.getElementById('turniereListe').replaceChildren();
   document.getElementById('dTurnierSelect').value='';
   document.getElementById('dTurnierSelect').innerHTML='<option value="">– Turnier auswählen –</option>';
-  clearDocumentPreview(); updateVereineResetStatus(); resetSend();document.getElementById('mobileLinkDialog').classList.add('hidden');document.getElementById('mobileUrl').value='';document.getElementById('mobileQr').replaceChildren();resetStartlisteEingabe();updateMobileClubSuggestions();
+  clearDocumentPreview(); updateVereineResetStatus(); resetSend();document.getElementById('mobileLinkDialog').classList.add('hidden');document.getElementById('mobileUrl').value='';document.getElementById('mobileQr').replaceChildren();document.getElementById('mobileSaveQrBtn').disabled=true;currentQrDataUrl='';currentQrFilename='';resetStartlisteEingabe();updateMobileClubSuggestions();
   document.getElementById('startlisteBody').replaceChildren();
 }
 function onlineStatus() {
@@ -4223,22 +4230,67 @@ function updateMobileClubSuggestions(){
   const empty=!vereineCache.length;document.getElementById('tdVereinSelect').classList.toggle('no-clubs',empty);document.querySelector('[for="tdVereinSelect"]').classList.toggle('no-clubs',empty);
 }
 function mobileHashId(){try{return decodeURIComponent(location.hash.slice(7));}catch{return '';}}
-let qrReturnFocus=null;
-function showMobileLink(specific=false){
+let qrReturnFocus=null,currentQrDataUrl='',currentQrFilename='';
+function openQrDialog({hash,title,filename,info}){
   const dialog=document.getElementById('mobileLinkDialog');qrReturnFocus=document.activeElement;
-  const hash=specific&&aktuellesTurnier?'#mobil='+encodeURIComponent(aktuellesTurnier.id):'#mobil';
-  document.getElementById('mobileLinkTitle').textContent=specific&&aktuellesTurnier?'Schnellanmeldung: '+aktuellesTurnier.name:'Smartphone-Zugang';
+  document.getElementById('mobileLinkTitle').textContent=title;
   const hosted=/^https?:$/.test(location.protocol),input=document.getElementById('mobileUrl');
   const url=new URL(location.href);url.hash=hash;input.value=hosted?url.href:'';
-  document.getElementById('mobileLinkInfo').textContent=hosted?'QR-Code mit der Smartphone-Kamera scannen. Nach der Anmeldung öffnet sich die Schnellanmeldung. Als Lesezeichen oder auf dem Startbildschirm speichern.':'Diese Datei wird lokal geöffnet. Lade sie auf deine bestehende Webseite (z. B. GitHub Pages) und öffne dort „Smartphone-Zugang / QR-Code“, damit der Link auf anderen Geräten funktioniert.';
-  document.getElementById('mobileCopyBtn').disabled=!hosted;const qrArea=document.getElementById('mobileQr');qrArea.replaceChildren();
-  if(hosted){const qr=qrcode(0,'M');qr.addData(url.href);qr.make();qrArea.innerHTML=qr.createSvgTag({cellSize:4,margin:16,scalable:true});qrArea.querySelector('svg').setAttribute('aria-label','QR-Code für Smartphone-Zugang');}
+
+  document.getElementById('mobileLinkInfo').textContent=hosted
+    ?info+' Der QR-Code enthält keine Zugangsdaten. Nach der ersten Anmeldung bleibt der Benutzer auf diesem Browser angemeldet.'
+    :'Diese Datei wird lokal geöffnet. QR-Codes für andere Geräte funktionieren erst über eine erreichbare Webadresse, z. B. GitHub Pages.';
+
+  document.getElementById('mobileCopyBtn').disabled=!hosted;
+  const saveBtn=document.getElementById('mobileSaveQrBtn');
+  const qrArea=document.getElementById('mobileQr');qrArea.replaceChildren();
+  currentQrDataUrl='';currentQrFilename='';saveBtn.disabled=true;
+
+  if(hosted){
+    const qr=qrcode(0,'M');qr.addData(url.href);qr.make();
+    qrArea.innerHTML=qr.createSvgTag({cellSize:4,margin:16,scalable:true});
+    const svg=qrArea.querySelector('svg');
+    if(svg)svg.setAttribute('aria-label','QR-Code '+title);
+    currentQrDataUrl=qr.createDataURL(8,16);
+    currentQrFilename=filename;
+    saveBtn.disabled=false;
+  }
+
   dialog.classList.remove('hidden');document.getElementById('mobileCloseBtn').focus();
 }
+function showMobileLink(specific=false){
+  const hash=specific&&aktuellesTurnier?'#mobil='+encodeURIComponent(aktuellesTurnier.id):'#mobil';
+  openQrDialog({
+    hash,
+    title:specific&&aktuellesTurnier?'Mannschaft anmelden: '+aktuellesTurnier.name:'Mannschaft anmelden',
+    filename:specific&&aktuellesTurnier
+      ?'QR_Mannschaft_anmelden_'+String(aktuellesTurnier.name||'Turnier').replace(/[^\wäöüÄÖÜß-]+/g,'_')+'.gif'
+      :'QR_Mannschaft_anmelden.gif',
+    info:'Mit der Smartphone-Kamera scannen. Danach öffnet sich die Schnellanmeldung für Mannschaften.'
+  });
+}
+function showClubMobileLink(){
+  openQrDialog({
+    hash:'#vereine',
+    title:'Vereine bearbeiten',
+    filename:'QR_Vereine_bearbeiten.gif',
+    info:'Mit der Smartphone- oder Tablet-Kamera scannen. Danach öffnet sich direkt „Vereine organisieren“.'
+  });
+}
 function closeMobileLink(){document.getElementById('mobileLinkDialog').classList.add('hidden');qrReturnFocus?.focus();}
+function saveCurrentQr(){
+  if(!currentQrDataUrl)return;
+  const a=document.createElement('a');
+  a.href=currentQrDataUrl;
+  a.download=currentQrFilename||'EC_Wegscheid_QR_Code.gif';
+  document.body.appendChild(a);a.click();a.remove();
+  notify('QR-Code gespeichert.');
+}
 document.getElementById('mobileLinkBtn').addEventListener('click',()=>showMobileLink(false));
 document.getElementById('tdMobileLinkBtn').addEventListener('click',()=>showMobileLink(true));
+document.getElementById('clubMobileQrBtn').addEventListener('click',showClubMobileLink);
 document.getElementById('mobileCloseBtn').addEventListener('click',closeMobileLink);
+document.getElementById('mobileSaveQrBtn').addEventListener('click',saveCurrentQr);
 document.getElementById('mobileLinkDialog').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMobileLink();});
 document.getElementById('mobileLinkDialog').addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileLink();if(e.key==='Tab'){const items=[...e.currentTarget.querySelectorAll('button:not([disabled]),input')];const i=items.indexOf(document.activeElement);if(e.shiftKey&&i===0){e.preventDefault();items.at(-1).focus();}else if(!e.shiftKey&&i===items.length-1){e.preventDefault();items[0].focus();}}});
 document.getElementById('mobileCopyBtn').addEventListener('click',async()=>{const input=document.getElementById('mobileUrl');try{await navigator.clipboard.writeText(input.value);notify('Smartphone-Link kopiert.');}catch{input.focus();input.select();notify('Link markieren und kopieren.');}});

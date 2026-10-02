@@ -1,0 +1,26 @@
+EC Wegscheid Vereinsverwaltung V3.0.40
+
+Besuchte Turniere
+- Im Adminmodus gibt es jetzt einen echten Button "Speichern".
+- "Ausblenden" und "Ausgeblendete wieder anzeigen" ändern zunächst nur die aktuelle Liste.
+- Der Button "Speichern" schreibt die Ausschlussliste zentral nach Firebase.
+- Nicht gespeicherte Änderungen werden deutlich angezeigt.
+- Beim Schließen mit ungespeicherten Änderungen kommt eine Sicherheitsabfrage.
+- Im Whiteboardmodus bleibt der Speichern-Button unsichtbar.
+
+Turnierverwaltung im Adminmodus
+- Oberhalb der eingebetteten Turnierverwaltung gibt es jetzt:
+  "← Zurück zur Verwaltung".
+- Damit kann die Turnierverwaltung eindeutig verlassen werden.
+
+Turnierplaner Statistik
+- "Turniere als Veranstalter" umbenannt in "Ausgerichtete Turniere".
+- Wert wird jetzt ausschließlich aus Veranstaltungsart
+  "Turnier als Ausrichter" ermittelt.
+- Normale Turniere werden dafür nicht mehr gezählt.
+
+Turnierplaner Layout
+- Diagnoseanzeige "Direktaufruf: ..." entfernt.
+- "Angezeigt: X Veranstaltungen" steht jetzt direkt im Feld
+  "Veranstaltungen [aktuelles Jahr]" unter der Gesamtzahl.
+- Dadurch ist die Filterzeile mit Zeitraum / Veranstaltungsart aufgeräumter.

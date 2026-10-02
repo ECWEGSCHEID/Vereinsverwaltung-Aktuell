@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.38 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.40 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -577,9 +577,8 @@ transition:transform .18s,box-shadow .18s,background .18s}
 <section id="tournamentPlanner" class="view">
   <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.8.5</div></div>
   <div id="tpStats" class="tp-stats"></div>
-  <div id="routeDiag" class="small" style="padding:0 60px 6px;display:none"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
-  <div class="tp-toolbar"><div id="tpListNote" class="small tp-list-note"></div><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
+  <div class="tp-toolbar"><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
   <div id="tpFirebaseStatus" class="small" style="padding:0 60px 6px"></div>
   <div id="tpContent" class="tp-list"></div>
   <div class="bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
@@ -667,7 +666,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.38';
+const APP_VERSION='3.0.40';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -3257,6 +3256,7 @@ function tpStatsCounts(){
 
   const turniere=items.filter(x=>typeOf(x)==='Turnier');
   const interne=items.filter(x=>typeOf(x)==='Turnier intern');
+  const ausgerichtete=items.filter(x=>typeOf(x)==='Turnier als Ausrichter');
   const meisterschaften=items.filter(x=>typeOf(x)==='Meisterschaft');
 
   const veranstaltungen=items.length;
@@ -3264,7 +3264,7 @@ function tpStatsCounts(){
   const turniereBesucht=turniere.filter(x=>{const d=tpEventDateStr(x);return !!d&&d<today}).length;
   const turniereOffen=turniere.filter(x=>{const d=tpEventDateStr(x);return !!d&&d>=today}).length;
 
-  const externeTurniere=turniere.length;
+  const ausgerichteteTurniere=ausgerichtete.length;
   const interneTurniere=interne.length;
 
   const meisterschaftenBesucht=meisterschaften.filter(x=>{const d=tpEventDateStr(x);return !!d&&d<today}).length;
@@ -3276,7 +3276,7 @@ function tpStatsCounts(){
     turniereGemeldet,
     turniereBesucht,
     turniereOffen,
-    externeTurniere,
+    ausgerichteteTurniere,
     interneTurniere,
     meisterschaftenBesucht,
     meisterschaftenOffen
@@ -3322,11 +3322,11 @@ function tpSyncStatsAndPeriod(){
 function tpRenderStats(){
   const el=document.getElementById('tpStats');if(!el)return;
   const s=tpStatsCounts(),y=s.year;
-  el.innerHTML='<div class="tp-stat">Veranstaltungen '+y+'<b>'+s.veranstaltungen+'</b></div>'
+  el.innerHTML='<div class="tp-stat">Veranstaltungen '+y+'<b>'+s.veranstaltungen+'</b><span id="tpListNote" class="small tp-list-note" style="display:block;margin-top:5px;opacity:.85">Angezeigt: –</span></div>'
     +'<div class="tp-stat">Turniere gemeldet '+y+'<b>'+s.turniereGemeldet+'</b></div>'
     +'<div class="tp-stat">Turniere besucht '+y+'<b>'+s.turniereBesucht+'</b></div>'
     +'<div class="tp-stat">Turniere offen '+y+'<b>'+s.turniereOffen+'</b></div>'
-    +'<div class="tp-stat">Turniere als Veranstalter '+y+'<b>'+s.externeTurniere+'</b></div>'
+    +'<div class="tp-stat">Ausgerichtete Turniere '+y+'<b>'+s.ausgerichteteTurniere+'</b></div>'
     +'<div class="tp-stat">Interne Turniere '+y+'<b>'+s.interneTurniere+'</b></div>'
     +'<div class="tp-stat">Meisterschaften besucht '+y+'<b>'+s.meisterschaftenBesucht+'</b></div>'
     +'<div class="tp-stat">Meisterschaften offen '+y+'<b>'+s.meisterschaftenOffen+'</b></div>';
@@ -3997,6 +3997,7 @@ function tpEvalTournamentKey(x){
 
 let tpEvalExcludedNames={};
 let tpEvalExclusionsLoaded=false;
+let tpEvalExclusionsDirty=false;
 
 function tpEvalLoadLocalExclusions(){
   try{return JSON.parse(localStorage.getItem('ecw-tp-eval-exclusions-v1')||'{}')||{}}catch{return {}}
@@ -4017,28 +4018,47 @@ async function tpLoadEvalExclusions(){
       if(snap.exists){
         tpEvalExcludedNames={...tpEvalExcludedNames,...((snap.data()||{}).names||{})};
         localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
+        tpEvalExclusionsDirty=false;
       }
     }catch(e){console.warn('Auswertungsausschlüsse laden:',e);}
   }
 }
 async function tpSaveEvalExclusions(){
-  localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
-  if(firebaseReady&&firestoreDb&&firebaseAuthUser&&isAdminNow()){
-    try{
-      await firestoreDb.collection('appSettings').doc('turnierAuswertungAusschluesse').set({
-        names:tpEvalExcludedNames,
-        updatedAt:new Date().toISOString()
-      },{merge:false});
-    }catch(e){console.warn('Auswertungsausschlüsse speichern:',e);}
+  if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return false;}
+  const btn=document.getElementById('tpEvalSaveBtn');
+  const status=document.getElementById('tpEvalSaveStatus');
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='Speichern …';
+  try{
+    if(!(firebaseReady&&firestoreDb&&firebaseAuthUser))throw new Error('Firebase ist nicht verbunden.');
+    await firestoreDb.collection('appSettings').doc('turnierAuswertungAusschluesse').set({
+      names:tpEvalExcludedNames,
+      updatedAt:new Date().toISOString()
+    },{merge:false});
+    localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
+    tpEvalExclusionsDirty=false;
+    if(status)status.textContent='Gespeichert.';
+    showToast('Ausblendungen gespeichert.');
+    tpUpdateEvaluationRights();
+    return true;
+  }catch(e){
+    console.error('Auswertungsausschlüsse speichern:',e);
+    if(status)status.textContent='Speichern fehlgeschlagen.';
+    showToast('Ausblendungen konnten nicht gespeichert werden: '+(e?.message||e),7000);
+    tpUpdateEvaluationRights();
+    return false;
+  }finally{
+    if(btn)btn.disabled=!tpEvalExclusionsDirty;
   }
 }
 async function tpExcludeEvaluationName(raw){
   if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
   if(!confirm('„'+raw+'“ nur aus der Turnier-Auswertung ausblenden? Der Termin bleibt im Termin-/Turnierplaner unverändert erhalten.'))return;
   tpEvalExcludedNames[tpEvalNameKey(raw)]=true;
-  await tpSaveEvalExclusions();
+  tpEvalExclusionsDirty=true;
   renderTpTournamentEvaluation();
-  showToast('Aus Auswertung ausgeschlossen.');
+  const st=document.getElementById('tpEvalSaveStatus');if(st)st.textContent='Änderungen noch nicht gespeichert.';
+  showToast('Ausgeblendet – bitte anschließend „Speichern“ drücken.');
 }
 async function tpRestoreExcludedEvaluationNames(){
   if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
@@ -4046,9 +4066,10 @@ async function tpRestoreExcludedEvaluationNames(){
   if(!count){showToast('Keine ausgeschlossenen Namen vorhanden.');return}
   if(!confirm(count+' ausgeblendete Einträge wieder in der Turnier-Auswertung anzeigen?'))return;
   tpEvalExcludedNames={};
-  await tpSaveEvalExclusions();
+  tpEvalExclusionsDirty=true;
   renderTpTournamentEvaluation();
-  showToast('Ausgeblendete Einträge werden wieder angezeigt.');
+  const st=document.getElementById('tpEvalSaveStatus');if(st)st.textContent='Änderungen noch nicht gespeichert.';
+  showToast('Einträge wieder eingeblendet – bitte „Speichern“ drücken.');
 }
 let tpEvalNameAliases={};
 let tpEvalAliasesLoaded=false;
@@ -4218,6 +4239,9 @@ async function openTpTournamentEvaluation(){
   renderTpTournamentEvaluation();
 }
 function closeTpTournamentEvaluation(){
+  if(isAdminNow()&&tpEvalExclusionsDirty){
+    if(!confirm('Es gibt noch nicht gespeicherte Ausblendungen. Fenster trotzdem schließen?'))return;
+  }
   const modal=document.getElementById('tpTournamentEvalModal');
   if(modal){modal.classList.remove('show');modal.classList.add('hidden');}
   document.body.style.overflow='';
@@ -4227,11 +4251,15 @@ function tpUpdateEvaluationRights(){
   const admin=isAdminNow();
   const restore=document.getElementById('tpEvalRestoreBtn');
   if(restore)restore.style.display=admin?'':'none';
+  const save=document.getElementById('tpEvalSaveBtn');
+  if(save){save.style.display=admin?'':'none';save.disabled=!admin||!tpEvalExclusionsDirty;}
+  const saveStatus=document.getElementById('tpEvalSaveStatus');
+  if(saveStatus)saveStatus.style.display=admin?'':'none';
   const originalHead=document.getElementById('tpEvalOriginalHead');
   if(originalHead)originalHead.style.display=admin?'':'none';
   const note=document.getElementById('tpEvalRightsNote');
   if(note)note.textContent=admin
-    ?'Admin-Modus: Anzeigenamen ändern, löschen und Einträge ausblenden möglich.'
+    ?'Admin-Modus: Änderungen an Ausblendungen anschließend mit „Speichern“ sichern.'
     :'Ansicht: Zeitraum und Sortierung können gewählt werden.';
 }
 function renderTpTournamentEvaluation(){
@@ -4896,8 +4924,7 @@ window.__directRouteV1248=function(){
     else if(seite==='mitglieder' || hash==='#mitglieder') openMemberManagement();
     const rh=document.getElementById('routeDiagHome');
     if(rh&&(hash||seite)){rh.textContent='Direktaufruf erkannt: '+(window.location.hash||'')+(window.location.search||'');rh.style.display='block';}
-    const rd=document.getElementById('routeDiag');
-    if(rd){const matched=[...arguments].length;rd.textContent='Direktaufruf: '+(window.location.hash||'(kein Anker)')+' · '+(window.location.search||'(keine Parameter)');rd.style.display=hash||seite? 'block':'none';}
+
   }catch(e){console.error('Direktaufruf konnte nicht verarbeitet werden:',e)}
 };
 /* V1.2.45: Öffentliche Firebase-Daten laden, ohne die lokale Sicherung zu überschreiben.
@@ -6440,7 +6467,11 @@ function tvMount(c,mode){const r=window.__tvRoot;if(!c)return false;if(!r){alert
 function renderTurnierverwaltungAdmin(){
  const a=document.getElementById('adminMain');
  if(!appPermissions.admin){a.innerHTML='<h2>Turnierverwaltung</h2><div class="card">Nur für Administratoren freigegeben.</div>';return}
- a.innerHTML='<h2>Turnierverwaltung</h2><div class="card small" style="margin-bottom:10px">Die Turnierverwaltung verwendet dieselbe Firebase-Anmeldung. Smartphone-Zugang und QR-Code findest du direkt in der Turnierverwaltung.</div><iframe title="Turnierverwaltung Admin" src="turnierverwaltung.html" style="width:100%;height:calc(100vh - 190px);min-height:650px;border:0;border-radius:10px;background:#fff"></iframe>';
+ a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">'
+   +'<h2 style="margin:0">Turnierverwaltung</h2>'
+   +'<button type="button" onclick="adminSection(\'ov\')">← Zurück zur Verwaltung</button></div>'
+   +'<div class="card small" style="margin-bottom:10px">Die Turnierverwaltung verwendet dieselbe Firebase-Anmeldung. Smartphone-Zugang und QR-Code findest du direkt in der Turnierverwaltung.</div>'
+   +'<iframe title="Turnierverwaltung Admin" src="turnierverwaltung.html" style="width:100%;height:calc(100vh - 220px);min-height:620px;border:0;border-radius:10px;background:#fff"></iframe>';
 }
 </script>
 <script type="text/plain" id="mvSource"><!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7910,7 +7941,9 @@ __SCRIPT_END__><div id="mainMenuBox" style="position:fixed;right:18px;bottom:18p
         <option value="count">Häufigkeit</option>
         <option value="name">Name A–Z</option>
       </select><button type="button" id="tpEvalRestoreBtn" onclick="tpRestoreExcludedEvaluationNames()">Ausgeblendete wieder anzeigen</button>
+      <button type="button" id="tpEvalSaveBtn" class="primary" onclick="tpSaveEvalExclusions()" disabled>Speichern</button>
     </div>
+    <div id="tpEvalSaveStatus" class="small" style="margin:6px 0;display:none"></div>
     <div id="tpEvalRightsNote" class="small" style="margin:8px 0;opacity:.85"></div><div id="tpTournamentEvalSummary" class="small" style="margin:8px 0"></div>
     <div class="tp-eval-wrap">
       <table class="tp-eval-table">
