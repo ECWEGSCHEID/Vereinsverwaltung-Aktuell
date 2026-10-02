@@ -1,0 +1,33 @@
+EC Wegscheid Vereinsverwaltung – aktuelles Komplettpaket V3.0.41
+
+Enthalten:
+- index.html
+  Aktuelle Vereinsverwaltung V3.0.41
+  * Besuchte Turniere: lokale Sofortsicherung
+  * zentrale Firebase-Sicherung über "Änderungen speichern"
+  * Zurück-Button in der Turnierverwaltung korrigiert
+  * Ausgerichtete Turniere korrekt aus "Turnier als Ausrichter"
+  * aufgeräumte Turnierplaner-Anzeige
+
+- turnierverwaltung.html
+  Turnierverwaltung 2.11
+  * Archiv
+  * Historie nur abgeschlossene Turniere
+  * Einladungsphase 1 / Phase 2
+  * QR-Code Mannschaft anmelden
+  * QR-Code Vereine bearbeiten
+  * QR-Codes speichern
+
+- Firebase/Firestore_Regeln_AKTUELL.rules
+  Aktuelle Firestore-Regeln inklusive Freigabe für:
+  * appSettings/turnierAuswertungAusschluesse
+  * appSettings/turnierAuswertungNamen
+  Schreiben dort nur für Administrator.
+
+WICHTIG:
+Die Firestore-Regeln aus diesem Paket in Firebase unter
+Firestore Database > Regeln einfügen und veröffentlichen.
+
+Die lokal bereits gesicherte Liste "Besuchte Turniere" bleibt im Browser erhalten.
+Nach Veröffentlichung der Rules in V3.0.41 "Änderungen speichern" drücken,
+damit sie zusätzlich zentral in Firebase gespeichert wird.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.40 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.41 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -666,7 +666,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.40';
+const APP_VERSION='3.0.41';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -4011,16 +4011,25 @@ function tpEvalIsExcluded(name){
 async function tpLoadEvalExclusions(){
   if(tpEvalExclusionsLoaded)return;
   tpEvalExclusionsLoaded=true;
-  tpEvalExcludedNames=tpEvalLoadLocalExclusions();
+
+  const local=tpEvalLoadLocalExclusions();
+  let remote={};
   if(firebaseReady&&firestoreDb&&firebaseAuthUser){
     try{
       const snap=await firestoreDb.collection('appSettings').doc('turnierAuswertungAusschluesse').get();
-      if(snap.exists){
-        tpEvalExcludedNames={...tpEvalExcludedNames,...((snap.data()||{}).names||{})};
-        localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
-        tpEvalExclusionsDirty=false;
-      }
+      if(snap.exists)remote=((snap.data()||{}).names||{});
     }catch(e){console.warn('Auswertungsausschlüsse laden:',e);}
+  }
+
+  // Lokale Sicherung hat Vorrang, damit bereits bearbeitete Listen nach einem Update nicht verloren gehen.
+  tpEvalExcludedNames={...remote,...local};
+  const localJson=JSON.stringify(local||{});
+  const remoteJson=JSON.stringify(remote||{});
+  tpEvalExclusionsDirty=Object.keys(local||{}).length>0 && localJson!==remoteJson;
+
+  if(tpEvalExclusionsDirty){
+    const st=document.getElementById('tpEvalSaveStatus');
+    if(st)st.textContent='Lokale Änderungen erkannt – bitte „Änderungen speichern“ drücken.';
   }
 }
 async function tpSaveEvalExclusions(){
@@ -4028,23 +4037,40 @@ async function tpSaveEvalExclusions(){
   const btn=document.getElementById('tpEvalSaveBtn');
   const status=document.getElementById('tpEvalSaveStatus');
   if(btn)btn.disabled=true;
-  if(status)status.textContent='Speichern …';
+
+  // ZUERST lokal sichern. Damit gehen Änderungen auch bei einem Firebase-Fehler nicht verloren.
+  try{
+    localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames||{}));
+    localStorage.setItem('ecw-tp-eval-name-aliases-v1',JSON.stringify(tpEvalNameAliases||{}));
+  }catch(e){console.warn('Lokale Sicherung:',e);}
+
+  if(status)status.textContent='Lokal gesichert · Firebase wird aktualisiert …';
+
   try{
     if(!(firebaseReady&&firestoreDb&&firebaseAuthUser))throw new Error('Firebase ist nicht verbunden.');
+
     await firestoreDb.collection('appSettings').doc('turnierAuswertungAusschluesse').set({
-      names:tpEvalExcludedNames,
-      updatedAt:new Date().toISOString()
+      names:tpEvalExcludedNames||{},
+      updatedAt:new Date().toISOString(),
+      updatedBy:firebaseAuthUser.email||firebaseAuthUser.uid||''
     },{merge:false});
-    localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
+
+    await firestoreDb.collection('appSettings').doc('turnierAuswertungNamen').set({
+      aliases:tpEvalNameAliases||{},
+      updatedAt:new Date().toISOString(),
+      updatedBy:firebaseAuthUser.email||firebaseAuthUser.uid||''
+    },{merge:false});
+
     tpEvalExclusionsDirty=false;
-    if(status)status.textContent='Gespeichert.';
-    showToast('Ausblendungen gespeichert.');
+    if(status)status.textContent='Gespeichert ✓ lokal und in Firebase';
+    showToast('Besuchte Turniere gespeichert.');
     tpUpdateEvaluationRights();
     return true;
   }catch(e){
-    console.error('Auswertungsausschlüsse speichern:',e);
-    if(status)status.textContent='Speichern fehlgeschlagen.';
-    showToast('Ausblendungen konnten nicht gespeichert werden: '+(e?.message||e),7000);
+    console.error('Besuchte Turniere speichern:',e);
+    tpEvalExclusionsDirty=true;
+    if(status)status.textContent='Lokal gesichert ✓ · Firebase-Speicherung fehlgeschlagen.';
+    showToast('Lokal gesichert. Firebase konnte nicht aktualisiert werden: '+(e?.message||e),8000);
     tpUpdateEvaluationRights();
     return false;
   }finally{
@@ -4056,20 +4082,22 @@ async function tpExcludeEvaluationName(raw){
   if(!confirm('„'+raw+'“ nur aus der Turnier-Auswertung ausblenden? Der Termin bleibt im Termin-/Turnierplaner unverändert erhalten.'))return;
   tpEvalExcludedNames[tpEvalNameKey(raw)]=true;
   tpEvalExclusionsDirty=true;
+  try{localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));}catch(e){}
   renderTpTournamentEvaluation();
-  const st=document.getElementById('tpEvalSaveStatus');if(st)st.textContent='Änderungen noch nicht gespeichert.';
-  showToast('Ausgeblendet – bitte anschließend „Speichern“ drücken.');
+  const st=document.getElementById('tpEvalSaveStatus');if(st)st.textContent='Lokal gesichert ✓ · noch nicht in Firebase gespeichert.';
+  showToast('Ausgeblendet und lokal gesichert. Für alle Geräte bitte „Änderungen speichern“ drücken.');
 }
 async function tpRestoreExcludedEvaluationNames(){
   if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
   const count=Object.keys(tpEvalExcludedNames||{}).length;
-  if(!count){showToast('Keine ausgeschlossenen Namen vorhanden.');return}
+  if(!count){showToast('Keine ausgeblendeten Namen vorhanden.');return}
   if(!confirm(count+' ausgeblendete Einträge wieder in der Turnier-Auswertung anzeigen?'))return;
   tpEvalExcludedNames={};
   tpEvalExclusionsDirty=true;
+  try{localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));}catch(e){}
   renderTpTournamentEvaluation();
-  const st=document.getElementById('tpEvalSaveStatus');if(st)st.textContent='Änderungen noch nicht gespeichert.';
-  showToast('Einträge wieder eingeblendet – bitte „Speichern“ drücken.');
+  const st=document.getElementById('tpEvalSaveStatus');if(st)st.textContent='Lokal gesichert ✓ · noch nicht in Firebase gespeichert.';
+  showToast('Einträge wieder eingeblendet und lokal gesichert.');
 }
 let tpEvalNameAliases={};
 let tpEvalAliasesLoaded=false;
@@ -4141,6 +4169,8 @@ async function tpEditEvaluationName(raw){
   const key=tpEvalNameKey(raw);
   tpEvalNameAliases[key]=value;
   localStorage.setItem('ecw-tp-eval-name-aliases-v1',JSON.stringify(tpEvalNameAliases));
+  tpEvalExclusionsDirty=true;
+  const saveState=document.getElementById('tpEvalSaveStatus');if(saveState)saveState.textContent='Lokal gesichert ✓ · noch nicht vollständig in Firebase gespeichert.';
   if(firebaseReady&&firestoreDb&&firebaseAuthUser&&isAdminNow()){
     try{
       await firestoreDb.collection('appSettings').doc('turnierAuswertungNamen').set({
@@ -4168,6 +4198,8 @@ async function tpDeleteEvaluationName(raw){
 
   delete tpEvalNameAliases[key];
   localStorage.setItem('ecw-tp-eval-name-aliases-v1',JSON.stringify(tpEvalNameAliases));
+  tpEvalExclusionsDirty=true;
+  const saveState=document.getElementById('tpEvalSaveStatus');if(saveState)saveState.textContent='Lokal gesichert ✓ · noch nicht vollständig in Firebase gespeichert.';
 
   if(firebaseReady&&firestoreDb&&firebaseAuthUser&&isAdminNow()){
     try{
@@ -4259,7 +4291,7 @@ function tpUpdateEvaluationRights(){
   if(originalHead)originalHead.style.display=admin?'':'none';
   const note=document.getElementById('tpEvalRightsNote');
   if(note)note.textContent=admin
-    ?'Admin-Modus: Änderungen an Ausblendungen anschließend mit „Speichern“ sichern.'
+    ?'Admin-Modus: Änderungen werden sofort lokal gesichert. Mit „Änderungen speichern“ zusätzlich zentral in Firebase sichern.'
     :'Ansicht: Zeitraum und Sortierung können gewählt werden.';
 }
 function renderTpTournamentEvaluation(){
@@ -6469,7 +6501,7 @@ function renderTurnierverwaltungAdmin(){
  if(!appPermissions.admin){a.innerHTML='<h2>Turnierverwaltung</h2><div class="card">Nur für Administratoren freigegeben.</div>';return}
  a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">'
    +'<h2 style="margin:0">Turnierverwaltung</h2>'
-   +'<button type="button" onclick="adminSection(\'ov\')">← Zurück zur Verwaltung</button></div>'
+   +'<button type="button" onclick="renderOverviewAdmin()">← Zurück zur Verwaltung</button></div>'
    +'<div class="card small" style="margin-bottom:10px">Die Turnierverwaltung verwendet dieselbe Firebase-Anmeldung. Smartphone-Zugang und QR-Code findest du direkt in der Turnierverwaltung.</div>'
    +'<iframe title="Turnierverwaltung Admin" src="turnierverwaltung.html" style="width:100%;height:calc(100vh - 220px);min-height:620px;border:0;border-radius:10px;background:#fff"></iframe>';
 }
@@ -7941,7 +7973,7 @@ __SCRIPT_END__><div id="mainMenuBox" style="position:fixed;right:18px;bottom:18p
         <option value="count">Häufigkeit</option>
         <option value="name">Name A–Z</option>
       </select><button type="button" id="tpEvalRestoreBtn" onclick="tpRestoreExcludedEvaluationNames()">Ausgeblendete wieder anzeigen</button>
-      <button type="button" id="tpEvalSaveBtn" class="primary" onclick="tpSaveEvalExclusions()" disabled>Speichern</button>
+      <button type="button" id="tpEvalSaveBtn" class="primary" onclick="tpSaveEvalExclusions()" disabled>Änderungen speichern</button>
     </div>
     <div id="tpEvalSaveStatus" class="small" style="margin:6px 0;display:none"></div>
     <div id="tpEvalRightsNote" class="small" style="margin:8px 0;opacity:.85"></div><div id="tpTournamentEvalSummary" class="small" style="margin:8px 0"></div>
