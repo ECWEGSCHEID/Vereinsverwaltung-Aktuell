@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.19 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.38 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -436,6 +436,38 @@ transition:transform .18s,box-shadow .18s,background .18s}
  .tp-import-row{grid-template-columns:28px 90px 1fr}
  .tp-import-row .tp-import-loc,.tp-import-row .tp-import-type{grid-column:3}
 }
+
+.tp-eval-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.tp-eval-toolbar select{min-width:180px}
+.tp-eval-table{width:100%;border-collapse:collapse;margin-top:10px}
+.tp-eval-table th,.tp-eval-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.15);text-align:left}
+.tp-eval-table th{position:sticky;top:0;background:rgba(30,0,0,.95);z-index:1}
+.tp-eval-table td:last-child,.tp-eval-table th:last-child{text-align:right}
+.tp-eval-wrap{max-height:58vh;overflow:auto;border:1px solid rgba(255,255,255,.15);border-radius:10px}
+
+#tpTournamentEvalModal{
+  position:fixed!important;inset:0!important;z-index:25000!important;
+  background:rgba(0,0,0,.82)!important;
+  display:none;align-items:center;justify-content:center;
+  padding:18px;box-sizing:border-box;
+}
+#tpTournamentEvalModal.show{display:flex!important}
+#tpTournamentEvalModal.hidden{display:none!important}
+#tpTournamentEvalModal .tp-eval-dialog{
+  width:min(1050px,96vw);max-height:92vh;overflow:auto;
+  background:#1b0b0d;border:1px solid rgba(255,255,255,.38);
+  border-radius:16px;padding:18px;box-shadow:0 18px 60px rgba(0,0,0,.75);
+  color:#fff;box-sizing:border-box;
+}
+#tpTournamentEvalModal .tp-eval-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  position:sticky;top:-18px;background:#1b0b0d;padding:8px 0 12px;z-index:3;
+}
+@media(max-width:700px){
+  #tpTournamentEvalModal{padding:8px}
+  #tpTournamentEvalModal .tp-eval-dialog{width:100%;max-height:96vh;padding:12px}
+  .tp-eval-toolbar{display:grid;grid-template-columns:1fr}
+}
 </style>
 </head>
 <body><div id="appVersion" class="app-version">Version 3.0.13</div>
@@ -547,7 +579,7 @@ transition:transform .18s,box-shadow .18s,background .18s}
   <div id="tpStats" class="tp-stats"></div>
   <div id="routeDiag" class="small" style="padding:0 60px 6px;display:none"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
-  <div class="tp-toolbar"><div id="tpListNote" class="small tp-list-note"></div><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button></div>
+  <div class="tp-toolbar"><div id="tpListNote" class="small tp-list-note"></div><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
   <div id="tpFirebaseStatus" class="small" style="padding:0 60px 6px"></div>
   <div id="tpContent" class="tp-list"></div>
   <div class="bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
@@ -635,7 +667,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.19';
+const APP_VERSION='3.0.38';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -2957,6 +2989,37 @@ function tpCanonicalType(type){
   return raw;
 }
 function tpNormalizeType(type){return tpCanonicalType(type).toLowerCase()}
+
+function tpEffectiveType(x){
+  if(!x)return '';
+  const stored=tpCanonicalType(x.type);
+  if(stored)return stored;
+  const n=String(x.name||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const l=String(x.location||'').toLowerCase().replace(/\s+/g,' ').trim();
+
+  if(n.includes('gremlins'))return 'Gremlins';
+  if(/sitzung|versammlung/.test(n))return 'Sitzung';
+  if(/fasching|feier|weihnacht|ausflug|zeltwochenende|jugendcamp|arbeitseinsatz/.test(n))return 'Feier';
+
+  if(/meisterschaft|kreisliga|kreisoberliga|bezirksliga|bezirksoberliga|landesliga|bundesliga|pokal|zielschiessen|kreis[- ]?cup|weitschiessen|talentesichtung|euro gp|a-klasse|b-klasse/.test(n)){
+    return 'Meisterschaft';
+  }
+
+  const tournamentWord=/turnier|cup|eispartie|solo|pyramide|schiessen/.test(n);
+  if(tournamentWord){
+    if(n.includes('ec wegscheid'))return 'Turnier intern';
+    if(/wegscheid|vereinsheim|vereinheim|stüberl/.test(l))return 'Turnier als Ausrichter';
+    return 'Turnier';
+  }
+  return '';
+}
+function tpEffectiveNormalizeType(x){return tpEffectiveType(x).toLowerCase()}
+function tpIsExternalTournament(x){return tpEffectiveNormalizeType(x)==='turnier'}
+function tpIsAnyTournamentEvent(x){
+  const t=tpEffectiveNormalizeType(x);
+  return t==='turnier'||t==='turnier intern'||t==='turnier als ausrichter';
+}
+function tpIsChampionshipEvent(x){return tpEffectiveNormalizeType(x)==='meisterschaft'}
 function tpIsInternalTournamentType(type){return tpNormalizeType(type)==='turnier intern'}
 function tpIsTournamentType(type){const t=tpNormalizeType(type);return t==='turnier'||t==='turnier intern'||t==='turnier als ausrichter'}
 function tpIsChampionshipType(type){return tpNormalizeType(type)==='meisterschaft'}
@@ -3064,31 +3127,42 @@ function tpFilterByPeriod(items,period){
   return items;
 }
 function tpSortedEvents(){return (data.tournamentPlanner||[]).filter(Boolean).slice().sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999'))||String(a.time||'').localeCompare(String(b.time||'')))}
-function tpPlayerHistoryData(year){
+function tpHistoryScope(){
+  const period=document.getElementById('tpPeriodFilter')?.value||'upcoming';
   const today=todayStr();
-  const all=(data.tournamentPlanner||[]).filter(Boolean).filter(x=>tpEventYear(x)===year);
+  if(period==='past')return {period,label:'Vergangenheit – alle',filter:x=>{const d=tpEventDateStr(x);return !!d&&d<today}};
+  if(period==='upcoming')return {period,label:'Zukunft',filter:x=>{const d=tpEventDateStr(x);return !!d&&d>=today}};
+  if(period&&period.charAt(0)==='y'){
+    const year=period.slice(1);
+    return {period,label:year,filter:x=>tpEventYear(x)===year};
+  }
+  return {period:'all',label:'Alle Termine',filter:x=>true};
+}
+function tpPlayerHistoryData(){
+  const scope=tpHistoryScope(),today=todayStr();
+  const all=(data.tournamentPlanner||[]).filter(Boolean).filter(scope.filter);
   const counts={};
   const ensure=n=>counts[n]||(counts[n]={name:n,tournaments:0,championships:0,planned:0});
   all.forEach(x=>{
-    if(!tpIsTournamentType(x.type)&&!tpIsChampionshipType(x.type))return;
+    if(!tpIsAnyTournamentEvent(x)&&!tpIsChampionshipEvent(x))return;
     const dateStr=tpEventDateStr(x);
     const isUpcoming=!!dateStr&&dateStr>=today;
     (x.players||[]).forEach(p=>{
       const name=(p||'').trim();
       if(!name||name.toUpperCase()==='X')return;
       const row=ensure(name);
-      if(tpIsTournamentType(x.type)){row.tournaments++;if(isUpcoming)row.planned++;}else row.championships++;
+      if(tpIsAnyTournamentEvent(x)){row.tournaments++;if(isUpcoming)row.planned++;}
+      else row.championships++;
     });
   });
-  return Object.values(counts).map(r=>({...r,total:r.tournaments+r.championships})).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'));
+  return {scope,rows:Object.values(counts).map(r=>({...r,total:r.tournaments+r.championships})).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'))};
 }
 function renderTpHistory(){
   const el=document.getElementById('tpHistoryList');if(!el)return;
-  const year=tpSelectedYear();
-  const yearEl=document.getElementById('tpHistoryYear');if(yearEl)yearEl.textContent=year;
-  const rows=tpPlayerHistoryData(year);
-  if(!rows.length){el.innerHTML='<div class="tp-empty">Noch keine Teilnahmen '+esc(year)+' erfasst.</div>';return}
-  el.innerHTML=rows.map(r=>'<div class="tp-history-row"><div class="tp-history-name">'+esc(r.name)+'</div><div class="tp-history-counts">Turniere: '+r.tournaments+' · Meisterschaften: '+r.championships+'<br>Gesamt: <b>'+r.total+'</b><br>Für '+r.planned+' Turniere dieses Jahr noch eingeplant.</div></div>').join('');
+  const result=tpPlayerHistoryData(),rows=result.rows,scope=result.scope;
+  const yearEl=document.getElementById('tpHistoryYear');if(yearEl)yearEl.textContent=scope.label;
+  if(!rows.length){el.innerHTML='<div class="tp-empty">Noch keine Teilnahmen für „'+esc(scope.label)+'“ erfasst.</div>';return}
+  el.innerHTML=rows.map(r=>'<div class="tp-history-row"><div class="tp-history-name">'+esc(r.name)+'</div><div class="tp-history-counts">Turniere: '+r.tournaments+' · Meisterschaften: '+r.championships+'<br>Gesamt: <b>'+r.total+'</b>'+(scope.period==='upcoming'?'<br>Für '+r.planned+' Turniere noch eingeplant.':'')+'</div></div>').join('');
 }
 function openTpHistory(){renderTpHistory();document.getElementById('tpHistoryModal')?.classList.add('show');}
 function closeTpHistory(){document.getElementById('tpHistoryModal')?.classList.remove('show');}
@@ -3130,22 +3204,83 @@ function tpSelectedYear(){
   const filterVal=document.getElementById('tpPeriodFilter')?.value||'';
   return (filterVal&&filterVal.charAt(0)==='y')?filterVal.slice(1):String(new Date().getFullYear());
 }
+function tpStatsScope(){
+  const period=document.getElementById('tpPeriodFilter')?.value||'upcoming';
+  const today=todayStr();
+  if(period==='past')return {period,label:'Vergangenheit',filter:x=>{const d=tpEventDateStr(x);return !!d&&d<today}};
+  if(period==='upcoming')return {period,label:'Zukunft',filter:x=>{const d=tpEventDateStr(x);return !!d&&d>=today}};
+  if(period&&period.charAt(0)==='y'){
+    const year=period.slice(1);
+    return {period,label:year,filter:x=>tpEventYear(x)===year};
+  }
+  return {period:'all',label:'Alle Termine',filter:x=>true};
+}
+
+function tpHasActualPlayer(x){
+  return Array.isArray(x&&x.players) && x.players.some(p=>{
+    const n=String(p||'').trim();
+    return !!n && n.toUpperCase()!=='X';
+  });
+}
+function tpWasVisited(x){
+  const d=tpEventDateStr(x);
+  return !!d && d<todayStr() && tpHasActualPlayer(x);
+}
+
+function tpEventNameKey(x){
+  return String((x&&x.name)||'')
+    .toLocaleLowerCase('de')
+    .replace(/[–—]/g,'-')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function tpVisitKey(x){
+  return [tpEventDateStr(x),tpEventNameKey(x)].join('|');
+}
+function tpUniqueVisitedExternal(items){
+  const seen=new Set(),out=[];
+  for(const x of (items||[])){
+    if(!x||!tpIsExternalTournament(x)||!tpWasVisited(x))continue;
+    const key=tpVisitKey(x);
+    if(!key||seen.has(key))continue;
+    seen.add(key);out.push(x);
+  }
+  return out;
+}
 function tpStatsCounts(){
   const all=(data.tournamentPlanner||[]).filter(Boolean);
+  const year=String(new Date().getFullYear());
   const today=todayStr();
-  const year=tpSelectedYear();
-  const inYear=x=>tpEventYear(x)===year;
-  const visited=x=>{const d=tpEventDateStr(x);return !!d&&d<=today};
-  const typeOf=x=>tpNormalizeType(x&&x.type);
-  const tNormal=all.filter(x=>inYear(x)&&typeOf(x)==='turnier').length;
-  const tInternal=all.filter(x=>inYear(x)&&typeOf(x)==='turnier intern').length;
-  const tHost=all.filter(x=>inYear(x)&&typeOf(x)==='turnier als ausrichter').length;
-  const tTotal=tNormal;
-  const mCount=all.filter(x=>inYear(x)&&typeOf(x)==='meisterschaft').length;
-  const allCount=all.filter(inYear).length;
-  const tVisited=all.filter(x=>inYear(x)&&visited(x)&&typeOf(x)==='turnier').length;
-  const mVisited=all.filter(x=>inYear(x)&&visited(x)&&tpIsChampionshipType(x&&x.type)).length;
-  return {year,allCount,tTotal,tNormal,tInternal,tHost,mCount,tVisited,mVisited};
+  const items=all.filter(x=>tpEventYear(x)===year);
+
+  const typeOf=x=>tpCanonicalType(x&&x.type);
+
+  const turniere=items.filter(x=>typeOf(x)==='Turnier');
+  const interne=items.filter(x=>typeOf(x)==='Turnier intern');
+  const meisterschaften=items.filter(x=>typeOf(x)==='Meisterschaft');
+
+  const veranstaltungen=items.length;
+  const turniereGemeldet=turniere.length;
+  const turniereBesucht=turniere.filter(x=>{const d=tpEventDateStr(x);return !!d&&d<today}).length;
+  const turniereOffen=turniere.filter(x=>{const d=tpEventDateStr(x);return !!d&&d>=today}).length;
+
+  const externeTurniere=turniere.length;
+  const interneTurniere=interne.length;
+
+  const meisterschaftenBesucht=meisterschaften.filter(x=>{const d=tpEventDateStr(x);return !!d&&d<today}).length;
+  const meisterschaftenOffen=meisterschaften.filter(x=>{const d=tpEventDateStr(x);return !!d&&d>=today}).length;
+
+  return {
+    year,
+    veranstaltungen,
+    turniereGemeldet,
+    turniereBesucht,
+    turniereOffen,
+    externeTurniere,
+    interneTurniere,
+    meisterschaftenBesucht,
+    meisterschaftenOffen
+  };
 }
 function tpFindTodayIndex(){
   const today=todayStr();
@@ -3154,14 +3289,28 @@ function tpFindTodayIndex(){
   if(idx<0)idx=items.length-1;
   return idx;
 }
-function tpScrollToToday(){
+function tpScrollToCurrentEntry(){
   const el=document.getElementById('tpContent');if(!el)return;
-  const cards=el.querySelectorAll('.tp-card');
+  const cards=[...el.querySelectorAll('.tp-card')];
   if(!cards.length)return;
-  const idx=tpFindTodayIndex();
-  const target=cards[Math.max(0,Math.min(idx,cards.length-1))];
-  if(target&&target.scrollIntoView){target.scrollIntoView({block:'center'});}
+  const today=todayStr();
+
+  // "Aktuellster Beitrag": letzter Termin bis einschließlich heute.
+  // Falls das Jahr noch keinen vergangenen/heutigen Termin hat, erster Termin des Jahres.
+  let target=null;
+  for(const card of cards){
+    const d=String(card.dataset.tpDate||'');
+    if(d&&d<=today)target=card;
+    else if(d&&d>today)break;
+  }
+  if(!target)target=cards[0];
+
+  if(target&&target.scrollIntoView){
+    target.scrollIntoView({block:'center',behavior:'auto'});
+  }
 }
+function tpScrollToToday(){tpScrollToCurrentEntry();}
+
 function tpSyncStatsAndPeriod(){
   const t=document.getElementById('tpTypeFilter')?.value||'all';
   const p=document.getElementById('tpPeriodFilter')?.value||'upcoming';
@@ -3172,14 +3321,15 @@ function tpSyncStatsAndPeriod(){
 }
 function tpRenderStats(){
   const el=document.getElementById('tpStats');if(!el)return;
-  const s=tpStatsCounts();
-  el.innerHTML='<div class="tp-stat">Veranstaltungen '+s.year+' Gesamt<b>'+s.allCount+'</b></div>'
-    +'<div class="tp-stat">Turniere '+s.year+' Gesamt<b>'+s.tTotal+'</b></div>'
-    +'<div class="tp-stat">Turniere besucht '+s.year+' bis jetzt<b>'+s.tVisited+'</b></div>'
-    +'<div class="tp-stat">Interne Turniere '+s.year+'<b>'+s.tInternal+'</b></div>'
-    +'<div class="tp-stat">Turniere als Ausrichter '+s.year+'<b>'+s.tHost+'</b></div>'
-    +'<div class="tp-stat">Meisterschaften '+s.year+' Gesamt<b>'+s.mCount+'</b></div>'
-    +'<div class="tp-stat">Meisterschaften besucht '+s.year+' bis jetzt<b>'+s.mVisited+'</b></div>';
+  const s=tpStatsCounts(),y=s.year;
+  el.innerHTML='<div class="tp-stat">Veranstaltungen '+y+'<b>'+s.veranstaltungen+'</b></div>'
+    +'<div class="tp-stat">Turniere gemeldet '+y+'<b>'+s.turniereGemeldet+'</b></div>'
+    +'<div class="tp-stat">Turniere besucht '+y+'<b>'+s.turniereBesucht+'</b></div>'
+    +'<div class="tp-stat">Turniere offen '+y+'<b>'+s.turniereOffen+'</b></div>'
+    +'<div class="tp-stat">Turniere als Veranstalter '+y+'<b>'+s.externeTurniere+'</b></div>'
+    +'<div class="tp-stat">Interne Turniere '+y+'<b>'+s.interneTurniere+'</b></div>'
+    +'<div class="tp-stat">Meisterschaften besucht '+y+'<b>'+s.meisterschaftenBesucht+'</b></div>'
+    +'<div class="tp-stat">Meisterschaften offen '+y+'<b>'+s.meisterschaftenOffen+'</b></div>';
 }
 
 function tpPlayers(){const list=(data.tournamentPlannerPlayers&&data.tournamentPlannerPlayers.length)?data.tournamentPlannerPlayers.slice():TP_PLAYER_NAMES.slice();if(!list.includes('X'))list.push('X');return list}
@@ -3242,7 +3392,8 @@ function renderTournamentPlanner(){
     else{loginNote.style.display='block';loginNote.innerHTML='🔒 Nur Ansicht – zum Bearbeiten bitte anmelden. <button type="button" onclick="tpRequestLogin()">Anmelden</button>';}
   }
   tpMigrateTypes();
-  tpPopulatePeriodFilter('tpPeriodFilter','upcoming');
+  const tpDefaultPeriod=isWhiteboardUser()?'y'+String(new Date().getFullYear()):'upcoming';
+  tpPopulatePeriodFilter('tpPeriodFilter',tpDefaultPeriod);
   tpPopulateTypeFilter('tpTypeFilter');
   tpRenderStats();
   const filter=document.getElementById('tpPeriodFilter')?.value||'upcoming';
@@ -3261,7 +3412,7 @@ function renderTournamentPlanner(){
     const playersDisabled=!canEdit;
     const playerFields=allowsPlayers?[0,1,2,3].map(i=>'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Spieler '+(i+1)+'</label><select '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i])+'</select></div>').join(''):'';
     const nameWraps=x.name&&x.name.trim().split(/\s+/).filter(Boolean).length>=2;
-    return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'">'
+    return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
       +'<div class="tp-name'+(nameWraps?' tp-name-wrap':'')+'">'+esc(x.name)+'</div>'
       +'<div class="tp-meta">'
       +'<div class="tp-date"><div>'+(tpDayLabel(x.date)?esc(tpDayLabel(x.date))+' · ':'')+esc(tpFormatDate(x.date))+'</div>'+(x.time?'<div>'+esc(x.time)+' Uhr</div>':'<div>&nbsp;</div>')+'</div>'
@@ -3276,7 +3427,9 @@ function renderTournamentPlanner(){
       +'</div>'):'')
       +'</div>';
   }).join('');
-  if(filter==='all')setTimeout(tpScrollToToday,0);
+  const currentYearFilter='y'+String(new Date().getFullYear());
+  if(isWhiteboardUser()&&filter===currentYearFilter)setTimeout(tpScrollToCurrentEntry,0);
+  else if(filter==='all')setTimeout(tpScrollToToday,0);
 }
 function tpTypeChanged(id,selectEl){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   if(!tpRequirePlannerEdit())return;
@@ -3801,10 +3954,331 @@ async function tpImportExcel2023to2025(){
   }catch(e){console.error('Excel-Turnierplan-Import:',e);if(status)status.textContent='Fehler: '+firebaseErrorText(e);showToast('Excel-Import fehlgeschlagen: '+firebaseErrorText(e),8000)}
 }
 
+
+function tpEvalTournamentOnly(x){
+  return !!x && tpIsExternalTournament(x);
+}
+function tpEvalScopeFromValue(period){
+  const today=todayStr();
+  if(period==='past')return {label:'Vergangenheit – alle',filter:x=>{const d=tpEventDateStr(x);return !!d&&d<today}};
+  if(period==='upcoming')return {label:'Zukunft',filter:x=>{const d=tpEventDateStr(x);return !!d&&d>=today}};
+  if(period&&period.charAt(0)==='y'){
+    const year=period.slice(1);
+    return {label:year,filter:x=>tpEventYear(x)===year};
+  }
+  return {label:'Alle Termine',filter:x=>true};
+}
+function tpEvalPeriodOptionsHtml(){
+  const currentYear=String(new Date().getFullYear());
+  const years=tpExistingYears();
+  const pastYears=years.filter(y=>y<currentYear).sort((a,b)=>b.localeCompare(a));
+  const currentFutureYears=years.filter(y=>y>=currentYear).sort();
+  let html='<option value="past">Vergangenheit – alle</option><option value="upcoming">Zukunft</option>';
+  if(pastYears.length){
+    html+='<optgroup label="Vergangenheit">';
+    pastYears.forEach(y=>{html+='<option value="y'+y+'">'+y+'</option>'});
+    html+='</optgroup>';
+  }
+  if(currentFutureYears.length){
+    html+='<optgroup label="Aktuell / Zukunft">';
+    currentFutureYears.forEach(y=>{html+='<option value="y'+y+'">'+y+'</option>'});
+    html+='</optgroup>';
+  }
+  html+='<option value="all">Alle Jahre</option>';
+  return html;
+}
+function tpEvalClubKey(x){
+  return String((x&&x.name)||'').trim()||'Ohne Bezeichnung';
+}
+function tpEvalTournamentKey(x){
+  return String(x.name||'').trim()||'Ohne Bezeichnung';
+}
+
+
+let tpEvalExcludedNames={};
+let tpEvalExclusionsLoaded=false;
+
+function tpEvalLoadLocalExclusions(){
+  try{return JSON.parse(localStorage.getItem('ecw-tp-eval-exclusions-v1')||'{}')||{}}catch{return {}}
+}
+function tpEvalIsKreiscup(name){
+  return /kreis[\s-]*cup/i.test(String(name||''));
+}
+function tpEvalIsExcluded(name){
+  return !!tpEvalExcludedNames[tpEvalNameKey(name)];
+}
+async function tpLoadEvalExclusions(){
+  if(tpEvalExclusionsLoaded)return;
+  tpEvalExclusionsLoaded=true;
+  tpEvalExcludedNames=tpEvalLoadLocalExclusions();
+  if(firebaseReady&&firestoreDb&&firebaseAuthUser){
+    try{
+      const snap=await firestoreDb.collection('appSettings').doc('turnierAuswertungAusschluesse').get();
+      if(snap.exists){
+        tpEvalExcludedNames={...tpEvalExcludedNames,...((snap.data()||{}).names||{})};
+        localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
+      }
+    }catch(e){console.warn('Auswertungsausschlüsse laden:',e);}
+  }
+}
+async function tpSaveEvalExclusions(){
+  localStorage.setItem('ecw-tp-eval-exclusions-v1',JSON.stringify(tpEvalExcludedNames));
+  if(firebaseReady&&firestoreDb&&firebaseAuthUser&&isAdminNow()){
+    try{
+      await firestoreDb.collection('appSettings').doc('turnierAuswertungAusschluesse').set({
+        names:tpEvalExcludedNames,
+        updatedAt:new Date().toISOString()
+      },{merge:false});
+    }catch(e){console.warn('Auswertungsausschlüsse speichern:',e);}
+  }
+}
+async function tpExcludeEvaluationName(raw){
+  if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
+  if(!confirm('„'+raw+'“ nur aus der Turnier-Auswertung ausblenden? Der Termin bleibt im Termin-/Turnierplaner unverändert erhalten.'))return;
+  tpEvalExcludedNames[tpEvalNameKey(raw)]=true;
+  await tpSaveEvalExclusions();
+  renderTpTournamentEvaluation();
+  showToast('Aus Auswertung ausgeschlossen.');
+}
+async function tpRestoreExcludedEvaluationNames(){
+  if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
+  const count=Object.keys(tpEvalExcludedNames||{}).length;
+  if(!count){showToast('Keine ausgeschlossenen Namen vorhanden.');return}
+  if(!confirm(count+' ausgeblendete Einträge wieder in der Turnier-Auswertung anzeigen?'))return;
+  tpEvalExcludedNames={};
+  await tpSaveEvalExclusions();
+  renderTpTournamentEvaluation();
+  showToast('Ausgeblendete Einträge werden wieder angezeigt.');
+}
+let tpEvalNameAliases={};
+let tpEvalAliasesLoaded=false;
+
+function tpEvalNameKey(name){
+  return String(name||'').toLocaleLowerCase('de').replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
+}
+function tpEvalIsSimpleName(name){
+  const n=String(name||'').trim();
+  if(!n)return true;
+  return n.split(/\s+/).length===1;
+}
+
+function tpEvalAutoClubName(raw){
+  let n=String(raw||'').trim();
+  if(!n)return 'Ohne Bezeichnung';
+
+  n=n
+    .replace(/\b(herren|damen|mixed|mix|senioren|jugend|u\d{2}|ü\d{2})?turnier\b/gi,' ')
+    .replace(/\b(herren|damen|mixed|mix|senioren|jugend|u\d{2}|ü\d{2})\b/gi,' ')
+    .replace(/\b(eis|stock)?turnier\b/gi,' ')
+    .replace(/\b(cup|pokalturnier|freundschaftsturnier|einladungsturnier|nachtturnier|frühjahrsturnier|sommerturnier|herbstturnier|winterturnier)\b/gi,' ')
+    .replace(/\b(duo|trio|solo|quattro)\b/gi,' ')
+    .replace(/\b(ec|esv|ev|ssc|sc|fc|tsv|djk|sv|tc)\b/gi,' ')
+    .replace(/\b(1\.|2\.|3\.|4\.)\b/gi,' ')
+    .replace(/\b(in|bei|beim|vom|von|des|der)\b/gi,' ')
+    .replace(/\s+/g,' ')
+    .replace(/^[\s\-–—:]+|[\s\-–—:]+$/g,' ')
+    .trim();
+
+  n=n
+    .replace(/\s+(halle|eishalle|stocksporthalle|stockhalle)$/i,'')
+    .replace(/^(halle|eishalle|stocksporthalle|stockhalle)\s+/i,'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  return n||String(raw||'').trim()||'Ohne Bezeichnung';
+}
+function tpEvalDisplayName(raw){
+  const key=tpEvalNameKey(raw);
+  if(tpEvalNameAliases[key])return String(tpEvalNameAliases[key]).trim();
+  return tpEvalAutoClubName(raw);
+}
+async function tpLoadNameAliases(){
+  if(tpEvalAliasesLoaded)return;
+  tpEvalAliasesLoaded=true;
+  try{
+    const local=JSON.parse(localStorage.getItem('ecw-tp-eval-name-aliases-v1')||'{}')||{};
+    tpEvalNameAliases={...local};
+  }catch{tpEvalNameAliases={};}
+  if(firebaseReady&&firestoreDb&&firebaseAuthUser){
+    try{
+      const snap=await firestoreDb.collection('appSettings').doc('turnierAuswertungNamen').get();
+      if(snap.exists){
+        const remote=snap.data()||{};
+        tpEvalNameAliases={...tpEvalNameAliases,...(remote.aliases||{})};
+        localStorage.setItem('ecw-tp-eval-name-aliases-v1',JSON.stringify(tpEvalNameAliases));
+      }
+    }catch(e){console.warn('Auswertungsnamen laden:',e);}
+  }
+}
+async function tpEditEvaluationName(raw){
+  if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
+  const current=tpEvalDisplayName(raw);
+  const input=prompt('Anzeigename nur für die Turnierauswertung:',current);
+  if(input===null)return;
+  const value=input.trim();
+  if(!value)return;
+  const key=tpEvalNameKey(raw);
+  tpEvalNameAliases[key]=value;
+  localStorage.setItem('ecw-tp-eval-name-aliases-v1',JSON.stringify(tpEvalNameAliases));
+  if(firebaseReady&&firestoreDb&&firebaseAuthUser&&isAdminNow()){
+    try{
+      await firestoreDb.collection('appSettings').doc('turnierAuswertungNamen').set({
+        aliases:tpEvalNameAliases,
+        updatedAt:new Date().toISOString()
+      },{merge:true});
+      showToast('Anzeigename für die Turnierauswertung gespeichert.');
+    }catch(e){
+      console.error(e);
+      showToast('Anzeigename lokal gespeichert. Firebase-Speicherung nicht möglich: '+firebaseErrorText(e),7000);
+    }
+  }else{
+    showToast('Anzeigename für die Turnierauswertung lokal gespeichert.');
+  }
+  renderTpTournamentEvaluation();
+}
+async function tpDeleteEvaluationName(raw){
+  if(!isAdminNow()){showToast('Diese Funktion ist nur im Admin-Modus verfügbar.');return;}
+  const key=tpEvalNameKey(raw);
+  if(!Object.prototype.hasOwnProperty.call(tpEvalNameAliases,key)){
+    showToast('Für diese Bezeichnung gibt es keine manuelle Zuordnung.');
+    return;
+  }
+  if(!confirm('Anzeigename für „'+raw+'“ löschen? Danach wird in der Turnierauswertung wieder der automatische Anzeigename verwendet.'))return;
+
+  delete tpEvalNameAliases[key];
+  localStorage.setItem('ecw-tp-eval-name-aliases-v1',JSON.stringify(tpEvalNameAliases));
+
+  if(firebaseReady&&firestoreDb&&firebaseAuthUser&&isAdminNow()){
+    try{
+      await firestoreDb.collection('appSettings').doc('turnierAuswertungNamen').set({
+        aliases:tpEvalNameAliases,
+        updatedAt:new Date().toISOString()
+      },{merge:false});
+      showToast('Manuelle Zuordnung gelöscht.');
+    }catch(e){
+      console.error(e);
+      showToast('Lokal gelöscht. Firebase-Speicherung nicht möglich: '+firebaseErrorText(e),7000);
+    }
+  }else{
+    showToast('Manuelle Zuordnung lokal gelöscht.');
+  }
+  renderTpTournamentEvaluation();
+}
+
+function tpTournamentEvaluationRows(){
+  const period=document.getElementById('tpEvalPeriod')?.value||'past';
+  const sort=document.getElementById('tpEvalSort')?.value||'count';
+  const scope=tpEvalScopeFromValue(period);
+
+  const items=(data.tournamentPlanner||[])
+    .filter(Boolean)
+    .filter(scope.filter)
+    .filter(x=>tpCanonicalType(x.type)==='Turnier')
+    .filter(x=>!tpEvalIsExcluded(String(x.name||'')));
+
+  const groups=new Map();
+  for(const x of items){
+    const raw=String(x.name||'').trim()||'Ohne Bezeichnung';
+    const display=tpEvalDisplayName(raw);
+    const key=tpEvalNameKey(display);
+
+    if(!groups.has(key))groups.set(key,{name:display,count:0,rawNames:new Map()});
+    const g=groups.get(key);
+    g.count++;
+    g.rawNames.set(raw,(g.rawNames.get(raw)||0)+1);
+  }
+
+  let rows=[...groups.values()].map(g=>({
+    name:g.name,
+    count:g.count,
+    rawNames:[...g.rawNames.entries()].map(([name,count])=>({name,count}))
+  }));
+
+  if(sort==='name')rows.sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  else rows.sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'de'));
+
+  return {rows,scope,total:items.length};
+}
+async function openTpTournamentEvaluation(){
+  const modal=document.getElementById('tpTournamentEvalModal');
+  if(!modal)return;
+  if(modal.parentElement!==document.body)document.body.appendChild(modal);
+  const p=document.getElementById('tpEvalPeriod');
+  if(p){
+    const current=document.getElementById('tpPeriodFilter')?.value||'past';
+    p.innerHTML=tpEvalPeriodOptionsHtml();
+    p.value=[...p.options].some(o=>o.value===current)?current:'past';
+  }
+  modal.classList.remove('hidden');
+  modal.classList.add('show');
+  document.body.style.overflow='hidden';
+  await tpLoadNameAliases();
+  await tpLoadEvalExclusions();
+  tpUpdateEvaluationRights();
+  renderTpTournamentEvaluation();
+}
+function closeTpTournamentEvaluation(){
+  const modal=document.getElementById('tpTournamentEvalModal');
+  if(modal){modal.classList.remove('show');modal.classList.add('hidden');}
+  document.body.style.overflow='';
+}
+
+function tpUpdateEvaluationRights(){
+  const admin=isAdminNow();
+  const restore=document.getElementById('tpEvalRestoreBtn');
+  if(restore)restore.style.display=admin?'':'none';
+  const originalHead=document.getElementById('tpEvalOriginalHead');
+  if(originalHead)originalHead.style.display=admin?'':'none';
+  const note=document.getElementById('tpEvalRightsNote');
+  if(note)note.textContent=admin
+    ?'Admin-Modus: Anzeigenamen ändern, löschen und Einträge ausblenden möglich.'
+    :'Ansicht: Zeitraum und Sortierung können gewählt werden.';
+}
+function renderTpTournamentEvaluation(){
+  const body=document.getElementById('tpTournamentEvalBody');
+  const summary=document.getElementById('tpTournamentEvalSummary');
+  if(!body||!summary)return;
+
+  tpUpdateEvaluationRights();
+  const admin=isAdminNow();
+  const result=tpTournamentEvaluationRows();
+  document.getElementById('tpEvalHeadName').textContent='Verein / Anzeigename';
+
+  const excludedCount=Object.keys(tpEvalExcludedNames||{}).length;
+  summary.textContent=result.total+' Turnier-Einträge · '
+    +result.rows.length+' Vereine / Anzeigenamen · '
+    +result.scope.label
+    +(admin&&excludedCount?' · '+excludedCount+' nur aus Auswertung ausgeblendet':'');
+
+  body.innerHTML=result.rows.map((r,i)=>{
+    if(!admin){
+      return '<tr><td>'+(i+1)+'. <b>'+esc(r.name)+'</b></td><td style="display:none"></td><td><b>'+r.count+'×</b></td></tr>';
+    }
+
+    const variants=r.rawNames.map(v=>{
+      const key=tpEvalNameKey(v.name);
+      const manual=Object.prototype.hasOwnProperty.call(tpEvalNameAliases,key);
+      const autoName=tpEvalAutoClubName(v.name);
+      const controls=
+        ' <button type="button" style="padding:3px 7px;margin-left:5px" onclick="tpEditEvaluationName('+jsArg(v.name)+')">Anzeigename ändern</button>'
+        +(manual?' <button type="button" style="padding:3px 7px;margin-left:4px" onclick="tpDeleteEvaluationName('+jsArg(v.name)+')">Anzeigename löschen</button>':'')
+        +' <button type="button" style="padding:3px 7px;margin-left:4px" onclick="tpExcludeEvaluationName('+jsArg(v.name)+')">Ausblenden</button>';
+
+      return '<div style="margin:4px 0">'
+        +esc(v.name)+(v.count>1?' <small>('+v.count+'×)</small>':'')
+        +(autoName!==v.name?'<br><small style="opacity:.7">Anzeigename: '+esc(tpEvalDisplayName(v.name))+'</small>':'')
+        +controls
+        +'</div>';
+    }).join('');
+
+    return '<tr><td>'+(i+1)+'. <b>'+esc(r.name)+'</b></td><td>'+variants+'</td><td><b>'+r.count+'×</b></td></tr>';
+  }).join('')||'<tr><td colspan="'+(admin?3:2)+'">Keine Turniere in diesem Zeitraum.</td></tr>';
+}
+
 /* ===== Ende Turnierplaner ===== */
 
 function tpAdminSubSection(sub){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
- ['plan','cal','players','events','excel'].forEach(k=>{
+ ['plan','cal','players','events'].forEach(k=>{
   const el=document.getElementById('tpSub-'+k);
   if(el)el.style.display=(k===sub?'':'none');
   const b=document.getElementById('tpSubBtn-'+k);
@@ -3845,13 +4319,11 @@ function adminSection(s){
     +'<button type="button" id="tpSubBtn-cal" onclick="tpAdminSubSection(\'cal\')">Kalendereinstellungen</button>'
     +'<button type="button" id="tpSubBtn-players" onclick="tpAdminSubSection(\'players\')">Spielerliste</button>'
     +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
-    +'<button type="button" id="tpSubBtn-excel" onclick="tpAdminSubSection(\'excel\');tpRenderExcelImportPreview()">Excel 2023–2025</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
    +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings();tpGoogleConnect()">Mit Google verbinden</button></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Der Kalender-Export (📅) steht nur im Admin-Bereich zur Verfügung. Nach dem Export wird die Veranstaltung ausgegraut, damit sie nicht versehentlich mehrfach exportiert wird – über ↺ lässt sich der Export bei Bedarf wieder freigeben.</div></div></div>'
    +'<div id="tpSub-players"><h3>Spielerliste (Auswahl für Turniere/Meisterschaften)</h3><div class="card"><div class="row"><input id="tpNewPlayer" type="text" placeholder="Name, z. B. Mustermann Max" style="flex:1" onkeydown="if(event.key===\'Enter\')tpAddPlayer()"><button type="button" onclick="tpAddPlayer()">Hinzufügen</button></div><div id="tpPlayersAdminList" style="margin-top:10px"></div></div></div>'
-   +'<div id="tpSub-events"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar" style="margin:0 0 10px"><label style="margin:0">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div><div id="tpAdminList"></div></div>'
-   +'<div id="tpSub-excel"><h3>Excel-Termine 2023–2025 importieren</h3><div class="card"><p class="small">Die drei Excel-Turnierpläne sind in dieser Version vorbereitet. Vorhandene Termine werden nicht überschrieben. Doppelte Einträge werden anhand von Datum, Name und Uhrzeit erkannt.</p><div id="tpExcelImportSummary"></div><div class="tp-bulk-tools"><button type="button" onclick="tpExcelSelectVisible(true)">Sichtbare markieren</button><button type="button" onclick="tpExcelSelectVisible(false)">Markierung aufheben</button><select id="tpExcelBulkType"><option value="">– Veranstaltungsart wählen –</option><option value="Turnier">Turnier</option><option value="Meisterschaft">Meisterschaft</option><option value="Turnier intern">Turnier intern</option><option value="Turnier als Ausrichter">Turnier als Ausrichter</option><option value="Gremlins">Gremlins</option><option value="Sitzung">Sitzung</option><option value="Feier">Feier</option></select><button type="button" class="primary" onclick="tpExcelApplyBulkType()">Art für markierte ändern</button><button type="button" onclick="tpExcelResetTypes()">Automatische Zuordnung zurücksetzen</button></div><div class="tp-toolbar" style="margin:10px 0"><label style="margin:0">Vorschau</label><select id="tpExcelPreviewYear" onchange="tpRenderExcelImportPreview()"><option value="all">Alle Jahre</option><option value="2023">2023</option><option value="2024">2024</option><option value="2025">2025</option></select><label style="margin:0">Art</label><select id="tpExcelPreviewType" onchange="tpRenderExcelImportPreview()"><option value="all">Alle Arten</option></select></div><div id="tpExcelImportList" class="tp-import-list"></div><div id="tpExcelImportStatus" class="small" style="margin:10px 0"></div><button class="primary" style="width:100%" onclick="tpImportExcel2023to2025()">Fehlende Termine 2023–2025 in Firebase importieren</button></div></div>';
+   +'<div id="tpSub-events"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar" style="margin:0 0 10px"><label style="margin:0">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div><div id="tpAdminList"></div></div>';
   renderTpPlayersAdminList();
   renderTournamentPlannerAdminList();
   tpAdminSubSection('plan');
@@ -7419,5 +7891,34 @@ document.addEventListener("click",e=>{
 __SCRIPT_END__><div id="mainMenuBox" style="position:fixed;right:18px;bottom:18px;z-index:25;display:flex;flex-direction:column;align-items:stretch;gap:8px"><button id="mainMenuBtn" class="btn primary" onclick="backToStartPage()" style="display:none;box-shadow:0 4px 14px #0008">Zurück zum Hauptmenü</button><button id="startPageBtn" class="btn primary" onclick="backToStartPage()" style="box-shadow:0 4px 14px #0008">Zurück zur Startseite</button></div><div id="passModal" class="modal"><div class="modalbox"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Spielerpass bearbeiten</h3><button class="btn" onclick="closePass()">×</button></div><p id="pxName" class="smallnote"></p><div class="field"><label>Mitglied zuordnen</label><select id="pxMember" onchange="passMemberChanged()"></select><div class="smallnote">Der Spielerpass wird dauerhaft über die Mitglieds-ID zugeordnet. Bei einer Namensänderung wird dadurch automatisch der neue Name übernommen.</div></div><div class="field"><label>Passgruppe (Mehrfachauswahl möglich)</label><div id="passGroupChecks" class="checkgrid"><label><input type="checkbox" value="U14">U14</label><label><input type="checkbox" value="U16">U16</label><label><input type="checkbox" value="U19">U19</label><label><input type="checkbox" value="U23">U23</label><label><input type="checkbox" value="Herren">Herren</label><label><input type="checkbox" value="Damen">Damen</label><label><input type="checkbox" value="Senioren">Senioren</label></div><div class="smallnote">Mehrere Gruppen sind möglich. Ausnahme: U14 und Herren dürfen nicht gleichzeitig ausgewählt werden.</div></div><div class="field"><label>Pass-Nr.</label><input id="pxNo"></div><div class="field"><label>Gültig bis</label><input id="pxExpiry" type="date"></div><div class="field" style="margin-top:10px"><label><input id="pxNotRenewed" type="checkbox"> Spielerpass wird nicht verlängert</label></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closePass()">Abbrechen</button><button class="btn primary" onclick="savePass()">Speichern</button></div></div></div>
 <script>window.addEventListener("load",()=>{setTimeout(()=>window.ecwFirebaseRefresh?.(),300);});__SCRIPT_END__><div id="firebaseStatus" style="display:block;position:fixed;left:12px;bottom:12px;z-index:99999;background:rgba(0,0,0,.92);border:1px solid #fff5;border-radius:10px;padding:9px 12px;font:14px Arial;color:#fff;max-width:calc(100vw - 24px);box-shadow:0 3px 12px #0008;line-height:1.35">Firebase: wird geladen …</div></body></html>
 </script>
+
+<div id="tpTournamentEvalModal" class="hidden" onclick="if(event.target===this)closeTpTournamentEvaluation()">
+  <div class="tp-eval-dialog">
+    <div class="tp-eval-head">
+      <div>
+        <h2 style="margin:0">Besuchte Turniere ab 2023</h2>
+        <div class="small">Datenbasis ab 2023 · nur Veranstaltungsart „Turnier“ · Anzeigenamen gelten ausschließlich für diese Ansicht</div>
+      </div>
+      <button type="button" onclick="closeTpTournamentEvaluation()">Schließen</button>
+    </div>
+    <div class="tp-eval-toolbar">
+      <label style="margin:0">Zeitraum</label>
+      <select id="tpEvalPeriod" onchange="renderTpTournamentEvaluation()"></select>
+      
+      <label style="margin:0">Sortierung</label>
+      <select id="tpEvalSort" onchange="renderTpTournamentEvaluation()">
+        <option value="count">Häufigkeit</option>
+        <option value="name">Name A–Z</option>
+      </select><button type="button" id="tpEvalRestoreBtn" onclick="tpRestoreExcludedEvaluationNames()">Ausgeblendete wieder anzeigen</button>
+    </div>
+    <div id="tpEvalRightsNote" class="small" style="margin:8px 0;opacity:.85"></div><div id="tpTournamentEvalSummary" class="small" style="margin:8px 0"></div>
+    <div class="tp-eval-wrap">
+      <table class="tp-eval-table">
+        <thead><tr><th id="tpEvalHeadName">Verein / Anzeigename</th><th id="tpEvalOriginalHead">Originalbezeichnungen</th><th>Besucht</th></tr></thead>
+        <tbody id="tpTournamentEvalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 </body>
 </html>

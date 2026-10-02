@@ -504,6 +504,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 .checkbox-grid label{display:flex;gap:7px;align-items:center;margin:0}.checkbox-grid input{width:auto;margin:0}
 .club-table-wrap{overflow:auto}.club-table th,.club-table td{white-space:nowrap}.club-table td:first-child{white-space:normal}
 @media(max-width:700px){.history-table{min-width:700px}.club-table{min-width:850px}}
+
+body.ecw-wide-view main{max-width:1500px!important;width:calc(100% - 24px)!important}
+.club-multi{display:flex;flex-direction:column;gap:6px;min-width:220px}
+.club-multi-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #eee}
+.club-multi-row:last-child{border-bottom:0}
+.club-multi-value{flex:1;min-width:0;overflow-wrap:anywhere;white-space:normal}
+.club-mini-actions{display:flex;gap:4px;flex:0 0 auto}
+.club-mini-actions button{min-height:32px;padding:4px 7px;font-size:.78rem;margin:0}
+.club-add-btn{min-height:32px!important;padding:5px 8px!important;font-size:.8rem!important;margin-top:5px!important}
+.club-table td{vertical-align:top}
+.club-table .club-main-actions{white-space:nowrap}
+#historyTableWrap table{width:100%}
+
 </style>
 </head>
 <body>
@@ -1178,13 +1191,14 @@ copy of the Program in return for a fee.
   <header>
     <div>
       <h1>EC Wegscheid – Turnierverwaltung</h1>
-      <div class="version">Version 2.8 · Vereinsverwaltung V3.0.15</div>
+      <div class="version">Version 2.10 · Vereinsverwaltung V3.0.38</div>
     <div id="userStatus"></div></div><div><button id="logoutBtn">Abmelden</button></div>
   </header>
 
   <nav>
     <button id="navAnlegen" class="active"><span class="step">01</span>Turnier anlegen</button>
     <button id="navTurniere"><span class="step">02</span>Turnier verwalten</button>
+    <button id="navArchiv"><span class="step">A</span>Archiv</button>
     <button id="navVereine"><span class="step">03</span>Vereine organisieren</button>
     <button id="navHistorie"><span class="step">04</span>Historie</button>
     <button id="navDokumente"><span class="step">05</span>Einladungen / Startlisten erstellen</button>
@@ -1223,6 +1237,17 @@ copy of the Program in return for a fee.
         <label for="turnierSuche">Turnier suchen</label><input id="turnierSuche" type="search" placeholder="Turniername oder Ort" />
         <div class="meta" id="turnierAnzahl" style="margin-top:12px"></div>
         <div id="turniereListe"><p class="meta">Turniere werden geladen …</p></div>
+      </div>
+    </section>
+
+
+    <section id="viewArchiv" class="hidden">
+      <div class="section-intro"><h2>Archiv</h2><p>Abgeschlossene Turniere bleiben vollständig in Firebase gespeichert und werden hier automatisch nach Datum archiviert.</p></div>
+      <div class="card">
+        <label for="archivSuche">Archiv durchsuchen</label>
+        <input id="archivSuche" type="search" placeholder="Turniername oder Ort" />
+        <div class="meta" id="archivAnzahl" style="margin-top:12px"></div>
+        <div id="archivListe"><p class="meta">Archiv wird geladen …</p></div>
       </div>
     </section>
 
@@ -1289,7 +1314,7 @@ copy of the Program in return for a fee.
 
     <!-- VEREINE -->
     <section id="viewVereine" class="hidden">
-      <div class="section-intro"><h2>Vereine organisieren</h2><p>Vereinsadressen zentral in Firebase verwalten und für Excel exportieren.</p></div>
+      <div class="section-intro"><h2>Vereine organisieren</h2><p>Vereinsadressen zentral in Firebase verwalten und für Excel exportieren. <strong>Teilnahmen seit 2021</strong></p></div>
       <div class="card">
         <h3 id="vereinFormTitle">Verein / Adresse anlegen</h3>
         <input type="hidden" id="vEditId">
@@ -1318,7 +1343,7 @@ copy of the Program in return for a fee.
 
     <!-- HISTORIE -->
     <section id="viewHistorie" class="hidden">
-      <div class="section-intro"><h2>Historie seit 2020</h2><p>Teilnahmen aus der Excel-Vereinsliste und neue Einträge aus der Turnierverwaltung.</p></div>
+      <div class="section-intro"><h2>Historie seit 2021</h2><p>Teilnahmen seit 2021 aus der Vereinsliste und neue Einträge aus der Turnierverwaltung.</p></div>
       <div class="card">
         <div class="form-grid">
           <div><label for="historySearch">Verein suchen</label><input id="historySearch" type="search" placeholder="Vereinsname"></div>
@@ -1326,7 +1351,7 @@ copy of the Program in return for a fee.
           <div><label for="historySort">Sortieren nach</label><select id="historySort"><option value="teilnahmen">Teilnahmen gesamt</option><option value="mannschaften">Mannschaften gesamt</option><option value="herren">Herren</option><option value="mixed">Mixed</option><option value="damen">Damen</option><option value="letzte">Letzte Teilnahme</option><option value="name">Verein A–Z</option></select></div>
         </div>
         <div id="historySummary" class="meta" style="margin:10px 0"></div>
-        <div style="overflow:auto"><table class="history-table"><thead><tr><th>Verein</th><th>Teilnahmen</th><th>Mannschaften</th><th>Herren</th><th>Mixed</th><th>Damen</th><th>Letzte Teilnahme</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+        <div id="historyTableWrap" style="overflow:auto"><table class="history-table"><thead id="historyHead"></thead><tbody id="historyBody"></tbody></table></div>
       </div>
       <div class="card"><h3>Turnierdetails</h3><div id="historyDetail" class="meta">Verein in der Liste anklicken.</div></div>
     </section>
@@ -1361,7 +1386,24 @@ copy of the Program in return for a fee.
         <p class="meta">Verwendet die Einladung aus Punkt 4 einschließlich deiner letzten Änderungen, Logo und Titelbild.</p><button class="secondary" id="sEditBtn" disabled>Einladung bearbeiten / Vorschau</button></div>
       <div class="card"><h3>Empfänger aus Vereine organisieren</h3><label for="sSearch">Verein oder E-Mail-Adresse suchen</label><input id="sSearch" type="search" placeholder="Verein / E-Mail">
         <div class="inline-actions"><button class="secondary" id="sSelectAll" disabled>Alle sichtbaren auswählen</button><button class="secondary" id="sSelectNone" disabled>Auswahl aufheben</button></div>
-        <div class="card-soft"><strong>Vorauswahl nach Historie</strong><div class="inline-actions" id="recipientCategoryButtons"><button class="secondary" data-cat="Alle">Alle</button><button class="secondary" data-cat="Herren">Herren</button><button class="secondary" data-cat="Damen">Damen</button><button class="secondary" data-cat="Mixed">Mixed</button></div><p class="meta">Wählt automatisch die Vereine mit E-Mail-Adresse aus, die in der jeweiligen Turnierart bei EC Wegscheid waren.</p></div>
+        <div class="card-soft">
+          <strong>Einladungsphasen</strong>
+          <div class="inline-actions" style="margin-top:8px">
+            <button class="secondary" id="sPhase1Btn" type="button">Phase 1 – Historie</button>
+            <button class="secondary" id="sPhase2Btn" type="button">Phase 2 – restliche Vereine</button>
+          </div>
+          <p class="meta" id="sPhaseInfo">Phase 1: Vereine nach bisheriger Teilnahme auswählen.</p>
+          <div id="recipientCategoryWrap">
+            <div class="inline-actions" id="recipientCategoryButtons">
+              <button class="secondary" data-cat="Alle">Alle</button>
+              <button class="secondary" data-cat="Herren">Herren</button>
+              <button class="secondary" data-cat="Damen">Damen</button>
+              <button class="secondary" data-cat="Mixed">Mixed</button>
+            </div>
+            <p class="meta">Phase 1 wählt Vereine mit E-Mail-Adresse aus, die in der jeweiligen Turnierart bereits bei EC Wegscheid waren.</p>
+          </div>
+          <button class="secondary" id="sMarkPhaseBtn" type="button" disabled>Auswahl als Phase 1 eingeladen speichern</button>
+        </div>
         <p class="meta" id="sEmpty" role="status"></p><div id="sRecipients"></div><p class="meta">Adressen werden einzeln ausgewählt und als BCC übernommen. Doppelte Adressen werden nur einmal verwendet.</p></div>
       <div class="card"><h3>E-Mail vorbereiten</h3><label for="sFrom">Absender-E-Mail (optional, im Mailprogramm auswählbar)</label><input id="sFrom" type="email" maxlength="254" placeholder="Deine E-Mail-Adresse">
         <label for="sSubject">Betreff</label><input id="sSubject" maxlength="200"><label for="sMessage">Nachricht</label><textarea id="sMessage" rows="7" maxlength="10000"></textarea>
@@ -4115,8 +4157,13 @@ function notify(message, error = false) {
 }
 function dbError(err) {
   console.error(err);
-  const msg = err.code === 'permission-denied' ? 'Keine Berechtigung. Bitte die Zugriffsrechte für dein Konto prüfen.' :
-    err.code === 'unavailable' ? 'Keine Verbindung zur Datenbank. Bitte später erneut versuchen.' : 'Die Daten konnten nicht gespeichert oder geladen werden. Bitte erneut versuchen.';
+  const code=String(err?.code||'').replace(/^firestore\//,'').replace(/^auth\//,'');
+  const detail=String(err?.message||'').trim();
+  const msg = code === 'permission-denied' ? 'Keine Berechtigung. Bitte die Zugriffsrechte für dein Konto prüfen.' :
+    code === 'unavailable' ? 'Keine Verbindung zur Datenbank. Bitte später erneut versuchen.' :
+    'Die Daten konnten nicht gespeichert oder geladen werden.'
+      +(code?' Fehler: '+code+'.':'')
+      +(detail?' '+detail:'');
   notify(msg,true);
 }
 function stopListeners() {
@@ -4256,19 +4303,23 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 // ---------- Navigation ----------
 const navTurniere = document.getElementById('navTurniere');
 const navVereine = document.getElementById('navVereine');
+const navArchiv = document.getElementById('navArchiv');
 const viewTurniereListe = document.getElementById('viewTurniereListe');
 const viewTurnierDetail = document.getElementById('viewTurnierDetail');
 const viewVereine = document.getElementById('viewVereine');
+const viewArchiv = document.getElementById('viewArchiv');
 function showView(viewId, navId) {
+  document.body.classList.toggle('ecw-wide-view',['viewTurnierDetail','viewArchiv','viewVereine','viewHistorie'].includes(viewId));
   if(mobileMode && !['viewTurniereListe','viewTurnierDetail'].includes(viewId)){viewId='viewTurniereListe';navId='navTurniere';}
-  ['viewAnlegen','viewTurniereListe','viewTurnierDetail','viewVereine','viewHistorie','viewDokumente','viewSenden'].forEach(id => document.getElementById(id).classList.toggle('hidden',id !== viewId));
-  ['navAnlegen','navTurniere','navVereine','navHistorie','navDokumente','navSenden'].forEach(id => { const b=document.getElementById(id); b.classList.toggle('active',id===navId); b.setAttribute('aria-current',id===navId?'page':'false'); });
+  ['viewAnlegen','viewTurniereListe','viewArchiv','viewTurnierDetail','viewVereine','viewHistorie','viewDokumente','viewSenden'].forEach(id => document.getElementById(id).classList.toggle('hidden',id !== viewId));
+  ['navAnlegen','navTurniere','navArchiv','navVereine','navHistorie','navDokumente','navSenden'].forEach(id => { const b=document.getElementById(id); b.classList.toggle('active',id===navId); b.setAttribute('aria-current',id===navId?'page':'false'); });
   if(viewId !== 'viewDokumente') { if(dokumenteUnsub) dokumenteUnsub(); dokumenteUnsub=null; clearDocumentPreview(); }
   else if(document.getElementById('dTurnierSelect').value && !dokumenteUnsub) loadDocumentMeldungen();
   if(viewId !== 'viewTurnierDetail' && meldungenUnsub) { meldungenUnsub(); meldungenUnsub=null; meldungenGeladen=false; }
 }
 function showTurniereListe() { showView('viewTurniereListe','navTurniere'); }
 function showVereine() { showView('viewVereine','navVereine'); }
+function showArchiv(){showView('viewArchiv','navArchiv');renderArchiv();}
 function showHistorie(){showView('viewHistorie','navHistorie');renderHistory();}
 function showTurnierDetail() { showView('viewTurnierDetail','navTurniere'); }
 function routeFromHash() {
@@ -4285,6 +4336,7 @@ function routeFromHash() {
     const id=decodeURIComponent(hash.slice(9)); const t=turniereCache.find(t => t.id===id);
     if(t) openTurnier(id,t); else showTurniereListe();
   } else if(hash==='#verwalten') showTurniereListe();
+  else if(hash==='#archiv') showArchiv();
   else if(hash==='#vereine') showVereine();
   else if(hash==='#historie') {showHistorie();}
   else if(hash==='#senden') {showView('viewSenden','navSenden');updateSendStatus();}
@@ -4295,12 +4347,14 @@ function navigate(hash) { if(location.hash===hash) routeFromHash(); else locatio
 window.addEventListener('hashchange',routeFromHash);
 document.getElementById('navAnlegen').addEventListener('click',()=>navigate('#anlegen'));
 navTurniere.addEventListener('click',()=>navigate('#verwalten'));
+navArchiv.addEventListener('click',()=>navigate('#archiv'));
 navVereine.addEventListener('click',()=>navigate('#vereine'));
 document.getElementById('navHistorie').addEventListener('click',()=>navigate('#historie'));
 document.getElementById('navDokumente').addEventListener('click',()=>navigate('#dokumente'));
 document.getElementById('navSenden').addEventListener('click',()=>navigate('#senden'));
-document.getElementById('backToTurniere').addEventListener('click',()=>navigate(mobileMode?'#mobil':'#verwalten'));
+document.getElementById('backToTurniere').addEventListener('click',()=>navigate(mobileMode?'#mobil':(aktuellesTurnier&&tournamentIsFinished(aktuellesTurnier)?'#archiv':'#verwalten')));
 document.getElementById('turnierSuche').addEventListener('input',renderTurniere);
+document.getElementById('archivSuche').addEventListener('input',renderArchiv);
 document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('loginBtn').click();});
 document.getElementById('tdLinkBtn').addEventListener('click',async()=>{
   if(location.protocol==='file:') { notify('Den Turnierlink kannst du nach dem Hochladen auf GitHub Pages kopieren.',true); return; }
@@ -4350,16 +4404,114 @@ function isHistoryMetaRowName(name){
 function hNorm(s){return String(s||'').toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+(?:[1-9]|i{1,3})$/,'').trim()}
 const HISTORY_ALIAS_MAP=new Map();for(const c of HISTORY_BASE_CLUBS){HISTORY_ALIAS_MAP.set(hNorm(c.name),c.name);for(const a of c.aliases||[])HISTORY_ALIAS_MAP.set(hNorm(a),c.name)}
 function historyCanonicalClub(name){return HISTORY_ALIAS_MAP.get(hNorm(name))||String(name||'').trim()}
+
+function localTodayIso(){
+ const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+ return `${y}-${m}-${day}`;
+}
+function tournamentIsFinished(t){return !!t?.datum && String(t.datum)<localTodayIso()}
+function tournamentIsActive(t){return !t?.datum || String(t.datum)>=localTodayIso()}
 function tournamentCategory(t){if(['Herren','Damen','Mixed'].includes(t?.kategorie))return t.kategorie;const n=String(t?.name||'').toLowerCase();if(n.includes('damen'))return 'Damen';if(n.includes('mixed'))return 'Mixed';return 'Herren'}
 function isoFromGerman(d){const m=String(d||'').match(/^(\d{2})\.(\d{2})\.(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:String(d||'')}
-function historyAllRecords(){const out=HISTORY_BASE_RECORDS.map(r=>({...r,verein:historyCanonicalClub(r.verein),source:'Excel',iso:isoFromGerman(r.datum)})),baseKeys=new Set(out.map(r=>[hNorm(historyCanonicalClub(r.verein)),r.iso,r.kategorie].join('|'))),tmap=new Map(turniereCache.map(t=>[t.id,t])),grouped=new Map();for(const m of historyMeldungenCache){const t=tmap.get(m.turnierId);if(!t)continue;const club=historyCanonicalClub(m.vereinName||'');if(!club||hNorm(club)==='ec wegscheid'||hNorm(club)==='frei')continue;const cat=tournamentCategory(t),iso=t.datum||'',k=[hNorm(club),iso,cat].join('|');let g=grouped.get(k);if(!g)grouped.set(k,g={verein:club,turnierId:t.id,datum:iso,iso,turnierart:t.name||'Turnier',kategorie:cat,mannschaften:0,source:'Firebase'});g.mannschaften++}for(const [k,r] of grouped)if(!baseKeys.has(k))out.push(r);return out}
+function historyAllRecords(){
+ const out=HISTORY_BASE_RECORDS
+   .map(r=>({...r,verein:historyCanonicalClub(r.verein),source:'Excel',iso:isoFromGerman(r.datum)}))
+   .filter(r=>String(r.iso||'')>='2021-01-01' && String(r.iso||'')<localTodayIso());
+ const baseKeys=new Set(out.map(r=>[hNorm(historyCanonicalClub(r.verein)),r.iso,r.kategorie].join('|')));
+ const tmap=new Map(turniereCache.map(t=>[t.id,t])),grouped=new Map();
+ for(const m of historyMeldungenCache){
+   const t=tmap.get(m.turnierId);if(!t)continue;
+   const club=historyCanonicalClub(m.vereinName||'');
+   if(!club||hNorm(club)==='ec wegscheid'||hNorm(club)==='frei')continue;
+   const cat=tournamentCategory(t),iso=t.datum||'';
+   if(String(iso)<'2021-01-01'||String(iso)>=localTodayIso())continue;
+   const k=[hNorm(club),iso,cat].join('|');
+   let g=grouped.get(k);
+   if(!g)grouped.set(k,g={verein:club,turnierId:t.id,datum:iso,iso,turnierart:t.name||'Turnier',kategorie:cat,mannschaften:0,source:'Firebase'});
+   g.mannschaften++;
+ }
+ for(const [k,r] of grouped)if(!baseKeys.has(k))out.push(r);
+ return out
+}
 function historyStats(){const map=new Map();for(const r of historyAllRecords()){const n=historyCanonicalClub(r.verein);if(!n)continue;let x=map.get(n);if(!x)map.set(n,x={name:n,teilnahmen:0,mannschaften:0,herren:0,mixed:0,damen:0,last:'',records:[]});x.teilnahmen++;x.mannschaften+=Number(r.mannschaften||1);x.records.push(r);if(r.iso>x.last)x.last=r.iso;if(r.kategorie==='Damen')x.damen++;else if(r.kategorie==='Mixed')x.mixed++;else x.herren++}return map}
 function historyCategoriesForClub(name){const x=historyStats().get(historyCanonicalClub(name)),a=[];if(x?.herren)a.push('Herren');if(x?.mixed)a.push('Mixed');if(x?.damen)a.push('Damen');return a}
-function renderHistory(){const body=document.getElementById('historyBody');if(!body)return;const stats=[...historyStats().values()],term=(document.getElementById('historySearch')?.value||'').toLowerCase(),cat=document.getElementById('historyCategory')?.value||'Alle',sort=document.getElementById('historySort')?.value||'teilnahmen';let list=stats.filter(x=>(!term||x.name.toLowerCase().includes(term))&&(cat==='Alle'||(cat==='Herren'&&x.herren)||(cat==='Mixed'&&x.mixed)||(cat==='Damen'&&x.damen)));const key={teilnahmen:'teilnahmen',mannschaften:'mannschaften',herren:'herren',mixed:'mixed',damen:'damen'}[sort];list.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name,'de'):sort==='letzte'?(b.last||'').localeCompare(a.last||'')||a.name.localeCompare(b.name,'de'):(b[key]||0)-(a[key]||0)||a.name.localeCompare(b.name,'de'));body.replaceChildren();for(const x of list){const tr=document.createElement('tr');tr.innerHTML=`<td><strong>${escapeHtml(x.name)}</strong></td><td>${x.teilnahmen}</td><td>${x.mannschaften}</td><td>${x.herren}</td><td>${x.mixed}</td><td>${x.damen}</td><td>${x.last?formatDatum(x.last):''}</td>`;tr.addEventListener('click',()=>renderHistoryDetail(x));body.appendChild(tr)}document.getElementById('historySummary').textContent=`${list.length} Vereine · Basis aus Excel seit 2020, automatisch ergänzt aus der Turnierverwaltung.`}
-function renderHistoryDetail(x){const el=document.getElementById('historyDetail'),rec=[...x.records].sort((a,b)=>(b.iso||'').localeCompare(a.iso||''));el.innerHTML='<h3 style="margin-top:0">'+escapeHtml(x.name)+'</h3>'+rec.map(r=>`<div class="list-item" style="cursor:default"><div><strong>${escapeHtml(r.turnierart||'Turnier')}</strong><div class="meta">${escapeHtml(r.kategorie)} · ${escapeHtml(r.iso?formatDatum(r.iso):r.datum)} · ${Number(r.mannschaften||1)} Mannschaft${Number(r.mannschaften||1)===1?'':'en'}</div></div></div>`).join('')}
+function renderHistory(){
+ const body=document.getElementById('historyBody');if(!body)return;
+ const head=document.getElementById('historyHead');
+ const stats=[...historyStats().values()];
+ const term=(document.getElementById('historySearch')?.value||'').toLowerCase();
+ const cat=document.getElementById('historyCategory')?.value||'Alle';
+ const sort=document.getElementById('historySort')?.value||'teilnahmen';
+
+ let list=stats.filter(x=>(!term||x.name.toLowerCase().includes(term)) &&
+   (cat==='Alle'||(cat==='Herren'&&x.herren)||(cat==='Mixed'&&x.mixed)||(cat==='Damen'&&x.damen)));
+
+ const key={teilnahmen:'teilnahmen',mannschaften:'mannschaften',herren:'herren',mixed:'mixed',damen:'damen'}[sort];
+ list.sort((a,b)=>sort==='name'
+   ?a.name.localeCompare(b.name,'de')
+   :sort==='letzte'
+     ?(b.last||'').localeCompare(a.last||'')||a.name.localeCompare(b.name,'de')
+     :(b[key]||0)-(a[key]||0)||a.name.localeCompare(b.name,'de'));
+
+ if(head){
+   if(cat==='Alle')head.innerHTML='<tr><th>Verein</th><th>Teilnahmen</th><th>Herren</th><th>Mixed</th><th>Damen</th><th>Letzte Teilnahme</th></tr>';
+   else head.innerHTML='<tr><th>Verein</th><th>'+escapeHtml(cat)+'</th><th>Letzte Teilnahme</th></tr>';
+ }
+
+ body.replaceChildren();
+ for(const x of list){
+   const tr=document.createElement('tr');
+   if(cat==='Alle'){
+     tr.innerHTML=`<td><strong>${escapeHtml(x.name)}</strong></td><td>${x.teilnahmen}</td><td>${x.herren}</td><td>${x.mixed}</td><td>${x.damen}</td><td>${x.last?formatDatum(x.last):''}</td>`;
+   }else{
+     const val=cat==='Herren'?x.herren:cat==='Mixed'?x.mixed:x.damen;
+     const rec=x.records.filter(r=>r.kategorie===cat);
+     const last=rec.reduce((m,r)=>(r.iso||'')>m?(r.iso||''):m,'');
+     tr.innerHTML=`<td><strong>${escapeHtml(x.name)}</strong></td><td>${val}</td><td>${last?formatDatum(last):''}</td>`;
+   }
+   tr.addEventListener('click',()=>renderHistoryDetailFiltered(x,cat));
+   body.appendChild(tr);
+ }
+ document.getElementById('historySummary').textContent=`${list.length} Vereine · Teilnahmen seit 2021`+(cat==='Alle'?'':' · '+cat);
+}
+function renderHistoryDetailFiltered(x,cat){
+ const el=document.getElementById('historyDetail');
+ let rec=[...x.records];
+ if(cat&&cat!=='Alle')rec=rec.filter(r=>r.kategorie===cat);
+ rec.sort((a,b)=>(b.iso||'').localeCompare(a.iso||''));
+ el.innerHTML='<h3 style="margin-top:0">'+escapeHtml(x.name)+(cat&&cat!=='Alle'?' · '+escapeHtml(cat):'')+'</h3>'
+   +rec.map(r=>`<div class="list-item" style="cursor:default"><div><strong>${escapeHtml(r.turnierart||'Turnier')}</strong><div class="meta">${escapeHtml(r.kategorie)} · ${escapeHtml(r.iso?formatDatum(r.iso):r.datum)} · ${Number(r.mannschaften||1)} Mannschaft${Number(r.mannschaften||1)===1?'':'en'}</div></div></div>`).join('');
+}
+function renderHistoryDetail(x){renderHistoryDetailFiltered(x,document.getElementById('historyCategory')?.value||'Alle')}
 function listenHistoryMeldungen(){historyMeldungenUnsub=onSnapshot(query(collection(db,'meldungen')),snap=>{historyMeldungenCache=snap.docs.map(d=>({...d.data(),id:d.id}));renderHistory();renderRecipients()},dbError)}
-function seedClubPayload(c){return {name:c.name,email:(c.emails||[]).join('; '),ansprechpartner:c.ansprechpartner||'',vorstand:c.ansprechpartner||'',telefon:c.telefon||'',historyBasis:{teilnahmen:c.teilnahmen,mannschaften:c.mannschaften,herren:c.herren,mixed:c.mixed,damen:c.damen,stand:HISTORY_BASE_STAND},aliases:c.aliases||[],quelleHinweis:c.quelleHinweis||'',importQuelle:'EC_Wegscheid_Vereinsliste_2026-10-01'}}
-let clubSeedDone=false;async function ensureClubSeed(){if(clubSeedDone||!vereineGeladen)return;clubSeedDone=true;try{const existing=new Set(vereineCache.map(v=>hNorm(v.name))),missing=HISTORY_BASE_CLUBS.filter(c=>!isHistoryMetaRowName(c.name)&&!existing.has(hNorm(c.name)));if(!missing.length)return;for(let i=0;i<missing.length;i+=350){const b=writeBatch(db);for(const c of missing.slice(i,i+350)){const ref=doc(collection(db,'vereine'));b.set(ref,{...seedClubPayload(c),createdAt:serverTimestamp(),updatedAt:serverTimestamp()})}await b.commit()}notify(`${missing.length} Vereine aus der Excel-Vereinsliste ergänzt.`)}catch(e){console.error('Vereinslisten-Import:',e);notify('Vereinsliste konnte nicht vollständig in Firebase übernommen werden.',true)}}
+function seedClubPayload(c){
+ const emails=(c.emails||[]).filter(Boolean),contacts=clubSplitValues(c.ansprechpartner||'','contact');
+ return {name:c.name,email:emails.join('; '),emails,ansprechpartner:contacts.join(' / '),vorstand:contacts.join(' / '),ansprechpartnerListe:contacts,telefon:c.telefon||'',historyBasis:{teilnahmen:c.teilnahmen,mannschaften:c.mannschaften,herren:c.herren,mixed:c.mixed,damen:c.damen,stand:HISTORY_BASE_STAND},aliases:c.aliases||[],quelleHinweis:c.quelleHinweis||'',importQuelle:'EC_Wegscheid_Vereinsliste_2026-10-01'}
+}
+
+let clubSeedDone=false;
+async function ensureClubSeed(){
+  if(clubSeedDone||!vereineGeladen)return;
+  clubSeedDone=true;
+  try{
+    const existing=new Set(vereineCache.map(v=>hNorm(v.name)));
+    const missing=HISTORY_BASE_CLUBS.filter(c=>!isHistoryMetaRowName(c.name)&&!existing.has(hNorm(c.name)));
+    if(!missing.length)return;
+    for(let i=0;i<missing.length;i+=350){
+      const b=writeBatch(db);
+      for(const c of missing.slice(i,i+350)){
+        const ref=doc(collection(db,'vereine'));
+        b.set(ref,{...seedClubPayload(c),createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+      }
+      await b.commit();
+    }
+    notify(`${missing.length} Vereine aus der Vereinsliste ergänzt.`);
+  }catch(e){
+    console.error('Vereinslisten-Import:',e);
+    clubSeedDone=false;
+    dbError(e);
+  }
+}
 
 let meldungenUnsub = null;
 
@@ -4412,15 +4564,34 @@ function listenTurniere() {
 function renderTurniere() {
   updateDocumentOptions(); updateSendOptions();
   const term=document.getElementById('turnierSuche').value.trim().toLocaleLowerCase('de');
-  const list=turniereCache.filter(t=>`${t.name} ${t.ort||''}`.toLocaleLowerCase('de').includes(term));
+  const list=turniereCache
+    .filter(t=>tournamentIsActive(t))
+    .filter(t=>`${t.name} ${t.ort||''}`.toLocaleLowerCase('de').includes(term));
   const container=document.getElementById('turniereListe'); container.replaceChildren();
-  document.getElementById('turnierAnzahl').textContent=`${list.length} Turnier${list.length===1?'':'e'}`;
-  if(!list.length) container.innerHTML='<p class="meta">'+(term?'Keine passenden Turniere gefunden.':'Noch keine Turniere angelegt.')+'</p>';
+  document.getElementById('turnierAnzahl').textContent=`${list.length} offenes Turnier${list.length===1?'':'e'}`;
+  if(!list.length) container.innerHTML='<p class="meta">'+(term?'Keine passenden offenen Turniere gefunden.':'Keine offenen Turniere vorhanden. Abgeschlossene Turniere findest du im Archiv.')+'</p>';
   list.forEach(t=>{
     const item=document.createElement('button'); item.className='list-item';
     item.innerHTML=`<div><strong>${escapeHtml(t.name||'Turnier')}</strong><div class="meta">${escapeHtml([t.datum?formatDatum(t.datum):'Datum offen',tournamentCategory(t),t.uhrzeit?t.uhrzeit+' Uhr':'',t.ort,t.maxMannschaften?'Max. '+t.maxMannschaften+' Mannschaften':''].filter(Boolean).join(' · '))}</div></div><span aria-hidden="true">›</span>`;
     item.addEventListener('click',()=>openTurnier(t.id,t)); container.appendChild(item);
   });
+  renderArchiv();
+}
+function renderArchiv(){
+  const area=document.getElementById('archivListe');if(!area)return;
+  const term=(document.getElementById('archivSuche')?.value||'').trim().toLocaleLowerCase('de');
+  const list=turniereCache
+    .filter(t=>tournamentIsFinished(t))
+    .filter(t=>`${t.name} ${t.ort||''}`.toLocaleLowerCase('de').includes(term))
+    .sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||(a.name||'').localeCompare(b.name||'','de'));
+  area.replaceChildren();
+  document.getElementById('archivAnzahl').textContent=`${list.length} archivierte${list.length===1?'s Turnier':' Turniere'}`;
+  if(!list.length){area.innerHTML='<p class="meta">'+(term?'Keine passenden archivierten Turniere gefunden.':'Noch keine abgeschlossenen Turniere im Archiv.')+'</p>';return}
+  for(const t of list){
+    const item=document.createElement('button');item.className='list-item';
+    item.innerHTML=`<div><strong>${escapeHtml(t.name||'Turnier')}</strong><div class="meta">${escapeHtml([t.datum?formatDatum(t.datum):'',tournamentCategory(t),t.ort].filter(Boolean).join(' · '))}</div></div><span aria-hidden="true">›</span>`;
+    item.addEventListener('click',()=>openTurnier(t.id,t));area.appendChild(item);
+  }
 }
 function renderTurnierHeader() {
   const t=aktuellesTurnier; if(!t)return;
@@ -4630,6 +4801,54 @@ document.getElementById('vereineResetBtn').addEventListener('click',()=>{
 
 // ---------- Vereinsadressen: Verwaltung + Export ----------
 function vereinswert(id){return (document.getElementById(id)?.value||'').trim()}
+
+function clubSplitValues(value,kind){
+  if(Array.isArray(value))return value.map(x=>String(x||'').trim()).filter(Boolean);
+  const txt=String(value||'').trim();if(!txt)return [];
+  const rx=kind==='contact'?/\s*;\s*|\s*\n+\s*|\s+\/\s+/ : /\s*;\s*|\s*,\s*|\s*\n+\s*/;
+  return [...new Set(txt.split(rx).map(x=>x.trim()).filter(Boolean))];
+}
+function clubEmails(v){
+  const a=[...(Array.isArray(v?.emails)?v.emails:[]),...clubSplitValues(v?.email,'email')];
+  return [...new Set(a.map(x=>String(x||'').trim()).filter(Boolean))];
+}
+function clubContacts(v){
+  const a=[...(Array.isArray(v?.ansprechpartnerListe)?v.ansprechpartnerListe:[]),...clubSplitValues(v?.vorstand||v?.ansprechpartner,'contact')];
+  return [...new Set(a.map(x=>String(x||'').trim()).filter(Boolean))];
+}
+async function saveClubMultiList(id,kind,list){
+  const clean=[...new Set((list||[]).map(x=>String(x||'').trim()).filter(Boolean))];
+  const ref=doc(db,'vereine',id);
+  if(kind==='email')await updateDoc(ref,{emails:clean,email:clean.join('; '),updatedAt:serverTimestamp()});
+  else await updateDoc(ref,{ansprechpartnerListe:clean,ansprechpartner:clean.join(' / '),vorstand:clean.join(' / '),updatedAt:serverTimestamp()});
+}
+async function editClubMultiItem(id,kind,index){
+  const v=vereineCache.find(x=>x.id===id);if(!v)return;
+  const list=kind==='email'?clubEmails(v):clubContacts(v),old=list[index]||'';
+  const value=prompt((kind==='email'?'E-Mail-Adresse':'Ansprechpartner')+' bearbeiten:',old);
+  if(value===null)return;
+  const nv=value.trim();if(!nv)return;
+  if(kind==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nv)){alert('Bitte eine gültige E-Mail-Adresse eingeben.');return}
+  list[index]=nv;
+  try{await saveClubMultiList(id,kind,list);notify('Eintrag aktualisiert.')}catch(e){dbError(e)}
+}
+async function deleteClubMultiItem(id,kind,index){
+  const v=vereineCache.find(x=>x.id===id);if(!v)return;
+  const list=kind==='email'?clubEmails(v):clubContacts(v);
+  if(index<0||index>=list.length)return;
+  if(!confirm('„'+list[index]+'“ wirklich löschen?'))return;
+  list.splice(index,1);
+  try{await saveClubMultiList(id,kind,list);notify('Eintrag gelöscht.')}catch(e){dbError(e)}
+}
+async function addClubMultiItem(id,kind){
+  const v=vereineCache.find(x=>x.id===id);if(!v)return;
+  const value=prompt(kind==='email'?'Neue E-Mail-Adresse:':'Neuer Ansprechpartner:','');
+  if(value===null)return;
+  const nv=value.trim();if(!nv)return;
+  if(kind==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nv)){alert('Bitte eine gültige E-Mail-Adresse eingeben.');return}
+  const list=kind==='email'?clubEmails(v):clubContacts(v);list.push(nv);
+  try{await saveClubMultiList(id,kind,list);notify('Eintrag hinzugefügt.')}catch(e){dbError(e)}
+}
 function clearVereinForm(){
   ['vEditId','vName','vVorstand','vStrasse','vPLZ','vOrt','vTelefon','vEmail','vHomepage'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
   const t=document.getElementById('vereinFormTitle');if(t)t.textContent='Verein / Adresse anlegen';
@@ -4639,12 +4858,12 @@ function editVerein(id){
   const v=vereineCache.find(x=>x.id===id);if(!v)return;
   document.getElementById('vEditId').value=id;
   document.getElementById('vName').value=v.name||'';
-  document.getElementById('vVorstand').value=v.vorstand||v.ansprechpartner||'';
+  document.getElementById('vVorstand').value=clubContacts(v)[0]||'';
   document.getElementById('vStrasse').value=v.strasse||v.strasseHausnummer||'';
   document.getElementById('vPLZ').value=v.plz||'';
   document.getElementById('vOrt').value=v.ort||'';
   document.getElementById('vTelefon').value=v.telefon||'';
-  document.getElementById('vEmail').value=v.email||'';
+  document.getElementById('vEmail').value=clubEmails(v)[0]||'';
   document.getElementById('vHomepage').value=v.homepage||'';
   document.getElementById('vereinFormTitle').textContent='Verein bearbeiten';
   document.getElementById('vName').focus();
@@ -4654,8 +4873,19 @@ async function saveVereinAdresse(){
   if(!name){document.getElementById('vereinFormStatus').textContent='Bitte Vereinsnamen eingeben.';return}
   const email=vereinswert('vEmail');
   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){document.getElementById('vereinFormStatus').textContent='Bitte eine gültige E-Mail-Adresse eingeben.';return}
-  const payload={name,vorstand:vereinswert('vVorstand'),strasse:vereinswert('vStrasse'),plz:vereinswert('vPLZ'),ort:vereinswert('vOrt'),telefon:vereinswert('vTelefon'),email,homepage:vereinswert('vHomepage'),updatedAt:serverTimestamp()};
-  const editId=vereinswert('vEditId');
+
+  const editId=vereinswert('vEditId'),existing=vereineCache.find(v=>v.id===editId);
+  let emails=existing?clubEmails(existing):[],contacts=existing?clubContacts(existing):[];
+  const contact=vereinswert('vVorstand');
+
+  if(email){if(emails.length)emails[0]=email;else emails=[email]}else if(existing&&emails.length)emails.shift();
+  if(contact){if(contacts.length)contacts[0]=contact;else contacts=[contact]}else if(existing&&contacts.length)contacts.shift();
+
+  const payload={
+    name,vorstand:contacts.join(' / '),ansprechpartner:contacts.join(' / '),ansprechpartnerListe:contacts,
+    strasse:vereinswert('vStrasse'),plz:vereinswert('vPLZ'),ort:vereinswert('vOrt'),telefon:vereinswert('vTelefon'),
+    email:emails.join('; '),emails,homepage:vereinswert('vHomepage'),updatedAt:serverTimestamp()
+  };
   const duplicate=vereineCache.find(v=>v.id!==editId&&(v.name||'').trim().toLowerCase()===name.toLowerCase());
   if(duplicate&&!confirm('Ein Verein mit diesem Namen existiert bereits. Trotzdem speichern?'))return;
   try{
@@ -4670,30 +4900,54 @@ async function deleteVereinAdresse(id){
   if(!confirm('Vereinsadresse „'+(v.name||'')+'“ wirklich löschen?'))return;
   try{await deleteDoc(doc(db,'vereine',id));notify('Vereinsadresse gelöscht.')}catch(e){dbError(e)}
 }
+
 function clubDisplaySettings(){
- const def={teilnahmen:true,mannschaften:true,herren:true,mixed:true,damen:true,email:true,ansprechpartner:true,telefon:true};
+ const def={herren:true,mixed:true,damen:true,email:true,ansprechpartner:true,telefon:true};
  try{return {...def,...JSON.parse(localStorage.getItem('ecw-tv-club-columns')||'{}')}}catch{return def}
 }
 function initClubColumnChoices(){
  const box=document.getElementById('clubColumnChoices');if(!box||box.childElementCount)return;
- const labels={teilnahmen:'Teilnahmen',mannschaften:'Mannschaften',herren:'Herren',mixed:'Mixed',damen:'Damen',email:'E-Mail',ansprechpartner:'Ansprechpartner',telefon:'Telefon'},cfg=clubDisplaySettings();
- for(const [k,label] of Object.entries(labels)){const l=document.createElement('label'),c=document.createElement('input');c.type='checkbox';c.checked=cfg[k];c.addEventListener('change',()=>{const n=clubDisplaySettings();n[k]=c.checked;localStorage.setItem('ecw-tv-club-columns',JSON.stringify(n));renderVereineAdmin()});l.append(c,document.createTextNode(label));box.appendChild(l)}
+ const labels={herren:'Herren',mixed:'Mixed',damen:'Damen',email:'E-Mail',ansprechpartner:'Ansprechpartner',telefon:'Telefon'},cfg=clubDisplaySettings();
+ for(const [k,label] of Object.entries(labels)){
+   const l=document.createElement('label'),c=document.createElement('input');
+   c.type='checkbox';c.checked=cfg[k];
+   c.addEventListener('change',()=>{const n=clubDisplaySettings();n[k]=c.checked;localStorage.setItem('ecw-tv-club-columns',JSON.stringify(n));renderVereineAdmin()});
+   l.append(c,document.createTextNode(label));box.appendChild(l)
+ }
+}
+function clubMultiHtml(v,kind){
+ const list=kind==='email'?clubEmails(v):clubContacts(v);
+ const rows=list.map((value,i)=>'<div class="club-multi-row"><span class="club-multi-value">'+escapeHtml(value)+'</span><span class="club-mini-actions"><button class="secondary" data-multi-edit="'+escapeHtml(v.id)+'" data-kind="'+kind+'" data-index="'+i+'">Bearbeiten</button><button class="danger" data-multi-del="'+escapeHtml(v.id)+'" data-kind="'+kind+'" data-index="'+i+'">Löschen</button></span></div>').join('');
+ return '<div class="club-multi">'+(rows||'<span class="meta">–</span>')+'<button class="secondary club-add-btn" data-multi-add="'+escapeHtml(v.id)+'" data-kind="'+kind+'">+ '+(kind==='email'?'E-Mail':'Ansprechpartner')+'</button></div>';
 }
 function renderVereineAdmin(){
  const el=document.getElementById('vereineAdminList');if(!el)return;initClubColumnChoices();
  const q=(document.getElementById('vereineSuche')?.value||'').trim().toLowerCase(),cfg=clubDisplaySettings(),stats=historyStats();
- const list=[...vereineCache].filter(v=>!q||[v.name,v.ort,v.email,v.vorstand,v.ansprechpartner,v.telefon].some(x=>String(x||'').toLowerCase().includes(q))).sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
+ const list=[...vereineCache].filter(v=>!q||[v.name,v.ort,v.telefon,...clubEmails(v),...clubContacts(v)].join(' ').toLowerCase().includes(q)).sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
  if(!list.length){el.innerHTML='<p class="meta">Keine passenden Vereine vorhanden.</p>';return}
- const cols=[['teilnahmen','Teiln.'],['mannschaften','Mannsch.'],['herren','H'],['mixed','M'],['damen','D'],['email','E-Mail'],['ansprechpartner','Ansprechpartner'],['telefon','Telefon']].filter(([k])=>cfg[k]);
- let html='<div class="club-table-wrap"><table class="club-table"><thead><tr><th>Verein</th>'+cols.map(x=>'<th>'+x[1]+'</th>').join('')+'<th></th></tr></thead><tbody>';
- for(const v of list){const h=stats.get(historyCanonicalClub(v.name))||{},vals={teilnahmen:h.teilnahmen||v.historyBasis?.teilnahmen||0,mannschaften:h.mannschaften||v.historyBasis?.mannschaften||0,herren:h.herren||v.historyBasis?.herren||0,mixed:h.mixed||v.historyBasis?.mixed||0,damen:h.damen||v.historyBasis?.damen||0,email:v.email||'',ansprechpartner:v.vorstand||v.ansprechpartner||'',telefon:v.telefon||''};html+='<tr><td><strong>'+escapeHtml(v.name||'')+'</strong></td>'+cols.map(([k])=>'<td>'+escapeHtml(String(vals[k]??''))+'</td>').join('')+'<td><div class="verein-address-actions"><button class="secondary" data-edit="'+escapeHtml(v.id)+'">Bearbeiten</button><button class="danger" data-del="'+escapeHtml(v.id)+'">Löschen</button></div></td></tr>'}
- html+='</tbody></table></div>';el.innerHTML=html;el.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>editVerein(b.dataset.edit)));el.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>deleteVereinAdresse(b.dataset.del)));
+ const cols=[['herren','Herren'],['mixed','Mixed'],['damen','Damen'],['email','E-Mail'],['ansprechpartner','Ansprechpartner'],['telefon','Telefon']].filter(([k])=>cfg[k]);
+ let html='<div class="club-table-wrap"><table class="club-table"><thead><tr><th>Verein</th>'+cols.map(x=>'<th>'+x[1]+'</th>').join('')+'<th>Aktionen</th></tr></thead><tbody>';
+ for(const v of list){
+   const h=stats.get(historyCanonicalClub(v.name))||{},vals={herren:h.herren||0,mixed:h.mixed||0,damen:h.damen||0,telefon:v.telefon||''};
+   const cells=cols.map(([k])=>{
+     if(k==='email')return '<td>'+clubMultiHtml(v,'email')+'</td>';
+     if(k==='ansprechpartner')return '<td>'+clubMultiHtml(v,'contact')+'</td>';
+     return '<td>'+escapeHtml(String(vals[k]??''))+'</td>';
+   }).join('');
+   html+='<tr><td><strong>'+escapeHtml(v.name||'')+'</strong><div class="meta">'+escapeHtml([v.plz,v.ort].filter(Boolean).join(' '))+'</div></td>'+cells+'<td class="club-main-actions"><div class="verein-address-actions"><button class="secondary" data-edit="'+escapeHtml(v.id)+'">Verein bearbeiten</button><button class="danger" data-del="'+escapeHtml(v.id)+'">Verein löschen</button></div></td></tr>';
+ }
+ html+='</tbody></table></div>';el.innerHTML=html;
+ el.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>editVerein(b.dataset.edit)));
+ el.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>deleteVereinAdresse(b.dataset.del)));
+ el.querySelectorAll('[data-multi-edit]').forEach(b=>b.addEventListener('click',()=>editClubMultiItem(b.dataset.multiEdit,b.dataset.kind,Number(b.dataset.index))));
+ el.querySelectorAll('[data-multi-del]').forEach(b=>b.addEventListener('click',()=>deleteClubMultiItem(b.dataset.multiDel,b.dataset.kind,Number(b.dataset.index))));
+ el.querySelectorAll('[data-multi-add]').forEach(b=>b.addEventListener('click',()=>addClubMultiItem(b.dataset.multiAdd,b.dataset.kind)));
 }
 function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
 function exportVereinsadressenCSV(){
   if(!vereineCache.length){notify('Keine Vereinsadressen zum Exportieren vorhanden.',true);return}
   const rows=[['Verein','Straße','PLZ','Ort','Vorstand / Ansprechpartner','Telefon','E-Mail','Homepage','Teilnahmen','Mannschaften','Herren','Mixed','Damen']];
-  [...vereineCache].sort((a,b)=>(a.name||'').localeCompare(b.name||'','de')).forEach(v=>rows.push([v.name,v.strasse||v.strasseHausnummer||'',v.plz,v.ort,v.vorstand||v.ansprechpartner||'',v.telefon,v.email,v.homepage]));
+  [...vereineCache].sort((a,b)=>(a.name||'').localeCompare(b.name||'','de')).forEach(v=>rows.push([v.name,v.strasse||v.strasseHausnummer||'',v.plz,v.ort,clubContacts(v).join(' | '),v.telefon,clubEmails(v).join(' | '),v.homepage]));
   const csv='\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -4992,22 +5246,85 @@ document.getElementById('dPdfBtn').addEventListener('click',()=>exportCurrentDoc
 document.getElementById('dPngBtn').addEventListener('click',()=>exportCurrentDocument('png'));
 
 // Mail is composed locally; the user's mail application performs the actual sending.
-let selectedRecipients=new Set(),sendBusy=false;
+let selectedRecipients=new Set(),sendBusy=false,currentInvitePhase=1,currentInviteCategory='Alle';
 function sendTournament(){return turniereCache.find(t=>t.id===document.getElementById('sTurnierSelect').value);}
 function clubEmailAddresses(){
  const result=new Map(),stats=historyStats();
- for(const v of vereineCache){const raw=[v.email,v.email2,v.emailadresse,v.emailAdresse,...(Array.isArray(v.emails)?v.emails:[])].filter(Boolean),values=raw.flatMap(x=>String(x).split(/[;,]\s*/)).map(x=>x.trim()).filter(Boolean),cats=historyCategoriesForClub(v.name),hs=stats.get(historyCanonicalClub(v.name));for(const email of values){if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))continue;const key=email.toLowerCase();if(result.has(key)){const r=result.get(key);if(!r.clubs.includes(v.name||'Verein'))r.clubs.push(v.name||'Verein');for(const c of cats)r.categories.add(c)}else result.set(key,{key,email,clubs:[v.name||'Verein'],categories:new Set(cats),teilnahmen:hs?.teilnahmen||v.historyBasis?.teilnahmen||0})}}
+ for(const v of vereineCache){
+   const raw=[v.email,v.email2,v.emailadresse,v.emailAdresse,...(Array.isArray(v.emails)?v.emails:[])].filter(Boolean),
+         values=raw.flatMap(x=>String(x).split(/[;,]\s*/)).map(x=>x.trim()).filter(Boolean),
+         cats=historyCategoriesForClub(v.name),hs=stats.get(historyCanonicalClub(v.name));
+   for(const email of values){
+     if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))continue;
+     const key=email.toLowerCase();
+     if(result.has(key)){
+       const r=result.get(key);
+       if(!r.clubs.includes(v.name||'Verein'))r.clubs.push(v.name||'Verein');
+       for(const c of cats)r.categories.add(c);
+     }else result.set(key,{key,email,clubs:[v.name||'Verein'],categories:new Set(cats),teilnahmen:hs?.teilnahmen||v.historyBasis?.teilnahmen||0});
+   }
+ }
  return [...result.values()].map(r=>({...r,categories:[...r.categories]})).sort((a,b)=>a.clubs.join().localeCompare(b.clubs.join(),'de')||a.email.localeCompare(b.email));
 }
+function invitePhaseData(t,phase){
+ const p=t?.einladungsPhasen?.['phase'+phase];
+ return p&&typeof p==='object'?p:{emails:[],clubs:[],category:''};
+}
+function setInvitePhase(phase){
+ currentInvitePhase=phase;
+ const t=sendTournament(),wrap=document.getElementById('recipientCategoryWrap'),mark=document.getElementById('sMarkPhaseBtn'),info=document.getElementById('sPhaseInfo');
+ selectedRecipients.clear();
+ if(phase===1){
+   wrap.classList.remove('hidden');
+   info.textContent='Phase 1: Vereine anhand der bisherigen Teilnahmen auswählen.';
+   mark.textContent='Auswahl als Phase 1 eingeladen speichern';
+ }else{
+   wrap.classList.add('hidden');
+   const p1=invitePhaseData(t,1),blockedClubs=new Set((p1.clubs||[]).map(hNorm)),all=clubEmailAddresses();
+   for(const r of all)if(!r.clubs.some(c=>blockedClubs.has(hNorm(c))))selectedRecipients.add(r.key);
+   info.textContent=p1.clubs?.length
+     ?`Phase 2: ${selectedRecipients.size} E-Mail-Adressen von Vereinen ausgewählt, die in Phase 1 noch keine Einladung erhalten haben.`
+     :'Phase 2 ist verfügbar, sobald du Phase 1 als eingeladen gespeichert hast.';
+   mark.textContent='Auswahl als Phase 2 eingeladen speichern';
+ }
+ renderRecipients();updateInvitePhaseButtons();
+}
 function preselectRecipientsByCategory(cat){
- const all=clubEmailAddresses();selectedRecipients.clear();for(const r of all)if(cat==='Alle'||r.categories.includes(cat))selectedRecipients.add(r.key);renderRecipients();notify((cat==='Alle'?'Alle':cat)+' passenden Vereinsadressen vorausgewählt.');
+ currentInvitePhase=1;currentInviteCategory=cat;
+ const all=clubEmailAddresses();selectedRecipients.clear();
+ for(const r of all)if(cat==='Alle'||r.categories.includes(cat))selectedRecipients.add(r.key);
+ document.getElementById('recipientCategoryWrap').classList.remove('hidden');
+ document.getElementById('sPhaseInfo').textContent=`Phase 1 · ${cat}: ${selectedRecipients.size} E-Mail-Adressen vorausgewählt.`;
+ renderRecipients();updateInvitePhaseButtons();
+ notify((cat==='Alle'?'Alle':cat)+' passenden Vereinsadressen für Phase 1 vorausgewählt.');
+}
+function updateInvitePhaseButtons(){
+ const t=sendTournament(),p1=invitePhaseData(t,1);
+ document.getElementById('sPhase1Btn').classList.toggle('primary',currentInvitePhase===1);
+ document.getElementById('sPhase2Btn').classList.toggle('primary',currentInvitePhase===2);
+ document.getElementById('sPhase2Btn').disabled=!t||!(p1.clubs||[]).length;
+ document.getElementById('sMarkPhaseBtn').disabled=!t||!selectedRecipients.size;
+}
+async function saveCurrentInvitePhase(){
+ const t=sendTournament();if(!t||!selectedRecipients.size)return;
+ const rec=clubEmailAddresses().filter(r=>selectedRecipients.has(r.key));
+ const clubs=[...new Set(rec.flatMap(r=>r.clubs).map(x=>String(x||'').trim()).filter(Boolean))];
+ const emails=[...new Set(rec.map(r=>r.email.toLowerCase()))];
+ const payload={emails,clubs,category:currentInvitePhase===1?currentInviteCategory:'Restliche Vereine',savedAt:new Date().toISOString()};
+ try{
+   await updateDoc(doc(db,'turniere',t.id),{['einladungsPhasen.phase'+currentInvitePhase]:payload});
+   notify(`Phase ${currentInvitePhase} gespeichert: ${clubs.length} Vereine / ${emails.length} E-Mail-Adressen.`);
+ }catch(e){dbError(e)}
 }
 document.querySelectorAll('#recipientCategoryButtons [data-cat]').forEach(b=>b.addEventListener('click',()=>preselectRecipientsByCategory(b.dataset.cat)));
+document.getElementById('sPhase1Btn').addEventListener('click',()=>setInvitePhase(1));
+document.getElementById('sPhase2Btn').addEventListener('click',()=>setInvitePhase(2));
+document.getElementById('sMarkPhaseBtn').addEventListener('click',saveCurrentInvitePhase);
 function updateSendOptions(){
   const select=document.getElementById('sTurnierSelect'),previous=select.value;
   select.innerHTML='<option value="">– Turnier auswählen –</option>'+turniereCache.map(t=>`<option value="${escapeHtml(t.id)}">${escapeHtml(t.name||'Turnier')}${t.datum?' · '+escapeHtml(formatDatum(t.datum)):''}</option>`).join('');
   if(turniereCache.some(t=>t.id===previous))select.value=previous;
-  updateSendStatus();
+  updateSendStatus();updateInvitePhaseButtons();
 }
 function renderRecipients(){
   const all=clubEmailAddresses(),valid=new Set(all.map(r=>r.key));selectedRecipients=new Set([...selectedRecipients].filter(k=>valid.has(k)));
@@ -5028,9 +5345,9 @@ function updateSendStatus(){
   document.getElementById('sPdfBtn').disabled=sendBusy||!t;
   document.getElementById('sEditBtn').disabled=!t;document.getElementById('sSelectNone').disabled=!selectedRecipients.size;
 }
-function resetSend(){selectedRecipients.clear();document.getElementById('sSearch').value='';document.getElementById('sTurnierSelect').replaceChildren(new Option('– Turnier auswählen –',''));document.getElementById('sSubject').value='';document.getElementById('sMessage').value='';document.getElementById('sFrom').value='';document.getElementById('sStatus').textContent='';renderRecipients();}
+function resetSend(){currentInvitePhase=1;currentInviteCategory='Alle';selectedRecipients.clear();document.getElementById('sSearch').value='';document.getElementById('sTurnierSelect').replaceChildren(new Option('– Turnier auswählen –',''));document.getElementById('sSubject').value='';document.getElementById('sMessage').value='';document.getElementById('sFrom').value='';document.getElementById('sStatus').textContent='';renderRecipients();}
 function setSendDefaults(){const t=sendTournament();document.getElementById('sSubject').value=t?'Einladung: '+(t.name||'Turnier')+' am '+formatDatum(t.datum):'';document.getElementById('sMessage').value=t?'Liebe Sportfreunde,\n\nanbei erhaltet ihr die Einladung zu unserem '+(t.name||'Turnier')+' am '+longDate(t.datum)+'.\nWir freuen uns auf eure Anmeldung.\n\nMit sportlichen Grüßen\nEC Wegscheid':'';document.getElementById('sStatus').textContent='';updateSendStatus();}
-document.getElementById('sTurnierSelect').addEventListener('change',setSendDefaults);
+document.getElementById('sTurnierSelect').addEventListener('change',()=>{setSendDefaults();setInvitePhase(1);});
 document.getElementById('sSearch').addEventListener('input',renderRecipients);
 document.getElementById('sSelectAll').addEventListener('click',()=>{document.querySelectorAll('#sRecipients input').forEach(el=>selectedRecipients.add(el.value));renderRecipients();});
 document.getElementById('sSelectNone').addEventListener('click',()=>{selectedRecipients.clear();renderRecipients();});

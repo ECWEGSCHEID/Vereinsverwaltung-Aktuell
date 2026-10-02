@@ -1,0 +1,24 @@
+EC Wegscheid V3.0.38 / Turnierverwaltung 2.10
+
+Historie
+- Es werden nur noch Turniere gezählt, deren Datum bereits abgeschlossen ist.
+- Turniere mit heutigem oder künftigem Datum werden nicht in die Historie eingerechnet.
+- Gilt sowohl für den historischen Datenbestand als auch für neue Firebase-Meldungen.
+
+Archiv
+- Neuer Menüpunkt "Archiv".
+- Abgeschlossene Turniere werden automatisch anhand des Datums ins Archiv eingeordnet.
+- Die Daten werden NICHT verschoben oder gelöscht; sie bleiben unverändert in Firebase.
+- Die normale Turnierverwaltung zeigt nur offene/heutige/künftige Turniere.
+- Archiv zeigt vergangene Turniere, neueste zuerst.
+- Archivierte Turniere können weiterhin geöffnet und angesehen/bearbeitet werden.
+
+Einladungen senden – Phase 1 / Phase 2
+- Phase 1 funktioniert wie bisher über Historie: Alle / Herren / Damen / Mixed.
+- Nach dem tatsächlichen Versand kann die aktuelle Auswahl als Phase 1 eingeladen gespeichert werden.
+- Phase 2 wird danach freigeschaltet.
+- Phase 2 wählt automatisch Vereine aus, die in Phase 1 noch keine Einladung erhalten haben.
+- Die Auswahl für Phase 2 kann vor dem Versand weiterhin manuell angepasst werden.
+- Auch Phase 2 kann gespeichert werden.
+- Gespeichert wird direkt beim jeweiligen Turnier in Firebase unter "einladungsPhasen".
+- Die eigentliche E-Mail-/EML-Funktion bleibt unverändert.
