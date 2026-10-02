@@ -1,0 +1,13 @@
+EC Wegscheid Vereinsverwaltung V3.0.45
+
+Zeitungsberichte – Korrektur der Doppelseiten:
+- Standardmäßig wird wieder jede Seite einzeln dargestellt.
+- Die Option heißt jetzt:
+  "2 zusammengehörige Seiten gemeinsam hinzufügen".
+- Wenn diese Option aktiviert ist, werden NUR die ersten beiden Seiten
+  des aktuellen Uploads gemeinsam auf einem Platzhalter gespeichert.
+- Alle weiteren Seiten desselben Uploads werden einzeln gespeichert.
+- Für ein weiteres zusammengehöriges Seitenpaar einfach einen neuen Upload starten
+  und die Option erneut aktivieren.
+- Nach jedem Speichern wird die Option automatisch wieder deaktiviert.
+- Bestehende bereits gespeicherte Doppelseiten bleiben unverändert.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.44 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.45 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -719,7 +719,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.44';
+const APP_VERSION='3.0.45';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -4586,8 +4586,8 @@ function adminSection(s){
    +'<label style="margin-top:12px">Ordner für neue Berichte auswählen</label><select id="zrFolderSelect">'+pressFolderOptions(currentMonth)+'</select>'
    +'<div class="row" style="margin-top:8px"><button type="button" class="danger" onclick="pressDeleteSelectedFolder()">Ausgewählten Ordner löschen</button></div></div>'
    +'<div class="card"><label>Zeitungsberichte hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg">'
-   +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>Jeweils 2 zusammengehörige Seiten auf einem Platzhalter anzeigen</span></label>'
-   +'<div class="small" style="margin-top:6px">Bei PDF: Seite 1+2, 3+4 usw. Bei Bildern: jeweils zwei nacheinander ausgewählte Dateien.</div>'
+   +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>2 zusammengehörige Seiten gemeinsam hinzufügen</span></label>'
+   +'<div class="small" style="margin-top:6px">Standard: jede Seite wird einzeln gespeichert. Wenn aktiviert, werden nur die ersten beiden Seiten dieses Uploads gemeinsam auf einem Platzhalter gespeichert; weitere Seiten bleiben einzeln.</div>'
    +'<div id="firebasePressReportInfo" class="small" style="margin-top:10px"></div></div>'
    +'<h3>Vorhandene Zeitungsberichte</h3><div class="card"><label>Ordner auswählen</label><select id="tadminmonth">'+pressFolderOptions(currentMonth)+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div>'
    +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="savePressReportFiles()">Zeitungsberichte speichern</button></div>';
@@ -4826,7 +4826,7 @@ async function pressStorePage(dataUrl,name){
 async function savePressReportFiles(){
  const folder=document.getElementById('zrFolderSelect')?.value||currentMonth;
  const files=[...(document.getElementById('zrfiles')?.files||[])];
- const pair=!!document.getElementById('zrPairPages')?.checked;
+ const pairFirstTwo=!!document.getElementById('zrPairPages')?.checked;
  const info=document.getElementById('firebasePressReportInfo');
  if(!folder){showToast('Bitte zuerst einen Ordner erstellen und auswählen.');return;}
  if(!files.length){showToast('Bitte mindestens eine Datei auswählen.');return;}
@@ -4836,24 +4836,45 @@ async function savePressReportFiles(){
    const pages=[];
    for(const file of files)pages.push(...await pressExtractPages(file));
    const arr=data.pressReports[folder]||(data.pressReports[folder]=[]);
-   for(let i=0;i<pages.length;i+=(pair?2:1)){
-     const p1=pages[i],p2=pair?pages[i+1]:null,a=await pressStorePage(p1.dataUrl,p1.name);
-     const item={id:a.id,name:a.name,mediaId:a.mediaId,data:a.data};
-     if(p2){
-       const b=await pressStorePage(p2.dataUrl,p2.name);
-       item.name2=b.name;item.mediaId2=b.mediaId;item.data2=b.data;
-     }
-     let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;arr[slot]=item;
+
+   let index=0;
+
+   // Nur die ersten beiden Seiten dieses Uploads gemeinsam speichern.
+   if(pairFirstTwo && pages.length>=2){
+     const p1=pages[0],p2=pages[1];
+     const a=await pressStorePage(p1.dataUrl,p1.name);
+     const b=await pressStorePage(p2.dataUrl,p2.name);
+     const item={
+       id:a.id,name:a.name,mediaId:a.mediaId,data:a.data,
+       name2:b.name,mediaId2:b.mediaId,data2:b.data
+     };
+     let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;
+     arr[slot]=item;
+     index=2;
    }
+
+   // Alle übrigen Seiten immer einzeln speichern.
+   for(;index<pages.length;index++){
+     const p=pages[index];
+     const a=await pressStorePage(p.dataUrl,p.name);
+     const item={id:a.id,name:a.name,mediaId:a.mediaId,data:a.data};
+     let slot=arr.findIndex(v=>!v);if(slot<0)slot=arr.length;
+     arr[slot]=item;
+   }
+
    if(!save())throw new Error('Lokales Speichern fehlgeschlagen');
    currentMonth=folder;currentPage=0;adminTournamentPage=0;
    await hydrateMedia();renderTournamentAdminPreview();renderTournamentAdminList();
    if(info)info.textContent='Lokal gespeichert. Firebase wird aktualisiert …';
+
    const fb=await syncTournamentsToFirebase();
    const inp=document.getElementById('zrfiles');if(inp)inp.value='';
+   const pairBox=document.getElementById('zrPairPages');if(pairBox)pairBox.checked=false;
+
    if(fb.ok){
      if(info)info.textContent=fb.message;
-     showToast(pages.length+' Seite(n) gespeichert'+(pair?' · bis zu 2 Seiten pro Platzhalter':'')+' · Firebase aktualisiert');
+     const pairText=pairFirstTwo&&pages.length>=2?' · erste 2 Seiten gemeinsam':'';
+     showToast(pages.length+' Seite(n) gespeichert'+pairText+' · Firebase aktualisiert');
    }else{
      if(info)info.textContent='Lokal gespeichert · Firebase-Fehler: '+(fb.error||fb.message||'unbekannt');
      showToast('Lokal gespeichert, Firebase fehlgeschlagen: '+(fb.error||fb.message||''),8000);
