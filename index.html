@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.46 Turnierverwaltung</title>
+<title>Vereins-Informationssystem – V3.0.47 Turnierverwaltung</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -712,14 +712,16 @@ try{
   firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
-  // V3.0.4: Anmeldung dauerhaft im Browser speichern.
-  // Dadurch bleibt besonders der Whiteboard-Benutzer nach einem Neustart angemeldet,
-  // sofern der Samsung-Browser seine Website-Daten nicht löscht.
-  firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn('Firebase Persistenz:',e));
+  // V3.0.47: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
+  window.__ecwPersistenceReady=firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(()=>true)
+    .catch(e=>{console.warn('Firebase Persistenz:',e);return false;});
+  window.__ecwAuthInitialResolved=false;
+  window.__ecwAuthInitialUser=null;
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.46';
+const APP_VERSION='3.0.47';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1043,17 +1045,26 @@ initFirebaseInfo();
 if(firebaseReady&&window.firebaseAuth){
  window.firebaseAuth.onAuthStateChanged(async user=>{
    firebaseAuthUser=user||null; window.firebaseAuthUser=firebaseAuthUser;
+   window.__ecwAuthInitialResolved=true;
+   window.__ecwAuthInitialUser=firebaseAuthUser;
    if(!user&&currentUser==='admin')currentUser=null;
    const label=document.getElementById('currentUserLabel');
    if(label)label.textContent=user?(user.email||user.uid):'';
    await loadAppPermissions(user);
+   if(user && (isWhiteboardUser() || isWhiteboardKioskAccount())){
+     try{
+       localStorage.setItem('ecw_whiteboard_trusted_device','1');
+       localStorage.setItem('ecw_whiteboard_last_uid',String(user.uid||''));
+       localStorage.setItem('ecw_whiteboard_last_email',String(user.email||''));
+     }catch(e){}
+   }
    centralStopListeners();
    if(user){
      await centralFirebaseBootstrap();
      centralStartListeners();
    }
    if(user && !userSwitchPending && prefersPresentationStart()){window.__adminPreviewMode=false;currentUser=null;showView('startseite');}
-   if(user) centralSetStatus('Firebase Live · '+(user.email||user.uid)+' · Anmeldung gespeichert',true);
+   if(user) centralSetStatus('Firebase Live · '+(user.email||user.uid)+' · Daueranmeldung aktiv',true);
    else centralSetStatus('Nicht angemeldet',false);
  });
 }else{
@@ -2825,6 +2836,13 @@ async function loginFirebaseAdmin(){
    await window.firebaseAuth.setPersistence(persistence);
    await window.firebaseAuth.signInWithEmailAndPassword(email,pw);
    await loadAppPermissions(window.firebaseAuth.currentUser);
+   if(isWhiteboardUser() || isWhiteboardKioskAccount()){
+     try{
+       localStorage.setItem('ecw_whiteboard_trusted_device','1');
+       localStorage.setItem('ecw_whiteboard_last_uid',String(window.firebaseAuth.currentUser?.uid||''));
+       localStorage.setItem('ecw_whiteboard_last_email',String(window.firebaseAuth.currentUser?.email||email||''));
+     }catch(e){}
+   }
  }catch(e){console.error(e);const t=authErrorText(e);setStatus(t);showToast(t,4000);return;}
  userSwitchPending=false;
  try{localStorage.setItem('verein_admin_email',email)}catch(e){}
@@ -5470,8 +5488,75 @@ async function autoLoadPublicFirebaseDataV1245(){
 // V2.7.0: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
-// Ohne Direktlink startet die Seite direkt mit der Verwaltungs-Anmeldung (Übersichtsseite ist jetzt ein Reiter in der Verwaltung).
-try{const _p=new URLSearchParams(location.search);if(!location.hash&&!_p.get('seite')&&!_p.get('turniere')){loginPurpose='admin';showView('login');}else setTimeout(()=>{if(!document.querySelector('.view.active')){loginPurpose='admin';showView('login');}},2500);}catch(e){console.error('Start:',e)}
+// V3.0.47: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
+async function ecwWaitForInitialAuth(){
+  try{
+    if(window.__ecwPersistenceReady){
+      await Promise.race([window.__ecwPersistenceReady,new Promise(r=>setTimeout(r,2500))]);
+    }
+  }catch(e){}
+  let trusted=false;
+  try{trusted=localStorage.getItem('ecw_whiteboard_trusted_device')==='1'}catch(e){}
+  const timeout=trusted?9000:5000;
+  const start=Date.now();
+  while(!window.__ecwAuthInitialResolved && Date.now()-start<timeout){
+    await new Promise(r=>setTimeout(r,100));
+  }
+  return window.__ecwAuthInitialUser||window.firebaseAuth?.currentUser||null;
+}
+
+async function ecwStartupAfterAuth(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const hasDirect=!!(location.hash||p.get('seite')||p.get('turniere'));
+
+    if(hasDirect){
+      setTimeout(()=>{
+        if(!document.querySelector('.view.active')){
+          if(firebaseAuthUser&&prefersPresentationStart())showView('startseite');
+          else{loginPurpose='admin';showView('login');}
+        }
+      },2500);
+      return;
+    }
+
+    const user=await ecwWaitForInitialAuth();
+
+    if(user){
+      firebaseAuthUser=user;
+      window.firebaseAuthUser=user;
+      await loadAppPermissions(user);
+
+      if(prefersPresentationStart()){
+        window.__adminPreviewMode=false;
+        currentUser=null;
+        showView('startseite');
+        try{enterPresentationFullscreen()}catch(e){}
+        return;
+      }
+
+      updateHomeAdminButton();
+      showView('admin');
+      return;
+    }
+
+    loginPurpose='admin';
+    showView('login');
+
+    let trusted=false;
+    try{trusted=localStorage.getItem('ecw_whiteboard_trusted_device')==='1'}catch(e){}
+    if(trusted){
+      const st=document.getElementById('firebaseLoginStatus');
+      if(st)st.textContent='Gespeicherte Whiteboard-Anmeldung wurde vom Browser nicht wiederhergestellt. Bitte einmal anmelden.';
+    }
+  }catch(e){
+    console.error('Start nach Auth:',e);
+    loginPurpose='admin';
+    showView('login');
+  }
+}
+ecwStartupAfterAuth();
+
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250));
 else setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250);
 </script>

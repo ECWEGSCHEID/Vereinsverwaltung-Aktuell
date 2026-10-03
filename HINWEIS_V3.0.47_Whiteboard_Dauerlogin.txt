@@ -1,0 +1,25 @@
+EC Wegscheid Vereinsverwaltung V3.0.47
+WHITEBOARD – DAUERANMELDUNG
+
+Änderung:
+- Die App zeigt beim Start nicht mehr sofort die Login-Seite.
+- Zuerst wird die Firebase LOCAL-Persistenz initialisiert.
+- Danach wartet die App auf den ersten Firebase-Auth-Status.
+- Ein bereits verwendetes Whiteboard-Browserprofil erhält bis zu 9 Sekunden Zeit,
+  um die gespeicherte Anmeldung wiederherzustellen.
+- Wird der Whiteboard-/Vereinsinformations-Benutzer wiederhergestellt,
+  startet die App direkt auf der Vereinsinformation.
+- Beim ersten erfolgreichen Whiteboard-Login wird nur ein lokaler Geräte-Marker gespeichert.
+- Es wird KEIN Kennwort im Programm oder localStorage gespeichert.
+- Der Whiteboard-Benutzer wird weiterhin nicht automatisch abgemeldet.
+
+TEST:
+1. V3.0.47 auf GitHub veröffentlichen.
+2. Am Whiteboard einmal normal mit dem Benutzer Vereinsinformation anmelden.
+3. Seite schließen bzw. Whiteboard neu starten.
+4. Programm erneut automatisch öffnen lassen.
+5. Erwartung: Vereinsinformation startet ohne erneute Kennworteingabe.
+
+Falls danach weiterhin bei jedem vollständigen Neustart eine Anmeldung erforderlich ist,
+löscht der Samsung-Browser die Firebase-Website-Daten beim Beenden. Dann ist die Ursache
+nicht mehr die App-Startlogik, sondern die Browser-Datenspeicherung des Geräts.
