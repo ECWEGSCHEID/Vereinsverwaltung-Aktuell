@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.82 Solo Pyramide</title>
+<title>Vereins-Informationssystem – V3.0.83 Solo Pyramide</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -85,6 +85,58 @@ textarea{min-height:120px;resize:vertical}
 .tp-row{display:flex;align-items:center;gap:6px}
 .tp-row label{margin:0;font-weight:600;font-size:11px;opacity:.8;white-space:nowrap}
 .tp-row select{width:auto;min-width:155px;margin:0;padding:5px 8px;font-size:14px}
+.tp-wb-player-btn{
+  min-width:155px;max-width:220px;margin:0;padding:6px 10px;
+  font-size:14px;line-height:1.2;text-align:left;
+  background:rgba(255,255,255,.95);color:#111;
+  border:1px solid rgba(0,0,0,.25);border-radius:7px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tp-wb-player-btn:active{transform:none}
+.tp-wb-picker-overlay{
+  position:fixed;inset:0;z-index:5000;
+  background:rgba(0,0,0,.88);
+  display:none;align-items:center;justify-content:center;
+  padding:18px;
+}
+.tp-wb-picker-overlay.show{display:flex}
+.tp-wb-picker-dialog{
+  width:min(1100px,96vw);height:min(86vh,820px);
+  background:#241010;border:2px solid rgba(255,255,255,.75);
+  border-radius:16px;padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 18px 60px rgba(0,0,0,.7);
+}
+.tp-wb-picker-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.tp-wb-picker-head h3{margin:0;font-size:24px;color:#fff}
+.tp-wb-picker-close{
+  min-width:120px;padding:10px 14px;font-size:18px;font-weight:800;
+}
+.tp-wb-picker-current{
+  color:#ddd;font-size:15px;
+}
+.tp-wb-picker-grid{
+  flex:1;min-height:0;overflow:auto;overflow-anchor:none;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;padding:4px;
+}
+.tp-wb-picker-grid button{
+  min-height:54px;padding:10px 12px;
+  font-size:17px;font-weight:700;text-align:left;
+  border-radius:9px;
+}
+.tp-wb-picker-grid button.selected{
+  outline:3px solid #fff;
+}
+.tp-wb-picker-grid button.clear-choice{
+  grid-column:1/-1;text-align:center;
+}
+@media(max-width:1000px){
+  .tp-wb-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
 .tp-loc{font-size:13px;opacity:.85;white-space:normal;text-align:left}
 .tp-empty{text-align:center;padding:60px;opacity:.8;font-size:18px}
 @media(min-width:1101px){.tp-card{padding:5px 16px}.tp-row select{padding:4px 8px}}
@@ -594,11 +646,11 @@ body.tv-preview-open{overflow:hidden!important}
 }
 </style>
 </head>
-<body data-ecw-build="V3.0.82-SOLO-PYRAMIDE-FIREBASE-20261007">
+<body data-ecw-build="V3.0.83-SOLO-PYRAMIDE-FIREBASE-20261007">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 3.0.82</div>
+<div id="appVersion" class="app-version">Version 3.0.83</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -786,7 +838,7 @@ let firebaseReady=false, firestoreDb=null, firebaseAuth=null, firebaseAuthUser=n
 let loginPurpose='admin';
 let appPermissions={};
 
-// V3.0.82: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
+// V3.0.83: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
 // Nur Lesen. Schreib-/Adminfunktionen bleiben weiterhin authentifiziert.
 const ECW_PUBLIC_WHITEBOARD=(function(){
   try{
@@ -824,7 +876,7 @@ try{
   firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
-  // V3.0.82: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
+  // V3.0.83: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
   window.__ecwPersistenceReady=firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(()=>true)
     .catch(e=>{console.warn('Firebase Persistenz:',e);return false;});
@@ -833,7 +885,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.82';
+const APP_VERSION='3.0.83';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1425,10 +1477,11 @@ function tpPatchVisiblePlannerValues(){
     const item=tpFindEvent(id);
     if(!item)return;
 
-    const reported=card.querySelector('select[data-tp-field="reportedBy"]');
-    if(reported){
+    // Admin/normaler Browser: native Selects
+    const reportedSelect=card.querySelector('select[data-tp-field="reportedBy"]');
+    if(reportedSelect){
       const wanted=String(item.reportedBy||'');
-      if(reported.value!==wanted)reported.value=wanted;
+      if(reportedSelect.value!==wanted)reportedSelect.value=wanted;
       patched++;
     }
 
@@ -1437,6 +1490,24 @@ function tpPatchVisiblePlannerValues(){
       if(!Number.isInteger(idx)||idx<0||idx>3)return;
       const wanted=String((item.players||[])[idx]||'');
       if(sel.value!==wanted)sel.value=wanted;
+      patched++;
+    });
+
+    // Whiteboard: eigene Buttons, kein natives Select
+    const reportedBtn=card.querySelector('button[data-tp-field="reportedBy"]');
+    if(reportedBtn){
+      const wanted=String(item.reportedBy||'');
+      reportedBtn.dataset.tpValue=wanted;
+      reportedBtn.textContent=wanted||'– auswählen –';
+      patched++;
+    }
+
+    card.querySelectorAll('button[data-tp-field="players"]').forEach(btn=>{
+      const idx=Number(btn.dataset.tpPlayerIndex);
+      if(!Number.isInteger(idx)||idx<0||idx>3)return;
+      const wanted=String((item.players||[])[idx]||'');
+      btn.dataset.tpValue=wanted;
+      btn.textContent=wanted||'– auswählen –';
       patched++;
     });
   });
@@ -4438,10 +4509,6 @@ function tpCaptureWhiteboardSelectBeforeOpen(target){
 // Capture-Phase ist entscheidend: Position sichern, bevor der Browser sein
 // natives Select öffnet. Auf dem WM65B kann der Scrollsprung bereits vor
 // onchange stattfinden.
-document.addEventListener('pointerdown',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),true);
-document.addEventListener('mousedown',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),true);
-document.addEventListener('touchstart',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),{capture:true,passive:true});
-document.addEventListener('focusin',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),true);
 
 // Solange eine Whiteboard-Auswahl gespeichert wird, darf der Browser den
 // Listencontainer nicht selbst auf 0 / "heute" zurücksetzen.
@@ -4458,6 +4525,153 @@ document.addEventListener('scroll',e=>{
     });
   }
 },true);
+
+
+let tpWbPickerState=null;
+
+function tpEnsureWhiteboardPlayerPicker(){
+  let ov=document.getElementById('tpWbPlayerPicker');
+  if(ov)return ov;
+
+  ov=document.createElement('div');
+  ov.id='tpWbPlayerPicker';
+  ov.className='tp-wb-picker-overlay';
+  ov.innerHTML=
+    '<div class="tp-wb-picker-dialog" role="dialog" aria-modal="true">'+
+      '<div class="tp-wb-picker-head">'+
+        '<h3 id="tpWbPickerTitle">Spieler auswählen</h3>'+
+        '<button type="button" class="tp-wb-picker-close" id="tpWbPickerClose">Schließen</button>'+
+      '</div>'+
+      '<div id="tpWbPickerCurrent" class="tp-wb-picker-current"></div>'+
+      '<div id="tpWbPickerGrid" class="tp-wb-picker-grid"></div>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+
+  document.getElementById('tpWbPickerClose').addEventListener('click',tpCloseWhiteboardPlayerPicker);
+
+  ov.addEventListener('click',e=>{
+    if(e.target===ov)tpCloseWhiteboardPlayerPicker();
+  });
+
+  return ov;
+}
+
+function tpOpenWhiteboardPlayerPicker(id,field,idx,currentValue){
+  if(!isWhiteboardUser())return;
+
+  const list=tpPlannerListEl();
+  const sid=String(id||'');
+
+  tpWbPickerState={
+    id:sid,
+    field:String(field||''),
+    idx:Number.isInteger(idx)?idx:null,
+    current:String(currentValue||''),
+    scrollTop:list?list.scrollTop:0
+  };
+
+  // Position vor dem Öffnen sichern. Ab hier gibt es KEIN natives <select>.
+  tpBeginWhiteboardEditHold(sid,true);
+
+  const ov=tpEnsureWhiteboardPlayerPicker();
+  const title=document.getElementById('tpWbPickerTitle');
+  const current=document.getElementById('tpWbPickerCurrent');
+  const grid=document.getElementById('tpWbPickerGrid');
+
+  if(title){
+    title.textContent=field==='reportedBy'
+      ? 'Gemeldet von auswählen'
+      : 'Spieler '+((Number(idx)||0)+1)+' auswählen';
+  }
+
+  if(current){
+    current.textContent='Aktuell: '+(tpWbPickerState.current||'– keine Auswahl –');
+  }
+
+  if(grid){
+    grid.innerHTML='';
+
+    const clear=document.createElement('button');
+    clear.type='button';
+    clear.className='clear-choice'+(!tpWbPickerState.current?' selected':'');
+    clear.textContent='– Auswahl löschen –';
+    clear.addEventListener('click',()=>tpChooseWhiteboardPlayer(''));
+    grid.appendChild(clear);
+
+    const names=tpPlayers()
+      .filter(Boolean)
+      .slice()
+      .sort((a,b)=>String(a).localeCompare(String(b),'de'));
+
+    names.forEach(name=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.textContent=name;
+      if(name===tpWbPickerState.current)b.classList.add('selected');
+      b.addEventListener('click',()=>tpChooseWhiteboardPlayer(name));
+      grid.appendChild(b);
+    });
+
+    grid.scrollTop=0;
+  }
+
+  ov.classList.add('show');
+
+  // Den eigentlichen Turnierplaner unangetastet lassen.
+  if(list)list.scrollTop=tpWbPickerState.scrollTop;
+}
+
+function tpCloseWhiteboardPlayerPicker(){
+  const ov=document.getElementById('tpWbPlayerPicker');
+  if(ov)ov.classList.remove('show');
+
+  const list=tpPlannerListEl();
+  if(list && tpWbPickerState){
+    list.scrollTop=tpWbPickerState.scrollTop;
+  }
+}
+
+async function tpChooseWhiteboardPlayer(name){
+  const state=tpWbPickerState ? {...tpWbPickerState} : null;
+  if(!state)return;
+
+  tpCloseWhiteboardPlayerPicker();
+
+  const list=tpPlannerListEl();
+  if(list)list.scrollTop=state.scrollTop;
+
+  // Sichtbaren Button sofort aktualisieren, ohne die Terminliste neu aufzubauen.
+  const card=[...document.querySelectorAll('#tpContent .tp-card[data-tp-id]')]
+    .find(c=>String(c.dataset.tpId||'')===state.id);
+
+  if(card){
+    let selector='';
+    if(state.field==='reportedBy'){
+      selector='button[data-tp-field="reportedBy"]';
+    }else{
+      selector='button[data-tp-field="players"][data-tp-player-index="'+state.idx+'"]';
+    }
+    const btn=card.querySelector(selector);
+    if(btn){
+      btn.textContent=name||'– auswählen –';
+      btn.dataset.tpValue=name||'';
+    }
+  }
+
+  tpWhiteboardEditHold={
+    id:state.id,
+    scrollTop:state.scrollTop,
+    until:Date.now()+12000
+  };
+
+  await tpUpdateField(state.id,state.field,state.idx,name);
+
+  if(list)list.scrollTop=state.scrollTop;
+  tpKeepWhiteboardEditPosition();
+
+  tpWbPickerState=null;
+}
 
 function tpPlayers(){const list=(data.tournamentPlannerPlayers&&data.tournamentPlannerPlayers.length)?data.tournamentPlannerPlayers.slice():TP_PLAYER_NAMES.slice();if(!list.includes('X'))list.push('X');return list}
 function tpPlayerOptionsHtml(selected){const opts=['<option value="">– auswählen –</option>'];const list=tpPlayers();if(selected&&!list.includes(selected))list.push(selected);opts.push(list.map(n=>'<option value="'+esc(n)+'" '+(n===selected?'selected':'')+'>'+esc(n)+'</option>').join(''));return opts.join('')}
@@ -4545,7 +4759,15 @@ function renderTournamentPlanner(){
     const canEdit=tpCanEditPlanner();
     const allowsPlayers=tpAllowsPlayers(x.type);
     const playersDisabled=!canEdit;
-    const playerFields=allowsPlayers?[0,1,2,3].map(i=>'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Spieler '+(i+1)+'</label><select data-tp-field="players" data-tp-player-index="'+i+'" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i])+'</select></div>').join(''):'';
+    const playerFields=allowsPlayers?[0,1,2,3].map(i=>{
+      const label='<label>Spieler '+(i+1)+'</label>';
+      if(isWhiteboardUser()){
+        return '<div class="tp-row">'+label
+          +'<button type="button" class="tp-wb-player-btn" data-tp-field="players" data-tp-player-index="'+i+'" data-tp-value="'+esc(players[i]||'')+'" onclick="tpOpenWhiteboardPlayerPicker('+jsArg(x.id)+',\'players\','+i+','+jsArg(players[i]||'')+')">'
+          +esc(players[i]||'– auswählen –')+'</button></div>';
+      }
+      return '<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'">'+label+'<select data-tp-field="players" data-tp-player-index="'+i+'" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i])+'</select></div>';
+    }).join(''):'';
     const nameWraps=x.name&&x.name.trim().split(/\s+/).filter(Boolean).length>=2;
     return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
       +'<div class="tp-name'+(nameWraps?' tp-name-wrap':'')+'">'+esc(x.name)+'</div>'
@@ -4556,7 +4778,9 @@ function renderTournamentPlanner(){
       +'</div>'
       +(allowsPlayers?('<div class="tp-fields">'
       +'<div class="tp-fields-row">'
-      +'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Gemeldet von</label><select data-tp-field="reportedBy" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'reportedBy\',null,this.value)">'+tpPlayerOptionsHtml(x.reportedBy)+'</select></div>'
+      +(isWhiteboardUser()
+        ?'<div class="tp-row"><label>Gemeldet von</label><button type="button" class="tp-wb-player-btn" data-tp-field="reportedBy" data-tp-value="'+esc(x.reportedBy||'')+'" onclick="tpOpenWhiteboardPlayerPicker('+jsArg(x.id)+',\'reportedBy\',null,'+jsArg(x.reportedBy||'')+')">'+esc(x.reportedBy||'– auswählen –')+'</button></div>'
+        :'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Gemeldet von</label><select data-tp-field="reportedBy" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'reportedBy\',null,this.value)">'+tpPlayerOptionsHtml(x.reportedBy)+'</select></div>')
       +playerFields
       +'</div>'
       +'</div>'):'')
@@ -6647,7 +6871,7 @@ async function publicWhiteboardBootstrap(){
 // V2.7.0: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(!isPublicWhiteboardMode() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
-// V3.0.82: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
+// V3.0.83: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
 async function ecwWaitForInitialAuth(){
   try{
     if(window.__ecwPersistenceReady){
@@ -6723,7 +6947,7 @@ async function ecwStartupAfterAuth(){
 }
 ecwStartupAfterAuth();
 
-// V3.0.82: Sicherheitsnetz für PC und Whiteboard.
+// V3.0.83: Sicherheitsnetz für PC und Whiteboard.
 // Wenn Firebase keinen Benutzer wiederhergestellt hat, darf die App nicht auf
 // einer leeren/roten Ansicht hängen bleiben.
 setTimeout(()=>{
