@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.83 Solo Pyramide</title>
+<title>Vereins-Informationssystem – V3.0.84 Solo Pyramide</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -646,11 +646,11 @@ body.tv-preview-open{overflow:hidden!important}
 }
 </style>
 </head>
-<body data-ecw-build="V3.0.83-SOLO-PYRAMIDE-FIREBASE-20261007">
+<body data-ecw-build="V3.0.84-SOLO-PYRAMIDE-FIREBASE-20261007">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 3.0.83</div>
+<div id="appVersion" class="app-version">Version 3.0.84</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -757,10 +757,10 @@ body.tv-preview-open{overflow:hidden!important}
 </section>
 
 <section id="tournamentPlanner" class="view">
-  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.8.5</div></div>
+  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.8.6 · Positionsfix</div></div>
   <div id="tpStats" class="tp-stats"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
-  <div class="tp-toolbar"><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
+  <div class="tp-toolbar"><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" onclick="tpScrollToCurrentEntry()">Aktueller Termin</button><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
   <div id="tpFirebaseStatus" class="small" style="height:26px;min-height:26px;padding:2px 60px 6px;overflow:hidden"></div>
   <div id="tpContent" class="tp-list"></div>
   <div class="bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
@@ -838,7 +838,7 @@ let firebaseReady=false, firestoreDb=null, firebaseAuth=null, firebaseAuthUser=n
 let loginPurpose='admin';
 let appPermissions={};
 
-// V3.0.83: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
+// V3.0.84: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
 // Nur Lesen. Schreib-/Adminfunktionen bleiben weiterhin authentifiziert.
 const ECW_PUBLIC_WHITEBOARD=(function(){
   try{
@@ -876,7 +876,7 @@ try{
   firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
-  // V3.0.83: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
+  // V3.0.84: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
   window.__ecwPersistenceReady=firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(()=>true)
     .catch(e=>{console.warn('Firebase Persistenz:',e);return false;});
@@ -885,7 +885,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.83';
+const APP_VERSION='3.0.84';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -986,13 +986,26 @@ function openTournamentSection(kind){
  showView(tCollection==='ownTournaments'?'tournaments':'tournamentMonths');
 }
 function openTournamentMonthsOverview(){window.__adminPreviewMode=false;tCollection='tournaments';currentMonth=null;currentPage=0;adminTournamentPage=0;showView('tournamentMonths');}
+function tpOpenTournamentPlannerView(scrollToCurrent=true){
+  // Navigation bewusst vom Rendern trennen.
+  showView('tournamentPlanner');
+
+  if(scrollToCurrent){
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        try{tpScrollToCurrentEntry()}catch(e){console.error('Aktueller Termin:',e)}
+      });
+    });
+  }
+}
+
 function openTournamentListDirect(){
   // Direkt in die Turnierlisten-Anzeige. Nur wenn eine Anmeldung möglich ist
   // (Firebase-Auth vorhanden), wird sie auch verlangt; sonst bleibt die Liste
   // im Nur-Ansicht-Modus erreichbar.
   window.__adminPreviewMode=false;
   try{ if(window.firebaseAuth){ loginPurpose='planner'; } }catch(e){}
-  showView('tournamentPlanner');
+  tpOpenTournamentPlannerView(true);
 }
 let currentMonth=null,currentPage=0,adminTournamentPage=0,newsTimer=null,newsIndex=0,photoAlbumMonth=null,photoTimer=null,photoScrollTimer=null,currentUser=null;
 let pdfPendingFiles=[],pdfPendingIndex=0,pdfSelectedPages=new Set(),editingNewsId=null;
@@ -1968,7 +1981,7 @@ function adminPreviewOpen(kind){
   if(!canViewApp(perm)){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
   if(kind==='t'){ openTournamentSection('tournaments'); window.__adminPreviewMode=true; }
   else if(kind==='o'){ openTournamentSection('ownTournaments'); window.__adminPreviewMode=true; }
-  else if(kind==='tp'){ if(firebaseAuthUser||isPublicWhiteboardMode()){showView('tournamentPlanner');window.__adminPreviewMode=true;}else{showToast('Bitte zuerst anmelden.');} }
+  else if(kind==='tp'){ if(firebaseAuthUser||isPublicWhiteboardMode()){tpOpenTournamentPlannerView(true);window.__adminPreviewMode=true;}else{showToast('Bitte zuerst anmelden.');} }
   else if(kind==='n'){ openPublicSection('news'); window.__adminPreviewMode=true; }
   else if(kind==='p'){ openPublicSection('photos'); window.__adminPreviewMode=true; }
   else if(kind==='sp'){ openPublicSection('sponsorPhotos'); window.__adminPreviewMode=true; }
@@ -2013,8 +2026,8 @@ function openAdminFromHome(){
 }
 function openTournamentPlannerGate(){
   window.__adminPreviewMode=false;
-  if(isPublicWhiteboardMode() && canViewApp('tp')){showView('tournamentPlanner');return;}
-  if(firebaseAuthUser && canViewApp('tp')){showView('tournamentPlanner');return;}
+  if(isPublicWhiteboardMode() && canViewApp('tp')){tpOpenTournamentPlannerView(true);return;}
+  if(firebaseAuthUser && canViewApp('tp')){tpOpenTournamentPlannerView(true);return;}
   if(firebaseAuthUser){showToast('Turnierplaner nicht freigegeben.',4000);return;}
   loginPurpose='planner';
   showView('login');
@@ -3449,7 +3462,10 @@ function showView(id){
   if(id==='teams')renderTeamsOverview();
  if(id==='teamDetail')renderTeamDetail();
  if(id==='tournamentPlanner'){
-   tpScrollToCurrentOnlyOnOpen=true;
+   // WICHTIG: showView darf niemals selbst zum aktuellen Termin springen.
+   // Diese Funktion wird auch durch interne Navigation/Neuladen verwendet.
+   // Der Sprung "Aktueller Termin" ist ausschließlich eine bewusste
+   // Benutzeraktion über tpOpenTournamentPlannerView().
    renderTournamentPlanner();
    if(!centralFirebaseReady)tpRefreshFromFirebase(false).catch(e=>console.error('Turnierplaner aktualisieren:',e));
  }
@@ -3518,7 +3534,7 @@ async function loginFirebaseAdmin(){
  if(prefersPresentationStart()){setStatus('Anmeldung erfolgreich.');currentUser=null;window.__adminPreviewMode=false;showView('startseite');return;}
  setStatus('Anmeldung erfolgreich.');
  updateHomeAdminButton();
- if(purpose==='planner'&&canViewApp('tp')){ loginPurpose='admin'; showView('tournamentPlanner'); return; }
+ if(purpose==='planner'&&canViewApp('tp')){ loginPurpose='admin'; tpOpenTournamentPlannerView(true); return; }
  if(!appPermissions.admin&&!Object.keys(APP_PERMISSIONS).some(k=>!k.endsWith('View')&&hasAppPermission(k))){if(canViewApp('sh'))showView('startseite');else showView('userPassword');return;}
  currentUser=appPermissions.admin===true?'admin':null;
  showView('admin');
@@ -4428,9 +4444,11 @@ function tpBeginWhiteboardEditHold(id,force=false){
   clearTimeout(tpWhiteboardEditHoldTimer);
 
   const list=tpPlannerListEl();
+  const card=list?[...list.querySelectorAll('.tp-card[data-tp-id]')].find(c=>String(c.dataset.tpId||'')===sid):null;
   tpWhiteboardEditHold={
     id:sid,
     scrollTop:list?list.scrollTop:0,
+    cardTop:card?card.getBoundingClientRect().top:null,
     until:Date.now()+12000
   };
 }
@@ -4455,10 +4473,16 @@ function tpKeepWhiteboardEditPosition(){
       if(!list)return;
       tpWhiteboardScrollGuardApplying=true;
       list.scrollTop=Number(keep.scrollTop)||0;
-      requestAnimationFrame(()=>{tpWhiteboardScrollGuardApplying=false;});
 
       const card=[...list.querySelectorAll('.tp-card')]
         .find(c=>String(c.dataset.tpId||'')===keep.id);
+
+      if(card && Number.isFinite(keep.cardTop)){
+        const delta=card.getBoundingClientRect().top-keep.cardTop;
+        if(Math.abs(delta)>1)list.scrollTop+=delta;
+      }
+
+      requestAnimationFrame(()=>{tpWhiteboardScrollGuardApplying=false;});
 
       if(card){
         card.style.outline='3px solid rgba(255,255,255,.75)';
@@ -4659,9 +4683,11 @@ async function tpChooseWhiteboardPlayer(name){
     }
   }
 
+  const currentCard=list?[...list.querySelectorAll('.tp-card[data-tp-id]')].find(c=>String(c.dataset.tpId||'')===state.id):null;
   tpWhiteboardEditHold={
     id:state.id,
     scrollTop:state.scrollTop,
+    cardTop:currentCard?currentCard.getBoundingClientRect().top:null,
     until:Date.now()+12000
   };
 
@@ -4725,15 +4751,12 @@ function tpRemovePlayer(name){if(isWhiteboardUser()){showToast('Whiteboard: nur 
   showToast('Spieler entfernt');
 }
 function tpLocationOptionsHtml(){const locs=[...new Set((data.tournamentPlanner||[]).map(x=>x&&x.location).filter(Boolean))].sort();return locs.map(l=>'<option value="'+esc(l)+'">').join('')}
-let tpScrollToCurrentOnlyOnOpen=false;
-
 function renderTournamentPlanner(){
   const el=document.getElementById('tpContent');if(!el)return;
 
   // #tpContent ist der tatsächliche Scroll-Container (.tp-list {overflow:auto}).
   // Deshalb dessen scrollTop sichern – NICHT window.scrollY.
   const previousListScrollTop=el.scrollTop;
-  const scrollToCurrentOnThisRender=tpScrollToCurrentOnlyOnOpen===true;
 
   const loginNote=document.getElementById('tpLoginNote');
   if(loginNote){
@@ -4786,19 +4809,13 @@ function renderTournamentPlanner(){
       +'</div>'):'')
       +'</div>';
   }).join('');
-  // Nur beim echten Öffnen einmal zum aktuellen Termin springen.
-  if(scrollToCurrentOnThisRender){
-    tpScrollToCurrentOnlyOnOpen=false;
-    setTimeout(tpScrollToCurrentEntry,0);
-  }else{
-    // Jeder andere Neuaufbau (insbesondere Firebase/onSnapshot) behält
-    // exakt die Scrollposition innerhalb von #tpContent.
-    el.scrollTop=previousListScrollTop;
-    requestAnimationFrame(()=>{ el.scrollTop=previousListScrollTop; });
+  // renderTournamentPlanner() darf grundsätzlich NIE selbst zum aktuellen
+  // Datum springen. Bei jedem Neuaufbau bleibt die bestehende Listenposition.
+  el.scrollTop=previousListScrollTop;
+  requestAnimationFrame(()=>{ el.scrollTop=previousListScrollTop; });
 
-    if(isWhiteboardUser() && tpWhiteboardEditHoldActive()){
-      tpKeepWhiteboardEditPosition();
-    }
+  if(isWhiteboardUser() && tpWhiteboardEditHoldActive()){
+    tpKeepWhiteboardEditPosition();
   }
 }
 function tpTypeChanged(id,selectEl){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
@@ -6871,7 +6888,7 @@ async function publicWhiteboardBootstrap(){
 // V2.7.0: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(!isPublicWhiteboardMode() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
-// V3.0.83: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
+// V3.0.84: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
 async function ecwWaitForInitialAuth(){
   try{
     if(window.__ecwPersistenceReady){
@@ -6947,7 +6964,7 @@ async function ecwStartupAfterAuth(){
 }
 ecwStartupAfterAuth();
 
-// V3.0.83: Sicherheitsnetz für PC und Whiteboard.
+// V3.0.84: Sicherheitsnetz für PC und Whiteboard.
 // Wenn Firebase keinen Benutzer wiederhergestellt hat, darf die App nicht auf
 // einer leeren/roten Ansicht hängen bleiben.
 setTimeout(()=>{
