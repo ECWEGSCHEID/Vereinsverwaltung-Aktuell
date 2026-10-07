@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.81 Solo Pyramide</title>
+<title>Vereins-Informationssystem – V3.0.82 Solo Pyramide</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -53,7 +53,7 @@ textarea{min-height:120px;resize:vertical}
 .tp-toolbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:18px 0 14px}
 .tp-toolbar select{width:auto;min-width:220px;margin:0}
 .tp-historie-btn{margin-left:auto}
-.tp-list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:2px 4px 4px;margin-bottom:44px}
+.tp-list{flex:1;min-height:0;overflow:auto;overflow-anchor:none;display:flex;flex-direction:column;gap:8px;padding:2px 4px 4px;margin-bottom:44px}
 .tp-card{background:rgba(0,0,0,.66);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:7px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;transition:opacity .3s}
 .tp-card.tp-past{opacity:.4}
 .tp-name{flex:0 0 200px;width:200px;font-weight:800;font-size:14px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -594,11 +594,11 @@ body.tv-preview-open{overflow:hidden!important}
 }
 </style>
 </head>
-<body data-ecw-build="V3.0.81-SOLO-PYRAMIDE-FIREBASE-20261007">
+<body data-ecw-build="V3.0.82-SOLO-PYRAMIDE-FIREBASE-20261007">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 3.0.81</div>
+<div id="appVersion" class="app-version">Version 3.0.82</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -709,7 +709,7 @@ body.tv-preview-open{overflow:hidden!important}
   <div id="tpStats" class="tp-stats"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
   <div class="tp-toolbar"><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
-  <div id="tpFirebaseStatus" class="small" style="padding:0 60px 6px"></div>
+  <div id="tpFirebaseStatus" class="small" style="height:26px;min-height:26px;padding:2px 60px 6px;overflow:hidden"></div>
   <div id="tpContent" class="tp-list"></div>
   <div class="bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
 </section>
@@ -786,7 +786,7 @@ let firebaseReady=false, firestoreDb=null, firebaseAuth=null, firebaseAuthUser=n
 let loginPurpose='admin';
 let appPermissions={};
 
-// V3.0.81: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
+// V3.0.82: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
 // Nur Lesen. Schreib-/Adminfunktionen bleiben weiterhin authentifiziert.
 const ECW_PUBLIC_WHITEBOARD=(function(){
   try{
@@ -824,7 +824,7 @@ try{
   firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
-  // V3.0.81: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
+  // V3.0.82: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
   window.__ecwPersistenceReady=firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(()=>true)
     .catch(e=>{console.warn('Firebase Persistenz:',e);return false;});
@@ -833,7 +833,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.81';
+const APP_VERSION='3.0.82';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1474,7 +1474,6 @@ function centralApplyTournamentPlanner(snap){
   // Termin zurückspringen.
   if(isWhiteboardUser() && !structureChanged){
     tpPatchVisiblePlannerValues();
-    tpRenderStats();
 
     if(tpWhiteboardEditHoldActive()){
       tpKeepWhiteboardEditPosition();
@@ -4331,14 +4330,29 @@ function tpRenderStats(){
 
 let tpWhiteboardEditHold=null;
 let tpWhiteboardEditHoldTimer=null;
+let tpWhiteboardScrollGuardApplying=false;
 
 function tpPlannerListEl(){
   return document.getElementById('tpContent');
 }
 
-function tpBeginWhiteboardEditHold(id){
+function tpBeginWhiteboardEditHold(id,force=false){
   const sid=String(id||'');
   if(!sid)return;
+
+  // Wichtig auf Samsung/Tizen:
+  // pointerdown/focus passiert VOR dem Öffnen der nativen Select-Auswahl.
+  // Ein späteres onchange darf diesen vorher gesicherten Wert NICHT mit der
+  // möglicherweise bereits gesprungenen Position überschreiben.
+  if(
+    !force &&
+    tpWhiteboardEditHold &&
+    tpWhiteboardEditHold.id===sid &&
+    Date.now()<=tpWhiteboardEditHold.until
+  ){
+    tpWhiteboardEditHold.until=Date.now()+12000;
+    return;
+  }
 
   clearTimeout(tpWhiteboardEditHoldTimer);
 
@@ -4346,7 +4360,7 @@ function tpBeginWhiteboardEditHold(id){
   tpWhiteboardEditHold={
     id:sid,
     scrollTop:list?list.scrollTop:0,
-    until:Date.now()+10000
+    until:Date.now()+12000
   };
 }
 
@@ -4363,38 +4377,39 @@ function tpKeepWhiteboardEditPosition(){
   if(!tpWhiteboardEditHoldActive())return false;
 
   const keep={...tpWhiteboardEditHold};
+  const restore=()=>{
+    try{
+      if(!tpWhiteboardEditHoldActive())return;
+      const list=tpPlannerListEl();
+      if(!list)return;
+      tpWhiteboardScrollGuardApplying=true;
+      list.scrollTop=Number(keep.scrollTop)||0;
+      requestAnimationFrame(()=>{tpWhiteboardScrollGuardApplying=false;});
 
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      try{
-        if(!tpWhiteboardEditHoldActive())return;
+      const card=[...list.querySelectorAll('.tp-card')]
+        .find(c=>String(c.dataset.tpId||'')===keep.id);
 
-        const list=tpPlannerListEl();
-        if(!list)return;
+      if(card){
+        card.style.outline='3px solid rgba(255,255,255,.75)';
+        card.style.outlineOffset='2px';
+        setTimeout(()=>{
+          card.style.outline='';
+          card.style.outlineOffset='';
+        },700);
+      }
+    }catch(e){
+      tpWhiteboardScrollGuardApplying=false;
+    }
+  };
 
-        // Entscheidend: der Scrollbereich ist #tpContent selbst,
-        // nicht window/document.
-        list.scrollTop=Number(keep.scrollTop)||0;
-
-        const card=[...list.querySelectorAll('.tp-card')]
-          .find(c=>String(c.dataset.tpId||'')===keep.id);
-
-        if(card){
-          card.style.outline='3px solid rgba(255,255,255,.75)';
-          card.style.outlineOffset='2px';
-          setTimeout(()=>{
-            card.style.outline='';
-            card.style.outlineOffset='';
-          },700);
-        }
-      }catch(e){}
-    });
-  });
-
+  // Sofort + zwei Frames später: deckt die native Select-Rückkehr des
+  // Samsung-Browsers und nachlaufende Layout-Berechnungen ab.
+  restore();
+  requestAnimationFrame(()=>requestAnimationFrame(restore));
   return true;
 }
 
-function tpReleaseWhiteboardEditHoldLater(id,delay=3000){
+function tpReleaseWhiteboardEditHoldLater(id,delay=3500){
   const sid=String(id||'');
   clearTimeout(tpWhiteboardEditHoldTimer);
   tpWhiteboardEditHoldTimer=setTimeout(()=>{
@@ -4410,6 +4425,39 @@ function tpClearWhiteboardEditHold(){
   tpWhiteboardEditHoldTimer=null;
   tpWhiteboardEditHold=null;
 }
+
+function tpCaptureWhiteboardSelectBeforeOpen(target){
+  if(!isWhiteboardUser())return;
+  const sel=target?.closest?.('#tpContent select');
+  if(!sel)return;
+  const card=sel.closest('.tp-card[data-tp-id]');
+  if(!card)return;
+  tpBeginWhiteboardEditHold(card.dataset.tpId,false);
+}
+
+// Capture-Phase ist entscheidend: Position sichern, bevor der Browser sein
+// natives Select öffnet. Auf dem WM65B kann der Scrollsprung bereits vor
+// onchange stattfinden.
+document.addEventListener('pointerdown',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),true);
+document.addEventListener('mousedown',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),true);
+document.addEventListener('touchstart',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),{capture:true,passive:true});
+document.addEventListener('focusin',e=>tpCaptureWhiteboardSelectBeforeOpen(e.target),true);
+
+// Solange eine Whiteboard-Auswahl gespeichert wird, darf der Browser den
+// Listencontainer nicht selbst auf 0 / "heute" zurücksetzen.
+document.addEventListener('scroll',e=>{
+  const list=tpPlannerListEl();
+  if(!list || e.target!==list || !tpWhiteboardEditHoldActive() || tpWhiteboardScrollGuardApplying)return;
+
+  const wanted=Number(tpWhiteboardEditHold?.scrollTop)||0;
+  if(Math.abs(list.scrollTop-wanted)>3){
+    tpWhiteboardScrollGuardApplying=true;
+    requestAnimationFrame(()=>{
+      try{list.scrollTop=wanted;}catch(_){}
+      requestAnimationFrame(()=>{tpWhiteboardScrollGuardApplying=false;});
+    });
+  }
+},true);
 
 function tpPlayers(){const list=(data.tournamentPlannerPlayers&&data.tournamentPlannerPlayers.length)?data.tournamentPlannerPlayers.slice():TP_PLAYER_NAMES.slice();if(!list.includes('X'))list.push('X');return list}
 function tpPlayerOptionsHtml(selected){const opts=['<option value="">– auswählen –</option>'];const list=tpPlayers();if(selected&&!list.includes(selected))list.push(selected);opts.push(list.map(n=>'<option value="'+esc(n)+'" '+(n===selected?'selected':'')+'>'+esc(n)+'</option>').join(''));return opts.join('')}
@@ -4555,15 +4603,20 @@ async function tpUpdateField(id,field,idx,value){
   if(!tpRequirePlannerEdit())return;
   const item=tpFindEvent(id);if(!item)return;
 
-  // Während des gesamten Firebase-Schreibvorgangs die aktuelle Karte halten.
-  // Firestore kann onSnapshot mehrfach auslösen; deshalb kein Einmal-Merker.
-  if(isWhiteboardUser())tpBeginWhiteboardEditHold(id);
+  // Die Position wurde im Capture-Event bereits VOR dem Öffnen des Selects
+  // gesichert. Falls die Änderung z. B. per Tastatur kam, hier nur ergänzen.
+  if(isWhiteboardUser()){
+    tpBeginWhiteboardEditHold(id,false);
+    tpKeepWhiteboardEditPosition();
+  }
   const oldPlayers=Array.isArray(item.players)?item.players.slice():['','','',''];
   const oldReportedBy=String(item.reportedBy||'');
   if(field==='players'){item.players=(item.players&&item.players.length===4)?item.players:['','','',''];item.players[idx]=value}
   else{item[field]=value}
   save();
-  tpRenderStats();
+  // Spieler/Gemeldet-von verändern die Termin-Statistikkarten nicht.
+  // Am Whiteboard deshalb KEIN Neuaufbau oberhalb der Liste.
+  if(!isWhiteboardUser())tpRenderStats();
   tpRefreshHistoryIfOpen();
   const status=document.getElementById('tpFirebaseStatus');
   if(status)status.textContent='Änderung wird in Firebase gespeichert …';
@@ -6433,7 +6486,14 @@ async function autoLoadPublicFirebaseDataV1245(){
       const snap=await firestoreDb.collection('tournamentPlanner').get();
       const list=[];
       snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported})});
-      if(snap.size && currentUser!=='admin'){data.tournamentPlanner=list;if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();}
+      if(snap.size && currentUser!=='admin'){
+        data.tournamentPlanner=list;
+        save();
+        if(document.getElementById('tournamentPlanner')?.classList.contains('active')){
+          tpPatchVisiblePlannerValues();
+          if(tpWhiteboardEditHoldActive())tpKeepWhiteboardEditPosition();
+        }
+      }
     }catch(e){console.warn('Firebase Turnierplaner:',e);}
   };
   // Parallel laden, damit ein großer Foto-Datensatz die Navigation nicht blockiert.
@@ -6587,7 +6647,7 @@ async function publicWhiteboardBootstrap(){
 // V2.7.0: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(!isPublicWhiteboardMode() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
-// V3.0.81: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
+// V3.0.82: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
 async function ecwWaitForInitialAuth(){
   try{
     if(window.__ecwPersistenceReady){
@@ -6663,7 +6723,7 @@ async function ecwStartupAfterAuth(){
 }
 ecwStartupAfterAuth();
 
-// V3.0.81: Sicherheitsnetz für PC und Whiteboard.
+// V3.0.82: Sicherheitsnetz für PC und Whiteboard.
 // Wenn Firebase keinen Benutzer wiederhergestellt hat, darf die App nicht auf
 // einer leeren/roten Ansicht hängen bleiben.
 setTimeout(()=>{
