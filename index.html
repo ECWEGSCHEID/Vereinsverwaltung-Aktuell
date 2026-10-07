@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V3.0.80 Solo Pyramide</title>
+<title>Vereins-Informationssystem – V3.0.81 Solo Pyramide</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -594,11 +594,11 @@ body.tv-preview-open{overflow:hidden!important}
 }
 </style>
 </head>
-<body data-ecw-build="V3.0.80-SOLO-PYRAMIDE-FIREBASE-20261007">
+<body data-ecw-build="V3.0.81-SOLO-PYRAMIDE-FIREBASE-20261007">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 3.0.80</div>
+<div id="appVersion" class="app-version">Version 3.0.81</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -786,7 +786,7 @@ let firebaseReady=false, firestoreDb=null, firebaseAuth=null, firebaseAuthUser=n
 let loginPurpose='admin';
 let appPermissions={};
 
-// V3.0.80: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
+// V3.0.81: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
 // Nur Lesen. Schreib-/Adminfunktionen bleiben weiterhin authentifiziert.
 const ECW_PUBLIC_WHITEBOARD=(function(){
   try{
@@ -824,7 +824,7 @@ try{
   firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
-  // V3.0.80: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
+  // V3.0.81: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
   window.__ecwPersistenceReady=firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(()=>true)
     .catch(e=>{console.warn('Firebase Persistenz:',e);return false;});
@@ -833,7 +833,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='3.0.80';
+const APP_VERSION='3.0.81';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1396,7 +1396,58 @@ function centralApplyPhotos(snap,kind){
   if(pCollection===kind&&document.getElementById('photoAdminList'))renderPhotoAdminList();
 }
 
+
+function tpPlannerStructureSignature(list){
+  return JSON.stringify(
+    (Array.isArray(list)?list:[])
+      .map(x=>({
+        id:String(x?.id||''),
+        name:String(x?.name||''),
+        date:String(x?.date||''),
+        time:String(x?.time||''),
+        location:String(x?.location||''),
+        type:String(x?.type||''),
+        internal:!!x?.internal,
+        calendarExported:!!x?.calendarExported
+      }))
+      .sort((a,b)=>a.id.localeCompare(b.id))
+  );
+}
+
+function tpPatchVisiblePlannerValues(){
+  const root=document.getElementById('tpContent');
+  if(!root)return false;
+
+  let patched=0;
+
+  root.querySelectorAll('.tp-card[data-tp-id]').forEach(card=>{
+    const id=String(card.dataset.tpId||'');
+    const item=tpFindEvent(id);
+    if(!item)return;
+
+    const reported=card.querySelector('select[data-tp-field="reportedBy"]');
+    if(reported){
+      const wanted=String(item.reportedBy||'');
+      if(reported.value!==wanted)reported.value=wanted;
+      patched++;
+    }
+
+    card.querySelectorAll('select[data-tp-field="players"]').forEach(sel=>{
+      const idx=Number(sel.dataset.tpPlayerIndex);
+      if(!Number.isInteger(idx)||idx<0||idx>3)return;
+      const wanted=String((item.players||[])[idx]||'');
+      if(sel.value!==wanted)sel.value=wanted;
+      patched++;
+    });
+  });
+
+  return patched>0;
+}
+
 function centralApplyTournamentPlanner(snap){
+  const previousList=Array.isArray(data.tournamentPlanner)?data.tournamentPlanner:[];
+  const previousStructure=tpPlannerStructureSignature(previousList);
+
   const list=[];
   snap.forEach(doc=>{
     const x=doc.data()||{};
@@ -1407,17 +1458,34 @@ function centralApplyTournamentPlanner(snap){
       calendarExported:!!x.calendarExported,updatedAt:String(x.updatedAt||'')
     });
   });
-  data.tournamentPlanner=list;save();
 
-  if(document.getElementById('tournamentPlanner')?.classList.contains('active')){
-    if(isWhiteboardUser() && tpWhiteboardEditHoldActive()){
-      // Wichtig: kein Neuaufbau der gesamten Liste während der Eingabe.
-      // Genau dieser Neuaufbau verursachte den Sprung zum aktuellen Datum.
+  const nextStructure=tpPlannerStructureSignature(list);
+  const structureChanged=previousStructure!==nextStructure;
+
+  data.tournamentPlanner=list;
+  save();
+
+  if(!document.getElementById('tournamentPlanner')?.classList.contains('active'))return;
+
+  // WICHTIG:
+  // Spieler und "Gemeldet von" werden bei jedem Firebase-Snapshot nur direkt
+  // in die bestehenden Select-Felder geschrieben. Dadurch bleibt das DOM der
+  // Terminliste unangetastet und der Browser kann nicht auf einen anderen
+  // Termin zurückspringen.
+  if(isWhiteboardUser() && !structureChanged){
+    tpPatchVisiblePlannerValues();
+    tpRenderStats();
+
+    if(tpWhiteboardEditHoldActive()){
       tpKeepWhiteboardEditPosition();
-    }else{
-      renderTournamentPlanner();
     }
+    return;
   }
+
+  // Nur wenn sich wirklich Termin/Datum/Ort/Art o.ä. geändert haben, muss die
+  // komplette Liste neu aufgebaut werden. Dabei wird die aktuelle Position
+  // wie bisher erhalten.
+  renderTournamentPlanner();
 }
 
 function centralTeamsFromSnapshot(snap){
@@ -4429,7 +4497,7 @@ function renderTournamentPlanner(){
     const canEdit=tpCanEditPlanner();
     const allowsPlayers=tpAllowsPlayers(x.type);
     const playersDisabled=!canEdit;
-    const playerFields=allowsPlayers?[0,1,2,3].map(i=>'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Spieler '+(i+1)+'</label><select '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i])+'</select></div>').join(''):'';
+    const playerFields=allowsPlayers?[0,1,2,3].map(i=>'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Spieler '+(i+1)+'</label><select data-tp-field="players" data-tp-player-index="'+i+'" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i])+'</select></div>').join(''):'';
     const nameWraps=x.name&&x.name.trim().split(/\s+/).filter(Boolean).length>=2;
     return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
       +'<div class="tp-name'+(nameWraps?' tp-name-wrap':'')+'">'+esc(x.name)+'</div>'
@@ -4440,7 +4508,7 @@ function renderTournamentPlanner(){
       +'</div>'
       +(allowsPlayers?('<div class="tp-fields">'
       +'<div class="tp-fields-row">'
-      +'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Gemeldet von</label><select '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'reportedBy\',null,this.value)">'+tpPlayerOptionsHtml(x.reportedBy)+'</select></div>'
+      +'<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'"><label>Gemeldet von</label><select data-tp-field="reportedBy" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'reportedBy\',null,this.value)">'+tpPlayerOptionsHtml(x.reportedBy)+'</select></div>'
       +playerFields
       +'</div>'
       +'</div>'):'')
@@ -4502,7 +4570,11 @@ async function tpUpdateField(id,field,idx,value){
   const ok=await tpSyncEventToFirebase(item);
   if(ok){
     if(status)status.textContent='✓ Änderung in Firebase gespeichert · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    if(isWhiteboardUser())tpReleaseWhiteboardEditHoldLater(id,3000);
+    if(isWhiteboardUser()){
+      tpPatchVisiblePlannerValues();
+      tpKeepWhiteboardEditPosition();
+      tpReleaseWhiteboardEditHoldLater(id,3000);
+    }
     showToast('✓ In Firebase gespeichert');
   }else{
     // Bei fehlgeschlagenem Whiteboard-Speichern lokalen Wert zurücksetzen,
@@ -6515,7 +6587,7 @@ async function publicWhiteboardBootstrap(){
 // V2.7.0: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(!isPublicWhiteboardMode() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
-// V3.0.80: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
+// V3.0.81: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
 async function ecwWaitForInitialAuth(){
   try{
     if(window.__ecwPersistenceReady){
@@ -6591,7 +6663,7 @@ async function ecwStartupAfterAuth(){
 }
 ecwStartupAfterAuth();
 
-// V3.0.80: Sicherheitsnetz für PC und Whiteboard.
+// V3.0.81: Sicherheitsnetz für PC und Whiteboard.
 // Wenn Firebase keinen Benutzer wiederhergestellt hat, darf die App nicht auf
 // einer leeren/roten Ansicht hängen bleiben.
 setTimeout(()=>{
