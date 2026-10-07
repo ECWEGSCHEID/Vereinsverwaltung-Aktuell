@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Solo Pyramide 2026 V15.27</title>
+
+<meta name="theme-color" content="#800000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+* { box-sizing: border-box; }
+html, body {
+  min-height: 100%;
+  margin: 0;
+  background: #800000 url('Hintergrund Rot ohne Logo.png') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  color: #fff;
+  -webkit-text-size-adjust: 100%;
+}
+
+.topRightLoginInfo {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  background: rgba(20, 20, 25, 0.85);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: clamp(11px, 1.2vw, 13px);
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  display: none;
+}
+
+.headerContainer {
+  text-align: center;
+  margin: 10px 0;
+  padding: 0 10px;
+}
+
+h1, .subtitle {
+  margin: 0;
+  font-size: clamp(20px, 5vw, 36px);
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.subtitle {
+  margin-top: 4px;
+  font-size: clamp(13px, 3vw, 18px);
+}
+
+.contentLayout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 10px 30px 10px;
+  gap: 20px;
+}
+
+.mainContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.infoBox {
+  display: none !important;
+  position: sticky;
+  top: 15px;
+  width: 280px;
+  min-width: 250px;
+  background: rgba(20, 20, 25, 0.9);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  z-index: 4;
+}
+
+.infoBox div {
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  padding-bottom: 6px;
+}
+
+.infoBox div:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+#pyramid {
+  width: 100%;
+  padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: clamp(3px, 1vw, 8px);
+  margin: clamp(3px, 0.6vh, 8px) 0;
+  width: 100%;
+}
+
+.card {
+  width: clamp(52px, 12vw, 120px);
+  height: clamp(60px, 11vh, 85px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  background: rgba(20, 20, 25, 0.8);
+  backdrop-filter: blur(5px);
+  padding: 2px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: clamp(8px, 1.2vw, 13px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+  background: rgba(35, 35, 45, 0.85);
+}
+
+.nameBox {
+  font-size: clamp(7px, 1.5vw, 11px);
+  line-height: 1.1;
+  word-break: break-word;
+  max-height: 2.4em;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 1px;
+}
+
+.place {
+  font-size: clamp(6.5px, 1vw, 9.5px);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ddd;
+  opacity: 0.85;
+}
+
+.locked {
+  background: rgba(120, 20, 20, 0.85);
+  color: #ffa39e;
+  border-color: #ff4d4f;
+}
+
+.vacation {
+  background: rgba(80, 80, 95, 0.9);
+  color: #ffffff;
+  border-color: #b0b0b0;
+}
+
+.selected {
+  background: rgba(255, 217, 102, 0.95) !important;
+  color: #000 !important;
+  border-color: #ffd966 !important;
+  transform: scale(1.05);
+}
+
+.selected .place { color: #333 !important; }
+
+.allowed {
+  background: rgba(30, 144, 255, 0.95) !important;
+  color: #fff !important;
+  border-color: #64b5f6 !important;
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 6px #1e90ff; }
+  100% { box-shadow: 0 0 16px #64b5f6; }
+}
+
+.free {
+  background: rgba(255, 255, 255, 0.15);
+  color: #bbb;
+  border-style: dashed;
+}
+
+.challengeFixed {
+  background: rgba(255, 230, 120, 0.95) !important;
+  color: #000 !important;
+  border: 2px solid #d48806 !important;
+}
+
+.challengeFixed .place { color: #444 !important; }
+
+.challengedBy {
+  font-size: clamp(6px, 1vw, 9px);
+  line-height: 1.05;
+  color: #8c6b00;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.timeBadge, .lockBadge, .vacationBadge {
+  font-size: clamp(6px, 0.9vw, 8.5px);
+  font-weight: bold;
+  white-space: nowrap;
+}
+.timeBadge { color: #a10000; }
+.lockBadge { color: #ffccc7; }
+.vacationBadge { color: #000000; text-shadow: none; font-weight: 800; }
+
+.sideContainer {
+  position: fixed;
+  top: 35%;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 5;
+}
+
+.sideBtn {
+  background: linear-gradient(135deg, #d6d6d6, #8a8a8a);
+  color: #111;
+  padding: 8px 10px;
+  font-size: clamp(11px, 1.3vw, 14px);
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  user-select: none;
+}
+
+.adminBtn {
+  background: linear-gradient(135deg, #ffd966, #d48806);
+  color: #000;
+}
+
+.infoSystemBtnBadge {
+  background: linear-gradient(135deg, #81c784, #388e3c);
+  color: #fff;
+}
+
+.infoBtn {
+  background: linear-gradient(135deg, #bdbdbd, #616161);
+  color: #fff;
+}
+
+.statBtn {
+  background: linear-gradient(135deg, #64b5f6, #1976d2);
+  color: #fff;
+}
+
+.logoutBtn {
+  background: linear-gradient(135deg, #ff7875, #a8071a);
+  color: #fff;
+}
+
+.bottomRightBtnContainer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5;
+}
+
+.menuExitBtn {
+  background: linear-gradient(135deg, #ff4d4f, #a8071a);
+  color: #fff;
+  padding: 10px 16px;
+  font-size: clamp(12px, 1.4vw, 15px);
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 3px 4px 12px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  user-select: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.menuExitBtn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #ff7875, #cf1322);
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.modal {
+  background: #1c1c24;
+  color: #fff;
+  max-width: 650px;
+  width: 100%;
+  margin: 10vh auto;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.adminTabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 6px;
+  overflow-x: auto;
+}
+
+.adminTabBtn {
+  background: #2a2a35;
+  color: #bbb;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.adminTabBtn.active {
+  background: #d48806;
+  color: #000;
+}
+
+.adminTabContent {
+  display: none;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.adminTabContent.active {
+  display: block;
+}
+
+.btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #d6d6d6, #8a8a8a);
+  color: #111;
+}
+
+.btnDanger {
+  background: linear-gradient(135deg, #ff4d4f, #a8071a);
+  color: #fff;
+}
+
+.adminInput, .adminSelect, .adminTextarea {
+  width: 100%;
+  background: #2a2a35;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.playerGridAdmin {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #444;
+  padding: 6px;
+  border-radius: 8px;
+  background: #141419;
+  margin-bottom: 10px;
+}
+
+.playerAdminRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 4px;
+}
+
+.playerAdminRow span {
+  width: 40px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+.playerAdminRow input[type="text"] {
+  flex: 1;
+  padding: 6px;
+  background: #2a2a35;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.scoreBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.scoreBox label {
+  font-weight: bold;
+  text-align: center;
+  max-width: 45%;
+  font-size: 13px;
+}
+
+.scoreBox select {
+  display: block;
+  margin: 6px auto 0;
+  width: 70px;
+  height: 44px;
+  font-size: 16px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #2a2a35;
+  color: #fff;
+}
+
+.scoreSep {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.hint {
+  color: #bbb;
+  text-align: center;
+  line-height: 1.4;
+  font-size: 13px;
+}
+
+/* V15.25: smartphone-friendly layout */
+@media (max-width: 700px) {
+  .headerContainer {
+    margin: 6px 48px 8px 48px;
+    padding: 0;
+  }
+  h1 { font-size: clamp(18px, 6vw, 28px); }
+  .subtitle { font-size: clamp(11px, 3.5vw, 16px); }
+
+  .contentLayout {
+    display: block;
+    padding: 0 3px 70px;
+  }
+  .mainContainer { width: 100%; }
+  #pyramid { width: 100%; padding: 0; }
+  .row {
+    gap: clamp(2px, 0.8vw, 5px);
+    margin: clamp(2px, 0.45vh, 5px) 0;
+  }
+  .card {
+    width: clamp(44px, 13.5vw, 74px);
+    height: clamp(54px, 9.5vh, 72px);
+    border-radius: 7px;
+  }
+  .sideContainer {
+    top: 22%;
+    gap: 5px;
+    z-index: 20;
+  }
+  .sideBtn {
+    min-width: 68px;
+    padding: 9px 7px;
+    font-size: 11px;
+    text-align: center;
+  }
+  .topRightLoginInfo { display: none !important; }
+
+  .bottomRightBtnContainer {
+    right: 8px;
+    bottom: 8px;
+  }
+  .menuExitBtn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .overlay {
+    z-index: 100;
+    padding: 8px;
+  }
+  .modal {
+    width: 100%;
+    max-width: none;
+    margin: 4vh auto;
+    padding: 14px;
+    border-radius: 12px;
+  }
+}
+@media (hover: none) {
+  .card:hover, .menuExitBtn:hover { transform: none; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="topRightLoginInfo" id="topRightLoginInfoBox"></div>
+
+<div class="sideContainer" id="sideNavContainer" style="display:none;">
+  <div class="sideBtn" onclick="showHistory()">Historie</div>
+  <div class="sideBtn infoBtn" onclick="showInfo()">Info</div>
+  <div class="sideBtn infoSystemBtnBadge" id="infoSystemNavBadge" style="display:none;">Infostand</div>
+  <div class="sideBtn adminBtn" id="adminNavBtn" onclick="openAdminMenu()" style="display:none;">Admin</div>
+  <div class="sideBtn statBtn" onclick="showStatistics()">Statistik</div>
+  <div class="sideBtn logoutBtn" id="logoutNavBtn" onclick="logoutUser()">Abmelden</div>
+</div>
+
+<div class="bottomRightBtnContainer">
+  <div class="menuExitBtn" onclick="returnToMainMenu()">Zurück zum Hauptmenü</div>
+</div>
+
+<div class="headerContainer">
+  <h1 id="headerTitle">Solo Pyramide 2026</h1>
+  <div class="subtitle" id="headerSubtitle">EC Wegscheid</div>
+</div>
+
+<div class="contentLayout">
+  <div class="mainContainer">
+    <div id="pyramid"></div>
+  </div>
+  <div class="infoBox" id="infoBoxContainer" aria-hidden="true"></div>
+</div>
+
+<div id="ov" class="overlay"><div class="modal"><div id="mc"></div></div></div>
+
+<script type="module">
+const pyramidEl = document.getElementById('pyramid');
+const infoBoxEl = document.getElementById('infoBoxContainer');
+const titleEl = document.getElementById('headerTitle');
+const subtitleEl = document.getElementById('headerSubtitle');
+const ovEl = document.getElementById('ov');
+const mcEl = document.getElementById('mc');
+const sideNavEl = document.getElementById('sideNavContainer');
+const adminNavBtn = document.getElementById('adminNavBtn');
+const infoSystemNavBadge = document.getElementById('infoSystemNavBadge');
+const topRightLoginInfoBox = document.getElementById('topRightLoginInfoBox');
+const logoutNavBtn = document.getElementById('logoutNavBtn');
+
+// V15.27: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
+// Whiteboard: ?mode=whiteboard oder ?whiteboard=1 -> keine separate Anmeldung.
+// Verwaltung: ?mode=admin-embedded -> übernimmt ausschließlich eine bereits
+// angemeldete Administrator-Sitzung aus der übergeordneten Vereinsverwaltung.
+const APP_URL_PARAMS = new URLSearchParams(window.location.search);
+const WHITEBOARD_MODE = APP_URL_PARAMS.get('mode') === 'whiteboard' || APP_URL_PARAMS.get('whiteboard') === '1';
+const ADMIN_EMBED_MODE = APP_URL_PARAMS.get('mode') === 'admin-embedded';
+const INTEGRATED_HOSTED_MODE = location.hostname === 'ecwegscheid.github.io' &&
+  /^\/Vereinsverwaltung-Aktuell\/solo-pyramide\.html$/i.test(location.pathname);
+
+
+function hasCentralAdminParent(){
+  if(!ADMIN_EMBED_MODE || window.parent === window) return false;
+  try {
+    if(window.parent.location.origin !== window.location.origin) return false;
+    return !!(window.parent.firebaseAuthUser && window.parent.appPermissions?.admin === true);
+  } catch(e) {
+    return false;
+  }
+}
+
+const ABSOLUTE_MAX_PLAYERS = 44;
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+const MAX_VACATION_DAYS = 14;
+
+const defaultTitle = "Solo Pyramide 2026";
+const defaultSubtitle = "EC Wegscheid";
+const defaultPassword = "081500";
+const defaultInfoSystemPassword = "081500";
+const defaultPyramidSize = 28;
+
+const defaultRuleLockHoursAfterGame = 24; 
+const defaultRuleChallengeDays = 10;      
+const defaultRuleWithdrawHours = 24;      
+
+const defaultInfoText = [
+  "Bitte zuerst eigenen Namen anklicken.",
+  "Sämtliche mögliche Gegner werden angezeigt.",
+  "Auswahl ob Forderung fixieren oder Ergebnis eintragen.",
+  "Nach Fixierung der Forderung werden die Spieler gesperrt.",
+  "Je nach Eingabe des Ergebnisses werden die Namen eventuell getauscht oder bleiben bestehen."
+];
+
+const defaults = [
+  'Stadler Martin','Resch Michael','Pendelin Manuel','Freund Johannes','Freund Heiner',
+  'Höglinger Paul','Münichshofer Timo','Freund Stefan','Fesl Thomas','Simml Lothar',
+  'Höglinger Heinz','Kasberger Tobias','Gottinger Klaus','Fesl Simon','Breitenfellner Paul',
+  'Hellauer Manfred','Resch Daniel','Ledermüller Michael','Hofmann Günter','Hellauer Herbert',
+  'Allmannsberger Adi','Schaubschläger Thomas','Simml Felix','Breitenfellner Thomas','Eberhardt Christian',
+  'Haselbeck Wolfgang','Hellauer Mathias','Steininger Jürgen','Perr Herbert','Krause Joachim',
+  'Schichl Josef','Dobretsberger Michael','Heidinger Günter'
+];
+while(defaults.length < ABSOLUTE_MAX_PLAYERS) defaults.push('FREI');
+defaults.length = ABSOLUTE_MAX_PLAYERS;
+
+let players = [...defaults];
+let passwords = {};
+defaults.forEach(p => { if(p !== 'FREI') passwords[p] = "1234"; });
+
+let hist = [];
+let challengerLocks = {};
+let opponentLocks = {};
+let fixedChallenges = [];
+let infoLines = [...defaultInfoText];
+let customTitle = defaultTitle;
+let customSubtitle = defaultSubtitle;
+let adminPassword = defaultPassword;
+let infoSystemPassword = defaultInfoSystemPassword;
+let currentMaxPlayers = defaultPyramidSize;
+let vacations = {};
+
+let ruleLockHoursAfterGame = defaultRuleLockHoursAfterGame;
+let ruleChallengeDays = defaultRuleChallengeDays;
+let ruleWithdrawHours = defaultRuleWithdrawHours;
+
+let selected = null;
+let pending = null;
+let currentSession = null;
+
+// V15.27: Login-Session auf diesem Gerät merken.
+// Es wird nur Benutzername/Rolle gespeichert, niemals das Passwort.
+const SESSION_STORAGE_KEY = 'soloPyramide_session_v1';
+try {
+  const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (savedSession) {
+    const parsedSession = JSON.parse(savedSession);
+    if (parsedSession && ['player','admin','infosystem'].includes(parsedSession.type)) {
+      currentSession = parsedSession;
+    }
+  }
+} catch (e) {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
+// Im Whiteboard-Modus wird bewusst keine Anmeldung verlangt.
+// Im eingebetteten Verwaltungsmodus wird die vorhandene zentrale Admin-Anmeldung
+// übernommen; ein zweites Solo-Pyramide-Passwort wird dann nicht abgefragt.
+if (WHITEBOARD_MODE) {
+  currentSession = { type: 'whiteboard', name: null };
+} else if (hasCentralAdminParent()) {
+  currentSession = { type: 'admin', name: null, embeddedCentralAdmin: true };
+}
+
+function persistSession() {
+  try {
+    // Der Whiteboard-Modus wird ausschließlich über die URL aktiviert.
+    // Dadurch entsteht auf normalen Geräten kein dauerhaft angemeldeter Whiteboard-Benutzer.
+    if (currentSession && (currentSession.type === 'whiteboard' || currentSession.embeddedCentralAdmin)) return;
+    if (currentSession) localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentSession));
+    else localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (e) {}
+}
+
+let dbRef = null;
+let useFirebase = false;
+let centralBackend = '';
+let centralSetDoc = null;
+let centralStateSeen = false;
+let legacyMigrationTried = false;
+
+const CENTRAL_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
+  authDomain: "ec-wegscheid-verwaltung-neu.firebaseapp.com",
+  projectId: "ec-wegscheid-verwaltung-neu",
+  storageBucket: "ec-wegscheid-verwaltung-neu.firebasestorage.app",
+  messagingSenderId: "558472054725",
+  appId: "1:558472054725:web:10145e2d8d6f168b056dac"
+};
+const CENTRAL_COLLECTION = 'soloPyramide';
+const CENTRAL_DOCUMENT = 'state';
+const LEGACY_RTDB_URL = 'https://solo-pyramide-wegscheid-2026-default-rtdb.europe-west1.firebasedatabase.app/pyramideData/state_v3.json';
+
+function applyData(data){
+  if(data){
+    if(Array.isArray(data.players)) players = data.players;
+    if(data.passwords) passwords = data.passwords;
+    if(Array.isArray(data.hist)) hist = data.hist;
+    if(data.challengerLocks) challengerLocks = data.challengerLocks;
+    if(data.opponentLocks) opponentLocks = data.opponentLocks;
+    if(Array.isArray(data.fixedChallenges)) fixedChallenges = data.fixedChallenges;
+    if(Array.isArray(data.infoLines)) infoLines = data.infoLines;
+    if(data.customTitle) customTitle = data.customTitle;
+    if(data.customSubtitle) customSubtitle = data.customSubtitle;
+    if(data.adminPassword) adminPassword = data.adminPassword;
+    if(data.infoSystemPassword) infoSystemPassword = data.infoSystemPassword;
+    if(data.currentMaxPlayers) currentMaxPlayers = data.currentMaxPlayers;
+    if(data.vacations) vacations = data.vacations;
+    if(data.ruleLockHoursAfterGame !== undefined) ruleLockHoursAfterGame = data.ruleLockHoursAfterGame;
+    if(data.ruleChallengeDays !== undefined) ruleChallengeDays = data.ruleChallengeDays;
+    if(data.ruleWithdrawHours !== undefined) ruleWithdrawHours = data.ruleWithdrawHours;
+  }
+  checkLoginOrRender();
+}
+
+function buildPayload(){
+  // Admin- und Informationssystem-Passwörter werden bewusst NICHT im öffentlich lesbaren
+  // zentralen Solo-Dokument gespeichert. Der Adminzugang läuft über die Vereinsverwaltung.
+  return {
+    players, passwords, hist, challengerLocks, opponentLocks, fixedChallenges,
+    infoLines, customTitle, customSubtitle,
+    currentMaxPlayers, vacations, ruleLockHoursAfterGame,
+    ruleChallengeDays, ruleWithdrawHours,
+    appVersion: '15.27',
+    updatedAt: new Date().toISOString()
+  };
+}
+
+const localFallback = localStorage.getItem('pyramideData_fallback_v3');
+if(localFallback){
+  try { applyData(JSON.parse(localFallback)); } catch(e){}
+} else {
+  players.forEach(p => { if(p !== 'FREI' && !passwords[p]) passwords[p] = "1234"; });
+  checkLoginOrRender();
+}
+
+async function tryLegacyMigration(){
+  if(legacyMigrationTried) return false;
+  legacyMigrationTried = true;
+  try{
+    const res = await fetch(LEGACY_RTDB_URL, {cache:'no-store'});
+    if(!res.ok) return false;
+    const data = await res.json();
+    if(!data || !Array.isArray(data.players)) return false;
+    applyData(data);
+    localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(data));
+    try{
+      if(useFirebase && dbRef) await centralWrite(buildPayload());
+    }catch(e){
+      console.warn('Altdaten konnten noch nicht in das zentrale Firebase geschrieben werden:', e);
+    }
+    return true;
+  }catch(e){
+    console.warn('Altes Solo-Pyramide-Firebase konnte nicht gelesen werden:', e);
+    return false;
+  }
+}
+
+async function centralWrite(payload){
+  if(!useFirebase || !dbRef) return false;
+  if(centralBackend === 'parent-compat'){
+    await dbRef.set(payload);
+    return true;
+  }
+  if(centralBackend === 'module' && centralSetDoc){
+    await centralSetDoc(dbRef, payload);
+    return true;
+  }
+  return false;
+}
+
+async function handleCentralSnapshot(exists, data){
+  centralStateSeen = true;
+  if(exists && data){
+    applyData(data);
+    localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(data));
+    return;
+  }
+  // Beim ersten Einsatz automatisch die vorhandenen Daten aus dem früheren
+  // Solo-Pyramide-Firebase übernehmen. Falls dort nichts liegt, bleibt der
+  // lokale/default Stand aktiv und wird beim nächsten Speichern zentral angelegt.
+  const migrated = await tryLegacyMigration();
+  if(!migrated && hasCentralAdminParent()){
+    try{ await centralWrite(buildPayload()); }catch(e){ console.warn('Zentraler Erststand konnte nicht angelegt werden:', e); }
+  }
+}
+
+async function initCentralFirebase(){
+  try{
+    // Eingebettet in die Vereinsverwaltung: deren bereits initialisierte
+    // Firestore-/Admin-Sitzung direkt verwenden. So ist kein zweites Login nötig.
+    if(window.parent !== window){
+      try{
+        if(window.parent.location.origin === window.location.origin && window.parent.firestoreDb){
+          dbRef = window.parent.firestoreDb.collection(CENTRAL_COLLECTION).doc(CENTRAL_DOCUMENT);
+          centralBackend = 'parent-compat';
+          useFirebase = true;
+          dbRef.onSnapshot(
+            snap => handleCentralSnapshot(snap.exists, snap.exists ? snap.data() : null),
+            err => {
+              console.error('Zentrales Firebase (Solo Pyramide):', err);
+              if(!centralStateSeen) tryLegacyMigration();
+            }
+          );
+          return true;
+        }
+      }catch(e){}
+    }
+
+    // Direkter Aufruf auf Smartphone/PC: gleiches zentrales Firebase-Projekt,
+    // ohne zusätzliche Firebase-Anmeldung. Die Spieleranmeldung bleibt wie bisher.
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+    const { getFirestore, doc, onSnapshot, setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const app = initializeApp(CENTRAL_FIREBASE_CONFIG, 'soloPyramideCentral');
+    const db = getFirestore(app);
+    dbRef = doc(db, CENTRAL_COLLECTION, CENTRAL_DOCUMENT);
+    centralSetDoc = (ref,payload)=>setDoc(ref,payload);
+    centralBackend = 'module';
+    useFirebase = true;
+    onSnapshot(
+      dbRef,
+      snap => handleCentralSnapshot(snap.exists(), snap.exists() ? snap.data() : null),
+      err => {
+        console.error('Zentrales Firebase (Solo Pyramide):', err);
+        if(!centralStateSeen) tryLegacyMigration();
+      }
+    );
+    return true;
+  }catch(err){
+    console.warn("Zentrales Firebase wurde blockiert/Netzwerkfehler. App läuft mit lokalem/Altdaten-Fallback.", err);
+    useFirebase = false;
+    await tryLegacyMigration();
+    return false;
+  }
+}
+await initCentralFirebase();
+
+window.save = function(){
+  const payload = buildPayload();
+  localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(payload));
+
+  if(useFirebase && dbRef){
+    centralWrite(payload).catch((error) => {
+      console.error("Firebase Speicherfehler (Solo Pyramide): ", error);
+    });
+  }
+}
+
+function modal(h){ mcEl.innerHTML = h; ovEl.style.display = 'block'; }
+function closeM(){ ovEl.style.display = 'none'; }
+function addHist(t){ if(!Array.isArray(hist)) hist = []; hist.unshift(new Date().toLocaleString('de-AT')+' - '+t); window.save(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderHeader(){
+  if(titleEl) titleEl.textContent = customTitle;
+  if(subtitleEl) subtitleEl.textContent = customSubtitle;
+  
+  if(topRightLoginInfoBox){
+    if(currentSession){
+      topRightLoginInfoBox.style.display = 'block';
+      if(currentSession.type === 'player'){
+        topRightLoginInfoBox.innerHTML = `Angemeldet als <b>${escapeHtml(currentSession.name)}</b>`;
+      } else if(currentSession.type === 'admin'){
+        topRightLoginInfoBox.innerHTML = `Angemeldet als <b>Administrator</b>`;
+      } else if(currentSession.type === 'infosystem'){
+        topRightLoginInfoBox.innerHTML = `Angemeldet als <b>Informationssystem</b>`;
+      } else if(currentSession.type === 'whiteboard'){
+        // Am Vereins-Whiteboard ist keine Login-Anzeige nötig.
+        topRightLoginInfoBox.style.display = 'none';
+      }
+    } else {
+      topRightLoginInfoBox.style.display = 'none';
+    }
+  }
+}
+
+function renderInfoBox(){
+  if(infoBoxEl) infoBoxEl.innerHTML = infoLines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
+}
+
+function getPlayerVacationData(name){
+  if(!vacations[name]) vacations[name] = { usedDays: 0, activeStart: 0, activeEnd: 0 };
+  return vacations[name];
+}
+
+window.returnToMainMenu = function(){
+  if(confirm("Möchtest du das Programm beenden und zum Hauptmenü zurückkehren?")) {
+    if(window.parent !== window){
+      try{
+        if(window.parent.location.origin === window.location.origin && typeof window.parent.backExternalPrevious === 'function'){
+          window.parent.backExternalPrevious();
+          return;
+        }
+      }catch(e){}
+    }
+    // Für die Einbindung ins EC-Wegscheid-Whiteboard kann die Zielseite
+    // über ?return=https%3A%2F%2F... mitgegeben werden.
+    const returnUrl = APP_URL_PARAMS.get('return');
+    if(returnUrl){
+      window.location.href = returnUrl;
+      return;
+    }
+    if(document.referrer){
+      window.history.back();
+      return;
+    }
+    try { window.close(); } catch(e) {}
+    window.location.replace("about:blank");
+  }
+}
+
+function checkLoginOrRender(){
+  if(!currentSession && hasCentralAdminParent()){
+    currentSession = { type: 'admin', name: null, embeddedCentralAdmin: true };
+  }
+  if(!currentSession){
+    showLoginScreen();
+  } else {
+    if(sideNavEl) sideNavEl.style.display = 'flex';
+    if(adminNavBtn) adminNavBtn.style.display = currentSession.type === 'admin' ? 'block' : 'none';
+    if(infoSystemNavBadge){
+      const isInfoMode = currentSession.type === 'infosystem' || currentSession.type === 'whiteboard';
+      infoSystemNavBadge.style.display = isInfoMode ? 'block' : 'none';
+      infoSystemNavBadge.textContent = currentSession.type === 'whiteboard' ? 'Whiteboard' : 'Infostand';
+    }
+    if(logoutNavBtn) logoutNavBtn.style.display = (currentSession.type === 'whiteboard' || currentSession.embeddedCentralAdmin) ? 'none' : 'block';
+    
+    if(currentSession.type === 'player'){
+      const pName = currentSession.name;
+      if(passwords[pName] === "1234"){
+        showPasswordChangeModal(pName, true);
+        return;
+      }
+    }
+    closeM();
+    render();
+  }
+}
+
+function showLoginScreen(){
+  if(sideNavEl) sideNavEl.style.display = 'none';
+  if(topRightLoginInfoBox) topRightLoginInfoBox.style.display = 'none';
+  if(pyramidEl) pyramidEl.innerHTML = '';
+  if(infoBoxEl) infoBoxEl.innerHTML = '<div>Bitte melde dich an, um fortzufahren. Am Vereins-Whiteboard kannst du das Informationssystem nutzen.</div>';
+
+  let activePlayersOpts = '';
+  for(let i=0; i<currentMaxPlayers; i++){
+    const pName = players[i];
+    if(pName && pName !== 'FREI'){
+      activePlayersOpts += `<option value="${escapeHtml(pName)}">#${i+1} - ${escapeHtml(pName)}</option>`;
+    }
+  }
+
+  modal(`
+    <h2>Anmeldung / Login</h2>
+    <p class="hint">${INTEGRATED_HOSTED_MODE ? 'Wähle deinen Namen aus. Der Administrator öffnet die Solo Pyramide über die zentrale Vereinsverwaltung.' : 'Wähle deinen Namen aus, melde dich als Administrator an oder nutze das Informationssystem am Vereins-Whiteboard.'}</p>
+    
+    <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444; margin-bottom:12px;">
+      <h3 style="margin-top:0; font-size:14px; color:#ffd966;">Mitspieler Login</h3>
+      <label style="font-size:12px;">Name:</label>
+      <select id="loginPlayerSelect" class="adminSelect">${activePlayersOpts}</select>
+      <label style="font-size:12px;">Passwort:</label>
+      <input type="password" id="loginPlayerPw" class="adminInput" autocomplete="current-password" spellcheck="false" placeholder="Passwort (Standard: 1234)">
+      <button class="btn" style="background:#d48806; color:#000;" onclick="submitPlayerLogin()">Als Spieler anmelden</button>
+    </div>
+
+    <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444; margin-bottom:12px;">
+      <h3 style="margin-top:0; font-size:14px; color:#64b5f6;">Administrator Login</h3>
+      <label style="font-size:12px;">Admin-Passwort:</label>
+      <input type="password" id="loginAdminPw" class="adminInput" autocomplete="current-password" spellcheck="false" placeholder="Admin-Passwort">
+      <button class="btn" style="background:#1976d2; color:#fff;" onclick="submitAdminLogin()">Als Admin anmelden</button>
+      ${INTEGRATED_HOSTED_MODE ? '<div style="font-size:11px;color:#aaa;margin-top:6px;">Auf der veröffentlichten Vereinsseite erfolgt der Adminzugang ausschließlich über „Verwaltung → Solo Pyramide · Admin“.</div>' : ''}
+    </div>
+
+    <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444;">
+      <h3 style="margin-top:0; font-size:14px; color:#81c784;">🖥️ Informationssystem (Vereins-Whiteboard)</h3>
+      <p style="font-size:11px; color:#aaa; margin-top:0;">Zugriff auf alle Spieler und Aktionen für das Whiteboard im Verein.</p>
+      <label style="font-size:12px;">Informationssystem Passwort:</label>
+      <input type="password" id="loginInfoSystemPw" class="adminInput" autocomplete="current-password" spellcheck="false" placeholder="Informationssystem Passwort">
+      <button class="btn" style="background:#388e3c; color:#fff;" onclick="submitInfoSystemLogin()">Als Informationssystem anmelden</button>
+    </div>
+  `);
+}
+
+window.submitInfoSystemLogin = function(){
+  const pwInput = document.getElementById('loginInfoSystemPw');
+  if(!pwInput) return;
+  if(pwInput.value === infoSystemPassword){
+    currentSession = { type: 'infosystem', name: null };
+    persistSession();
+    checkLoginOrRender();
+  } else {
+    alert("Falsches Passwort für das Informationssystem!");
+  }
+}
+
+window.submitPlayerLogin = function(){
+  const select = document.getElementById('loginPlayerSelect');
+  const pwInput = document.getElementById('loginPlayerPw');
+  if(!select || !pwInput) return;
+  
+  const name = select.value;
+  const pw = pwInput.value;
+
+  if(!passwords[name]) passwords[name] = "1234";
+
+  if(passwords[name] === pw || (passwords[name] === "1234" && pw === "")){
+    currentSession = { type: 'player', name: name };
+    persistSession();
+    checkLoginOrRender();
+  } else {
+    alert("Falsches Passwort!");
+  }
+}
+
+window.submitAdminLogin = function(){
+  if(INTEGRATED_HOSTED_MODE && !hasCentralAdminParent()){
+    alert('Den Admin-Modus bitte über die Vereinsverwaltung öffnen. Dort reicht die einmalige zentrale Admin-Anmeldung.');
+    return;
+  }
+  const pwInput = document.getElementById('loginAdminPw');
+  if(!pwInput) return;
+  if(pwInput.value === adminPassword){
+    currentSession = { type: 'admin', name: null };
+    persistSession();
+    checkLoginOrRender();
+  } else {
+    alert("Falsches Admin-Passwort!");
+  }
+}
+
+window.logoutUser = function(){
+  if(currentSession?.embeddedCentralAdmin) return;
+  currentSession = null;
+  persistSession();
+  selected = null;
+  pending = null;
+  checkLoginOrRender();
+}
+
+function showPasswordChangeModal(playerName, isFirstTime = false){
+  modal(`
+    <h2>Passwort ändern</h2>
+    <p class="hint">${isFirstTime ? '<b>Wichtig:</b> Da dein Passwort auf den Standard (1234) zurückgesetzt wurde, musst du jetzt ein neues persönliches Passwort vergeben.' : 'Gib dein neues Passwort ein.'}</p>
+    <label>Neues Passwort:</label>
+    <input type="password" id="newPlayerPw1" class="adminInput" autocomplete="new-password" spellcheck="false" placeholder="Neues Passwort">
+    <label>Neues Passwort wiederholen:</label>
+    <input type="password" id="newPlayerPw2" class="adminInput" autocomplete="new-password" spellcheck="false" placeholder="Passwort wiederholen">
+    <button class="btn" style="background:#d48806; color:#000;" onclick="saveNewPlayerPassword('${escapeHtml(playerName)}')">Passwort speichern</button>
+    ${!isFirstTime ? '<button class="btn" onclick="closeM(); render();">Abbrechen</button>' : ''}
+  `);
+}
+
+window.saveNewPlayerPassword = function(name){
+  const p1 = document.getElementById('newPlayerPw1').value;
+  const p2 = document.getElementById('newPlayerPw2').value;
+
+  if(!p1 || p1.length < 3){ alert('Das Passwort muss mindestens 3 Zeichen lang sein.'); return; }
+  if(p1 !== p2){ alert('Die Passwörter stimmen nicht überein.'); return; }
+  if(p1 === "1234"){ alert('Bitte wähle ein anderes Passwort als das Standard-Passwort.'); return; }
+
+  passwords[name] = p1;
+  window.save(); 
+  alert('Passwort erfolgreich geändert und in der Datenbank gespeichert!');
+  checkLoginOrRender();
+}
+
+function showStatistics() {
+  let stats = {};
+  function getStat(name) {
+    if (!stats[name]) { stats[name] = { played: 0, won: 0, lost: 0, setsWon: 0, setsLost: 0 }; }
+    return stats[name];
+  }
+  if (Array.isArray(hist)) {
+    hist.forEach(entry => {
+      if (entry.includes(" besiegte ")) {
+        const parts = entry.split(" - ");
+        if (parts.length >= 2) {
+          const matchPart = parts.slice(1).join(" - ");
+          const match = matchPart.match(/^(.*?) besiegte (.*?) (\d+):(\d+)$/);
+          if (match) {
+            const winner = match[1].trim();
+            const loser = match[2].trim();
+            const winSets = parseInt(match[3], 10);
+            const loseSets = parseInt(match[4], 10);
+            const sWin = getStat(winner);
+            sWin.played++; sWin.won++; sWin.setsWon += winSets; sWin.setsLost += loseSets;
+            const sLose = getStat(loser);
+            sLose.played++; sLose.lost++; sLose.setsWon += loseSets; sLose.setsLost += winSets;
+          }
+        }
+      }
+    });
+  }
+
+  let rowsHtml = '';
+  const sortedPlayers = Object.keys(stats).sort((a, b) => {
+    const diffA = stats[a].setsWon - stats[a].setsLost;
+    const diffB = stats[b].setsWon - stats[b].setsLost;
+    if (stats[b].won !== stats[a].won) return stats[b].won - stats[a].won;
+    if (diffB !== diffA) return diffB - diffA;
+    return stats[b].played - stats[a].played;
+  });
+
+  if (sortedPlayers.length === 0) {
+    rowsHtml = '<tr><td colspan="5" style="text-align:center; color:#aaa; padding:15px;">Bisher wurden noch keine Spiele absolviert.</td></tr>';
+  } else {
+    sortedPlayers.forEach(name => {
+      const st = stats[name];
+      rowsHtml += `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <td style="padding: 8px; font-weight: bold;">${escapeHtml(name)}</td>
+          <td style="padding: 8px; text-align: center;">${st.played}</td>
+          <td style="padding: 8px; text-align: center; color: #52c41a;">${st.won}</td>
+          <td style="padding: 8px; text-align: center; color: #ff4d4f;">${st.lost}</td>
+          <td style="padding: 8px; text-align: center; font-weight: bold; color: #ffd966;">${st.setsWon}:${st.setsLost}</td>
+        </tr>
+      `;
+    });
+  }
+
+  modal(`
+    <h2>Spieler-Statistik</h2>
+    <p class="hint">Übersicht aller Spieler mit mindestens einem gespielten Spiel.</p>
+    <div style="max-height: 350px; overflow-y: auto; margin-top: 10px; border: 1px solid #444; border-radius: 8px; background: #141419;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <thead>
+          <tr style="background: #2a2a35; border-bottom: 1px solid #444; text-align: left;">
+            <th style="padding: 8px;">Spieler</th>
+            <th style="padding: 8px; text-align: center;">Gespielt</th>
+            <th style="padding: 8px; text-align: center;">Gewonnen</th>
+            <th style="padding: 8px; text-align: center;">Verloren</th>
+            <th style="padding: 8px; text-align: center;">Sätze</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div style="margin-top: 14px;"><button class="btn" onclick="closeM()">Schließen</button></div>
+  `);
+}
+
+function openAdminMenu(activeTab = 'general'){
+  if(!currentSession || currentSession.type !== 'admin'){
+    const pw = prompt('Administrator-Passwort');
+    if(pw === null) return;
+    if(pw !== adminPassword){ alert('Falsches Passwort'); return; }
+    currentSession = { type: 'admin', name: null };
+    persistSession();
+    sideNavEl.style.display = 'flex';
+    adminNavBtn.style.display = 'block';
+    if(infoSystemNavBadge) infoSystemNavBadge.style.display = 'none';
+  }
+  
+  const currentText = infoLines.join('\n');
+  let playerRowsHtml = '';
+  let vacationRowsHtml = '';
+  let passwordRowsHtml = '';
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  for(let i=0; i<ABSOLUTE_MAX_PLAYERS; i++){
+    const pName = players[i];
+    let rowStyle = (i >= currentMaxPlayers) ? 'opacity: 0.4;' : '';
+    
+    playerRowsHtml += `
+      <div class="playerAdminRow" style="${rowStyle}">
+        <span>#${i+1}</span>
+        <input type="text" id="adminPlayer_${i}" value="${escapeHtml(pName)}">
+      </div>
+    `;
+
+    if(pName !== 'FREI'){
+      if(!passwords[pName]) passwords[pName] = "1234";
+
+      passwordRowsHtml += `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:#141419; border:1px solid #444; padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
+          <div><b>#${i+1} ${escapeHtml(pName)}</b></div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#aaa; font-size:12px;">Passwort: <code>${escapeHtml(passwords[pName])}</code></span>
+            <button class="btn" style="margin:0; padding:4px 8px; font-size:11px; background:#d48806; color:#000; width:auto;" onclick="resetPlayerPwToDefault('${escapeHtml(pName)}')">Auf 1234 zurücksetzen</button>
+          </div>
+        </div>
+      `;
+
+      const vac = getPlayerVacationData(pName);
+      if(vac.activeEnd && vac.activeEnd <= Date.now()){
+        vac.activeStart = 0; vac.activeEnd = 0;
+      }
+      
+      const remainingDays = MAX_VACATION_DAYS - vac.usedDays;
+      const isVacActive = vac.activeEnd > Date.now();
+      
+      let startVal = vac.activeStart ? new Date(vac.activeStart).toISOString().split('T')[0] : todayStr;
+      let defaultEndMs = Date.now() + Math.min(remainingDays, 7) * DAY;
+      let endVal = vac.activeEnd ? new Date(vac.activeEnd).toISOString().split('T')[0] : new Date(defaultEndMs).toISOString().split('T')[0];
+
+      let vacStatusInfo = `<span style="color:#aaa; font-size:11px;">Bisher verbraucht: <b>${vac.usedDays}</b> von ${MAX_VACATION_DAYS} Tagen</span>`;
+      if(isVacActive){
+        vacStatusInfo += `<br><span style="color:#64b5f6; font-size:11px;">Aktiv im Urlaub bis ${new Date(vac.activeEnd).toLocaleDateString('de-AT')}</span>`;
+      }
+
+      vacationRowsHtml += `
+        <div style="background:#141419; border:1px solid #444; padding:8px; border-radius:8px; margin-bottom:8px;">
+          <div style="font-weight:bold; font-size:13px; margin-bottom:4px;">#${i+1} - ${escapeHtml(pName)}</div>
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+            <label style="font-size:11px; color:#aaa;">Von: <input type="date" id="vacStart_${i}" value="${startVal}" style="background:#2a2a35; border:1px solid #444; color:#fff; padding:4px; border-radius:4px; font-size:12px;"></label>
+            <label style="font-size:11px; color:#aaa;">Bis: <input type="date" id="vacEnd_${i}" value="${endVal}" style="background:#2a2a35; border:1px solid #444; color:#fff; padding:4px; border-radius:4px; font-size:12px;"></label>
+            <button class="btn" style="margin:0; padding:6px 10px; font-size:12px; background:#d48806; color:#000; width:auto;" onclick="setVacationAdminCustom('${escapeHtml(pName)}', ${i})">Urlaub eintragen</button>
+            ${isVacActive ? `<button class="btn" style="margin:0; padding:6px 10px; font-size:12px; background:#a8071a; color:#fff; width:auto;" onclick="cancelVacationAdmin('${escapeHtml(pName)}')">Urlaub aufheben</button>` : ''}
+          </div>
+          <div>${vacStatusInfo}</div>
+        </div>
+      `;
+    }
+  }
+
+  modal(`
+    <h2>Admin-Menü</h2>
+    <div class="adminTabs">
+      <button class="adminTabBtn ${activeTab==='general'?'active':''}" onclick="switchAdminTab('general')">Allgemeines</button>
+      <button class="adminTabBtn ${activeTab==='rules'?'active':''}" onclick="switchAdminTab('rules')">Regeln</button>
+      <button class="adminTabBtn ${activeTab==='players'?'active':''}" onclick="switchAdminTab('players')">Spieler</button>
+      <button class="adminTabBtn ${activeTab==='passwords'?'active':''}" onclick="switchAdminTab('passwords')">Passwörter</button>
+      <button class="adminTabBtn ${activeTab==='vacation'?'active':''}" onclick="switchAdminTab('vacation')">Urlaub</button>
+      <button class="adminTabBtn ${activeTab==='system'?'active':''}" onclick="switchAdminTab('system')">System</button>
+    </div>
+
+    <div id="tab_general" class="adminTabContent ${activeTab==='general'?'active':''}">
+      <label><b>Anzahl der Pyramiden-Plätze anzeigen:</b></label>
+      <select id="adminMaxPlayers" class="adminSelect">
+        <option value="21" ${currentMaxPlayers===21?'selected':''}>21 Plätze (6 Reihen)</option>
+        <option value="28" ${currentMaxPlayers===28?'selected':''}>28 Plätze (7 Reihen)</option>
+        <option value="36" ${currentMaxPlayers===36?'selected':''}>36 Plätze (8 Reihen)</option>
+        <option value="44" ${currentMaxPlayers===44?'selected':''}>44 Plätze (9 Reihen)</option>
+      </select>
+      <label><b>Hauptüberschrift:</b></label>
+      <input type="text" id="adminTitle" class="adminInput" value="${escapeHtml(customTitle)}">
+      <label><b>Untertitel:</b></label>
+      <input type="text" id="adminSubtitle" class="adminInput" value="${escapeHtml(customSubtitle)}">
+      <label><b>Infotext bearbeiten:</b></label>
+      <textarea id="adminInfoText" class="adminTextarea">${escapeHtml(currentText)}</textarea>
+    </div>
+
+    <div id="tab_rules" class="adminTabContent ${activeTab==='rules'?'active':''}">
+      <label><b>Sperre nach Ergebniseingabe (in Stunden):</b></label>
+      <input type="number" id="adminRuleLockHours" class="adminInput" value="${ruleLockHoursAfterGame}" min="0" step="0.5">
+      <label><b>Forderungsdauer (in Tagen):</b></label>
+      <input type="number" id="adminRuleChallengeDays" class="adminInput" value="${ruleChallengeDays}" min="0.1" step="0.5">
+      <label><b>Sperre nach Forderungsrückzug (in Stunden):</b></label>
+      <input type="number" id="adminRuleWithdrawHours" class="adminInput" value="${ruleWithdrawHours}" min="0" step="0.5">
+    </div>
+
+    <div id="tab_players" class="adminTabContent ${activeTab==='players'?'active':''}">
+      <label><b>Spieler verwalten (1 bis 44):</b></label>
+      <div class="playerGridAdmin">${playerRowsHtml}</div>
+    </div>
+
+    <div id="tab_passwords" class="adminTabContent ${activeTab==='passwords'?'active':''}">
+      <label><b>Spieler-Passwörter einsehen & verwalten:</b></label>
+      <div style="max-height:250px; overflow-y:auto; padding-right:4px; margin-top:8px;">${passwordRowsHtml}</div>
+    </div>
+
+    <div id="tab_vacation" class="adminTabContent ${activeTab==='vacation'?'active':''}">
+      <label><b>Urlaubsverwaltung (Maximal 14 Tage gesamt pro Spieler):</b></label>
+      <div style="max-height:250px; overflow-y:auto; padding-right:4px; margin-top:8px;">${vacationRowsHtml}</div>
+    </div>
+
+    <div id="tab_system" class="adminTabContent ${activeTab==='system'?'active':''}">
+      <label><b>Administrator-Passwort ändern:</b></label>
+      <input type="password" id="adminNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="${escapeHtml(adminPassword)}">
+      <label><b>Informationssystem-Passwort ändern:</b></label>
+      <input type="password" id="adminInfoSystemNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="${escapeHtml(infoSystemPassword)}">
+      <br><br>
+      <button class="btn btnDanger" onclick="resetAllData()">⚠️ Alle Spiele, Forderungen & Historie zurücksetzen</button>
+    </div>
+
+    <div style="margin-top: 14px; border-top: 1px solid #333; padding-top: 10px;">
+      <button class="btn" style="background:#d48806; color:#000;" onclick="saveAdminSettings()">Änderungen speichern</button>
+      <button class="btn" onclick="closeM(); render();">Schließen</button>
+    </div>
+  `);
+}
+
+window.switchAdminTab = function(tabName){
+  document.querySelectorAll('.adminTabContent').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.adminTabBtn').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById('tab_' + tabName);
+  if(target) target.classList.add('active');
+  if(event && event.currentTarget) event.currentTarget.classList.add('active');
+}
+
+window.resetPlayerPwToDefault = function(name){
+  if(!confirm(`Passwort für ${name} auf Standard ("1234") zurücksetzen?`)) return;
+  passwords[name] = "1234";
+  
+  // Wenn der betroffene Spieler gerade aktiv eingeloggt ist, direkt abmelden / zur Neupasswort-Eingabe zwingen
+  if(currentSession && currentSession.type === 'player' && currentSession.name === name){
+    // Wird im nächsten checkLoginOrRender abgefangen
+  }
+
+  window.save();
+  alert(`Passwort für ${name} wurde auf 1234 zurückgesetzt. Der Spieler muss sich beim nächsten Mal neu anmelden und ein neues Passwort vergeben.`);
+  openAdminMenu('passwords');
+}
+
+window.setVacationAdminCustom = function(name, index){
+  const startInput = document.getElementById('vacStart_' + index);
+  const endInput = document.getElementById('vacEnd_' + index);
+  if(!startInput || !startInput.value || !endInput || !endInput.value) { alert('Bitte Start- und Enddatum eingeben.'); return; }
+  
+  const startDate = new Date(startInput.value); startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(endInput.value); endDate.setHours(23, 59, 59, 999);
+  if(endDate.getTime() < startDate.getTime()){ alert('Das Enddatum darf nicht vor dem Startdatum liegen.'); return; }
+
+  const diffDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const vac = getPlayerVacationData(name);
+  const remainingDays = MAX_VACATION_DAYS - vac.usedDays;
+
+  if(diffDays > remainingDays){
+    alert('Fehler: Dieser Urlaubszeitraum hat ' + diffDays + ' Tage. Der Spieler hat aber nur noch ' + remainingDays + ' Tage übrig!');
+    return;
+  }
+
+  vac.usedDays += diffDays;
+  vac.activeStart = startDate.getTime();
+  vac.activeEnd = endDate.getTime();
+  
+  if(Array.isArray(fixedChallenges)){
+    fixedChallenges.forEach(ch => {
+      if(ch && ch.status === 'fixed' && (ch.challenger === name || ch.opponent === name)){
+        ch.expiresAt += (diffDays * DAY);
+      }
+    });
+  }
+
+  addHist('Urlaub eingetragen für ' + name + ' (' + diffDays + ' Tage)');
+  window.save();
+  alert('Urlaub erfolgreich gespeichert!');
+  openAdminMenu('vacation');
+  render();
+}
+
+window.cancelVacationAdmin = function(name){
+  if(!confirm('Aktiven Urlaub für ' + name + ' vorzeitig aufheben?')) return;
+  const vac = getPlayerVacationData(name);
+  vac.activeStart = 0; vac.activeEnd = 0;
+  addHist('Urlaub aufgehoben für: ' + name);
+  window.save();
+  openAdminMenu('vacation');
+  render();
+}
+
+window.resetAllData = function(){
+  if(!confirm('Möchten Sie wirklich alles komplett auf 0 zurücksetzen?')) return;
+  if(!currentSession?.embeddedCentralAdmin){
+    const pw = prompt('Bitte Admin-Passwort zur Bestätigung eingeben:');
+    if(pw !== adminPassword){ alert('Falsches Passwort'); return; }
+  }
+  
+  localStorage.removeItem('pyramideData_fallback_v3');
+  players = [...defaults];
+  passwords = {};
+  defaults.forEach(p => { if(p !== 'FREI') passwords[p] = "1234"; });
+  hist = [];
+  challengerLocks = {};
+  opponentLocks = {};
+  fixedChallenges = [];
+  infoLines = [...defaultInfoText];
+  customTitle = defaultTitle;
+  customSubtitle = defaultSubtitle;
+  adminPassword = defaultPassword;
+  infoSystemPassword = defaultInfoSystemPassword;
+  currentMaxPlayers = defaultPyramidSize;
+  vacations = {};
+  
+  window.save();
+  location.reload();
+}
+
+window.saveAdminSettings = function(){
+  currentMaxPlayers = parseInt(document.getElementById('adminMaxPlayers').value, 10) || defaultPyramidSize;
+  const newPwEl = document.getElementById('adminNewPw');
+  if(newPwEl) adminPassword = newPwEl.value.trim() || defaultPassword;
+
+  const newInfoPwEl = document.getElementById('adminInfoSystemNewPw');
+  if(newInfoPwEl) infoSystemPassword = newInfoPwEl.value.trim() || defaultInfoSystemPassword;
+  
+  customTitle = document.getElementById('adminTitle').value.trim() || defaultTitle;
+  customSubtitle = document.getElementById('adminSubtitle').value.trim() || defaultSubtitle;
+  
+  const rLockH = parseFloat(document.getElementById('adminRuleLockHours').value);
+  const rChalD = parseFloat(document.getElementById('adminRuleChallengeDays').value);
+  const rWithH = parseFloat(document.getElementById('adminRuleWithdrawHours').value);
+
+  if(!isNaN(rLockH) && rLockH >= 0) ruleLockHoursAfterGame = rLockH;
+  if(!isNaN(rChalD) && rChalD > 0) ruleChallengeDays = rChalD;
+  if(!isNaN(rWithH) && rWithH >= 0) ruleWithdrawHours = rWithH;
+
+  const textVal = document.getElementById('adminInfoText').value;
+  infoLines = textVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if(infoLines.length === 0) infoLines = defaultInfoText;
+
+  for(let i=0; i<ABSOLUTE_MAX_PLAYERS; i++){
+    const inputEl = document.getElementById('adminPlayer_' + i);
+    if(inputEl){
+      const oldName = players[i];
+      const newName = inputEl.value.trim() ? inputEl.value.trim() : 'FREI';
+      players[i] = newName;
+      if(oldName !== newName && oldName !== 'FREI'){
+        if(passwords[oldName]){ passwords[newName] = passwords[oldName]; delete passwords[oldName]; }
+        if(challengerLocks[oldName]){ challengerLocks[newName] = challengerLocks[oldName]; delete challengerLocks[oldName]; }
+        if(vacations[oldName]){ vacations[newName] = vacations[oldName]; delete vacations[oldName]; }
+        if(Array.isArray(fixedChallenges)){
+          fixedChallenges = fixedChallenges.map(ch=>({ ...ch, challenger:ch.challenger===oldName?newName:ch.challenger, opponent:ch.opponent===oldName?newName:ch.opponent }));
+        }
+      }
+      if(newName !== 'FREI' && !passwords[newName]) passwords[newName] = "1234";
+    }
+  }
+  
+  window.save();
+  renderHeader();
+  renderInfoBox();
+  closeM();
+  render();
+}
+
+function isVacationActive(name){
+  const vac = vacations[name];
+  if(vac && vac.activeEnd && vac.activeEnd > Date.now()) return vac.activeEnd;
+  return 0;
+}
+
+const pos = {};
+let n = 1;
+for(let r=1; n<=ABSOLUTE_MAX_PLAYERS; r++){
+  for(let c=1; c<=r && n<=ABSOLUTE_MAX_PLAYERS; c++){
+    pos[n] = {r, c};
+    n++;
+  }
+}
+
+function allowed(p){
+  const me = pos[p];
+  if(!me) return [];
+  let a = [];
+  for(let i=1; i<=currentMaxPlayers; i++){
+    if(!pos[i]) continue;
+    const o = pos[i];
+    if(o.r === me.r && o.c < me.c) a.push(i);
+    if(o.r === me.r-1 && o.c >= me.c) a.push(i);
+  }
+  return a.filter(x => {
+    if(x <= 0 || x > currentMaxPlayers || players[x-1] === 'FREI') return false;
+    const name = players[x-1];
+    if(isVacationActive(name)) return false;
+    return !activeFixedChallengeForName(name);
+  });
+}
+
+function lockRemaining(name){ return Math.max(0, Number(challengerLocks[name]||0) - Date.now()); }
+function lockText(ms){
+  const totalMinutes = Math.ceil(ms/60000);
+  const days = Math.floor(totalMinutes/1440);
+  const hours = Math.floor((totalMinutes%1440)/60);
+  const minutes = totalMinutes%60;
+  return (days?days+' Tag(e) ':'')+(hours?hours+' Std. ':'')+(minutes?minutes+' Min.':'');
+}
+function pairKey(a,b){ return [a,b].sort().join(' || '); }
+function opponentRemaining(a,b){ return Math.max(0, Number(opponentLocks[pairKey(a,b)]||0) - Date.now()); }
+
+function activeFixedChallengeForName(name){ 
+  if(!Array.isArray(fixedChallenges)) fixedChallenges = [];
+  return fixedChallenges.find(ch => ch && ch.status==='fixed' && (ch.challenger===name || ch.opponent===name)); 
+}
+
+function cleanExpiredLocks(){
+  let changed = false;
+  for(const name in challengerLocks){ if(Number(challengerLocks[name]) <= Date.now()){ delete challengerLocks[name]; changed=true; } }
+  for(const key in opponentLocks){ if(Number(opponentLocks[key]) <= Date.now()){ delete opponentLocks[key]; changed=true; } }
+  
+  if(!Array.isArray(fixedChallenges)) fixedChallenges = [];
+  const now = Date.now();
+  fixedChallenges = fixedChallenges.filter(ch => {
+    if(!ch) return false;
+    if(ch.status==='fixed' && Number(ch.expiresAt) <= now){
+      if(!Array.isArray(hist)) hist = [];
+      hist.unshift(new Date().toLocaleString('de-AT')+' - Forderung verfallen: '+ch.challenger+' gegen '+ch.opponent);
+      changed = true;
+      return false;
+    }
+    return true;
+  });
+  if(changed) window.save();
+}
+
+function editPlayerDirect(i){
+  if(!currentSession || (currentSession.type !== 'admin' && currentSession.type !== 'infosystem')){
+    const pw = prompt('Administrator-Passwort');
+    if(pw !== adminPassword) return;
+  }
+  const old = players[i-1];
+  const neu = prompt('Name für Platz ' + i, old==='FREI' ? '' : old);
+  if(neu !== null){
+    const name = neu.trim() ? neu.trim() : 'FREI';
+    players[i-1] = name;
+    if(old !== name){
+      if(passwords[old]){ passwords[name] = passwords[old]; delete passwords[old]; }
+      if(challengerLocks[old]){ challengerLocks[name] = challengerLocks[old]; delete challengerLocks[old]; }
+      if(vacations[old]){ vacations[name] = vacations[old]; delete vacations[old]; }
+      if(Array.isArray(fixedChallenges)){
+        fixedChallenges = fixedChallenges.map(ch=>({ ...ch, challenger:ch.challenger===old?name:ch.challenger, opponent:ch.opponent===old?name:ch.opponent }));
+      }
+    }
+    if(name !== 'FREI' && !passwords[name]) passwords[name] = "1234";
+    window.save();
+    render();
+  }
+}
+
+function clickPlace(p){
+ cleanExpiredLocks();
+ const name = players[p-1];
+ 
+ if(currentSession && currentSession.type === 'player'){
+   const myName = currentSession.name;
+   const myCurrentPlace = players.indexOf(myName) + 1;
+   
+   if(selected === null && p !== myCurrentPlace){
+     alert(`Du bist als ${myName} angemeldet. Du kannst nur auf deinen eigenen Namen (Platz ${myCurrentPlace}) klicken, um eine Forderung zu starten!`);
+     return;
+   }
+   
+   if(selected === myCurrentPlace && p === myCurrentPlace){
+     selected = null; render(); return;
+   }
+ }
+
+ const running = activeFixedChallengeForName(name);
+ if(running){
+   pending = {
+     from: players.indexOf(running.challenger) + 1,
+     to: players.indexOf(running.opponent) + 1,
+     challenger: running.challenger,
+     opponent: running.opponent,
+     fixedId: running.id
+   };
+   
+   let actionButtons = '<button class="btn" onclick="showResultEntry()">Ergebnis eintragen</button>';
+   const waText = encodeURIComponent(`Hallo ${running.opponent}, du wurdest in der Solo-Pyramide von ${running.challenger} gefordert! Bitte vereinbart einen Termin. (${window.location.href})`);
+   actionButtons += `<a href="https://api.whatsapp.com/send?text=${waText}" target="_blank" style="text-decoration:none;"><button class="btn whatsappBtn" style="background:#25d366; color:#fff;">📱 Gegner per WhatsApp benachrichtigen</button></a>`;
+
+   if(running.challenger === name || running.opponent === name || (currentSession && (currentSession.type === 'admin' || currentSession.type === 'infosystem'))){
+     actionButtons += '<button class="btn btnDanger" onclick="withdrawChallenge(\'' + running.id + '\')">Forderung zurückziehen</button>';
+   }
+   actionButtons += '<button class="btn" onclick="cancelResult()">Abbrechen</button>';
+
+   modal('<h3>Fixierte Forderung</h3><p class="hint">' + escapeHtml(running.challenger) + ' gegen ' + escapeHtml(running.opponent) + '</p><p class="hint">Aktiv für noch: <b>' + lockText(running.expiresAt - Date.now()) + '</b></p>' + actionButtons);
+   return;
+ }
+
+ const vacEndMs = isVacationActive(name);
+ if(vacEndMs){
+   const vac = vacations[name];
+   const startDateStr = vac && vac.activeStart ? new Date(vac.activeStart).toLocaleDateString('de-AT') : 'Unbekannt';
+   const endDateStr = new Date(vacEndMs).toLocaleDateString('de-AT');
+   const nextPlayableDate = new Date(vacEndMs + DAY);
+   nextPlayableDate.setHours(0,0,0,0);
+   const playableDateStr = nextPlayableDate.toLocaleDateString('de-AT');
+
+   modal(`
+     <h3>Spieler im Urlaub</h3>
+     <p class="hint"><b>${escapeHtml(name)}</b> befindet sich aktuell im Urlaub.</p>
+     <p class="hint"><b>Urlaubszeitraum:</b><br>${startDateStr} bis ${endDateStr}</p>
+     <p class="hint"><b>Wieder fordern ab:</b><br>${playableDateStr}</p>
+     <button class="btn" onclick="closeM()">Schließen</button>
+   `);
+   return;
+ }
+
+ if(selected === null){
+  if(name === 'FREI'){ editPlayerDirect(p); return; }
+  
+  if(currentSession && currentSession.type === 'player'){
+    const remaining = lockRemaining(name);
+    if(remaining > 0){ alert(name+' darf erst in '+lockText(remaining)+' wieder selbst eine Forderung aussprechen.'); return; }
+  }
+
+  selected = p; render(); return;
+ }
+
+ if(selected === p){ selected = null; render(); return; }
+
+ if(allowed(selected).includes(p)){
+  const challenger = players[selected-1], opponent = players[p-1];
+  
+  if(activeFixedChallengeForName(opponent) || activeFixedChallengeForName(challenger)){
+   alert('Einer der Spieler befindet sich bereits in einer aktiven Forderung.');
+   selected = null; render(); return;
+  }
+
+  const pairWait = opponentRemaining(challenger, opponent);
+  if(pairWait > 0){
+   alert('Diese beiden Spieler dürfen erst in '+lockText(pairWait)+' wieder gegeneinander spielen.');
+   selected = null; render(); return;
+  }
+  
+  pending = {from: selected, to: p, challenger, opponent, fixedId: null};
+  showChallengeChoice();
+ } else { selected = null; render(); }
+}
+
+function showChallengeChoice(){
+  modal('<h3>Forderung</h3><p class="hint">'+escapeHtml(pending.challenger)+' gegen '+escapeHtml(pending.opponent)+'</p><button class="btn" onclick="showResultEntry()">Ergebnis eingeben</button><button class="btn" onclick="fixChallenge()">Forderung fixieren</button><button class="btn" onclick="cancelResult()">Abbrechen</button>');
+}
+
+window.fixChallenge = function(){
+  const now = Date.now();
+  let durationMs = ruleChallengeDays * DAY;
+  const ch = {
+    id: Date.now() + Math.random(),
+    challenger: pending.challenger,
+    opponent: pending.opponent,
+    from: pending.from,
+    to: pending.to,
+    createdAt: now,
+    expiresAt: now + durationMs,
+    status: 'fixed'
+  };
+  if(!Array.isArray(fixedChallenges)) fixedChallenges = [];
+  fixedChallenges.push(ch);
+  addHist('Forderung fixiert: '+ch.challenger+' gegen '+ch.opponent);
+  
+  const waText = encodeURIComponent(`Hallo ${ch.opponent}, du wurdest in der Solo-Pyramide von ${ch.challenger} gefordert! Bitte vereinbart einen Termin. (${window.location.href})`);
+  
+  modal(`
+    <h3>Forderung erfolgreich fixiert!</h3>
+    <p class="hint"><b>${escapeHtml(ch.challenger)}</b> fordert <b>${escapeHtml(ch.opponent)}</b>.</p>
+    <a href="https://api.whatsapp.com/send?text=${waText}" target="_blank" style="text-decoration:none;"><button class="btn whatsappBtn" style="background:#25d366; color:#fff;">📱 Gegner jetzt per WhatsApp benachrichtigen</button></a>
+    <button class="btn" onclick="pending = null; selected = null; window.save(); closeM(); render();">Fertig</button>
+  `);
+}
+
+window.withdrawChallenge = function(idStr){
+  const id = Number(idStr);
+  if(!Array.isArray(fixedChallenges)) fixedChallenges = [];
+  const ch = fixedChallenges.find(x => x && x.id === id);
+  if(!ch) { closeM(); return; }
+
+  const withdrawText = ruleWithdrawHours > 0 ? ` (inkl. ${ruleWithdrawHours}h Sperre für beide)` : '';
+  if(!confirm('Möchtest du die Forderung zwischen ' + ch.challenger + ' und ' + ch.opponent + ' wirklich zurückziehen?' + withdrawText)) return;
+
+  if(ruleWithdrawHours > 0){
+    const lockDuration = ruleWithdrawHours * HOUR;
+    challengerLocks[ch.challenger] = Date.now() + lockDuration;
+    challengerLocks[ch.opponent] = Date.now() + lockDuration;
+  }
+
+  fixedChallenges = fixedChallenges.filter(x => x && x.id !== id);
+  addHist('Forderung zurückgezogen: ' + ch.challenger + ' vs ' + ch.opponent + (ruleWithdrawHours > 0 ? ` (${ruleWithdrawHours}h Sperre)` : ''));
+  pending = null; selected = null; window.save(); closeM(); render();
+}
+
+window.showResultEntry = function(){
+  const challenger = pending.challenger, opponent = pending.opponent;
+  modal('<h3>Ergebnis eingeben</h3><p class="hint">First of 5: Der Sieger muss 3 Sätze gewonnen haben.</p><div class="scoreBox"><label>'+escapeHtml(challenger)+'<select id="scoreChallenger"><option value="3">3</option><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></label><span class="scoreSep">:</span><label>'+escapeHtml(opponent)+'<select id="scoreOpponent"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div><button class="btn" onclick="applyResult()">Ergebnis speichern</button><button class="btn" onclick="cancelResult()">Abbrechen</button>');
+}
+
+window.applyResult = function(){
+ if(!pending) return;
+ const challengerScore = Number(document.getElementById('scoreChallenger').value);
+ const opponentScore = Number(document.getElementById('scoreOpponent').value);
+ const valid = (challengerScore === 3 && opponentScore >= 0 && opponentScore <= 2) || (opponentScore === 3 && challengerScore >= 0 && challengerScore <= 2);
+ if(!valid){ alert('Ungültiges Ergebnis.'); return; }
+ 
+ const challenger = pending.challenger, opponent = pending.opponent;
+ 
+ if(ruleLockHoursAfterGame > 0){
+   challengerLocks[challenger] = Date.now() + (ruleLockHoursAfterGame * HOUR);
+ }
+ delete challengerLocks[opponent];
+ opponentLocks[pairKey(challenger, opponent)] = Date.now() + 7 * DAY;
+ 
+ if(Array.isArray(fixedChallenges)){
+   fixedChallenges = fixedChallenges.filter(ch => !(ch && ch.status==='fixed' && pairKey(ch.challenger, ch.opponent) === pairKey(challenger, opponent)));
+ }
+ 
+ const from = players.indexOf(challenger) + 1;
+ const to = players.indexOf(opponent) + 1;
+ 
+ if(challengerScore === 3){
+  players.splice(to - 1, 0, challenger);
+  players.splice(from, 1);
+  addHist(challenger+' besiegte '+opponent+' '+challengerScore+':'+opponentScore);
+ } else {
+  addHist(opponent+' besiegte '+challenger+' '+opponentScore+':'+challengerScore);
+ }
+ pending = null; selected = null; window.save(); closeM(); render();
+}
+
+window.cancelResult = function(){ pending = null; selected = null; closeM(); render(); }
+
+window.showInfo = function(){
+  const infoHtml = Array.isArray(infoLines) && infoLines.length
+    ? infoLines.map(line => `<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.12);">${escapeHtml(line)}</div>`).join('')
+    : '<div style="color:#aaa;">Keine Informationen hinterlegt.</div>';
+
+  modal(`
+    <h2 style="margin-top:0;">Information</h2>
+    <div style="font-size:14px;line-height:1.5;">${infoHtml}</div>
+    <button class="btn" style="margin-top:14px;" onclick="closeM(); render();">← Zurück zur Pyramide</button>
+  `);
+}
+
+window.showHistory = function(){
+  cleanExpiredLocks();
+  if(!Array.isArray(fixedChallenges)) fixedChallenges = [];
+  const fixed = fixedChallenges.filter(ch => ch && ch.status === 'fixed');
+  const fixedHtml = fixed.length ? '<h3>Fixierte Forderungen</h3><div style="max-height:140px;overflow:auto">'+fixed.map(ch=>escapeHtml(ch.challenger)+' vs '+escapeHtml(ch.opponent)+' <button onclick="enterFixedResult('+ch.id+')">Ergebnis</button>').join('<br>')+'</div>':'';
+  if(!Array.isArray(hist)) hist = [];
+  modal('<h2>Historie</h2>'+fixedHtml+'<div style="max-height:250px;overflow:auto">'+(hist.join('<br>')||'Keine Einträge')+'</div><button class="btn" onclick="printHistory()">Historie drucken</button><button class="btn" onclick="clearHist()">Historie löschen</button><button class="btn" onclick="closeM()">Schließen</button>');
+}
+
+window.enterFixedResult = function(id){
+  if(!Array.isArray(fixedChallenges)) fixedChallenges = [];
+  const ch = fixedChallenges.find(x => x && x.id === id);
+  if(!ch) return;
+  pending = {from: players.indexOf(ch.challenger)+1, to: players.indexOf(ch.opponent)+1, challenger: ch.challenger, opponent: ch.opponent, fixedId: id};
+  showResultEntry();
+}
+
+window.printHistory = function(){
+  if(!currentSession || (currentSession.type !== 'admin' && currentSession.type !== 'infosystem')){
+    const pw = prompt('Administrator-Passwort');
+    if(pw !== adminPassword) { if(pw!==null) alert('Falsches Passwort'); return; }
+  }
+  if(!Array.isArray(hist)) hist = [];
+  const entries = hist.length ? hist.map(x => '<li>'+escapeHtml(x)+'</li>').join('') : '<li>Keine Einträge</li>';
+  const w = window.open('','_blank','width=800,height=600');
+  if(!w) { alert('Pop-up blockiert.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Historie</title></head><body><h1>Historie</h1><ol>'+entries+'</ol></body></html>');
+  w.document.close(); w.focus(); setTimeout(()=>w.print(), 250);
+}
+
+window.clearHist = function(){
+  if(!currentSession || currentSession.type !== 'admin'){
+    const pw = prompt('Admin-Passwort');
+    if(pw !== adminPassword) { alert('Falsches Passwort'); return; }
+  }
+  if(confirm('Historie wirklich löschen?')){ hist = []; window.save(); showHistory(); }
+}
+
+window.showStatistics = showStatistics;
+window.openAdminMenu = openAdminMenu;
+window.switchAdminTab = switchAdminTab;
+window.closeM = closeM;
+
+function render(){
+  try {
+    cleanExpiredLocks();
+    renderHeader();
+    renderInfoBox();
+    
+    if(!pyramidEl) return;
+    pyramidEl.innerHTML = '';
+    
+    let p = 1;
+    for(let r=1; p <= currentMaxPlayers; r++){
+      let row = document.createElement('div');
+      row.className = 'row';
+      for(let c=1; c<=r && p<=currentMaxPlayers; c++){
+        let cp = p, d = document.createElement('div');
+        d.className = 'card';
+        const name = players[cp-1] || 'FREI';
+        const fixed = activeFixedChallengeForName(name);
+        const isAllowed = selected && allowed(selected).includes(cp);
+        const remaining = lockRemaining(name);
+        const vacUntil = isVacationActive(name);
+        
+        if(name === 'FREI') d.classList.add('free');
+        if(name !== 'FREI' && vacUntil) d.classList.add('vacation');
+        else if(name !== 'FREI' && remaining > 0) d.classList.add('locked');
+        if(fixed) d.classList.add('challengeFixed');
+        if(cp === selected) d.classList.add('selected');
+        if(isAllowed) d.classList.add('allowed');
+        
+        let sub = '';
+        if(vacUntil){
+          sub = '<div class="vacationBadge">Urlaub</div>';
+        } else if(fixed){
+          const restMs = Math.max(0, fixed.expiresAt - Date.now());
+          sub = '<div class="challengedBy">vs. '+escapeHtml(fixed.opponent===name?fixed.challenger:fixed.opponent)+'</div><div class="timeBadge">⏳ '+lockText(restMs)+'</div>';
+        }else if(name !== 'FREI' && remaining > 0){
+          sub = '<div class="lockBadge">🔒 '+lockText(remaining)+'</div>';
+        }
+        
+        d.innerHTML = '<div class="place">Platz '+cp+'</div><div class="nameBox"><b>'+escapeHtml(name).replace(/ /g,'<br>')+'</b></div>'+sub;
+        d.addEventListener('click', () => clickPlace(cp));
+        d.addEventListener('dblclick', (e) => { 
+          e.preventDefault(); e.stopPropagation(); 
+          if(currentSession && (currentSession.type === 'admin' || currentSession.type === 'infosystem')){
+            selected = null; editPlayerDirect(cp); 
+          }
+        });
+        row.appendChild(d);
+        p++;
+      }
+      pyramidEl.appendChild(row);
+    }
+  } catch(err) {
+    console.error("Fehler im Render-Prozess: ", err);
+  }
+}
+</script>
+</body>
+</html>
