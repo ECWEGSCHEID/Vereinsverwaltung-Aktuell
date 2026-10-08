@@ -1,0 +1,31 @@
+EC WEGSCHEID – MOBILZUGANG
+
+1. GitHub
+   Neue/aktualisierte Dateien hochladen:
+   - index.html
+   - mobile-zugang.html
+   - Firestore_Regeln_EC_Wegscheid_V2.0.0_KOMPLETT.rules NICHT nach GitHub nötig,
+     aber im Archiv behalten.
+
+2. Firebase
+   Die beigefügten Firestore-Regeln vollständig veröffentlichen.
+
+3. Benutzer & Rechte
+   Nach dem Update:
+   Verwaltung -> Benutzer & Rechte
+   Dort erscheint der QR-Code "Mobilzugang – Smartphone & Tablet".
+
+4. Rechte
+   Turnierverwaltung            = tv
+   Vereinsnachrichten           = n
+   Turnier / Termin anlegen     = tp
+   Ziel Jahresmeisterschaft     = jm
+
+5. Anmeldung
+   Auf Smartphone/Tablet einmal mit dem normalen Firebase-Benutzerkonto anmelden.
+   Die Anmeldung bleibt lokal gespeichert.
+
+6. Jahresmeisterschaft
+   Der mobile Zugang verändert nur die Spieler-Ergebnisse und den internen
+   JM-Zeitstempel. Titel, Regeln, Startgeld usw. bleiben durch Firestore-Regeln
+   geschützt.

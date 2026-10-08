@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Solo Pyramide 2026 V15.27</title>
+<title>Solo Pyramide 2026 V2.0.0</title>
 
 <meta name="theme-color" content="#800000">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -478,7 +478,7 @@ h1, .subtitle {
   font-size: 13px;
 }
 
-/* V15.25: smartphone-friendly layout */
+/* V2.0.0: smartphone-friendly layout */
 @media (max-width: 700px) {
   .headerContainer {
     margin: 6px 48px 8px 48px;
@@ -585,7 +585,7 @@ const infoSystemNavBadge = document.getElementById('infoSystemNavBadge');
 const topRightLoginInfoBox = document.getElementById('topRightLoginInfoBox');
 const logoutNavBtn = document.getElementById('logoutNavBtn');
 
-// V15.27: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
+// V2.0.0: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
 // Whiteboard: ?mode=whiteboard oder ?whiteboard=1 -> keine separate Anmeldung.
 // Verwaltung: ?mode=admin-embedded -> übernimmt ausschließlich eine bereits
 // angemeldete Administrator-Sitzung aus der übergeordneten Vereinsverwaltung.
@@ -665,7 +665,7 @@ let selected = null;
 let pending = null;
 let currentSession = null;
 
-// V15.27: Login-Session auf diesem Gerät merken.
+// V2.0.0: Login-Session auf diesem Gerät merken.
 // Es wird nur Benutzername/Rolle gespeichert, niemals das Passwort.
 const SESSION_STORAGE_KEY = 'soloPyramide_session_v1';
 try {
@@ -748,7 +748,7 @@ function buildPayload(){
     infoLines, customTitle, customSubtitle,
     currentMaxPlayers, vacations, ruleLockHoursAfterGame,
     ruleChallengeDays, ruleWithdrawHours,
-    appVersion: '15.27',
+    appVersion: '2.0.0',
     updatedAt: new Date().toISOString()
   };
 }
