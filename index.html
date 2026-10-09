@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.0.0 Solo Pyramide</title>
+<title>Vereins-Informationssystem – V2.0.5</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
@@ -650,7 +650,7 @@ body.tv-preview-open{overflow:hidden!important}
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 2.0.0</div>
+<div id="appVersion" class="app-version">Version 2.0.5</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -887,7 +887,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='2.0.4';
+const APP_VERSION='2.0.5';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -8546,6 +8546,7 @@ function renderTurnierverwaltungAdmin(){
     </div>
   </div>
 </div>
-<script src="systemeinstellungen.js?v=2.0.4"></script>
+<script src="designvorlagen-daten.js?v=2.0.5"></script>
+<script src="systemeinstellungen.js?v=2.0.5"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* EC Wegscheid – Systemeinstellungen V2.0.4. Kein Einfluss auf bestehende Daten ohne ausdrückliches Speichern. */
+/* EC Wegscheid – Systemeinstellungen V2.0.5. Kein Einfluss auf bestehende Daten ohne ausdrückliches Speichern. */
 (function(){
 'use strict';
 const DOC='vereinsKonfiguration';
@@ -21,10 +21,15 @@ const PRESETS={
   'schwarz-silber-original-mit-logo':{label:'Schwarz Silber – bisherige verkleinerte Vorlage',file:'designvorlagen/schwarz-silber-original-mit-logo.jpg',theme:'blacksilver'},
   'schwarz-carbon-original-mit-logo':{label:'Schwarz Carbon – EC Wegscheid (dein Originalbild)',file:'designvorlagen/schwarz-carbon-ec-wegscheid-original.png',theme:'blacksilver'}
 };
-function presetUrl(key){return PRESETS[key]?.file||''}
+function presetUrl(key){
+  const file=PRESETS[key]?.file||'';
+  if(!file)return '';
+  const stem=file.split('/').pop().replace(/\.(png|jpg|jpeg)$/i,'');
+  return window.ECW_DESIGN_ASSETS?.[stem] || file;
+}
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const base=()=>({name:'EC Wegscheid',shortName:'ECW',email:'',address:'',contact:'',theme:'carbon',primary:'#b30000',background:'#5b0000',logo:'',backgroundImage:'',backgroundPreset:'none'});
-let loaded=null, draft=null, docExists=false, busy=false;
+let loaded=null, draft=null, docExists=false, busy=false, previewingStart=false;
 const admin=()=>typeof appPermissions!=='undefined'&&appPermissions.admin===true&&typeof firebaseAuthUser!=='undefined'&&!!firebaseAuthUser;
 const db=()=>typeof firestoreDb!=='undefined'?firestoreDb:null;
 const el=id=>document.getElementById(id);
@@ -44,7 +49,18 @@ function apply(v){
   style.id='ecw-config-style';
   // Theme is applied only after explicit save to Firebase. Legacy installations stay untouched.
   const bg=d.backgroundImage||presetUrl(d.backgroundPreset);
-  style.textContent='body{background-color:'+d.background+' !important;'+(bg?'background-image:url("'+bg+'") !important;':'')+'background-position:center !important;background-size:cover !important;}button.primary{background:'+d.primary+' !important;}';
+  // Die Startseite besitzt mit #shArt eine eigene Hintergrundebene.
+  // Nur body zu gestalten war bisher nicht sichtbar; !important setzt sich
+  // auch gegen das von shRender() vergebene Inline-Hintergrundbild durch.
+  const startBackground=bg
+    ? '#shArt{background-image:url("'+bg+'") !important;background-position:center !important;background-size:cover !important;}'
+    : '';
+  style.textContent='body{background-color:'+d.background+' !important;'
+    +(bg?'background-image:url("'+bg+'") !important;':'')
+    +'background-position:center !important;background-size:cover !important;}'
+    +'#shStage{background-color:'+d.background+' !important;}'
+    +startBackground
+    +'button.primary{background:'+d.primary+' !important;}';
   if(!style.parentNode)document.head.appendChild(style);
   document.documentElement.dataset.ecwTheme=d.theme;
 }
@@ -108,13 +124,39 @@ async function save(){
     const check=await db().collection('appSettings').doc(DOC).get({source:'server'});
     if(!check.exists)throw new Error('Nach dem Speichern kein Konfigurationsdokument gefunden.');
     loaded=clean(check.data());docExists=true;draft=clean(loaded);apply(loaded);
-    msg('Erfolgreich in Firebase gespeichert: '+(PRESETS[loaded.backgroundPreset]?.label||THEMES[loaded.theme].label)+'. Nach Neustart bleibt die Auswahl erhalten.');
+    el('ecwCfgTheme').value=draft.theme;
+    el('ecwCfgPreset').value=draft.backgroundPreset;
+    el('ecwCfgPrimary').value=draft.primary;
+    el('ecwCfgBackground').value=draft.background;
+    msg('Erfolgreich in Firebase gespeichert: '+(PRESETS[loaded.backgroundPreset]?.label||THEMES[loaded.theme].label)+'. Die Startseite übernimmt das gespeicherte Design.');
   }catch(e){console.error('ECW Design speichern:',e);msg('NICHT gespeichert – '+(e.code||'Fehler')+': '+(e.message||e),true)}finally{busy=false;if(saveButton)saveButton.disabled=false;}
+}
+function startseiteVorschau(){
+  if(!admin()||!draft)return;
+  previewingStart=true;
+  apply(draft);
+  if(typeof showView==='function')showView('startseite');
+  let b=el('ecwBackFromPreview');
+  if(!b){
+    b=document.createElement('button');b.id='ecwBackFromPreview';b.type='button';
+    b.textContent='← Zurück zu den Systemeinstellungen (Vorschau)';
+    b.style.cssText='position:fixed;top:12px;right:12px;z-index:2147483647;background:#20242c;color:white;padding:13px 20px;border:2px solid #fff;border-radius:10px;cursor:pointer;box-shadow:0 2px 12px #000';
+    document.body.appendChild(b);
+  }
+  b.hidden=false;
+  b.onclick=()=>{
+    b.hidden=true;
+    previewingStart=false;
+    if(loaded)apply(loaded);
+    else {el('ecw-config-style')?.remove();delete document.documentElement.dataset.ecwTheme;}
+    if(typeof showView==='function')showView('admin');
+    if(typeof adminSection==='function')adminSection('sysconfig');
+  };
 }
 async function open(){
   if(!admin())return;
   const a=el('adminMain');if(!a)return;
-  a.innerHTML='<h2>⚙ Systemeinstellungen <span class="small">V2.0.4 · Designvorlagen</span></h2><div class="card" style="margin-bottom:12px"><b>Vereinsprofil und Design</b><p class="small">Änderungen werden erst mit „Einstellungen speichern“ in Firebase übernommen. Das bestehende EC-Wegscheid-Design bleibt ohne Speichern unverändert. Neue Vereinsinstallationen können die neutrale Vorlage wählen.</p><div class="row"><div><label>Vereinsname</label><input id="ecwCfgName" type="text" maxlength="120"></div><div><label>Vereinskürzel</label><input id="ecwCfgShort" type="text" maxlength="25"></div></div><div class="row"><div><label>E-Mail</label><input id="ecwCfgEmail" type="text"></div><div><label>Kontakt</label><input id="ecwCfgContact" type="text"></div></div><label>Anschrift</label><input id="ecwCfgAddress" type="text"><label>Designvorlage</label><select id="ecwCfgTheme">'+Object.entries(THEMES).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><label>Hintergrundvorlage (mit oder ohne Logo)</label><select id="ecwCfgPreset">'+Object.entries(PRESETS).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><div class="row"><div><label>Akzentfarbe</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div><div class="row"><div><label>Vereinslogo (PNG/JPG/WebP)</label><input id="ecwCfgLogo" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveLogo">Logo entfernen</button></div><div><label>Hintergrundbild (PNG/JPG/WebP)</label><input id="ecwCfgBg" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveBg">Bild entfernen</button></div></div><p class="small">Bilder werden vor dem Speichern verkleinert. Große Originalbilder und die Hintergründe einzelner Module werden in einer späteren Ausbaustufe zentral verwaltet.</p></div><div class="card"><h3>Live-Vorschau (nur hier)</h3><div id="ecwConfigPreview" style="padding:24px;min-height:190px;border-radius:12px"></div><div class="row" style="margin-top:16px"><button class="primary" id="ecwCfgSave">Einstellungen speichern</button><button id="ecwCfgCancel">Änderungen verwerfen</button><button id="ecwCfgEC">EC Wegscheid Carbon Rot laden</button><button id="ecwCfgNeutral">Neutralen Entwurf laden</button></div><div id="ecwCfgStatus" role="status" style="margin-top:12px"></div></div><div class="card" style="margin-top:12px"><b>Weitere Bereiche (folgen)</b><p class="small">Modulverwaltung mit sicheren Zugriffssperren · zentrale Modulversionen · Vereins-Installationsassistent · gemeinsame Designübernahme in alle Einzelprogramme.</p></div>';
+  a.innerHTML='<h2>⚙ Systemeinstellungen <span class="small">V2.0.5 · Designvorlagen</span></h2><div class="card" style="margin-bottom:12px"><b>Vereinsprofil und Design</b><p class="small">Änderungen werden erst mit „Einstellungen speichern“ in Firebase übernommen. Das bestehende EC-Wegscheid-Design bleibt ohne Speichern unverändert. Neue Vereinsinstallationen können die neutrale Vorlage wählen.</p><div class="row"><div><label>Vereinsname</label><input id="ecwCfgName" type="text" maxlength="120"></div><div><label>Vereinskürzel</label><input id="ecwCfgShort" type="text" maxlength="25"></div></div><div class="row"><div><label>E-Mail</label><input id="ecwCfgEmail" type="text"></div><div><label>Kontakt</label><input id="ecwCfgContact" type="text"></div></div><label>Anschrift</label><input id="ecwCfgAddress" type="text"><label>Designvorlage</label><select id="ecwCfgTheme">'+Object.entries(THEMES).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><label>Hintergrundvorlage (mit oder ohne Logo)</label><select id="ecwCfgPreset">'+Object.entries(PRESETS).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><div class="row"><div><label>Akzentfarbe</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div><div class="row"><div><label>Vereinslogo (PNG/JPG/WebP)</label><input id="ecwCfgLogo" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveLogo">Logo entfernen</button></div><div><label>Hintergrundbild (PNG/JPG/WebP)</label><input id="ecwCfgBg" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveBg">Bild entfernen</button></div></div><p class="small">Bilder werden vor dem Speichern verkleinert. Große Originalbilder und die Hintergründe einzelner Module werden in einer späteren Ausbaustufe zentral verwaltet.</p></div><div class="card"><h3>Designvorschau</h3><div id="ecwConfigPreview" style="padding:24px;min-height:190px;border-radius:12px"></div><div class="row" style="margin-top:16px"><button class="primary" id="ecwCfgSave">Einstellungen speichern</button><button id="ecwCfgStartPreview" type="button">Auf der Startseite ansehen</button><button id="ecwCfgCancel">Änderungen verwerfen</button><button id="ecwCfgEC">EC Wegscheid Carbon Rot laden</button><button id="ecwCfgNeutral">Neutralen Entwurf laden</button></div><div id="ecwCfgStatus" role="status" style="margin-top:12px"></div></div><div class="card" style="margin-top:12px"><b>Weitere Bereiche (folgen)</b><p class="small">Modulverwaltung mit sicheren Zugriffssperren · zentrale Modulversionen · Vereins-Installationsassistent · gemeinsame Designübernahme in alle Einzelprogramme.</p></div>';
   msg('Lade aktuelle Einstellungen …');
   try{const snap=await db().collection('appSettings').doc(DOC).get();docExists=snap.exists;loaded=snap.exists?clean(snap.data()):null;}catch(e){msg('Firebase-Laden fehlgeschlagen: '+e.message,true);return;}
   draft=clean(loaded||base());
@@ -129,6 +171,7 @@ async function open(){
   el('ecwCfgRemoveLogo').onclick=()=>{draft.logo='';preview()};
   el('ecwCfgRemoveBg').onclick=()=>{draft.backgroundImage='';draft.backgroundPreset='none';el('ecwCfgPreset').value='none';preview()};
   el('ecwCfgSave').onclick=save;
+  el('ecwCfgStartPreview').onclick=startseiteVorschau;
   el('ecwCfgCancel').onclick=()=>open();
   el('ecwCfgEC').onclick=()=>{draft={...draft,theme:'carbon',primary:THEMES.carbon.primary,background:THEMES.carbon.background,backgroundPreset:'none',backgroundImage:'',logo:''};el('ecwCfgPreset').value='none';el('ecwCfgTheme').value='carbon';el('ecwCfgPrimary').value=draft.primary;el('ecwCfgBackground').value=draft.background;preview();msg('EC Wegscheid Carbon Rot als Entwurf geladen. Noch nicht gespeichert.');};
   el('ecwCfgNeutral').onclick=()=>{draft={...draft,...THEMES.neutral,theme:'neutral',logo:'',backgroundImage:'',backgroundPreset:'none'};el('ecwCfgPreset').value='none';el('ecwCfgTheme').value='neutral';el('ecwCfgPrimary').value=draft.primary;el('ecwCfgBackground').value=draft.background;preview();msg('Neutraler Entwurf geladen. Noch nicht gespeichert.')};
