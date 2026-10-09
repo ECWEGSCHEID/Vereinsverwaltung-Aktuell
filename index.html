@@ -811,6 +811,7 @@ body.tv-preview-open{overflow:hidden!important}
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite bearbeiten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
       <button style="width:100%;margin-bottom:8px" data-app-perm="ov" onclick="adminSection('ov')">Übersichtsseite Verwaltung</button>
       <button style="width:100%;margin-bottom:8px" data-app-perm="lk" onclick="adminSection('lk')">Links für die Startseite</button>
+      <button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('sysconfig')">⚙ Systemeinstellungen</button>
       <button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('wb')">Whiteboard-Freigaben</button>
       <button style="width:100%;margin-bottom:8px" onclick="adminSection('s')">Speicher verwalten</button><button data-user-password hidden style="width:100%;margin-bottom:8px" onclick="openUserPassword()">Benutzerkennwort ändern</button><button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('backup')">Datensicherung</button><button data-global-admin hidden style="width:100%" onclick="adminSection('u')">Benutzer &amp; Rechte</button>
       <hr><div class="small">Lokale Sicherung: Texte/Einstellungen in localStorage, Bilder/PDF-Seiten in IndexedDB.</div><div id="firebaseStatus" class="small" style="margin-top:10px"></div>
@@ -886,7 +887,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='2.0.0';
+const APP_VERSION='2.0.2';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -5881,11 +5882,12 @@ function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
  const permKey=(s==='zr'?'t':s);
- const adminOnly=['u','backup','wb','solo','ic'];
+ const adminOnly=['u','backup','wb','solo','ic','sysconfig'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
  try{unloadMvAdmin()}catch(e){}
  try{document.getElementById('adminMain').classList.remove('mv-mode')}catch(e){}
+ if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}
  if(s==='u'){openUserRightsAdmin();return}
  if(s==='wb'){renderWhiteboardPermissionsAdmin();return}
@@ -8539,5 +8541,6 @@ function renderTurnierverwaltungAdmin(){
     </div>
   </div>
 </div>
+<script src="systemeinstellungen.js?v=2.0.2"></script>
 </body>
 </html>
