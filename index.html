@@ -1903,7 +1903,7 @@ async function exportAppBackup(){
  if(appPermissions.admin!==true||appBackupBusy)return;
  appBackupBusy=true;const status=document.getElementById('appBackupStatus'),button=document.getElementById('appBackupButton');if(button)button.disabled=true;
  try{
-  const startedAt=new Date().toISOString(),documents=[],counts={};
+  const startedAt=new Date().toISOString(),documents=[],counts={},skippedCollections=[];
   for(const name of APP_BACKUP_COLLECTIONS){
    if(status)status.textContent='Sichere '+name+' …';
    try{
@@ -1929,6 +1929,9 @@ async function exportAppBackup(){
    }catch(collectionError){
      const reason=collectionError?.message||String(collectionError);
      const code=collectionError?.code||'unbekannter Fehler';
+     if(['turnierWirtschaftlichkeit','turnierWirtschaftlichkeitSicherungen'].includes(name) && (code==='permission-denied'||/missing or insufficient permissions/i.test(reason))){
+       skippedCollections.push(name);counts[name]='NICHT GESICHERT (Firebase-Berechtigung fehlt)';continue;
+     }
      throw new Error('Firestore-Zugriff bei „'+name+'“ fehlgeschlagen ('+code+'): '+reason);
    }
   }
@@ -1936,7 +1939,7 @@ async function exportAppBackup(){
   if(!members||!Array.isArray(members.data.members))throw new Error('Vollständige Mitgliederdaten fehlen (ecw/state). Keine vollständige App-Sicherung erstellt.');
   const label=backupDateLabel(),entries=[];
   const add=(name,data)=>entries.push({name,content:JSON.stringify(data,null,2)});
-  add('Firestore_Sicherung_'+label+'.json',{format:'ecw-firestore-v1',appVersion:APP_VERSION,projectId:firebaseConfig.projectId,startedAt,completedAt:new Date().toISOString(),collections:APP_BACKUP_COLLECTIONS,documents});
+  add('Firestore_Sicherung_'+label+'.json',{format:'ecw-firestore-v1',appVersion:APP_VERSION,projectId:firebaseConfig.projectId,startedAt,completedAt:new Date().toISOString(),collections:APP_BACKUP_COLLECTIONS.filter(name=>!skippedCollections.includes(name)),skippedCollections,documents});
   add('Mitglieder_Sicherung_'+label+'.json',members.data);
   add('Benutzer_und_Rechte_'+label+'.json',documents.filter(d=>d.path.startsWith('users/')));
   const local={};for(const key of [DBKEY,OLD_DBKEY,SH_KEY,TEAMS_KEY,'verein_base_url','verein_startseite_url','verein_admin_email'])local[key]=localStorage.getItem(key);
@@ -1945,10 +1948,10 @@ async function exportAppBackup(){
   const media=await mediaAll(),mediaEntries=[];
   for(const item of media){if(!item.blob)throw new Error('Lokale Mediendatei ohne Inhalt: '+item.id);mediaEntries.push({id:item.id,dataUrl:await backupBlobDataUrl(item.blob)});}
   add('Lokale_Medien_'+label+'.json',mediaEntries);
-  add('Sicherungsprotokoll_'+label+'.json',{appVersion:APP_VERSION,projectId:firebaseConfig.projectId,startedAt,completedAt:new Date().toISOString(),collections:counts,localMediaCount:media.length,scope:'Alle bekannten Sammlungen der App und lokale App-Daten dieses Browsers; keine unbekannten Sammlungen oder Unterkollektionen.',excluded:['Firebase Authentication samt Passwort-Hashes','veröffentlichte Regeln und Indizes','Cloud Storage außerhalb der App','Realtime Database','Hosting','andere Browser und Geräte'],consistentSnapshot:false});
-  entries.push({name:'HINWEISE.txt',content:'App-Datensicherung '+APP_VERSION+'. Mit dem Versionspaket gemeinsam aufbewahren. Authentication-Konten separat exportieren. Die Mitglieder-JSON kann bei fehlendem ecw/state über die Übernahmefunktion eingelesen werden. Für eine vollständige Wiederherstellung siehe Anleitung. Benutzerrechte sind Firestore-Profile; sie enthalten keine Firebase-Anmeldepasswörter.'});
+  add('Sicherungsprotokoll_'+label+'.json',{appVersion:APP_VERSION,projectId:firebaseConfig.projectId,startedAt,completedAt:new Date().toISOString(),collections:counts,skippedCollections,localMediaCount:media.length,scope:'Alle zugänglichen bekannten Sammlungen der App und lokale App-Daten dieses Browsers; nicht gesicherte Sammlungen stehen unter skippedCollections.',excluded:['Firebase Authentication samt Passwort-Hashes','veröffentlichte Regeln und Indizes','Cloud Storage außerhalb der App','Realtime Database','Hosting','andere Browser und Geräte'],consistentSnapshot:false});
+  entries.push({name:'HINWEISE.txt',content:(skippedCollections.length?'ACHTUNG: Nicht gesicherte Sammlungen: '+skippedCollections.join(', ')+'. Diese Finanzdaten bitte separat sichern, sobald Firebase-Berechtigungen eingerichtet sind.\n\n':'')+'App-Datensicherung '+APP_VERSION+'. Mit dem Versionspaket gemeinsam aufbewahren. Authentication-Konten separat exportieren. Die Mitglieder-JSON kann bei fehlendem ecw/state über die Übernahmefunktion eingelesen werden. Für eine vollständige Wiederherstellung siehe Anleitung. Benutzerrechte sind Firestore-Profile; sie enthalten keine Firebase-Anmeldepasswörter.'});
   backupDownload(backupZip(entries),'EC_Wegscheid_App_Datensicherung_'+label+'.zip');
-  if(status)status.textContent='Sicherung erstellt: '+documents.length+' Dokumente, '+members.data.members.length+' Mitglieder, '+media.length+' lokale Mediendateien. ZIP im Downloadordner gemeinsam mit dem Versionspaket ablegen.';
+  if(status)status.textContent=(skippedCollections.length?'Teilsicherung erstellt! NICHT gesichert: '+skippedCollections.join(', ')+'. ':'Sicherung erstellt: ')+documents.length+' Dokumente, '+members.data.members.length+' Mitglieder, '+media.length+' lokale Mediendateien. ZIP im Downloadordner gemeinsam mit dem Versionspaket ablegen.';
  }catch(e){if(status)status.textContent='Sicherung abgebrochen: '+e.message;}
  finally{appBackupBusy=false;if(button)button.disabled=false;}
 }
