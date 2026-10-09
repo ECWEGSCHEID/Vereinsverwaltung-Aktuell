@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EC Wegscheid · Turnierwirtschaftlichkeit 2.7</title>
+<style>
+:root{--red:#b5121c;--deep:#780d14;--line:#dce1e6;--ink:#222b33;--muted:#66727e;--bg:#f2f4f6;--good:#0a7b47;--bad:#bc2731}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 'Segoe UI',Arial,sans-serif}button,input,textarea,select{font:inherit}button{border:0;cursor:pointer;border-radius:8px;padding:9px 12px;font-weight:650}button:hover{filter:brightness(.96)}.primary{background:var(--red);color:white}.secondary{background:#e9edf1;color:#27313c}.danger{background:#fbe6e6;color:#a21d26}.head{background:linear-gradient(100deg,var(--deep),var(--red));color:white;padding:17px 22px;border-bottom:4px solid #d8dce0}.head-inner{max-width:1600px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}.head h1{font-size:clamp(20px,2vw,28px);margin:0}.head p{margin:2px 0 0;color:#ffe1e2}.version{border:1px solid #ffffff66;padding:5px 9px;border-radius:7px;white-space:nowrap;font-size:12px}.wrap{max-width:1600px;margin:auto;padding:14px 18px 55px}.toolbar,.panel,.kpi{background:white;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 9px #17242b0b}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px}select,input,textarea{background:white;border:1px solid #c9d0d7;border-radius:7px;padding:8px 9px;min-width:0}input[type=number]{text-align:right}.toolbar input{width:210px}.push{margin-left:auto}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.tab{background:#e3e7ec}.tab.active{background:var(--red);color:white}.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;margin-bottom:12px}.kpi{padding:11px 13px}.kpi .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:750}.kpi .value{font-size:clamp(16px,1.6vw,23px);font-weight:800;white-space:nowrap}.kpi .sub{font-size:11px;color:var(--muted)}.panel{overflow:hidden}.panel-head{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line)}.panel-head h2{font-size:16px;margin:0}.hint{color:var(--muted);font-size:12px}.table-wrap{overflow:auto;max-height:63vh;scrollbar-gutter:stable}table{border-collapse:collapse;width:100%;font-size:12px}#eventTable{min-width:1280px;table-layout:fixed}#eventTable col:nth-child(1){width:76px}#eventTable col:nth-child(2){width:18%}#eventTable col:nth-child(3){width:11%}#eventTable col:nth-child(4){width:57px}#eventTable col:nth-child(5){width:15%}#eventTable col:nth-child(6){width:87px}#eventTable col:nth-child(7){width:95px}#eventTable col:nth-child(8){width:87px}#eventTable col:nth-child(9){width:87px}#eventTable col:nth-child(10){width:89px}#eventTable col:nth-child(11){width:89px}#eventTable col:nth-child(12){width:90px}#eventTable col:nth-child(12){width:86px}#sponsorTable{min-width:750px}th{position:sticky;top:0;z-index:2;background:#323a43;color:white;text-align:left;padding:9px 7px;line-height:1.2;white-space:normal}td{border-bottom:1px solid #e6e9ec;padding:8px 7px;vertical-align:middle}tbody tr:nth-child(even){background:#fafbfc}tbody tr:hover{background:#fff5f5}.money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.center{text-align:center}.ellipsis{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%}.pos{color:var(--good);font-weight:750}.neg{color:var(--bad);font-weight:750}.mini{font-size:11px;padding:5px 7px}.rowactions{white-space:nowrap}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:13px}.card{border:1px solid var(--line);border-radius:10px;background:white;padding:15px}.card h3{margin:0 0 12px;font-size:17px}.calc-row{display:flex;justify-content:space-between;gap:15px;border-bottom:1px dashed #e0e3e6;padding:7px 0}.calc-row.total{border-top:2px solid #bbb;border-bottom:0;font-size:17px;font-weight:800;margin-top:8px}.explain{font-size:12px;color:var(--muted)}.field{display:flex;flex-direction:column;gap:4px}.field label{font-weight:650;font-size:12px;color:#45515c}.sum-preview{border:1px solid #d5dde3;border-radius:7px;background:#f4f7f8;padding:8px 9px;min-height:38px;font-weight:800;color:#25313a}.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.w2{grid-column:span 2}.w4{grid-column:1/-1}textarea{min-height:65px;resize:vertical}.expense-item{display:grid;grid-template-columns:minmax(0,1fr) 155px 38px;gap:8px;margin:7px 0}.expense-item input{width:100%}dialog{border:0;border-radius:14px;width:min(950px,96vw);max-height:94vh;padding:0;box-shadow:0 15px 70px #0006}dialog::backdrop{background:#1119}.modalhead{background:linear-gradient(100deg,var(--deep),var(--red));color:white;padding:13px 17px;display:flex;align-items:center;justify-content:space-between}.modalhead h2{font-size:18px;margin:0}.modalbody{padding:16px;max-height:75vh;overflow:auto}.modalfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}.soft{background:#f7f8fa;padding:12px;border-radius:9px}.hidden{display:none!important}#bottomScroll{position:fixed;left:0;bottom:0;right:0;height:19px;overflow-x:auto;overflow-y:hidden;background:#f2f3f4;border-top:1px solid #bcc4cb;z-index:8}#scrollTrack{height:1px}#bottomScroll::-webkit-scrollbar{height:16px}#bottomScroll::-webkit-scrollbar-thumb{background:#8b98a5;border:3px solid #f2f3f4;border-radius:8px}.year-note{background:#fff6e3;padding:8px 10px;border-radius:8px;margin:10px 0;color:#76500c}.sponsor-head{display:flex;gap:8px;align-items:center}.sponsor-head .push{margin-left:auto}.no-data{text-align:center;padding:22px;color:var(--muted)}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2{grid-template-columns:1fr}}@media(max-width:640px){.wrap{padding:9px 8px 55px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr 1fr}.w2,.w4{grid-column:1/-1}.toolbar input{width:100%}.push{margin-left:0}.expense-item{grid-template-columns:1fr 105px 32px}.head{padding:13px}.version{display:none}}@media print{.head,.toolbar,.tabs,.rowactions,#bottomScroll,.modalhead{display:none!important}.wrap{padding:0}.table-wrap{max-height:none;overflow:visible}#eventTable{min-width:0;font-size:8px}.kpis{grid-template-columns:repeat(6,1fr)}th{position:static}.panel{box-shadow:none}}
+
+/* EC Wegscheid – Carbon Red Premium */
+:root{--red:#d51c29;--deep:#62080e;--line:#563036;--ink:#f5f0f1;--muted:#d1b4b9;--bg:#101014;--good:#69d7a4;--bad:#ff8a92}
+body{background:radial-gradient(ellipse at 80% 0%,#651018 0%,transparent 37%),repeating-linear-gradient(133deg,#151619 0,#151619 2px,#111215 2px,#111215 5px);background-attachment:fixed;color:var(--ink)}
+.head{background:linear-gradient(112deg,#160d11 0%,#470b11 40%,#b61925 85%,#2a0c11 100%);border-bottom:3px solid #c5b4b6;box-shadow:0 6px 25px #0008}
+.head h1{text-shadow:0 2px 3px #0009;letter-spacing:.3px}
+.head p{color:#f5c4c8}
+.version{background:#0f1015a8;border-color:#b68d94;color:#fff}
+.toolbar,.panel,.kpi,.card{background:linear-gradient(145deg,#252327,#1b1b20);border:1px solid #5d353a;box-shadow:0 3px 15px #0006;color:var(--ink)}
+.toolbar{border-top:2px solid #c32a36}
+.kpi{border-left:3px solid #a51d29}
+.kpi .label,.kpi .sub,.hint,.explain{color:#d1b4b9}
+.kpi .value{color:#fff}
+.tabs{gap:8px}
+.tab{background:linear-gradient(#343239,#222228);border:1px solid #604148;color:#e9dfe0}
+.tab.active,.primary{background:linear-gradient(135deg,#a4111d,#ed2637);border:1px solid #ed5961;color:#fff;box-shadow:inset 0 1px #ffb1b144}
+.secondary{background:linear-gradient(#49464d,#302e35);border:1px solid #6d626b;color:#f9f2f3}
+.danger{background:#582026;color:#ffdde0;border:1px solid #9e4149}
+button:hover{filter:brightness(1.16)}
+select,input,textarea{background:#121317;color:#f9f4f4;border:1px solid #76525a;color-scheme:dark}
+select:focus,input:focus,textarea:focus{outline:2px solid #ed3445;outline-offset:1px}
+.panel-head{border-bottom-color:#674149}
+table{color:#f4eef0}
+thead th,th{background:#3d151d;color:#fff;border-bottom-color:#a62c38}
+td{border-bottom-color:#50373e}
+tbody tr:nth-child(even){background:#ffffff07}
+tbody tr:hover{background:#a7252b25}
+.pos{color:#7ce5ae!important}.neg{color:#ff9aa2!important}
+.calc-row{border-bottom-color:#533a41}.calc-row.total{background:#551720;color:#fff;border:1px solid #a83d47;border-radius:8px;padding:9px}
+.year-note{background:#3b272d;color:#f4d8db;border-color:#77505a}
+dialog{background:#202025;color:#fff;border:1px solid #a64550;box-shadow:0 24px 90px #000c}
+.modalhead{background:linear-gradient(110deg,#420d15,#a71928);color:#fff}
+.modalfoot{background:#242127;border-top:1px solid #684047}
+.sum-preview{color:#fff}
+#bottomScroll{background:#291a20;border-top:2px solid #b52b37}
+#scrollTrack{background:transparent}
+@media print{body{background:#fff!important;color:#111!important}.panel,.kpi,.card{background:white!important;color:#111!important}td,table{color:#111!important}thead th{background:#ddd!important;color:#111!important}.kpi .value{color:#111!important}}
+
+/* Jahresvergleich: eigenständige SVG-Diagramme, ohne Internetverbindung */
+.comparison-panel{margin-top:14px}.comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;padding:14px}
+.chart-card{background:linear-gradient(145deg,#2b252a,#191a1e);border:1px solid #674047;border-radius:12px;padding:15px;min-width:0}
+.chart-card h3{margin:0 0 3px;font-size:16px;color:#fff}.chart-card p{font-size:12px;color:#d1b4b9;margin:0 0 10px;min-height:35px}
+.chart-wide{grid-column:1/-1}.chart-scroll{width:100%;overflow-x:auto;scrollbar-color:#aa2834 #241b20;scrollbar-width:thin}
+.chart-area svg{display:block;width:100%;height:auto;min-width:500px}.chart-area svg text{font-family:'Segoe UI',Arial,sans-serif}
+.chart-legend{display:flex;flex-wrap:wrap;gap:7px 18px;margin-top:8px;color:#e6d5d9;font-size:12px}
+.chart-legend span{display:flex;align-items:center;gap:6px}.legend-dot{display:inline-block;width:11px;height:11px;border-radius:3px}
+.chart-empty{padding:28px;text-align:center;color:#d1b4b9}
+@media(max-width:960px){.comparison-grid{grid-template-columns:1fr}.chart-wide{grid-column:auto}}
+@media print{.chart-card{background:#fff!important;color:#111!important}.chart-card h3,.chart-card p{color:#111!important}.chart-area svg text{fill:#333!important}.chart-legend{color:#111!important}}
+</style></head><body>
+<header class="head"><div class="head-inner"><div><h1>EC Wegscheid · Turnierwirtschaftlichkeit</h1><p>Turniere, Einnahmen, Ausgaben, Helfer und Sponsoring</p></div><div class="version">Version 2.0.0</div></div></header>
+<div id="twGuard" role="alertdialog" aria-modal="true" style="position:fixed;inset:0;background:#11080df5;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;font:16px system-ui"><div style="max-width:570px;width:100%;background:#272127;border:1px solid #8f737b;border-radius:14px;padding:25px;box-shadow:0 12px 50px #000"><h2 id="twGuardTitle">Firebase-Anmeldung wird geprüft …</h2><div id="twGuardText">Bitte warten.</div><div id="twGuardActions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"></div></div></div>
+<div id="twCloudStatus" role="status" style="padding:6px 15px;background:#18151bd9;color:#fff;text-align:center;font:13px system-ui">Firebase wird verbunden …</div>
+<main class="wrap">
+<div class="toolbar"><b>Jahr</b><select id="yearSelect"><option>2026</option><option>2025</option></select><button class="secondary" id="addYearBtn" title="Weiteres Abrechnungsjahr hinzufügen">+ Jahr</button><input id="search" placeholder="Turnier suchen …" aria-label="Turnier suchen"><select id="typeFilter"><option value="">Alle Turnierarten</option><option>Turnier</option><option>Meisterschaft / Cup</option><option>Vereinsintern</option><option>Sonstiges</option></select><span class="push"></span><button class="secondary" id="printBtn">Drucken</button><button class="secondary" id="csvBtn">CSV exportieren</button><button class="primary" id="newEventBtn">+ Turnier</button></div>
+<nav class="tabs"><button class="tab active" data-tab="events">Turnierübersicht</button><button class="tab" data-tab="helpers">Helfer</button><button class="tab" data-tab="sponsors">Sponsoring</button><button class="tab" data-tab="annual">Jahresauswertung</button><button class="tab" data-tab="backup">Datensicherung</button></nav>
+<section id="tab-events"><div class="kpis" id="eventKpis"></div><div class="panel"><div class="panel-head"><h2>Turniere <span id="eventYear"></span></h2><span class="hint">Alle Einzelheiten über „Bearbeiten“. Bei schmalem Bildschirm: unten waagerecht verschieben.</span></div><div class="table-wrap" id="eventScroll"><table id="eventTable"><colgroup><col><col><col><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Datum</th><th>Turnier</th><th>Art</th><th>Mann-<br>schaften</th><th>Turnierpreise</th><th class="money">Kosten für<br>Preise</th><th class="money">Startgeld</th><th class="money">Einnahmen<br>Gastro</th><th class="money">Einnahmen</th><th class="money">Ausgaben</th><th class="money">Gewinn</th><th>Aktion</th></tr></thead><tbody id="eventRows"></tbody></table></div></div></section>
+<section id="tab-helpers" class="hidden"><div class="panel"><div class="panel-head"><h2>Helferplanung <span id="helperYear"></span></h2><span class="hint">Pro Turnier beliebig viele Helfer je Aufgabe eintragen. Bereits verwendete Namen werden vorgeschlagen.</span></div><div class="table-wrap" style="max-height:none"><table id="helperTable" style="min-width:980px"><thead><tr><th>Datum</th><th>Turnier</th><th>Schiedsrichter</th><th>Auswertung</th><th>Ausschank</th><th>Bedienung</th><th>Zusammenräumen</th><th>Aktion</th></tr></thead><tbody id="helperRows"></tbody></table></div></div>
+<div class="panel-head"><h2>Helferstatistik – nach Anzahl der Einsätze</h2><span class="hint">Jede Aufgabe zählt als eine Mithilfe. Übernimmt eine Person bei einem Turnier mehrere Aufgaben, werden diese einzeln gezählt.</span></div>
+<div class="table-wrap" style="max-height:460px"><table id="helperRankingTable" style="min-width:650px"><thead><tr><th>Rang</th><th>Helfer</th><th>Mithilfen gesamt</th><th>Turniere</th><th>Schiedsrichter</th><th>Auswertung</th><th>Ausschank</th><th>Bedienung</th><th>Zusammenräumen</th></tr></thead><tbody id="helperRankingRows"></tbody></table></div>
+</div></section>
+<section id="tab-sponsors" class="hidden"><div class="kpis" id="sponsorKpis"></div><div class="panel"><div class="panel-head sponsor-head"><h2>Sponsoring <span id="sponsorYear"></span></h2><span class="hint">Geldspenden, Sachspenden und Leistungen zentral für das ganze Jahr erfassen.</span><button class="primary push" id="newSponsorBtn">+ Sponsoring eintragen</button></div><div class="table-wrap"><table id="sponsorTable"><thead><tr><th>Datum</th><th>Sponsor / Firma</th><th>Art</th><th>Gesponsert / Beschreibung</th><th>Gesammelt von</th><th class="money">Wert (€)</th><th>Aktion</th></tr></thead><tbody id="sponsorRows"></tbody></table></div><div class="year-note" style="margin:12px">Übernommene Sponsoring-Angaben aus der alten Turnierliste sind als „Art noch offen“ markiert. Bitte prüfen, ob es sich um Geld, Waren oder Leistungen handelt.</div></div></section>
+<section id="tab-annual" class="hidden"><div class="kpis" id="annualKpis"></div><div class="panel"><div class="grid2"><div class="card"><h3>Jahresrechnung <span id="annualYear"></span></h3><div id="annualCalc"></div><p class="explain">Der Gewinn berücksichtigt Geldspenden einmalig, Sachspenden nicht als Geldzufluss. Der Sponsoringwert wird zusätzlich separat ausgewiesen.</p></div><div class="card"><h3>Deckung der Preiskosten</h3><div id="prizeCompare"></div><p class="explain">Hier werden Sponsoring (Geld- und Sachwerte) und Startgeldeinnahmen zusammen den Kosten für Preise gegenübergestellt. Dies ist ein wirtschaftlicher Deckungsvergleich, kein zusätzlicher Gewinn. Die Einnahmen und Preiskosten sind bereits in der Jahresrechnung berücksichtigt; Sachspenden sind kein Geldzufluss.</p><hr><h3>Weitere Jahresausgaben</h3><p class="explain">Zum Beispiel Startgelder für auswärtige Turniere.</p><label for="annualExtra">Zusätzliche Jahresausgaben (€)</label><div style="display:flex;gap:8px;margin-top:8px"><input id="annualExtra" type="number" min="0" step="0.01" style="max-width:180px"><button class="primary" id="saveExtra">Speichern</button></div><div id="annualNet"></div></div></div></div>
+<div class="panel comparison-panel"><div class="panel-head"><h2>Jahresvergleiche</h2><span class="hint">Automatisch aus allen erfassten Jahren · Beträge in Euro</span></div>
+<div class="comparison-grid">
+<div class="chart-card"><h3>Gewinn im Jahresvergleich</h3><p>Jahresgewinn einschließlich Geldspenden und weiterer Jahresausgaben</p><div class="chart-scroll"><div id="chartProfit" class="chart-area"></div></div></div>
+<div class="chart-card"><h3>Einnahmen und Ausgaben</h3><p>Turniereinnahmen inklusive Geldspenden im Vergleich zu sämtlichen Ausgaben</p><div class="chart-scroll"><div id="chartIncomeExpense" class="chart-area"></div></div></div>
+<div class="chart-card chart-wide"><h3>Deckung der Preiskosten</h3><p>Sponsoring (Geld- und Sachwerte), Startgelder und Kosten für Preise – ohne doppelte Gewinnbuchung</p><div class="chart-scroll"><div id="chartPrizeCoverage" class="chart-area"></div></div></div>
+</div></div></section>
+<section id="tab-backup" class="hidden"><div class="panel"><div class="grid2"><div class="card"><h3>Datensicherung</h3><p>Die Daten werden zentral in Firebase gespeichert und sind Bestandteil der Gesamtsicherung der Vereinsverwaltung. Zusätzlich kann eine JSON-Datei heruntergeladen werden.</p><button class="primary" id="exportBackup">Komplette Sicherung herunterladen</button></div><div class="card" id="twCloudBackupCard"><h3>Firebase-Sicherungsstände</h3><p>Nur Administratoren: manuellen Sicherungsstand anlegen und ältere Stände wiederherstellen.</p><button class="primary" id="twMakeCloudBackup" type="button">Firebase-Sicherung jetzt erstellen</button><div id="twBackupList" style="margin-top:12px">Sicherungen werden geladen …</div></div><div class="card"><h3>Sicherung importieren</h3><input type="file" accept=".json" id="backupFile"><button class="secondary" id="importBackup">Sicherung wiederherstellen</button></div><div class="card" style="display:none"><h3>Ausgangsdaten</h3><p>Setzt Turniere und Sponsoring zentral in Firebase auf den ursprünglichen Excel-Stand zurück. Vorher wird eine Firebase-Sicherung angelegt (nur Administrator).</p><button class="danger" id="resetData">Ausgangsdaten wiederherstellen</button></div><div class="card"><h3>Hinweise zur Rechnung</h3><p><b>Kosten für Preise:</b> vom Verein tatsächlich bezahlte Preise; zählen als Ausgabe.</p><p><b>Sponsoring:</b> wird ausschließlich im separaten Sponsoring-Reiter erfasst. Geldspenden zählen zum Gewinn; Sachspenden und Leistungen zum wirtschaftlichen Jahreswert.</p><p><b>Gewinn:</b> Turniereinnahmen + Geldspenden − tatsächliche Turnierausgaben − weitere Jahresausgaben.</p><p><b>Deckung der Preiskosten:</b> Sponsoring (Geld und Sachwerte) + Startgeldeinnahmen − Kosten für Preise. Diese Gegenüberstellung ist keine zweite Gewinnbuchung.</p></div></div></div></section>
+</main>
+<div id="bottomScroll" class="hidden" aria-label="Waagerechte Bildlaufleiste für Turnierübersicht"><div id="scrollTrack"></div></div>
+<dialog id="eventDialog"><div class="modalhead"><h2 id="eventModalTitle">Turnier</h2><button class="secondary" data-close="eventDialog">✕</button></div><div class="modalbody"><div class="formgrid">
+<div class="field"><label for="f_date">Datum</label><input id="f_date" type="date"></div><div class="field w2"><label for="f_title">Turniername</label><input id="f_title"></div><div class="field"><label for="f_type">Turnierart</label><select id="f_type"><option>Turnier</option><option>Meisterschaft / Cup</option><option>Vereinsintern</option><option>Sonstiges</option></select></div>
+<div class="field"><label for="f_teams">Mannschaften / Starter</label><input id="f_teams" type="number" min="0" step="1"></div><div class="field w2"><label for="f_prizes">Welche Preise werden vergeben?</label><textarea id="f_prizes"></textarea></div>
+<div class="field"><label for="f_prizeCost">Kosten für Preise (€)</label><input id="f_prizeCost" type="number" min="0" step="0.01"></div><div class="field"><label for="f_startFee">Startgeldeinnahmen (€)</label><input id="f_startFee" type="number" min="0" step="0.01"></div><div class="field"><label for="f_gastroRevenue">Getränke-/Speiseneinnahmen (€)</label><input id="f_gastroRevenue" type="number" min="0" step="0.01"></div><div class="field"><label for="f_gastroCost">Getränke-/Speisenausgaben (€)</label><input id="f_gastroCost" type="number" min="0" step="0.01"></div>
+<div class="field"><label for="f_otherIncome">Sonstige Einnahmen (€)</label><input id="f_otherIncome" type="number" min="0" step="0.01"></div><div class="field w2"><label for="f_food">Speisen / Getränke / Angebot</label><textarea id="f_food"></textarea></div><div class="field w4"><label><b>Sonstige Ausgaben – Art und Betrag</b></label><div id="expenseRows"></div><button class="secondary" id="addExpense" type="button">+ Ausgabenposition</button></div><div class="field w4"><label for="f_notes">Notizen</label><textarea id="f_notes"></textarea></div><div class="field w4"><div class="soft" id="liveCalc"></div></div>
+</div></div><div class="modalfoot"><button class="danger" id="deleteEvent" style="margin-right:auto">Turnier löschen</button><button class="secondary" data-close="eventDialog">Abbrechen</button><button class="primary" id="saveEvent">Turnier speichern</button></div></dialog>
+<dialog id="helperDialog"><div class="modalhead"><h2 id="helperTitle">Helfer eintragen</h2><button class="secondary" data-close="helperDialog">✕</button></div><div class="modalbody"><p class="hint">Namen eintragen und direkt auf „Helfer speichern“ klicken. „+ Hinzufügen“ ist optional, um sofort weitere Namen einzutragen. Eine Person kann mehrere Aufgaben übernehmen.</p><div id="helperGroups"></div><datalist id="helperSuggestions"></datalist></div><div class="modalfoot"><button class="secondary" data-close="helperDialog">Abbrechen</button><button class="primary" id="saveHelpers">Helfer speichern</button></div></dialog>
+<dialog id="sponsorDialog"><div class="modalhead"><h2 id="sponsorModalTitle">Sponsoring erfassen</h2><button class="secondary" data-close="sponsorDialog">✕</button></div><div class="modalbody"><div class="formgrid"><div class="field"><label for="s_date">Datum</label><input id="s_date" type="date"></div><div class="field w2"><label for="s_name">Sponsor / Firma</label><input id="s_name" placeholder="z. B. Firma Muster"></div><div class="field"><label for="s_kind">Art des Sponsorings</label><select id="s_kind"><option>Geldspende</option><option>Sachspende</option><option>Dienstleistung</option><option>Art noch offen</option></select></div><div class="field w2"><label for="s_description">Gesponsert / Beschreibung</label><textarea id="s_description" placeholder="z. B. Pokale, Fleisch, Gutscheine, 250 €"></textarea></div><div class="field"><label for="s_collectedBy">Gesammelt von</label><input id="s_collectedBy" placeholder="Name des Vereinsmitglieds"></div><div class="field"><label for="s_amount">Wert / Betrag (€)</label><input id="s_amount" type="number" min="0" step="0.01"></div><div class="field w4"><p class="explain">Jeder Eintrag fließt in die Sponsoring-Jahressumme ein. Geldspenden werden zusätzlich im Gewinn als Geldzufluss berücksichtigt; Sachspenden und Leistungen nicht.</p></div></div></div><div class="modalfoot"><button class="secondary" data-close="sponsorDialog">Abbrechen</button><button class="primary" id="saveSponsor">Sponsoring speichern</button></div></dialog>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
+<script>
+const SEED={}; // Keine Finanzdaten in öffentlichen GitHub-Dateien!
+const SEED_EXTRA={}; // Ausgangsdaten ausschließlich als private JSON importieren.
+const OLD_DATA_KEY='ecw_turnier_wirtschaftlichkeit_v1', OLD_EXTRA_KEY='ecw_turnier_jahreskosten_v1';
+const STORE='ecw_turnier_wirtschaftlichkeit_v2'; // unveränderter Schlüssel: bestehende Daten werden übernommen
+const $=id=>document.getElementById(id), money=v=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(Number(v)||0),num=v=>Number(v)||0;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sum=(a,fn)=>a.reduce((s,r)=>s+fn(r),0);
+function normalizeEvent(r){const out={...r};if(!Array.isArray(out.expenses)){out.expenses=num(out.otherExpense)?[{type:'Sonstige Ausgaben (übernommen)',amount:num(out.otherExpense)}]:[]}if(!out.helpers||typeof out.helpers!=='object')out.helpers={};if(out.prizeValue===undefined)out.prizeValue='';if(out.sponsoredPrize===undefined)out.sponsoredPrize='';return out}
+function sponsorsFromLegacy(events){const o={};for(const [year,rows] of Object.entries(events)){o[year]=[];for(const r of rows){if(String(r.sponsorText||'').trim()||num(r.sponsorValue)){o[year].push({date:r.date||'',name:'',description:[r.title,r.sponsorText].filter(Boolean).join(' · '),kind:'Art noch offen',amount:num(r.sponsorValue),legacy:true})}}}return o}
+function makeState(){let old;try{old=JSON.parse(localStorage.getItem(OLD_DATA_KEY)||'null')}catch(e){}const events=old&&typeof old==='object'?old:structuredClone(SEED);let extra;try{extra=JSON.parse(localStorage.getItem(OLD_EXTRA_KEY)||'null')}catch(e){}return {events:Object.fromEntries(Object.entries(events).map(([y,rows])=>[y,(Array.isArray(rows)?rows:[]).map(normalizeEvent)])),sponsors:sponsorsFromLegacy(events),extra:extra||structuredClone(SEED_EXTRA)}}
+let state;try{state=JSON.parse(localStorage.getItem(STORE)||'null')||makeState()}catch(e){state=makeState()}
+function normalizeState(){state.events=state.events||{};state.sponsors=state.sponsors||{};state.extra=state.extra||{};for(const y of new Set([...Object.keys(SEED),...Object.keys(state.events),...Object.keys(state.sponsors),...Object.keys(state.extra),String(new Date().getFullYear())])){state.events[y]=(state.events[y]||[]).map(normalizeEvent);state.sponsors[y]=state.sponsors[y]||[];state.extra[y]=num(state.extra[y])}}
+normalizeState();
+function ensureYear(y){
+ y=String(y);
+ if(!/^20\d{2}$/.test(y))return false;
+ state.events[y]=state.events[y]||[];
+ state.sponsors[y]=state.sponsors[y]||[];
+ state.extra[y]=num(state.extra[y]);
+ return true;
+}
+function refreshYearOptions(preferred){
+ const select=$('yearSelect');
+ const selected=preferred||select.value||String(new Date().getFullYear());
+ const years=new Set([...Object.keys(state.events),...Object.keys(state.sponsors),...Object.keys(state.extra),'2025','2026','2027',String(new Date().getFullYear()),selected]);
+ select.innerHTML=[...years].filter(y=>/^20\d{2}$/.test(y)).sort((a,b)=>Number(b)-Number(a)).map(y=>`<option value="${y}">${y}</option>`).join('');
+ select.value=selected;
+}
+refreshYearOptions('2026');
+function persist(){render();twQueueSave();}
+const year=()=> $('yearSelect').value;
+const expenseTotal=r=>Array.isArray(r.expenses)?sum(r.expenses,e=>num(e.amount)):num(r.otherExpense);
+function calc(r){const income=num(r.startFee)+num(r.gastroRevenue)+num(r.otherIncome),expense=num(r.prizeCost)+num(r.gastroCost)+expenseTotal(r);return {income,expense,cash:income-expense}}
+// Bei alten Datensätzen bleibt ein bereits erfasster Gesamtpreiswert erhalten, bis die Aufteilung erfolgt.
+function hasPrizeSplit(r){return r.sponsoredPrize!==''&&r.sponsoredPrize!==null&&r.sponsoredPrize!==undefined}
+function totalPrizeValue(r){return hasPrizeSplit(r)?num(r.sponsoredPrize)+num(r.prizeCost):(r.prizeValue!==''&&r.prizeValue!=null?num(r.prizeValue):num(r.prizeCost))}
+function summary(y){const rows=state.events[y]||[],spons=state.sponsors[y]||[];return {count:rows.length,income:sum(rows,r=>calc(r).income),expense:sum(rows,r=>calc(r).expense),cash:sum(rows,r=>calc(r).cash),prizeValue:sum(rows,r=>r.prizeValue!==''&&r.prizeValue!=null?num(r.prizeValue):totalPrizeValue(r)),prizePaid:sum(rows,r=>num(r.prizeCost)),prizeSponsored:sum(rows,r=>hasPrizeSplit(r)?num(r.sponsoredPrize):0),prizeMissing:rows.filter(r=>!hasPrizeSplit(r)).length,prizeLegacy:rows.filter(r=>!hasPrizeSplit(r)&&r.prizeValue!==''&&r.prizeValue!=null).length,sponsorValue:sum(spons,r=>num(r.amount)),sponsorCash:sum(spons,r=>r.kind==='Geldspende'?num(r.amount):0),extra:num(state.extra[y])}}
+const kpi=(label,value,sub='')=>`<div class="kpi"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div><div class="sub">${esc(sub)}</div></div>`;
+function render(){const y=year();ensureYear(y);const s=summary(y);$('eventYear').textContent=y;$('sponsorYear').textContent=y;$('annualYear').textContent=y;
+ $('eventKpis').innerHTML=kpi('Turniere',s.count)+kpi('Einnahmen',money(s.income),'ohne Sponsoring')+kpi('Ausgaben',money(s.expense),'tatsächliche Kosten')+kpi('Gewinn',money(s.cash),'aus eigenen Turnieren')+kpi('Kosten für Preise',money(s.prizePaid),'Turnierausgaben')+kpi('Sponsoring',money(s.sponsorValue),'jährlich erfasst');
+ const q=$('search').value.toLowerCase(),kind=$('typeFilter').value;
+ $('eventRows').innerHTML=(state.events[y]||[]).map((r,i)=>({...r,i})).filter(r=>(!q||[r.title,r.prizes,r.notes].join(' ').toLowerCase().includes(q))&&(!kind||r.type===kind)).map(r=>{const c=calc(r);return `<tr><td>${esc(r.date||'')}</td><td title="${esc(r.title)}"><div class="ellipsis"><b>${esc(r.title)}</b></div></td><td title="${esc(r.type)}"><div class="ellipsis">${esc(r.type)}</div></td><td class="center">${esc(r.teams??'')}</td><td title="${esc(r.prizes)}"><div class="ellipsis">${esc(r.prizes||'–')}</div></td><td class="money">${money(r.prizeCost)}</td><td class="money">${money(r.startFee)}</td><td class="money">${money(r.gastroRevenue)}</td><td class="money">${money(c.income)}</td><td class="money">${money(c.expense)}</td><td class="money ${c.cash>=0?'pos':'neg'}">${money(c.cash)}</td><td class="rowactions"><button class="mini secondary" data-event-edit="${r.i}">Bearbeiten</button></td></tr>`}).join('')||'<tr><td colspan="12" class="no-data">Keine Turniere gefunden.</td></tr>';
+ const spons=state.sponsors[y]||[];$('sponsorKpis').innerHTML=kpi('Sponsoring-Einträge',spons.length)+kpi('Sponsoring gesamt',money(s.sponsorValue))+kpi('Geldspenden',money(s.sponsorCash))+kpi('Sachspenden',money(sum(spons,r=>r.kind==='Sachspende'?num(r.amount):0)))+kpi('Dienstleistungen',money(sum(spons,r=>r.kind==='Dienstleistung'?num(r.amount):0)))+kpi('Kosten für Preise',money(s.prizePaid),'zum Vergleich');
+ $('sponsorRows').innerHTML=spons.map((r,i)=>`<tr><td>${esc(r.date||'')}</td><td>${esc(r.name||'–')}</td><td>${esc(r.kind||'Art noch offen')}</td><td>${esc(r.description||'–')}</td><td>${esc(r.collectedBy||'–')}</td><td class="money"><b>${money(r.amount)}</b></td><td class="rowactions"><button class="secondary mini" data-sponsor-edit="${i}">Bearbeiten</button> <button class="danger mini" data-sponsor-delete="${i}">Löschen</button></td></tr>`).join('')||'<tr><td colspan="7" class="no-data">Noch kein Sponsoring erfasst.</td></tr>';
+ renderAnnual(s);renderYearCharts();renderHelpers();renderHelperRanking();requestAnimationFrame(updateScroll)}
+function row(label,value,cls=''){return `<div class="calc-row ${cls}"><span>${label}</span><b>${money(value)}</b></div>`}
+function renderAnnual(s){const y=year(),finalCash=s.cash+s.sponsorCash-s.extra,startFees=sum(state.events[y]||[],r=>num(r.startFee)),difference=s.sponsorValue+startFees-s.prizePaid;
+ $('annualKpis').innerHTML=kpi('Turniere',s.count)+kpi('Turniereinnahmen',money(s.income))+kpi('Turnierausgaben',money(s.expense))+kpi('Sponsoring',money(s.sponsorValue))+kpi('Jahres-Gewinn',money(finalCash))+kpi('Deckung der Preiskosten',money(difference));
+ $('annualCalc').innerHTML=row('Startgeld, Gastro und weitere Einnahmen',s.income)+row('Tatsächliche Turnierausgaben',-s.expense)+row('Gewinn eigene Turniere',s.cash)+row('Sponsoring (Geldspenden)',s.sponsorCash)+row('Weitere Jahresausgaben',-s.extra)+row('Jahres-Gewinn',finalCash,'total');
+ $('prizeCompare').innerHTML=row('Sponsoring gesamt (Geld + Sachwerte)',s.sponsorValue)+row('Startgeldeinnahmen',startFees)+row('Kosten für Preise',-s.prizePaid)+row('Verbleibende Deckung',difference,'total')+(difference<0?'<div class="year-note">Die Kosten für Preise übersteigen Sponsoring und Startgeldeinnahmen zusammen. Sachspenden sind dabei kein Geldzufluss.</div>':'');
+ $('annualExtra').value=s.extra;$('annualNet').innerHTML=`<p class="explain">Aktueller Jahresgewinn: <b class="${finalCash>=0?'pos':'neg'}">${money(finalCash)}</b></p>`}
+// Vergleichswerte beruhen auf denselben Formeln wie die Jahresrechnung.
+function comparisonYears(){
+ const years=new Set([...Object.keys(state.events||{}),...Object.keys(state.sponsors||{}),...Object.keys(state.extra||{})]);
+ return [...years].filter(y=>/^20\d{2}$/.test(y)).sort((a,b)=>Number(a)-Number(b));
+}
+function comparisonData(){return comparisonYears().map(y=>{
+ const s=summary(y),startFees=sum(state.events[y]||[],r=>num(r.startFee));
+ return {year:y,profit:s.cash+s.sponsorCash-s.extra,income:s.income+s.sponsorCash,
+ expense:s.expense+s.extra,sponsoring:s.sponsorValue,startFees,prizeCosts:s.prizePaid};
+})}
+function drawChart(target,series,data){
+ const host=$(target);if(!host)return;
+ if(!data.length){host.innerHTML='<div class="chart-empty">Noch keine Jahresdaten vorhanden.</div>';return}
+ const width=Math.max(540,105+data.length*108),height=294,plot={left:73,right:width-22,top:24,bottom:231};
+ const values=data.flatMap(d=>series.map(k=>num(d[k.key])));
+ let min=Math.min(0,...values),max=Math.max(0,...values);
+ if(max===min){max=min+1}
+ const range=max-min,pad=range*.12;min=min<0?min-pad:0;max=max>0?max+pad:0;
+ if(max===min)max=min+1;
+ const y=v=>plot.bottom-(v-min)/(max-min)*(plot.bottom-plot.top);
+ const base=y(0),scale=(plot.right-plot.left)/data.length;
+ const fmt=v=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(v);
+ const axis=[];
+ for(let i=0;i<=4;i++){
+   const val=min+(max-min)*i/4,yy=y(val);
+   axis.push(`<line x1="${plot.left}" x2="${plot.right}" y1="${yy.toFixed(2)}" y2="${yy.toFixed(2)}" stroke="${Math.abs(val)<.0001?'#bda3a8':'#564149'}" stroke-width="${Math.abs(val)<.0001?1.5:.8}" stroke-dasharray="${Math.abs(val)<.0001?'0':'4 5'}"/>`);
+   axis.push(`<text x="${plot.left-10}" y="${(yy+4).toFixed(2)}" text-anchor="end" font-size="11" fill="#d8c4c7">${fmt(val)}</text>`);
+ }
+ const bars=[];
+ data.forEach((d,i)=>{
+   const groupWidth=Math.min(82,scale*.78),barWidth=groupWidth/series.length*.8,step=groupWidth/series.length;
+   const groupX=plot.left+scale*i+scale/2-groupWidth/2;
+   series.forEach((k,j)=>{
+     const value=num(d[k.key]),yy=y(value),x=groupX+j*step+(step-barWidth)/2;
+     const top=Math.min(base,yy),barHeight=Math.max(1,Math.abs(base-yy));
+     bars.push(`<rect x="${x.toFixed(2)}" y="${top.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" rx="3" fill="${k.color}" opacity=".96"><title>${esc(d.year)} · ${esc(k.label)}: ${esc(money(value))}</title></rect>`);
+   });
+   bars.push(`<text x="${(plot.left+scale*(i+.5)).toFixed(2)}" y="${plot.bottom+23}" text-anchor="middle" font-size="12" font-weight="600" fill="#f1dce0">${esc(d.year)}</text>`);
+ });
+ host.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(series.map(x=>x.label).join(', '))} im Jahresvergleich">${axis.join('')}${bars.join('')}</svg><div class="chart-legend">${series.map(k=>`<span><i class="legend-dot" style="background:${k.color}"></i>${esc(k.label)}</span>`).join('')}</div>`;
+}
+function renderYearCharts(){
+ const data=comparisonData();
+ drawChart('chartProfit',[{key:'profit',label:'Jahresgewinn',color:'#ec3c4a'}],data);
+ drawChart('chartIncomeExpense',[{key:'income',label:'Einnahmen inkl. Geldspenden',color:'#6fd5a4'},{key:'expense',label:'Ausgaben inkl. Jahresausgaben',color:'#f4a66d'}],data);
+ drawChart('chartPrizeCoverage',[{key:'sponsoring',label:'Sponsoring gesamt',color:'#e34c59'},{key:'startFees',label:'Startgelder',color:'#83b9f2'},{key:'prizeCosts',label:'Kosten für Preise',color:'#e8b66d'}],data);
+}
+let editEventIndex=null,editSponsorIndex=null;
+const eventFields=['date','title','type','teams','prizes','prizeCost','startFee','gastroRevenue','gastroCost','otherIncome','food','notes'];
+function addExpenseRow(type='',amount=''){const div=document.createElement('div');div.className='expense-item';div.innerHTML=`<input class="expense-type" aria-label="Art der Ausgabe" placeholder="Art der Ausgabe, z. B. Musik" value="${esc(type)}"><input class="expense-amount" aria-label="Betrag der Ausgabe" type="number" min="0" step="0.01" placeholder="Betrag €" value="${esc(amount)}"><button class="danger mini" type="button" aria-label="Position entfernen">✕</button>`;div.querySelector('button').onclick=()=>{div.remove();liveCalc()};div.querySelectorAll('input').forEach(x=>x.addEventListener('input',liveCalc));$('expenseRows').append(div)}
+function openEvent(i=null){editEventIndex=i;const r=i===null?{date:'',title:'',type:'Turnier',teams:'',prizes:'',prizeValue:'',prizeCost:0,startFee:0,gastroRevenue:0,gastroCost:0,otherIncome:0,food:'',notes:'',expenses:[]}:state.events[year()][i];$('eventModalTitle').textContent=i===null?'Neues Turnier':'Turnier bearbeiten';$('deleteEvent').classList.toggle('hidden',i===null);for(const f of eventFields)$('f_'+f).value=r[f]??'';$('expenseRows').innerHTML='';for(const e of r.expenses||[])addExpenseRow(e.type,e.amount);liveCalc();$('eventDialog').showModal()}
+function readEvent(){const r={};for(const f of eventFields)r[f]=$('f_'+f).value;for(const f of ['teams','prizeCost','startFee','gastroRevenue','gastroCost','otherIncome'])r[f]=r[f]===''?'':num(r[f]);r.expenses=[...$('expenseRows').children].map(el=>({type:el.querySelector('.expense-type').value.trim(),amount:num(el.querySelector('.expense-amount').value)})).filter(e=>e.type||e.amount);return r}
+function liveCalc(){const r=readEvent(),c=calc(r);$('liveCalc').innerHTML=`<b>Automatische Rechnung</b>${row('Einnahmen',c.income)}${row('Tatsächliche Ausgaben',c.expense)}${row('Gewinn',c.cash,'total')}<p class="explain">Kosten für Preise: ${money(r.prizeCost)}. Sponsoring wird nur im eigenen Reiter erfasst.</p>`;}
+function saveEvent(){
+ const r=readEvent();
+ if(!r.title.trim()){alert('Bitte Turniernamen eingeben.');return}
+ const originYear=year(),targetYear=r.date&&/^20\d{2}-/.test(r.date)?r.date.slice(0,4):originYear;
+ if(!ensureYear(targetYear)){alert('Ungültiges Turnierjahr.');return}
+ if(editEventIndex===null){state.events[targetYear].push(r)}
+ else{
+   const original=state.events[originYear][editEventIndex];
+   const merged={...original,...r};
+   if(targetYear!==originYear){state.events[originYear].splice(editEventIndex,1);state.events[targetYear].push(merged)}
+   else state.events[originYear][editEventIndex]=merged;
+ }
+ state.events[targetYear].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+ $('eventDialog').close();
+ refreshYearOptions(targetYear);persist();
+}
+function openSponsor(i=null){editSponsorIndex=i;const r=i===null?{date:'',name:'',description:'',kind:'Geldspende',amount:'',collectedBy:''}:state.sponsors[year()][i];$('sponsorModalTitle').textContent=i===null?'Sponsoring eintragen':'Sponsoring bearbeiten';for(const f of ['date','name','description','kind','amount','collectedBy'])$('s_'+f).value=r[f]??'';$('sponsorDialog').showModal()}
+function saveSponsor(){
+ const r={};for(const f of ['date','name','description','kind','amount','collectedBy'])r[f]=$('s_'+f).value;
+ r.amount=num(r.amount);
+ if(!r.name.trim()&&!r.description.trim()){alert('Bitte Sponsor oder gesponserte Leistung eingeben.');return}
+ const originYear=year(),targetYear=r.date&&/^20\d{2}-/.test(r.date)?r.date.slice(0,4):originYear;
+ ensureYear(targetYear);
+ if(editSponsorIndex===null)state.sponsors[targetYear].push(r);
+ else if(originYear===targetYear)state.sponsors[originYear][editSponsorIndex]=r;
+ else {state.sponsors[originYear].splice(editSponsorIndex,1);state.sponsors[targetYear].push(r)}
+ $('sponsorDialog').close();refreshYearOptions(targetYear);persist();
+}
+function csvCell(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+function csv(){const y=year(),rows=[['Datum','Turnier','Art','Mannschaften','Turnierpreise','Kosten für Preise','Startgeld','Einnahmen Gastro','Gastro Ausgaben','Sonstige Einnahmen','Sonstige Ausgaben Art und Betrag','Gesamteinnahmen','Gesamtausgaben','Gewinn']];for(const r of state.events[y]){const c=calc(r);rows.push([r.date,r.title,r.type,r.teams,r.prizes,r.prizeCost,r.startFee,r.gastroRevenue,r.gastroCost,r.otherIncome,(r.expenses||[]).map(e=>e.type+': '+e.amount).join(' | '),c.income,c.expense,c.cash])}download(new Blob(['\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}),`ECW_Turniere_${y}.csv`)}
+function exportBackup(){download(new Blob([JSON.stringify({version:'2.7',...state},null,2)],{type:'application/json'}),`ECW_Turnierwirtschaftlichkeit_Sicherung_${new Date().toISOString().slice(0,10)}.json`)}
+async function importBackup(){
+ if(!twReady)return;
+ if(!twAdmin){alert('Eine Wiederherstellung ist nur für Administratoren erlaubt.');return;}
+ const f=$('backupFile').files[0];if(!f)return alert('Bitte JSON-Datei auswählen.');
+ try{
+  const o=JSON.parse(await f.text());if(!o.events&&!o.data)throw Error('Keine Turnierdaten');
+  if(!confirm('ACHTUNG: Die zentralen Firebase-Daten für alle Benutzer mit der JSON-Sicherung überschreiben? Vorher wird ein Firebase-Sicherungsstand erstellt.'))return;
+  await twSaveChain;if(twSaveError)throw Error('Es gibt einen Speicherfehler. Bitte neu laden.');
+  await twCreateCloudBackup('Vor JSON-Import',true);
+  const events=o.events||o.data;
+  state={events,sponsors:o.sponsors||sponsorsFromLegacy(events),extra:o.extra||o.annualExtra||structuredClone(SEED_EXTRA)};
+  normalizeState();refreshYearOptions(year());persist();await twSaveChain;
+  if(!twSaveError)alert('Sicherung in Firebase wiederhergestellt.');
+ }catch(e){alert('Import nicht möglich: '+e.message)}
+}
+function reset(){alert('Die ursprünglichen Excel-Finanzdaten sind aus Sicherheitsgründen nicht in der öffentlichen HTML-Datei enthalten. Bitte die private JSON-Datei über „Sicherung importieren“ verwenden.');}
+
+function makeStateFromSeed(){const events=structuredClone(SEED);return {events:Object.fromEntries(Object.entries(events).map(([y,r])=>[y,r.map(normalizeEvent)])),sponsors:sponsorsFromLegacy(events),extra:structuredClone(SEED_EXTRA)}}
+let syncing=false;function updateScroll(){const t=$('eventScroll'),b=$('bottomScroll');const active=!$('tab-events').classList.contains('hidden'),overflow=t.scrollWidth>t.clientWidth+2;b.classList.toggle('hidden',!active||!overflow);$('scrollTrack').style.width=t.scrollWidth+'px';if(!syncing)b.scrollLeft=t.scrollLeft}
+$('eventScroll').addEventListener('scroll',()=>{if(syncing)return;syncing=true;$('bottomScroll').scrollLeft=$('eventScroll').scrollLeft;syncing=false});$('bottomScroll').addEventListener('scroll',()=>{if(syncing)return;syncing=true;$('eventScroll').scrollLeft=$('bottomScroll').scrollLeft;syncing=false});window.addEventListener('resize',updateScroll);
+$('yearSelect').addEventListener('change',render);
+$('addYearBtn').onclick=()=>{
+ const value=prompt('Welches Abrechnungsjahr hinzufügen?',String(Math.max(...Object.keys(state.events).map(Number))+1));
+ if(value===null)return;
+ if(!ensureYear(value)){alert('Bitte ein gültiges vierstelliges Jahr ab 2000 eingeben.');return}
+ refreshYearOptions(String(value));persist();
+};$('search').addEventListener('input',render);$('typeFilter').addEventListener('change',render);
+document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b===btn));for(const name of ['events','helpers','sponsors','annual','backup'])$('tab-'+name).classList.toggle('hidden',name!==btn.dataset.tab);requestAnimationFrame(updateScroll)});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.close)$(b.dataset.close).close();if(b.dataset.eventEdit!==undefined)openEvent(Number(b.dataset.eventEdit));if(b.dataset.helperEdit!==undefined)openHelpers(Number(b.dataset.helperEdit));if(b.dataset.sponsorEdit!==undefined)openSponsor(Number(b.dataset.sponsorEdit));if(b.dataset.sponsorDelete!==undefined&&confirm('Sponsoring-Eintrag wirklich löschen?')){state.sponsors[year()].splice(Number(b.dataset.sponsorDelete),1);persist()}});
+$('saveHelpers').onclick=saveHelpers;$('deleteEvent').onclick=()=>{if(editEventIndex===null)return;if(!confirm('Dieses Turnier wirklich löschen?'))return;state.events[year()].splice(editEventIndex,1);$('eventDialog').close();persist()};$('newEventBtn').onclick=()=>openEvent();$('newSponsorBtn').onclick=()=>openSponsor();$('saveEvent').onclick=saveEvent;$('saveSponsor').onclick=saveSponsor;$('addExpense').onclick=()=>addExpenseRow();for(const f of eventFields)$('f_'+f).addEventListener('input',liveCalc);$('saveExtra').onclick=()=>{state.extra[year()]=num($('annualExtra').value);persist()};$('csvBtn').onclick=csv;$('printBtn').onclick=()=>window.print();$('exportBackup').onclick=exportBackup;$('importBackup').onclick=importBackup;$('resetData').onclick=reset;$('twMakeCloudBackup').onclick=()=>twCreateCloudBackup('Manuelle Sicherung').catch(e=>alert('Sicherung fehlgeschlagen: '+e.message));
+
+const HELPER_ROLES=['Schiedsrichter','Auswertung','Ausschank','Bedienung','Zusammenräumen'];
+let helperEventIndex=null;
+function helperNames(){return [...new Set(Object.values(state.events).flat().flatMap(r=>Object.values(r.helpers||{}).flat()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'))}
+function renderHelpers(){const y=year();$('helperYear').textContent=y;$('helperRows').innerHTML=(state.events[y]||[]).map((r,i)=>`<tr><td>${esc(r.date||'')}</td><td><b>${esc(r.title)}</b></td>${HELPER_ROLES.map(role=>`<td>${(r.helpers?.[role]||[]).map(n=>esc(n)).join('<br>')||'–'}</td>`).join('')}<td><button class="mini primary" data-helper-edit="${i}">Helfer bearbeiten</button></td></tr>`).join('')||'<tr><td colspan="8">Keine Turniere vorhanden.</td></tr>'}
+function renderHelperRanking(){
+ const counts=new Map();
+ for(const [i,r] of (state.events[year()]||[]).entries()){
+   for(const role of HELPER_ROLES){
+     for(const raw of (r.helpers?.[role]||[])){
+       const name=String(raw||'').trim();if(!name)continue;
+       const key=name.toLocaleLowerCase('de');
+       if(!counts.has(key))counts.set(key,{name,total:0,turniere:new Set(),roles:Object.fromEntries(HELPER_ROLES.map(x=>[x,0]))});
+       const a=counts.get(key);a.total++;a.turniere.add(i);a.roles[role]++;
+     }
+   }
+ }
+ const ranking=[...counts.values()].sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'));
+ $('helperRankingRows').innerHTML=ranking.map((a,i)=>`<tr><td>${i+1}</td><td><b>${esc(a.name)}</b></td><td><b>${a.total}</b></td><td>${a.turniere.size}</td>${HELPER_ROLES.map(role=>`<td>${a.roles[role]}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="9" class="no-data">Noch keine Helfereinsätze erfasst.</td></tr>';
+}
+function openHelpers(i){helperEventIndex=i;const r=state.events[year()][i];$('helperTitle').textContent='Helfer – '+r.title;$('helperSuggestions').innerHTML=helperNames().map(n=>`<option value="${esc(n)}">`).join('');$('helperGroups').innerHTML=HELPER_ROLES.map((role,j)=>`<div class="card" style="margin:10px 0"><b>${j+1}. ${role}</b><div id="helperList${j}" style="display:flex;flex-wrap:wrap;gap:6px;margin:9px 0"></div><div style="display:flex;gap:7px"><input list="helperSuggestions" id="helperInput${j}" placeholder="Name des Helfers" style="flex:1"><button class="secondary" type="button" onclick="addHelper(${j})">+ Hinzufügen</button></div></div>`).join('');HELPER_ROLES.forEach((role,j)=>(r.helpers?.[role]||[]).forEach(n=>addHelper(j,n)));$('helperDialog').showModal()}
+function addHelper(j,name){const input=$('helperInput'+j);name=String(name??input.value).trim();if(!name)return;const list=$('helperList'+j);if([...list.children].some(el=>el.dataset.name.toLowerCase()===name.toLowerCase())){input.value='';return}const tag=document.createElement('span');tag.dataset.name=name;tag.style.cssText='background:#f0f2f4;border-radius:7px;padding:5px 7px;display:inline-flex;align-items:center;gap:7px';const label=document.createElement('span');label.textContent=name;const remove=document.createElement('button');remove.textContent='×';remove.type='button';remove.className='mini danger';remove.onclick=()=>tag.remove();tag.append(label,remove);list.append(tag);input.value=''}
+function saveHelpers(){HELPER_ROLES.forEach((role,j)=>addHelper(j));const r=state.events[year()][helperEventIndex];r.helpers={};HELPER_ROLES.forEach((role,j)=>r.helpers[role]=[...$('helperList'+j).children].map(el=>el.dataset.name));$('helperDialog').close();persist()}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id?.startsWith('helperInput')){e.preventDefault();addHelper(Number(e.target.id.replace('helperInput','')))}});
+
+
+// EC Wegscheid V2.0.0 – sichere zentrale Datenhaltung der Turnierwirtschaftlichkeit.
+const TW_FIREBASE_CONFIG={
+ apiKey:'AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I',
+ authDomain:'ec-wegscheid-verwaltung-neu.firebaseapp.com',
+ projectId:'ec-wegscheid-verwaltung-neu',
+ storageBucket:'ec-wegscheid-verwaltung-neu.firebasestorage.app',
+ messagingSenderId:'558472054725',
+ appId:'1:558472054725:web:10145e2d8d6f168b056dac'
+};
+let twReady=false,twAdmin=false,twRevision=0,twSaveError=false,twSaveChain=Promise.resolve(),twDb=null,twUser=null;
+function twStatus(message){$('twCloudStatus').textContent=message;}
+function twGuard(title,message,actions=[]){
+ $('twGuard').style.display='flex';$('twGuardTitle').textContent=title;
+ $('twGuardText').textContent=message;
+ const a=$('twGuardActions');a.replaceChildren();
+ for(const [label,handler] of actions){const b=document.createElement('button');b.className='primary';b.type='button';b.textContent=label;b.onclick=handler;a.append(b)}
+}
+function twUnlock(){
+ twReady=true;twSaveError=false;$('twGuard').style.display='none';
+ $('twCloudBackupCard').hidden=!twAdmin;
+ $('importBackup').disabled=!twAdmin;$('resetData').disabled=!twAdmin;
+ $('twCloudBackupCard').style.display=twAdmin?'':'none';
+ twStatus('Firebase verbunden · '+(twUser.email||twUser.uid)+' · '+(twAdmin?'Administrator':'Freigegebener Benutzer'));
+ refreshYearOptions(year());render();if(twAdmin)twLoadCloudBackups();
+}
+function twStateValid(v){return !!(v&&typeof v==='object'&&!Array.isArray(v)&&v.events&&typeof v.events==='object'&&!Array.isArray(v.events)&&v.sponsors&&typeof v.sponsors==='object'&&v.extra&&typeof v.extra==='object');}
+function twApplyState(v){
+ if(!twStateValid(v))throw Error('Die gespeicherten Finanzdaten haben ein ungültiges Format.');
+ state=structuredClone(v);normalizeState();
+ refreshYearOptions(year());
+}
+async function twLoad(){
+ twReady=false;twStatus('Lade Finanzdaten aus Firebase …');
+ const ref=twDb.collection('turnierWirtschaftlichkeit').doc('state');
+ const snap=await ref.get({source:'server'});
+ if(!snap.exists){
+  twGuard('Noch keine zentralen Finanzdaten','Bitte die separat bereitgestellte private Erstdaten-JSON-Datei auswählen. Sie darf NICHT auf GitHub hochgeladen werden. Alternativ vorhandene lokale Daten übernehmen.',[
+   ['Private Erstdaten-JSON auswählen',()=>twInitializeFromFile()],
+   ['Meine lokalen Daten übernehmen',()=>twInitializeFromLocal()]
+  ]);
+  twStatus('Firebase noch leer – Ersteinrichtung erforderlich');return;
+ }
+ const d=snap.data();twApplyState(d.data);twRevision=Number(d.revision)||0;
+ try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}
+ twUnlock();
+}
+async function twInitializeFromFile(){
+ const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
+ input.onchange=async()=>{
+  const file=input.files?.[0];if(!file)return;
+  try{
+   const raw=JSON.parse(await file.text());
+   const events=raw.events||raw.data;
+   const candidate={events,sponsors:raw.sponsors||sponsorsFromLegacy(events),extra:raw.extra||raw.annualExtra||{}};
+   if(!twStateValid(candidate))throw Error('Ungültige Erstdaten-Datei.');
+   await twInitializeCandidate(candidate);
+  }catch(e){alert('Erstdaten konnten nicht gelesen werden: '+e.message)}
+ };
+ input.click();
+}
+async function twInitializeFromLocal(){
+ const local=localStorage.getItem(STORE);
+ if(!local){alert('Auf diesem Gerät sind keine lokalen V2-Daten gespeichert. Bitte die private Erstdaten-JSON auswählen.');return;}
+ try{await twInitializeCandidate(JSON.parse(local))}
+ catch(e){alert('Ersteinrichtung abgebrochen: '+e.message)}
+}
+async function twInitializeCandidate(candidate){
+ if(!twUser)return;
+ if(!twStateValid(candidate))throw Error('Ungültige Turnierwirtschaftlichkeitsdaten.');
+ if(!confirm('Diese Daten einmalig als zentralen Firebase-Stand übernehmen?'))return;
+ twGuard('Ersteinrichtung','Firebase-Daten werden angelegt …');
+ try{
+  const ref=twDb.collection('turnierWirtschaftlichkeit').doc('state');
+  await twDb.runTransaction(async tx=>{
+   const snap=await tx.get(ref);if(snap.exists)throw Error('Ein anderer Benutzer hat die Ersteinrichtung bereits durchgeführt. Bitte neu laden.');
+   tx.set(ref,{data:candidate,revision:1,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:twUser.uid});
+  });
+  twApplyState(candidate);twRevision=1;try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}
+  twUnlock();
+ }catch(e){twGuard('Ersteinrichtung fehlgeschlagen',e.message,[['Erneut laden',()=>location.reload()]]);}
+}
+
+function twQueueSave(){
+ if(!twReady||twSaveError)return;
+ const payload=structuredClone(state);
+ twStatus('Speichere Änderungen in Firebase …');
+ twSaveChain=twSaveChain.then(async()=>{
+  if(twSaveError)return;
+  const ref=twDb.collection('turnierWirtschaftlichkeit').doc('state');
+  const nextRevision=twRevision+1;
+  await twDb.runTransaction(async tx=>{
+   const snap=await tx.get(ref);
+   if(!snap.exists||Number(snap.data().revision)!==twRevision)throw Error('Zwischenzeitliche Änderung erkannt. Zum Schutz der Daten wird nichts überschrieben. Bitte neu laden.');
+   tx.update(ref,{data:payload,revision:nextRevision,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:twUser.uid});
+  });
+  twRevision=nextRevision;
+  try{localStorage.setItem(STORE,JSON.stringify(payload))}catch(e){}
+  twStatus('In Firebase gespeichert · '+new Date().toLocaleTimeString('de-DE'));
+ }).catch(e=>{
+  twSaveError=true;twReady=false;
+  twGuard('Speichern fehlgeschlagen',e.message+' Die Eingabe wurde NICHT als erfolgreich gespeichert. Bitte Verbindung und Berechtigung prüfen. Vor dem Neuladen gegebenenfalls die Eingaben notieren.',[
+   ['Seite neu laden',()=>location.reload()]
+  ]);
+  twStatus('FEHLER: Daten nicht in Firebase gespeichert');
+  console.error('Turnierwirtschaftlichkeit – Speichern',e);
+ });
+}
+async function twCreateCloudBackup(label='Manuelle Sicherung',silent=false){
+ if(!twAdmin||!twReady)throw Error('Nur Administratoren dürfen Firebase-Sicherungen anlegen.');
+ await twSaveChain;if(twSaveError)throw Error('Nicht gespeicherte Änderungen – Sicherung abgebrochen.');
+ const snap=await twDb.collection('turnierWirtschaftlichkeit').doc('state').get({source:'server'});
+ if(!snap.exists||!twStateValid(snap.data().data))throw Error('Keine gültigen Firebase-Daten vorhanden.');
+ const d=snap.data();
+ const result=await twDb.collection('turnierWirtschaftlichkeitSicherungen').add({
+  data:d.data,revision:d.revision||0,label,createdBy:twUser.uid,
+  createdAt:firebase.firestore.FieldValue.serverTimestamp()
+ });
+ twStatus('Firebase-Sicherungsstand erstellt: '+result.id);
+ await twLoadCloudBackups();
+ if(!silent)alert('Firebase-Sicherung wurde erstellt.');
+ return result.id;
+}
+async function twLoadCloudBackups(){
+ if(!twAdmin)return;
+ const target=$('twBackupList');if(!target)return;
+ target.textContent='Firebase-Sicherungen werden geladen …';
+ try{
+  const snap=await twDb.collection('turnierWirtschaftlichkeitSicherungen').orderBy('createdAt','desc').limit(30).get({source:'server'});
+  target.replaceChildren();
+  if(snap.empty){target.textContent='Noch keine Firebase-Sicherungen vorhanden.';return;}
+  snap.forEach(d=>{
+   const b=d.data(),row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #666';
+   const info=document.createElement('span');info.textContent=(b.createdAt?.toDate?.().toLocaleString('de-DE')||'Datum unbekannt')+' · '+(b.label||'Sicherung')+' · Revision '+(b.revision||0);
+   const restore=document.createElement('button');restore.type='button';restore.className='secondary';restore.textContent='Wiederherstellen';restore.onclick=()=>twRestoreCloudBackup(d.id);
+   row.append(info,restore);target.append(row);
+  });
+ }catch(e){target.textContent='Sicherungsstände konnten nicht geladen werden: '+e.message;}
+}
+async function twRestoreCloudBackup(id){
+ if(!twAdmin||!twReady)return;
+ if(!confirm('ACHTUNG: Den zentralen Datenbestand aller Benutzer durch diesen Sicherungsstand ersetzen? Der aktuelle Stand wird vorher automatisch gesichert.'))return;
+ try{
+  await twSaveChain;if(twSaveError)throw Error('Speicherfehler – bitte neu laden.');
+  const snap=await twDb.collection('turnierWirtschaftlichkeitSicherungen').doc(id).get({source:'server'});
+  if(!snap.exists||!twStateValid(snap.data().data))throw Error('Sicherung fehlt oder ist ungültig.');
+  await twCreateCloudBackup('Automatisch vor Wiederherstellung',true);
+  twApplyState(snap.data().data);persist();await twSaveChain;
+  if(!twSaveError)alert('Firebase-Sicherungsstand wiederhergestellt.');
+ }catch(e){alert('Wiederherstellung fehlgeschlagen: '+e.message);}
+}
+async function twStart(){
+ try{
+  if(!window.firebase)throw Error('Firebase SDK konnte nicht geladen werden.');
+  const app=firebase.apps.find(x=>x.name==='[DEFAULT]')||firebase.initializeApp(TW_FIREBASE_CONFIG);
+  twDb=app.firestore();
+  app.auth().onAuthStateChanged(async user=>{
+   twUser=user;
+   if(!user){twReady=false;twGuard('Anmeldung erforderlich','Bitte in der EC-Wegscheid-Vereinsverwaltung anmelden und anschließend diese Seite erneut öffnen.',[['Zur Vereinsverwaltung',()=>location.href='index.html']]);return;}
+   try{
+    const p=await twDb.collection('users').doc(user.uid).get({source:'server'});
+    const role=p.exists?p.data():{};
+    twAdmin=role.admin===true;
+    if(!(twAdmin||(role.tw===true&&role.whiteboard!==true))){
+     twReady=false;twGuard('Kein Zugriff','Turnierwirtschaftlichkeit ist nicht freigegeben. Der Administrator kann die Berechtigung unter „Benutzer & Rechte“ vergeben.',[['Zur Vereinsverwaltung',()=>location.href='index.html']]);return;
+    }
+    await twLoad();
+   }catch(e){twReady=false;twGuard('Firebase-Verbindung fehlgeschlagen',e.message,[['Erneut laden',()=>location.reload()]]);}
+  },e=>twGuard('Anmeldung fehlgeschlagen',e.message));
+ }catch(e){twGuard('Firebase nicht verfügbar',e.message,[['Erneut laden',()=>location.reload()]]);}
+}
+
+refreshYearOptions('2026');render();twStart();
+</script></body></html>
