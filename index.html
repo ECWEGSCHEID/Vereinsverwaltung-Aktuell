@@ -797,6 +797,7 @@ body.tv-preview-open{overflow:hidden!important}
       <h2>Bereiche</h2>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tp" onclick="adminSection('tp')">Turnierplaner</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('tp')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="t" onclick="adminSection('t')">Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('t')">👁</button></div>
+      <div class="row" id="twAdminMenuRow" style="margin-bottom:8px;gap:6px;display:none"><button style="flex:1" data-app-perm="tw" onclick="adminSection('tw')">Turnierwirtschaftlichkeit</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tv" onclick="adminSection('tv')">Turnierverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="tv" title="Vorschau öffnen" onclick="adminPreviewOpen('tv')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="adminSection('ic')">Interne Cup</button><button style="flex:none;width:44px;padding:12px 0" title="Turnierauswertung öffnen" onclick="openInternalCupAdmin('home')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="adminSection('solo')">Solo Pyramide</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('solo')">👁</button></div>
@@ -868,7 +869,7 @@ const ECW_PUBLIC_WHITEBOARD=(function(){
   }catch(e){return false}
 })();
 function isPublicWhiteboardMode(){return ECW_PUBLIC_WHITEBOARD===true;}
-const APP_PERMISSIONS={tp:'Turnierplaner bearbeiten',tv:'Turnierverwaltung bearbeiten',jm:'Ziel Jahresmeisterschaft – Mobil eingeben',t:'Turniereinladungen bearbeiten',o:'Eigene Turniere bearbeiten',n:'Vereinsnachrichten bearbeiten',p:'Fotos Verein bearbeiten',sp:'Sponsoren bearbeiten',mv:'Mitgliederverwaltung',m:'Mannschaften bearbeiten',lk:'Links bearbeiten',sh:'Startseite bearbeiten',shView:'Startseite ansehen',tpView:'Turnierplaner ansehen',tView:'Turniereinladungen ansehen',oView:'Eigene Turniere ansehen',nView:'Vereinsnachrichten ansehen',pView:'Fotos Verein ansehen',spView:'Sponsoren ansehen',mView:'Mannschaften ansehen',lkView:'Links ansehen',mvView:'Mitglieder und Geburtstage ansehen'};
+const APP_PERMISSIONS={tp:'Turnierplaner bearbeiten',tv:'Turnierverwaltung bearbeiten',jm:'Ziel Jahresmeisterschaft – Mobil eingeben',tw:'Turnierwirtschaftlichkeit bearbeiten',t:'Turniereinladungen bearbeiten',o:'Eigene Turniere bearbeiten',n:'Vereinsnachrichten bearbeiten',p:'Fotos Verein bearbeiten',sp:'Sponsoren bearbeiten',mv:'Mitgliederverwaltung',m:'Mannschaften bearbeiten',lk:'Links bearbeiten',sh:'Startseite bearbeiten',shView:'Startseite ansehen',tpView:'Turnierplaner ansehen',tView:'Turniereinladungen ansehen',oView:'Eigene Turniere ansehen',nView:'Vereinsnachrichten ansehen',pView:'Fotos Verein ansehen',spView:'Sponsoren ansehen',mView:'Mannschaften ansehen',lkView:'Links ansehen',mvView:'Mitglieder und Geburtstage ansehen'};
 const PRESENTATION_PERMISSIONS=['sh','tp','t','o','n','p','sp','m','lk','mv'];
 window.appPermissions=appPermissions;
 try{
@@ -1833,11 +1834,12 @@ function applyAppPermissionsUI(){
     el.disabled=!ok; el.classList.toggle('app-disabled',!ok); el.setAttribute('aria-disabled',String(!ok));
     if(!ok)el.title='Für diesen Benutzer nicht freigegeben';
   });
+  const twMenu=document.getElementById('twAdminMenuRow');if(twMenu)twMenu.style.display=hasAppPermission('tw')?'flex':'none';
   updateHomeAdminButton();
   updateWhiteboardKioskUI();
   try{if(typeof shRender==='function')shRender()}catch(e){}
 }
-const APP_BACKUP_COLLECTIONS=['users','tournamentPlanner','tournamentInvitations','ownTournamentInvitations','pressReports','news','photos','sponsorPhotos','teams','turniere','vereine','meldungen','einstellungen','ecw','linkPreferences','appSettings','soloPyramide','liveStartlisten','turnierauswertung'];
+const APP_BACKUP_COLLECTIONS=['users','tournamentPlanner','tournamentInvitations','ownTournamentInvitations','pressReports','news','photos','sponsorPhotos','teams','turniere','vereine','meldungen','einstellungen','ecw','linkPreferences','appSettings','soloPyramide','liveStartlisten','turnierauswertung','turnierWirtschaftlichkeit','turnierWirtschaftlichkeitSicherungen'];
 let appBackupBusy=false;
 function backupDateLabel(){return new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()).replace(/\./g,'_');}
 function backupEncode(value){
@@ -1904,15 +1906,30 @@ async function exportAppBackup(){
   const startedAt=new Date().toISOString(),documents=[],counts={};
   for(const name of APP_BACKUP_COLLECTIONS){
    if(status)status.textContent='Sichere '+name+' …';
-   if(name==='ecw'||name==='linkPreferences'){
-    counts[name]=0;
-    for(const id of (name==='ecw'?['state','publicMembers']:['config'])){
-     const doc=await firestoreDb.collection(name).doc(id).get({source:'server'});
-     if(doc.exists){counts[name]++;documents.push({path:name+'/'+id,data:backupEncode(doc.data())});}
+   try{
+    // Sammlungen mit dokumentbezogenen Firestore-Regeln gezielt auslesen.
+    // Eine Collection-Abfrage wäre dort trotz erlaubtem Dokumentzugriff gesperrt.
+    const fixedDocs={
+      ecw:['state','publicMembers'],
+      linkPreferences:['config'],
+      soloPyramide:['state']
+    };
+    if(Object.prototype.hasOwnProperty.call(fixedDocs,name)){
+      counts[name]=0;
+      for(const id of fixedDocs[name]){
+        if(status)status.textContent='Sichere '+name+'/'+id+' …';
+        const doc=await firestoreDb.collection(name).doc(id).get({source:'server'});
+        if(doc.exists){counts[name]++;documents.push({path:name+'/'+id,data:backupEncode(doc.data())});}
+      }
+    }else{
+      const snap=await firestoreDb.collection(name).get({source:'server'});
+      counts[name]=snap.size;
+      snap.forEach(doc=>documents.push({path:doc.ref.path,data:backupEncode(doc.data())}));
     }
-   }else{
-    const snap=await firestoreDb.collection(name).get({source:'server'});counts[name]=snap.size;
-    snap.forEach(doc=>documents.push({path:doc.ref.path,data:backupEncode(doc.data())}));
+   }catch(collectionError){
+     const reason=collectionError?.message||String(collectionError);
+     const code=collectionError?.code||'unbekannter Fehler';
+     throw new Error('Firestore-Zugriff bei „'+name+'“ fehlgeschlagen ('+code+'): '+reason);
    }
   }
   const members=documents.find(d=>d.path==='ecw/state');
@@ -5852,6 +5869,18 @@ async function pressDeleteSelectedFolder(){
  save();pressRefreshAdminFolderSelects(currentMonth);
  showToast('Ordner gelöscht. Bitte „Zeitungsberichte speichern“ drücken, um Firebase zu aktualisieren.');
 }
+function renderTurnierWirtschaftlichkeitAdmin(){
+  // Die Seite überprüft die Firebase-Anmeldung und Firestore-Berechtigung zusätzlich selbst.
+  const a=document.getElementById('adminMain');
+  if(!a)return;
+  a.innerHTML='<div class="row" style="align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
+    +'<h2 style="margin:0">Turnierwirtschaftlichkeit</h2>'
+    +'<button type="button" onclick="renderAdminMenuLanding()">← Zurück zur Verwaltung</button></div>'
+    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.0.0" '
+    +'style="width:100%;height:calc(100vh - 185px);min-height:690px;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:#16080b" '
+    +'loading="eager" referrerpolicy="same-origin"></iframe>';
+}
+
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
@@ -5866,6 +5895,7 @@ function adminSection(s){
  if(s==='wb'){renderWhiteboardPermissionsAdmin();return}
  if(s==='solo'){openSoloPyramideAdmin();return}
  if(s==='ic'){renderInternalCupAdmin();return}
+ if(s==='tw'){renderTurnierWirtschaftlichkeitAdmin();return}
  if(s==='mv'){renderMemberAdmin();return}
  if(s==='ov'){renderOverviewAdmin();return}
  if(s==='tv'){adminPreviewOpen('tv');return}
