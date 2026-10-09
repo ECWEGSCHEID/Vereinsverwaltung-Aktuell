@@ -1,4 +1,4 @@
-/* EC Wegscheid – Systemeinstellungen V2.0.2. Kein Einfluss auf bestehende Daten ohne ausdrückliches Speichern. */
+/* EC Wegscheid – Systemeinstellungen V2.0.3. Kein Einfluss auf bestehende Daten ohne ausdrückliches Speichern. */
 (function(){
 'use strict';
 const DOC='vereinsKonfiguration';
@@ -43,7 +43,7 @@ function apply(v){
   style.id='ecw-config-style';
   // Theme is applied only after explicit save to Firebase. Legacy installations stay untouched.
   const bg=d.backgroundImage||presetUrl(d.backgroundPreset);
-  style.textContent='body{background-color:'+d.background+' !important;'+(bg?'background-image:url("'+bg+'") !important;':'background-image:none !important;')+'background-position:center !important;background-size:cover !important;}button.primary{background:'+d.primary+' !important;}';
+  style.textContent='body{background-color:'+d.background+' !important;'+(bg?'background-image:url("'+bg+'") !important;':'')+'background-position:center !important;background-size:cover !important;}button.primary{background:'+d.primary+' !important;}';
   if(!style.parentNode)document.head.appendChild(style);
   document.documentElement.dataset.ecwTheme=d.theme;
 }
@@ -77,7 +77,7 @@ function setTheme(){
 function selectPreset(){
   const key=el('ecwCfgPreset').value;draft.backgroundPreset=key;draft.backgroundImage='';
   if(PRESETS[key]?.theme){draft.theme=PRESETS[key].theme;draft.primary=THEMES[draft.theme].primary;draft.background=THEMES[draft.theme].background;el('ecwCfgTheme').value=draft.theme;el('ecwCfgPrimary').value=draft.primary;el('ecwCfgBackground').value=draft.background;}
-  preview();msg('Designvorlage in Vorschau geladen. Noch nicht gespeichert.');
+  preview();msg('Ausgewählt: '+PRESETS[key].label+' – noch nicht gespeichert.');
 }
 function msg(text,isError=false){const e=el('ecwCfgStatus');if(e){e.textContent=text;e.style.color=isError?'#ff9999':'#a5f2c2';}}
 async function upload(file,key){
@@ -100,15 +100,20 @@ async function save(){
   if(!draft.name.trim()){msg('Bitte einen Vereinsnamen eingeben.',true);return;}
   if(!db()){msg('Firebase ist nicht verbunden.',true);return;}
   busy=true;msg('Speichere in Firebase …');
+  const saveButton=el('ecwCfgSave');if(saveButton)saveButton.disabled=true;
   try{
     await db().collection('appSettings').doc(DOC).set({...draft,updatedAt:new Date().toISOString(),updatedBy:firebaseAuthUser.uid});
-    loaded=clean(draft);docExists=true;apply(loaded);msg('Gespeichert. Design in der Hauptverwaltung aktiviert.');
-  }catch(e){msg('Speichern fehlgeschlagen: '+(e.message||e),true)}finally{busy=false;}
+    // Verify that the server actually persisted the selection before claiming success.
+    const check=await db().collection('appSettings').doc(DOC).get({source:'server'});
+    if(!check.exists)throw new Error('Nach dem Speichern kein Konfigurationsdokument gefunden.');
+    loaded=clean(check.data());docExists=true;draft=clean(loaded);apply(loaded);
+    msg('Erfolgreich in Firebase gespeichert: '+(PRESETS[loaded.backgroundPreset]?.label||THEMES[loaded.theme].label)+'. Nach Neustart bleibt die Auswahl erhalten.');
+  }catch(e){console.error('ECW Design speichern:',e);msg('NICHT gespeichert – '+(e.code||'Fehler')+': '+(e.message||e),true)}finally{busy=false;if(saveButton)saveButton.disabled=false;}
 }
 async function open(){
   if(!admin())return;
   const a=el('adminMain');if(!a)return;
-  a.innerHTML='<h2>⚙ Systemeinstellungen <span class="small">V2.0.2 · Designvorlagen</span></h2><div class="card" style="margin-bottom:12px"><b>Vereinsprofil und Design</b><p class="small">Änderungen werden erst mit „Einstellungen speichern“ in Firebase übernommen. Das bestehende EC-Wegscheid-Design bleibt ohne Speichern unverändert. Neue Vereinsinstallationen können die neutrale Vorlage wählen.</p><div class="row"><div><label>Vereinsname</label><input id="ecwCfgName" type="text" maxlength="120"></div><div><label>Vereinskürzel</label><input id="ecwCfgShort" type="text" maxlength="25"></div></div><div class="row"><div><label>E-Mail</label><input id="ecwCfgEmail" type="text"></div><div><label>Kontakt</label><input id="ecwCfgContact" type="text"></div></div><label>Anschrift</label><input id="ecwCfgAddress" type="text"><label>Designvorlage</label><select id="ecwCfgTheme">'+Object.entries(THEMES).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><label>Hintergrundvorlage (mit oder ohne Logo)</label><select id="ecwCfgPreset">'+Object.entries(PRESETS).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><div class="row"><div><label>Akzentfarbe</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div><div class="row"><div><label>Vereinslogo (PNG/JPG/WebP)</label><input id="ecwCfgLogo" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveLogo">Logo entfernen</button></div><div><label>Hintergrundbild (PNG/JPG/WebP)</label><input id="ecwCfgBg" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveBg">Bild entfernen</button></div></div><p class="small">Bilder werden vor dem Speichern verkleinert. Große Originalbilder und die Hintergründe einzelner Module werden in einer späteren Ausbaustufe zentral verwaltet.</p></div><div class="card"><h3>Live-Vorschau (nur hier)</h3><div id="ecwConfigPreview" style="padding:24px;min-height:190px;border-radius:12px"></div><div class="row" style="margin-top:16px"><button class="primary" id="ecwCfgSave">Einstellungen speichern</button><button id="ecwCfgCancel">Änderungen verwerfen</button><button id="ecwCfgNeutral">Neutralen Entwurf laden</button></div><div id="ecwCfgStatus" role="status" style="margin-top:12px"></div></div><div class="card" style="margin-top:12px"><b>Weitere Bereiche (folgen)</b><p class="small">Modulverwaltung mit sicheren Zugriffssperren · zentrale Modulversionen · Vereins-Installationsassistent · gemeinsame Designübernahme in alle Einzelprogramme.</p></div>';
+  a.innerHTML='<h2>⚙ Systemeinstellungen <span class="small">V2.0.3 · Designvorlagen</span></h2><div class="card" style="margin-bottom:12px"><b>Vereinsprofil und Design</b><p class="small">Änderungen werden erst mit „Einstellungen speichern“ in Firebase übernommen. Das bestehende EC-Wegscheid-Design bleibt ohne Speichern unverändert. Neue Vereinsinstallationen können die neutrale Vorlage wählen.</p><div class="row"><div><label>Vereinsname</label><input id="ecwCfgName" type="text" maxlength="120"></div><div><label>Vereinskürzel</label><input id="ecwCfgShort" type="text" maxlength="25"></div></div><div class="row"><div><label>E-Mail</label><input id="ecwCfgEmail" type="text"></div><div><label>Kontakt</label><input id="ecwCfgContact" type="text"></div></div><label>Anschrift</label><input id="ecwCfgAddress" type="text"><label>Designvorlage</label><select id="ecwCfgTheme">'+Object.entries(THEMES).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><label>Hintergrundvorlage (mit oder ohne Logo)</label><select id="ecwCfgPreset">'+Object.entries(PRESETS).map(([id,t])=>'<option value="'+id+'">'+esc(t.label)+'</option>').join('')+'</select><div class="row"><div><label>Akzentfarbe</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div><div class="row"><div><label>Vereinslogo (PNG/JPG/WebP)</label><input id="ecwCfgLogo" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveLogo">Logo entfernen</button></div><div><label>Hintergrundbild (PNG/JPG/WebP)</label><input id="ecwCfgBg" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveBg">Bild entfernen</button></div></div><p class="small">Bilder werden vor dem Speichern verkleinert. Große Originalbilder und die Hintergründe einzelner Module werden in einer späteren Ausbaustufe zentral verwaltet.</p></div><div class="card"><h3>Live-Vorschau (nur hier)</h3><div id="ecwConfigPreview" style="padding:24px;min-height:190px;border-radius:12px"></div><div class="row" style="margin-top:16px"><button class="primary" id="ecwCfgSave">Einstellungen speichern</button><button id="ecwCfgCancel">Änderungen verwerfen</button><button id="ecwCfgNeutral">Neutralen Entwurf laden</button></div><div id="ecwCfgStatus" role="status" style="margin-top:12px"></div></div><div class="card" style="margin-top:12px"><b>Weitere Bereiche (folgen)</b><p class="small">Modulverwaltung mit sicheren Zugriffssperren · zentrale Modulversionen · Vereins-Installationsassistent · gemeinsame Designübernahme in alle Einzelprogramme.</p></div>';
   msg('Lade aktuelle Einstellungen …');
   try{const snap=await db().collection('appSettings').doc(DOC).get();docExists=snap.exists;loaded=snap.exists?clean(snap.data()):null;}catch(e){msg('Firebase-Laden fehlgeschlagen: '+e.message,true);return;}
   draft=clean(loaded||base());
@@ -125,9 +130,10 @@ async function open(){
   el('ecwCfgSave').onclick=save;
   el('ecwCfgCancel').onclick=()=>open();
   el('ecwCfgNeutral').onclick=()=>{draft={...draft,...THEMES.neutral,theme:'neutral',logo:'',backgroundImage:'',backgroundPreset:'none'};el('ecwCfgPreset').value='none';el('ecwCfgTheme').value='neutral';el('ecwCfgPrimary').value=draft.primary;el('ecwCfgBackground').value=draft.background;preview();msg('Neutraler Entwurf geladen. Noch nicht gespeichert.')};
-  preview();msg(docExists?'Aktuelle Einstellungen geladen.':'Noch keine Konfiguration gespeichert – bestehendes Design bleibt unverändert.');
+  preview();msg(docExists?'Aus Firebase geladen: '+(PRESETS[draft.backgroundPreset]?.label||THEMES[draft.theme].label):'Noch keine Konfiguration gespeichert – bestehendes Design bleibt unverändert.');
 }
 // Existing installations have no config document: do not change their appearance.
-if(typeof firebaseAuth!=='undefined'&&firebaseAuth){firebaseAuth.onAuthStateChanged(u=>{if(u)setTimeout(()=>{if(admin())load()},800)});}
+// Loading is initiated by the parent after user permissions are fully available.
+// Do not rely on a timer racing the asynchronous Firebase profile load.
 window.ECWConfig={open,load};
 })();

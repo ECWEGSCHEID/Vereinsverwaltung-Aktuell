@@ -887,7 +887,7 @@ try{
 }catch(e){console.error("Firebase Initialisierung:",e);}
 </script>
 <script>
-const APP_VERSION='2.0.2';
+const APP_VERSION='2.0.3';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1786,6 +1786,11 @@ async function readAppPermissions(user){
     if(appPermissions.admin)Object.keys(APP_PERMISSIONS).forEach(k=>appPermissions[k]=true);
   }catch(e){console.error('Berechtigungen konnten nicht geladen werden:',e);showToast('Berechtigungen konnten nicht geladen werden',5000)}
   window.appPermissions=appPermissions;applyAppPermissionsUI();
+  // Only after the permissions have been loaded can the design configuration
+  // be read reliably; otherwise an arbitrary timer may miss the admin login.
+  if(appPermissions.admin===true && typeof ECWConfig!=='undefined'){
+    try{await ECWConfig.load()}catch(e){console.warn('Design konnte nicht geladen werden',e)}
+  }
 }
 function hasAppPermission(k){
  if(!firebaseAuthUser)return false;
@@ -8541,6 +8546,6 @@ function renderTurnierverwaltungAdmin(){
     </div>
   </div>
 </div>
-<script src="systemeinstellungen.js?v=2.0.2"></script>
+<script src="systemeinstellungen.js?v=2.0.3"></script>
 </body>
 </html>
