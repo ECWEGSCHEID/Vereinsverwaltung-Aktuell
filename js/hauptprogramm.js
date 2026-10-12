@@ -2609,7 +2609,9 @@ function showView(id){
    // Der Sprung "Aktueller Termin" ist ausschließlich eine bewusste
    // Benutzeraktion über tpOpenTournamentPlannerView().
    renderTournamentPlanner();
-   if(!centralFirebaseReady)tpRefreshFromFirebase(false).catch(e=>console.error('Turnierplaner aktualisieren:',e));
+   if(!centralFirebaseReady)tpRefreshFromFirebase(false)
+     .then(ok=>{if(ok && document.getElementById('tournamentPlanner')?.classList.contains('active'))requestAnimationFrame(()=>tpScrollToCurrentEntry());})
+     .catch(e=>console.error('Turnierplaner aktualisieren:',e));
  }
  if(id==='photos'||id==='sponsorPhotos'){pCollection=(id==='sponsorPhotos')?'sponsorPhotos':'photos';loadPhotoPresentation(pCollection).catch(e=>console.error('Fotoanzeige:',e));}
  updateWhiteboardScreenControls();
@@ -3517,22 +3519,20 @@ function tpScrollToCurrentEntry(){
   if(!cards.length)return;
   const today=todayStr();
 
-  // "Aktuellster Beitrag": letzter Termin bis einschließlich heute.
-  // Falls das Jahr noch keinen vergangenen/heutigen Termin hat, erster Termin des Jahres.
-  let target=null;
-  for(const card of cards){
-    const d=String(card.dataset.tpDate||'');
-    if(d&&d<=today)target=card;
-    else if(d&&d>today)break;
-  }
-  if(!target)target=cards[0];
+  // Beim Öffnen immer den nächsten Termin ab heute anzeigen.
+  // Ist im gewählten Zeitraum keiner mehr vorhanden, den letzten Termin zeigen.
+  // Die aktuelle Jahres-/Zeitraumauswahl bleibt unverändert.
+  const target=cards.find(card=>{
+    const date=String(card.dataset.tpDate||'');
+    return date && date>=today;
+  }) || cards[cards.length-1];
 
-  if(target){
-    const listRect=el.getBoundingClientRect();
-    const cardRect=target.getBoundingClientRect();
-    const desired=el.scrollTop+(cardRect.top-listRect.top)-(el.clientHeight-target.offsetHeight)/2;
-    el.scrollTop=Math.max(0,desired);
-  }
+  const listRect=el.getBoundingClientRect();
+  const cardRect=target.getBoundingClientRect();
+  // Den nächsten Termin möglichst oben positionieren; vorherige Termine
+  // bleiben durch Zurückscrollen erreichbar.
+  const desired=el.scrollTop+(cardRect.top-listRect.top)-12;
+  el.scrollTop=Math.max(0,desired);
 }
 function tpScrollToToday(){tpScrollToCurrentEntry();}
 

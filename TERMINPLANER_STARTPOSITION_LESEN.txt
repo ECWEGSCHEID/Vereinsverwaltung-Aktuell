@@ -1,0 +1,9 @@
+EC Wegscheid Hauptprogramm V2.0.14 – Terminplaner Startposition
+
+Beim Öffnen wird in der gewählten Jahres-/Zeitraumauswahl der nächste Termin ab dem heutigen Datum gezeigt. Gibt es keinen zukünftigen Termin, wird der letzte Termin der Auswahl gezeigt. Bei einer normalen Bearbeitung wird die Scrollposition beibehalten.
+
+Das komplette Hauptprogramm einschließlich CSS, JS, Bilder, Module und Firebase-Regeln liegt bei. Die Firebase-Regeln wurden für diese Korrektur NICHT verändert.
+
+Installation: Alle Programmdateien und Unterordner (insbesondere css, js, assets) direkt in die Wurzel des GitHub-Repositories Vereinsverwaltung-Aktuell hochladen. Den FIREBASE-Ordner nicht als Website-Datei veröffentlichen; die Regeln dienen nur als separat zu verwaltende Sicherung.
+
+Vorher GitHub-Stand sichern; anschließend Strg+F5 und Terminplaner mit Jahresansicht 2026 und Zukunft prüfen.
