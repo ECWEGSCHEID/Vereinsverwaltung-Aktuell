@@ -1,3 +1,61 @@
 {
-  "version": "2.0.5"
+  "version": "2.0.14",
+  "release": "Lokaler Test: Google-Kalender-Exportstatus und erneute Aktualisierung",
+  "module": {
+    "hauptprogramm": {
+      "datei": "index.html",
+      "status": "integriert",
+      "sha256": "6b5b1aa9c7ca3adbe9aa66c3691cf68e21f93f250470b8157b052a84eccbfaac"
+    },
+    "mitgliederverwaltung": {
+      "datei": "mitgliederverwaltung.html",
+      "status": "bestehend",
+      "sha256": "d14ad88e773dd9b13c85fb065a02f204ac95c703a179790bccb90d880004b44e"
+    },
+    "turnierverwaltung": {
+      "datei": "turnierverwaltung.html",
+      "status": "bestehend",
+      "sha256": "74cbf205c8354f795bb68a1ff56b0ca7a2626be6d579d78481d030c78ae70f64"
+    },
+    "turnierauswertung": {
+      "datei": "turnierauswertung.html",
+      "status": "bestehend",
+      "sha256": "5db6e83acb15fe54686da8854a7d47a1cd699bc7506d98ec33fafed0def0f3b2"
+    },
+    "turnierwirtschaftlichkeit": {
+      "datei": "turnierwirtschaftlichkeit.html",
+      "status": "bestehend",
+      "sha256": "8fd94e7e34a6c1909b88817c1ee74004103c8f8cf4d62a8339ba4ea248dc1bf9"
+    },
+    "solo-pyramide": {
+      "datei": "solo-pyramide.html",
+      "status": "bestehend",
+      "sha256": "32d566782d0fdd2f345f6d88dd09ba5e4c5966d3db40811b097726e1d2fedba7"
+    },
+    "smartphone-zugang": {
+      "datei": "mobile-zugang.html",
+      "status": "bestehend",
+      "sha256": "e51aff4ff6f5141b3cca7b37dc8e6e0d838cb9cbf8bc2baf64b8f1e8a392fb0c"
+    },
+    "live-startlisten": {
+      "datei": "live-startlisten.html",
+      "status": "bestehend",
+      "sha256": "14f1f5ca7320f4372ba922a617a4583f647b5437ff4ca40306aa3ce0a6c9fd66"
+    }
+  },
+  "changes": [
+    "CSS in css/hauptprogramm.css ausgelagert",
+    "Carbon-Hintergrund als assets/hintergrund-carbon-rot.png ausgelagert",
+    "Startseiten-Standardhintergrund als eigene Bilddatei ausgelagert",
+    "Firebase-Initialisierung, Hauptprogramm und Turnierverwaltungsintegration in js/ ausgelagert",
+    "Zentrale Versionsdatei und Prüfroutine ergänzt",
+    "Bestehende HTML-Einzelmodule nicht verändert",
+    "Mitgliederverwaltung: große Inline-Skripte als externe Dateien eingebunden, HTML-Script-Parser-Konflikt vermieden",
+    "Turnierauswertung: eingebettete Unterseiten-Skripte als externe Dateien eingebunden",
+    "Fehlenden Hintergrundbild-Pfad in Turnierauswertung korrigiert",
+    "Spielerpass-Übersicht zeigt vorhandene Pässe unabhängig von Mitgliederverknüpfung; keine automatische Änderung an Daten",
+    "Spielerpass-Übersicht rendert geladene Datensätze fehlertolerant und zeigt Filter-/Zuordnungsdiagnose an; ohne Schreibvorgang.",
+    "Spielerpass-Suche und Filter beim Öffnen der Übersicht zurücksetzen.",
+    "Live-Startlisten: Firebase-kompatible Objekte im Hauptfenster erzeugen (iframe-Realm-Fehler)."
+  ]
 }

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+<script>if(window.self!==window.top)document.documentElement.classList.add("ecw-inside-frame");</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>EC Wegscheid – Turnierverwaltung · Vereinsverwaltung</title>
@@ -723,10 +724,78 @@ body.live-start-public header{position:sticky;top:0;z-index:20}
   opacity:1!important;
 }
 
+/* ECW Carbon Rot: gleiche Originalvorlage wie Cupauswertung.
+   Nur die Anwendungsflaeche; Druck-/PDF-Dokumente bleiben weiss. */
+html:not(.ecw-print), body:not(.ecw-print){
+ background-color:#240607!important;
+ background-image:linear-gradient(rgba(15,0,0,.08),rgba(15,0,0,.08)),url('assets/hintergrund-carbon-rot.png')!important;
+ background-repeat:no-repeat!important;
+ background-position:center center!important;
+ background-size:cover!important;
+ background-attachment:fixed!important;
+}
+body.embedded-main-auth{
+ background-image:linear-gradient(rgba(15,0,0,.08),rgba(15,0,0,.08)),url('assets/hintergrund-carbon-rot.png')!important;
+ background-color:#240607!important;
+}
+@media print{html,body{background:#fff!important;background-image:none!important;}}
+
 /* V2.0.0 – eingebettete Turnierverwaltung: gemeinsame Anmeldung */
 body.embedded-main-auth #logoutBtn{display:none!important}
 body.embedded-main-auth #loginScreen{display:none!important}
-body.embedded-main-auth{background:#0d0f13!important}
+body.embedded-main-auth{background-color:#240607!important}
+
+/* Historie: vier einzeln auf- und zuklappbare Bereiche */
+#viewHistorie .history-panel > summary {display:list-item; font-size:1.08rem; font-weight:750; padding:3px 6px; margin:0; cursor:pointer;}
+#viewHistorie .history-panel[open] > summary {margin-bottom:14px; border-bottom:1px solid rgba(130,130,130,.25); padding-bottom:12px;}
+#viewHistorie .history-panel:not([open]) {padding-top:12px; padding-bottom:12px;}
+#viewHistorie .history-panel > summary:focus-visible {outline:2px solid #e2a0a0;outline-offset:4px;}
+
+/* Einheitliche Ruecknavigation: Detail -> Turnieruebersicht unten rechts. */
+#viewTurnierDetail:not(.hidden) { padding-bottom:82px; }
+#viewTurnierDetail:not(.hidden) > #backToTurniere {
+ position:fixed!important;top:auto!important;left:auto!important;
+ right:22px!important;bottom:20px!important;z-index:900!important;
+ margin:0!important;padding:11px 16px!important;min-width:195px;
+ color:#fff!important;background:linear-gradient(135deg,#8f101b,#45070c)!important;
+ border:1px solid rgba(255,255,255,.55)!important;
+ box-shadow:0 5px 16px rgba(0,0,0,.45)!important;
+ font-weight:700!important;
+}
+/* Im Verwaltungs-Vorschaumodus bleibt der Ruecksprung zur Verwaltung unten,
+   die interne Turnieruebersicht liegt mit Abstand darueber. */
+html.ecw-inside-frame #viewTurnierDetail:not(.hidden) > #backToTurniere {bottom:82px!important;}
+@media(max-width:600px){
+ #viewTurnierDetail:not(.hidden) > #backToTurniere {right:10px!important;bottom:10px!important;min-width:0;font-size:13px!important;}
+ html.ecw-inside-frame #viewTurnierDetail:not(.hidden) > #backToTurniere {bottom:72px!important;}
+}
+@media print {#backToTurniere{display:none!important}}
+
+/* ECW FIX 4: rote Metallic-Vorlage und rote Bedienflaechen.
+   Bestehende Navigation, Dokumentansicht und Drucklayout bleiben unveraendert. */
+@media screen {
+  html, body, body.embedded-main-auth {
+    background-color:#65090d!important;
+    background-image:linear-gradient(rgba(45,0,0,.06),rgba(45,0,0,.06)),url('assets/hintergrund-carbon-rot.png')!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+    background-size:cover!important;
+    background-attachment:fixed!important;
+  }
+  header {background:linear-gradient(180deg,rgba(103,7,14,.96),rgba(48,4,8,.96))!important;border-color:rgba(238,134,134,.38)!important;}
+  nav {background:rgba(60,5,9,.94)!important;border-color:rgba(238,134,134,.34)!important;}
+  nav button {background:rgba(66,7,12,.94)!important;}
+  nav button:hover,nav button.active {background:rgba(119,16,24,.98)!important;}
+  .card,.card-soft {background:linear-gradient(180deg,rgba(90,13,20,.96),rgba(46,7,12,.97))!important;border-color:rgba(220,117,125,.40)!important;}
+  input,select,textarea {background:rgba(35,7,11,.97)!important;border-color:rgba(220,117,125,.38)!important;}
+  button.secondary {background:rgba(87,17,24,.95)!important;border-color:rgba(220,117,125,.45)!important;}
+  button.secondary:hover {background:rgba(118,24,33,.98)!important;}
+  thead,thead tr,th {background:rgba(55,8,13,.95)!important;}
+  tbody tr:hover,.history-table tbody tr:hover {background:rgba(135,32,41,.35)!important;}
+  /* Papier-/PDF-Vorschau bewusst nicht umfärben. */
+  .paper,.start-paper,.export-stage .paper {background:#fff!important;color:#111!important;}
+}
+
 </style>
 </head>
 <body>
@@ -1573,16 +1642,29 @@ copy of the Program in return for a fee.
     <!-- HISTORIE -->
     <section id="viewHistorie" class="hidden">
       <div class="section-intro"><h2>Historie seit 2021</h2><p>Teilnahmen seit 2021 aus der Vereinsliste und neue Einträge aus der Turnierverwaltung.</p></div>
-      <div class="card">
+      <details class="card history-panel" id="historyOverviewPanel" open><summary>Teilnahmen bei uns – Jahresübersicht</summary>
         <div class="form-grid">
           <div><label for="historySearch">Verein suchen</label><input id="historySearch" type="search" placeholder="Vereinsname"></div>
           <div><label for="historyCategory">Kategorie</label><select id="historyCategory"><option value="Alle">Alle</option><option value="Herren">Herren</option><option value="Mixed">Mixed</option><option value="Damen">Damen</option></select></div>
+          <div><label for="historyYear">Jahr</label><select id="historyYear"><option value="all">Alle Jahre (ab 2021)</option></select></div>
           <div><label for="historySort">Sortieren nach</label><select id="historySort"><option value="teilnahmen">Teilnahmen gesamt</option><option value="mannschaften">Mannschaften gesamt</option><option value="herren">Herren</option><option value="mixed">Mixed</option><option value="damen">Damen</option><option value="letzte">Letzte Teilnahme</option><option value="name">Verein A–Z</option></select></div>
         </div>
         <div id="historySummary" class="meta" style="margin:10px 0"></div>
         <div id="historyTableWrap" style="overflow:auto"><table class="history-table"><thead id="historyHead"></thead><tbody id="historyBody"></tbody></table></div>
-      </div>
-      <div class="card"><h3>Turnierdetails</h3><div id="historyDetail" class="meta">Verein in der Liste anklicken.</div></div>
+      </details>
+      <details class="card history-panel" id="historyComparePanel" open><summary>Gegenbesuche – Mannschaften pro Jahr</summary>
+        <p class="meta">Bei uns: Mannschaften aus abgeschlossenen Heimturnieren. Wir dort: je erfasstem Turnier-/Terminplaner-Eintrag eine Mannschaft (nur vergangene externe Turniere). Meisterschaften und interne Turniere zählen nicht. Der Gegenbesuchsvergleich berücksichtigt alle Kategorien.</p>
+        <div id="historyCompareSummary" class="meta" style="margin:10px 0"></div>
+        <div style="overflow:auto"><table class="history-table"><thead><tr><th>Verein</th><th>Bei uns (Mannschaften)</th><th>Wir dort (Mannschaften)</th><th>Differenz</th></tr></thead><tbody id="historyCompareBody"></tbody></table></div>
+        <div id="historyCompareDetail" class="meta" style="margin-top:12px">Verein in der Vergleichstabelle anklicken, um Einzeltermine anzuzeigen.</div>
+      </details>
+      <details class="card history-panel" id="historyCorrectionBox"><summary>Gegenbesuche prüfen und korrigieren</summary>
+          <p class="meta">Hier kannst du Terminplaner-Einträge nur für diese Auswertung ausblenden, einem Vereinsnamen zuordnen und die Mannschaftszahl berichtigen. Die Originaltermine bleiben unverändert. Korrekturen werden <strong>nur in diesem Browser</strong> gespeichert; für andere Geräte kannst du sie exportieren und importieren.</p>
+          <div class="inline-actions"><button type="button" class="secondary" id="historyCorrectionsExport">Korrekturen sichern (JSON)</button><button type="button" class="secondary" id="historyCorrectionsImportBtn">Korrekturen laden (JSON)</button><input type="file" id="historyCorrectionsImport" accept="application/json,.json" hidden></div>
+          <div id="historyCorrectionsStatus" class="meta" role="status"></div>
+          <div id="historyCorrectionsList" style="margin-top:10px"></div>
+      </details>
+      <details class="card history-panel" id="historyDetailPanel"><summary>Turnierdetails</summary><div id="historyDetail" class="meta">Verein in der Liste anklicken.</div></details>
     </section>
 
     <section id="viewDokumente" class="hidden">
@@ -1614,12 +1696,13 @@ copy of the Program in return for a fee.
       <div class="card"><label for="sTurnierSelect">Turnier auswählen</label><select id="sTurnierSelect"><option value="">– Turnier auswählen –</option></select>
         <p class="meta">Verwendet die Einladung aus Punkt 4 einschließlich deiner letzten Änderungen, Logo und Titelbild.</p><button class="secondary" id="sEditBtn" disabled>Einladung bearbeiten / Vorschau</button></div>
       <div class="card"><h3>Empfänger aus Vereine organisieren</h3><label for="sSearch">Verein oder E-Mail-Adresse suchen</label><input id="sSearch" type="search" placeholder="Verein / E-Mail">
-        <div class="inline-actions"><button class="secondary" id="sSelectAll" disabled>Alle sichtbaren auswählen</button><button class="secondary" id="sSelectNone" disabled>Auswahl aufheben</button></div>
+        <div class="inline-actions"><button class="secondary" id="sSelectAll" disabled>Alle sichtbaren auswählen</button><button class="secondary" id="sSelectNone" type="button" disabled>Alle abwählen</button></div>
         <div class="card-soft">
           <strong>Einladungsphasen</strong>
           <div class="inline-actions" style="margin-top:8px">
             <button class="secondary" id="sPhase1Btn" type="button">Phase 1 – Historie</button>
             <button class="secondary" id="sPhase2Btn" type="button">Phase 2 – restliche Vereine</button>
+            <button class="secondary" id="sClearPhaseSelection" type="button" disabled>Alle abwählen</button>
           </div>
           <p class="meta" id="sPhaseInfo">Phase 1: Vereine nach bisheriger Teilnahme auswählen.</p>
           <div id="recipientCategoryWrap">
@@ -1636,8 +1719,8 @@ copy of the Program in return for a fee.
         <p class="meta" id="sEmpty" role="status"></p><div id="sRecipients"></div><p class="meta">Adressen werden einzeln ausgewählt und als BCC übernommen. Doppelte Adressen werden nur einmal verwendet.</p></div>
       <div class="card"><h3>E-Mail vorbereiten</h3><label for="sFrom">Absender-E-Mail (optional, im Mailprogramm auswählbar)</label><input id="sFrom" type="email" maxlength="254" placeholder="Deine E-Mail-Adresse">
         <label for="sSubject">Betreff</label><input id="sSubject" maxlength="200"><label for="sMessage">Nachricht</label><textarea id="sMessage" rows="7" maxlength="10000"></textarea>
-        <p id="sSummary" class="meta"></p><div class="inline-actions"><button class="primary" id="sEmlBtn" disabled>E-Mail mit PDF-Anhang herunterladen</button><button class="secondary" id="sMailtoBtn" disabled>Für Mailprogramm vorbereiten</button><button class="secondary" id="sPdfBtn" disabled>Einladung als PDF herunterladen</button></div>
-        <p class="meta">Die EML-Datei enthält Nachricht, BCC-Empfänger und PDF-Anhang. Öffne sie als Entwurf in einem kompatiblen Mailprogramm und sende dort. Alternativ öffnest du eine neue E-Mail über den Mail-Link und hängst die PDF selbst an. Für einen Versand direkt aus dieser App ist noch kein Maildienst angebunden.</p><p id="sStatus" role="status"></p></div>
+        <p id="sSummary" class="meta"></p><div class="inline-actions"><button class="primary" id="sEmlBtn" disabled>EML für Outlook/Thunderbird herunterladen</button><button class="primary" id="sGmailBtn" disabled>Mit Gmail vorbereiten</button><button class="secondary" id="sMailtoBtn" disabled>Für Mailprogramm vorbereiten</button><button class="secondary" id="sPdfBtn" disabled>Einladung als PDF herunterladen</button></div>
+        <p class="meta"><strong>Gmail:</strong> „Mit Gmail vorbereiten“ lädt die PDF herunter und stellt einen Link zum Gmail-Entwurf mit BCC, Betreff und Nachricht bereit. <strong>PDF anschließend selbst anhängen.</strong> Gmail kann EML-Dateien nicht als bearbeitbaren Entwurf importieren. EML ist nur für kompatible Desktop-Mailprogramme (z. B. Thunderbird) gedacht. Es wird nichts automatisch versendet.</p><p id="sStatus" role="status"></p></div>
     </section>
   </main>
 </div>
@@ -4613,6 +4696,10 @@ document.getElementById('mobileCopyBtn').addEventListener('click',async()=>{cons
 document.getElementById('historySearch')?.addEventListener('input',renderHistory);
 document.getElementById('historyCategory')?.addEventListener('change',renderHistory);
 document.getElementById('historySort')?.addEventListener('change',renderHistory);
+document.getElementById('historyYear')?.addEventListener('change',renderHistory);
+document.getElementById('historyCorrectionsExport')?.addEventListener('click',historyCorrectionsDownload);
+document.getElementById('historyCorrectionsImportBtn')?.addEventListener('click',()=>document.getElementById('historyCorrectionsImport')?.click());
+document.getElementById('historyCorrectionsImport')?.addEventListener('change',async e=>{await historyCorrectionsUpload(e.target.files?.[0]);e.target.value=''});
 applyMobileMode();
 
 
@@ -4802,7 +4889,7 @@ function historyAllRecords(){
  const out=HISTORY_BASE_RECORDS
    .map(r=>({...r,verein:historyCanonicalClub(r.verein),source:'Excel',iso:isoFromGerman(r.datum)}))
    .filter(r=>String(r.iso||'')>='2021-01-01' && String(r.iso||'')<localTodayIso());
- const baseKeys=new Set(out.map(r=>[hNorm(historyCanonicalClub(r.verein)),r.iso,r.kategorie].join('|')));
+ const baseCounts=new Map();for(const r of out){const k=[hNorm(historyCanonicalClub(r.verein)),r.iso,r.kategorie].join('|');baseCounts.set(k,(baseCounts.get(k)||0)+Number(r.mannschaften||1))}
  const tmap=new Map(turniereCache.map(t=>[t.id,t])),grouped=new Map();
  for(const m of historyMeldungenCache){
    const t=tmap.get(m.turnierId);if(!t)continue;
@@ -4815,49 +4902,198 @@ function historyAllRecords(){
    if(!g)grouped.set(k,g={verein:club,turnierId:t.id,datum:iso,iso,turnierart:t.name||'Turnier',kategorie:cat,mannschaften:0,source:'Firebase'});
    g.mannschaften++;
  }
- for(const [k,r] of grouped)if(!baseKeys.has(k))out.push(r);
+ for(const [k,r] of grouped){const already=baseCounts.get(k)||0;if(r.mannschaften>already)out.push({...r,mannschaften:r.mannschaften-already});}
  return out
 }
-function historyStats(){const map=new Map();for(const r of historyAllRecords()){const n=historyCanonicalClub(r.verein);if(!n)continue;let x=map.get(n);if(!x)map.set(n,x={name:n,teilnahmen:0,mannschaften:0,herren:0,mixed:0,damen:0,last:'',records:[]});x.teilnahmen++;x.mannschaften+=Number(r.mannschaften||1);x.records.push(r);if(r.iso>x.last)x.last=r.iso;if(r.kategorie==='Damen')x.damen++;else if(r.kategorie==='Mixed')x.mixed++;else x.herren++}return map}
+function historyStats(records=historyAllRecords()){const map=new Map();for(const r of records){const n=historyCanonicalClub(r.verein);if(!n)continue;let x=map.get(n);if(!x)map.set(n,x={name:n,teilnahmen:0,mannschaften:0,herren:0,mixed:0,damen:0,last:'',records:[]});x.teilnahmen++;x.mannschaften+=Number(r.mannschaften||1);x.records.push(r);if(r.iso>x.last)x.last=r.iso;if(r.kategorie==='Damen')x.damen++;else if(r.kategorie==='Mixed')x.mixed++;else x.herren++}return map}
 function historyCategoriesForClub(name){const x=historyStats().get(historyCanonicalClub(name)),a=[];if(x?.herren)a.push('Herren');if(x?.mixed)a.push('Mixed');if(x?.damen)a.push('Damen');return a}
+function historySelectedYear(){return document.getElementById('historyYear')?.value||'all'}
+function historyFillYears(){
+ const sel=document.getElementById('historyYear');if(!sel)return;
+ const selected=sel.value||'all',years=new Set([String(new Date().getFullYear())]);
+ historyAllRecords().forEach(r=>{if(r.iso)years.add(String(r.iso).slice(0,4))});
+ historyPlannerEntries().forEach(r=>{if(r.date)years.add(String(r.date).slice(0,4))});
+ const sorted=[...years].filter(y=>/^20\d\d$/.test(y)&&Number(y)>=2021).sort((a,b)=>b.localeCompare(a));
+ sel.innerHTML='<option value="all">Alle Jahre (ab 2021)</option>'+sorted.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+ sel.value=sorted.includes(selected)?selected:'all';
+}
+// Auswertungskorrekturen sind bewusst getrennt von den Originalterminen.
+const HISTORY_CORRECTIONS_KEY='ecw_history_compare_corrections_v1';
+let historyCorrections={};
+try{const saved=JSON.parse(localStorage.getItem(HISTORY_CORRECTIONS_KEY)||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))historyCorrections=saved;}catch(e){console.warn('Korrekturen konnten nicht gelesen werden',e)}
+function historyRawPlannerEntries(){
+ try{const fn=window.parent?.ecwHistoryPlannerSnapshot;return typeof fn==='function'?fn():[]}catch(e){console.warn('Gegenbesuche derzeit nicht erreichbar',e);return []}
+}
+function historyRawEntriesWithKeys(){
+ const occurrences=new Map();
+ return historyRawPlannerEntries().map(r=>{
+   const base=JSON.stringify([String(r.date||''),String(r.name||''),String(r.club||'')]);
+   const ordinal=occurrences.get(base)||0;occurrences.set(base,ordinal+1);
+   return {...r,_historyKey:base+'#'+ordinal};
+ });
+}
+function historyPlannerEntries(){
+ return historyRawEntriesWithKeys().map(r=>{
+   const c=historyCorrections[r._historyKey]||{};
+   return {...r,club:typeof c.club==='string'&&c.club.trim()?c.club.trim():r.club,
+     teams:Number.isInteger(c.teams)&&c.teams>=1&&c.teams<=42?c.teams:1,
+     hidden:c.hidden===true};
+ }).filter(r=>!r.hidden);
+}
+function historyCorrectionsSave(){
+ try{localStorage.setItem(HISTORY_CORRECTIONS_KEY,JSON.stringify(historyCorrections));return true}
+ catch(e){alert('Korrekturen konnten nicht lokal gespeichert werden: '+e.message);return false}
+}
+function historyCorrectionsStatus(msg){const el=document.getElementById('historyCorrectionsStatus');if(el)el.textContent=msg}
+function historyCorrectionsApplyAll(){
+ const fields=[...document.querySelectorAll('#historyCorrectionsList tr[data-history-key]')];
+ if(!fields.length){historyCorrectionsStatus('Keine Einträge zum Speichern vorhanden.');return;}
+ const next={...historyCorrections};
+ let changed=0;
+ for(const tr of fields){
+   const key=tr.dataset.historyKey;
+   const name=tr.querySelector('[data-correction-name]');
+   const teams=tr.querySelector('[data-correction-teams]');
+   const hidden=tr.querySelector('[data-correction-hidden]');
+   const original=tr._historyOriginal;
+   if(!original||!name||!teams||!hidden)continue;
+   const n=Number(teams.value),club=name.value.trim(),isHidden=hidden.checked;
+   const prev=historyCorrections[key]||{};
+   const originalClub=String(original.club||'');
+   const wasClub=typeof prev.club==='string'?prev.club:originalClub;
+   const wasTeams=Number.isInteger(prev.teams)?prev.teams:1;
+   const wasHidden=prev.hidden===true;
+   if(club===wasClub&&n===wasTeams&&isHidden===wasHidden)continue;
+   if(!Number.isInteger(n)||n<1||n>42){historyCorrectionsStatus('Ungültige Mannschaftszahl bei „'+(original.name||original.date||'Termin')+'“ (1 bis 42). Es wurde nichts gespeichert.');teams.focus();return;}
+   if(!club&&!isHidden){historyCorrectionsStatus('Vereinsname fehlt bei „'+(original.name||original.date||'Termin')+'“. Bitte Namen eingeben oder „Nicht zählen“ wählen. Es wurde nichts gespeichert.');name.focus();return;}
+   if(club===originalClub&&n===1&&!isHidden)delete next[key];
+   else next[key]={club:club||originalClub,teams:n,hidden:isHidden};
+   changed++;
+ }
+ if(changed===0){historyCorrectionsStatus('Keine neuen Änderungen. Bereits gespeichert: '+Object.keys(historyCorrections).length+' Korrektur(en).');return;}
+ const before=historyCorrections;
+ historyCorrections=next;
+ if(!historyCorrectionsSave()){historyCorrections=before;return;}
+ renderHistory();
+ historyCorrectionsStatus(changed+' Zeile(n) übernommen · insgesamt '+Object.keys(historyCorrections).length+' gespeicherte Korrektur(en). Jetzt kannst du die JSON-Sicherung erstellen.');
+}
+function historyCorrectionsRender(){
+ const el=document.getElementById('historyCorrectionsList');if(!el)return;
+ const year=historySelectedYear(),raw=historyRawEntriesWithKeys().filter(r=>year==='all'||String(r.date||'').startsWith(year));
+ el.replaceChildren();
+ const info=document.createElement('p');info.className='meta';info.textContent=raw.length+' Termine aus dem Terminplaner · '+(year==='all'?'alle Jahre':'Jahr '+year)+' · '+Object.keys(historyCorrections).length+' gespeicherte Korrektur(en). Du kannst mehrere Zeilen bearbeiten und anschließend alle Änderungen gemeinsam speichern.';el.appendChild(info);
+ if(!raw.length){const warn=document.createElement('p');warn.className='meta';warn.textContent='Keine Terminplaner-Einträge verfügbar. Bitte über die Startseite der Vereinsverwaltung öffnen und warten, bis die Termine geladen sind.';el.appendChild(warn);return;}
+ const saveAll=document.createElement('button');saveAll.type='button';saveAll.className='primary';saveAll.textContent='Alle Änderungen übernehmen';saveAll.style.margin='8px 0 12px';saveAll.addEventListener('click',historyCorrectionsApplyAll);el.appendChild(saveAll);
+ const wrap=document.createElement('div');wrap.style.overflowX='auto';
+ const table=document.createElement('table');table.className='history-table';
+ table.innerHTML='<thead><tr><th>Datum / Originaltermin</th><th>Vereinsname für Vergleich</th><th>Mannschaften</th><th>Nicht zählen</th></tr></thead>';
+ const tbody=document.createElement('tbody');
+ raw.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ for(const r of raw){
+   const c=historyCorrections[r._historyKey]||{},tr=document.createElement('tr');
+   tr.dataset.historyKey=r._historyKey;tr._historyOriginal=r;
+   const td1=document.createElement('td');td1.textContent=(r.date||'')+' · '+(r.name||'');tr.appendChild(td1);
+   const td2=document.createElement('td'),name=document.createElement('input');name.type='text';name.dataset.correctionName='1';name.value=typeof c.club==='string'?c.club:(r.club||'');name.style.minWidth='175px';name.setAttribute('aria-label','Vereinsname für '+(r.name||''));td2.appendChild(name);tr.appendChild(td2);
+   const td3=document.createElement('td'),teams=document.createElement('input');teams.type='number';teams.dataset.correctionTeams='1';teams.min='1';teams.max='42';teams.step='1';teams.value=Number.isInteger(c.teams)?c.teams:1;teams.style.width='70px';td3.appendChild(teams);tr.appendChild(td3);
+   const td4=document.createElement('td'),hidden=document.createElement('input');hidden.type='checkbox';hidden.dataset.correctionHidden='1';hidden.checked=c.hidden===true;hidden.setAttribute('aria-label','Nicht zählen: '+(r.name||''));td4.appendChild(hidden);tr.appendChild(td4);
+   tbody.appendChild(tr);
+ }
+ table.appendChild(tbody);wrap.appendChild(table);el.appendChild(wrap);
+ const saveBottom=document.createElement('button');saveBottom.type='button';saveBottom.className='primary';saveBottom.textContent='Alle Änderungen übernehmen';saveBottom.style.marginTop='12px';saveBottom.addEventListener('click',historyCorrectionsApplyAll);el.appendChild(saveBottom);
+}
+function historyCorrectionsDownload(){
+ const count=Object.keys(historyCorrections).length;
+ if(count===0){historyCorrectionsStatus('Keine Korrekturen gespeichert – Sicherung nicht erstellt. Bitte erst einen Eintrag ändern und auf „Übernehmen“ klicken.');return;}
+ historyCorrectionsStatus('Sicherung wird erstellt: '+count+' gespeicherte Korrektur(en).');
+ const blob=new Blob([JSON.stringify({format:'ecw-history-corrections-v1',corrections:historyCorrections},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ECW_Historie_Korrekturen_'+localTodayIso()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+async function historyCorrectionsUpload(file){
+ if(!file)return;
+ try{const data=JSON.parse(await file.text());if(data.format!=='ecw-history-corrections-v1'||!data.corrections||typeof data.corrections!=='object'||Array.isArray(data.corrections))throw new Error('Unbekanntes Dateiformat');
+   const clean={};for(const [k,c] of Object.entries(data.corrections)){
+     if(!c||typeof c!=='object'||k.length>1000)continue;
+     const club=String(c.club||'').trim().slice(0,200),teams=Number(c.teams);
+     if(!club||!Number.isInteger(teams)||teams<1||teams>42)continue;
+     clean[k]={club,teams,hidden:c.hidden===true};
+   }
+   historyCorrections=clean;if(historyCorrectionsSave()){renderHistory();historyCorrectionsStatus(Object.keys(clean).length+' Korrekturen geladen.')}
+ }catch(e){historyCorrectionsStatus('Import fehlgeschlagen: '+e.message)}
+}
+function historyNormalizeCompareName(raw){
+ const canon=historyCanonicalClub(raw);if(HISTORY_ALIAS_MAP.has(hNorm(raw)))return canon;
+ // Gleiche Namensform ohne häufige Vereinspräfixe und Team-Endungen vergleichen.
+ const clean=n=>hNorm(String(n||'').replace(/\b(?:ec|esv|ev|ssc|sc|fc|tsv|djk|sv|union|askö|su|djk ec|stockschützen)\b/gi,' ').replace(/\s+[1-9]$/,'').replace(/\s+/g,' '));
+ const key=clean(raw);
+ for(const c of HISTORY_BASE_CLUBS){if(clean(c.name)===key||(c.aliases||[]).some(a=>clean(a)===key))return c.name}
+ return canon;
+}
+function historyRenderComparison(){
+ const body=document.getElementById('historyCompareBody'),summary=document.getElementById('historyCompareSummary');if(!body||!summary)return;
+ const year=historySelectedYear(),term=(document.getElementById('historySearch')?.value||'').toLowerCase();
+ const inbound=historyAllRecords().filter(r=>year==='all'||String(r.iso||'').startsWith(year));
+ const outbound=historyPlannerEntries().filter(r=>year==='all'||String(r.date||'').startsWith(year));
+ const groups=new Map();
+ const add=(name,side,count,detail)=>{
+   const canonical=historyNormalizeCompareName(name),key=hNorm(canonical);if(!key)return;
+   if(!groups.has(key))groups.set(key,{name:canonical,home:0,away:0,homeDetails:[],awayDetails:[]});
+   const g=groups.get(key);g[side]+=count;g[side+'Details'].push(detail);
+ };
+ for(const r of inbound)add(r.verein,'home',Math.max(1,Number(r.mannschaften)||1),r);
+ for(const r of outbound)add(r.club,'away',r.teams||1,r);
+ const rows=[...groups.values()].filter(g=>!term||g.name.toLowerCase().includes(term)).sort((a,b)=>b.home+b.away-a.home-a.away||a.name.localeCompare(b.name,'de'));
+ body.replaceChildren();
+ for(const g of rows){
+   const tr=document.createElement('tr'),delta=g.home-g.away;
+   tr.innerHTML='<td><strong>'+escapeHtml(g.name)+'</strong></td><td>'+g.home+'</td><td>'+g.away+'</td><td>'+(delta>0?'+':'')+delta+'</td>';
+   tr.style.cursor='pointer';tr.addEventListener('click',()=>historyRenderComparisonDetail(g));body.appendChild(tr);
+ }
+ if(!rows.length){const tr=document.createElement('tr');tr.innerHTML='<td colspan="4">Keine Einträge für diese Auswahl.</td>';body.appendChild(tr)}
+ const h=rows.reduce((a,r)=>a+r.home,0),a=rows.reduce((b,r)=>b+r.away,0);
+ const connected=typeof window.parent?.ecwHistoryPlannerSnapshot==='function';
+ summary.textContent=rows.length+' Vereine · Bei uns: '+h+' Mannschaften · Wir dort: '+a+' Mannschaften'+(connected?'':' · Hinweis: Turnier-/Terminplaner nicht verbunden (bitte über die Vereinsverwaltung öffnen).');
+ const detail=document.getElementById('historyCompareDetail');if(detail)detail.textContent='Verein in der Vergleichstabelle anklicken, um Einzeltermine anzuzeigen.';
+}
+function historyRenderComparisonDetail(g){
+ const el=document.getElementById('historyCompareDetail');if(!el)return;
+ const home=g.homeDetails.map(r=>'<div>'+escapeHtml(r.iso?formatDatum(r.iso):r.datum)+' · '+escapeHtml(r.turnierart||'Turnier')+' · '+Number(r.mannschaften||1)+' Mannschaft(en)</div>').join('');
+ const away=g.awayDetails.map(r=>'<div>'+escapeHtml(r.date?formatDatum(r.date):'')+' · '+escapeHtml(r.name||'Turnier')+' · '+Number(r.teams||1)+' Mannschaft(en)</div>').join('');
+ el.innerHTML='<strong>'+escapeHtml(g.name)+'</strong><div style="margin-top:8px"><b>Bei uns ('+g.home+')</b>'+(home||'<div>Keine</div>')+'</div><div style="margin-top:8px"><b>Wir dort ('+g.away+')</b>'+(away||'<div>Keine</div>')+'</div>';
+}
 function renderHistory(){
  const body=document.getElementById('historyBody');if(!body)return;
+ historyFillYears();
  const head=document.getElementById('historyHead');
- const stats=[...historyStats().values()];
+ const year=historySelectedYear();
+ const stats=[...historyStats(historyAllRecords().filter(r=>year==='all'||String(r.iso||'').startsWith(year))).values()];
  const term=(document.getElementById('historySearch')?.value||'').toLowerCase();
  const cat=document.getElementById('historyCategory')?.value||'Alle';
  const sort=document.getElementById('historySort')?.value||'teilnahmen';
-
  let list=stats.filter(x=>(!term||x.name.toLowerCase().includes(term)) &&
    (cat==='Alle'||(cat==='Herren'&&x.herren)||(cat==='Mixed'&&x.mixed)||(cat==='Damen'&&x.damen)));
-
  const key={teilnahmen:'teilnahmen',mannschaften:'mannschaften',herren:'herren',mixed:'mixed',damen:'damen'}[sort];
- list.sort((a,b)=>sort==='name'
-   ?a.name.localeCompare(b.name,'de')
-   :sort==='letzte'
-     ?(b.last||'').localeCompare(a.last||'')||a.name.localeCompare(b.name,'de')
-     :(b[key]||0)-(a[key]||0)||a.name.localeCompare(b.name,'de'));
-
+ list.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name,'de'):
+   sort==='letzte'?(b.last||'').localeCompare(a.last||'')||a.name.localeCompare(b.name,'de'):
+   (b[key]||0)-(a[key]||0)||a.name.localeCompare(b.name,'de'));
  if(head){
-   if(cat==='Alle')head.innerHTML='<tr><th>Verein</th><th>Teilnahmen</th><th>Herren</th><th>Mixed</th><th>Damen</th><th>Letzte Teilnahme</th></tr>';
-   else head.innerHTML='<tr><th>Verein</th><th>'+escapeHtml(cat)+'</th><th>Letzte Teilnahme</th></tr>';
+   if(cat==='Alle')head.innerHTML='<tr><th>Verein</th><th>Teilnahmen</th><th>Mannschaften</th><th>Herren</th><th>Mixed</th><th>Damen</th><th>Letzte Teilnahme</th></tr>';
+   else head.innerHTML='<tr><th>Verein</th><th>'+escapeHtml(cat)+'</th><th>Mannschaften</th><th>Letzte Teilnahme</th></tr>';
  }
-
  body.replaceChildren();
  for(const x of list){
    const tr=document.createElement('tr');
-   if(cat==='Alle'){
-     tr.innerHTML=`<td><strong>${escapeHtml(x.name)}</strong></td><td>${x.teilnahmen}</td><td>${x.herren}</td><td>${x.mixed}</td><td>${x.damen}</td><td>${x.last?formatDatum(x.last):''}</td>`;
-   }else{
+   if(cat==='Alle')tr.innerHTML='<td><strong>'+escapeHtml(x.name)+'</strong></td><td>'+x.teilnahmen+'</td><td>'+x.mannschaften+'</td><td>'+x.herren+'</td><td>'+x.mixed+'</td><td>'+x.damen+'</td><td>'+(x.last?formatDatum(x.last):'')+'</td>';
+   else{
      const val=cat==='Herren'?x.herren:cat==='Mixed'?x.mixed:x.damen;
-     const rec=x.records.filter(r=>r.kategorie===cat);
-     const last=rec.reduce((m,r)=>(r.iso||'')>m?(r.iso||''):m,'');
-     tr.innerHTML=`<td><strong>${escapeHtml(x.name)}</strong></td><td>${val}</td><td>${last?formatDatum(last):''}</td>`;
+     const rec=x.records.filter(r=>r.kategorie===cat),last=rec.reduce((m,r)=>(r.iso||'')>m?(r.iso||''):m,'');
+     const teams=rec.reduce((n,r)=>n+Number(r.mannschaften||1),0);
+     tr.innerHTML='<td><strong>'+escapeHtml(x.name)+'</strong></td><td>'+val+'</td><td>'+teams+'</td><td>'+(last?formatDatum(last):'')+'</td>';
    }
-   tr.addEventListener('click',()=>renderHistoryDetailFiltered(x,cat));
-   body.appendChild(tr);
+   tr.addEventListener('click',()=>renderHistoryDetailFiltered(x,cat));body.appendChild(tr);
  }
- document.getElementById('historySummary').textContent=`${list.length} Vereine · Teilnahmen seit 2021`+(cat==='Alle'?'':' · '+cat);
+ document.getElementById('historySummary').textContent=list.length+' Vereine · '+(year==='all'?'Teilnahmen seit 2021':'Jahr '+year)+(cat==='Alle'?'':' · '+cat);
+ historyRenderComparison();
+ historyCorrectionsRender();
 }
 function renderHistoryDetailFiltered(x,cat){
  const el=document.getElementById('historyDetail');
@@ -4917,11 +5153,23 @@ function liveStartlistTemplateFor(t){
   return {einschreibung:String(v.einschreibung||'auto'),startGruss:String(v.startGruss||'Der EC-Wegscheid wünscht viel Erfolg beim Turnier!'),logo};
 }
 function scheduleLiveStartlistenPublish(){clearTimeout(liveStartlistenPublishTimer);liveStartlistenPublishTimer=setTimeout(()=>publishLiveStartlisten().catch(e=>console.warn('Live Startlisten veröffentlichen:',e)),350);}
+// Firestore compat im Hauptfenster prueft die Prototypen von Objekten.
+// Ein Objekt aus einem iframe wird dort als "custom Object object" abgelehnt.
+// Reine Live-Anzeigedaten daher im selben Fenster wie die Firestore-Instanz erzeugen.
+// Firestore-Sentinels (updatedAt) erst NACH der Konvertierung ergaenzen.
+function liveStartlistWritePayload(data){
+  if(!embeddedInMain)return {...data,updatedAt:serverTimestamp()};
+  const parentJSON=window.parent.JSON;
+  const clean=parentJSON.parse(parentJSON.stringify(data));
+  clean.updatedAt=serverTimestamp();
+  return clean;
+}
 async function publishLiveStartlisten(){
   if(!auth.currentUser)return;
   const jobs=turniereCache.map(t=>{
     const entries=liveMeldungenAll.filter(m=>m.turnierId===t.id).sort((a,b)=>(a.anmeldedatum||'').localeCompare(b.anmeldedatum||'')||((a.erstelltAm?.seconds||0)-(b.erstelltAm?.seconds||0))||String(a.id||'').localeCompare(String(b.id||''))).map(liveStartlistSafeEntry);
-    return setDoc(doc(db,'liveStartlisten',t.id),{turnierId:t.id,name:String(t.name||'Turnier'),datum:String(t.datum||''),uhrzeit:String(t.uhrzeit||''),ort:String(t.ort||''),kategorie:String(tournamentCategory(t)||''),meldeUhrzeit:String(t.meldeUhrzeit||''),maxMannschaften:Number(t.maxMannschaften)||null,entries,vorlage:liveStartlistTemplateFor(t),updatedAt:serverTimestamp()});
+    const payload={turnierId:t.id,name:String(t.name||'Turnier'),datum:String(t.datum||''),uhrzeit:String(t.uhrzeit||''),ort:String(t.ort||''),kategorie:String(tournamentCategory(t)||''),meldeUhrzeit:String(t.meldeUhrzeit||''),maxMannschaften:Number(t.maxMannschaften)||null,entries,vorlage:liveStartlistTemplateFor(t)};
+    return setDoc(doc(db,'liveStartlisten',t.id),liveStartlistWritePayload(payload));
   });
   await Promise.all(jobs);
 }
@@ -4965,9 +5213,16 @@ document.getElementById("tAddBtn").addEventListener("click", () => saveAction(do
   const maxMannschaftenRaw = document.getElementById("tMax").value;
   const maxMannschaften = maxMannschaftenRaw ? parseInt(maxMannschaftenRaw, 10) : null;
   if (!name) { alert("Bitte einen Turniernamen eingeben."); return; }
-  const created = await addDoc(collection(db, "turniere"), {
-    name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften, erstelltAm: serverTimestamp()
-  });
+  // Beim eingebetteten Aufruf stammt die Firestore-Instanz aus dem Hauptfenster.
+  // Die Compat-SDK-Pruefung akzeptiert keine einfachen Objekte aus dem iframe-Realm.
+  // Daher Nutzdaten im Realm des Hauptfensters erzeugen und den Zeitstempel
+  // anschliessend als echte Firestore-Sentinel hinzufuegen.
+  const turnierDaten = {name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften};
+  const savePayload = embeddedInMain
+    ? window.parent.JSON.parse(window.parent.JSON.stringify(turnierDaten))
+    : turnierDaten;
+  savePayload.erstelltAm = serverTimestamp();
+  const created = await addDoc(collection(db, "turniere"), savePayload);
   document.getElementById("tName").value = "";
   document.getElementById("tDatum").value = "";
   document.getElementById("tKategorie").value = "Herren";
@@ -5318,19 +5573,37 @@ async function saveVereinAdresse(){
   if(email){if(emails.length)emails[0]=email;else emails=[email]}else if(existing&&emails.length)emails.shift();
   if(contact){if(contacts.length)contacts[0]=contact;else contacts=[contact]}else if(existing&&contacts.length)contacts.shift();
 
-  const payload={
+  // Im eingebetteten Modus benutzt die Turnierverwaltung die Firestore-Compat-Instanz
+  // des Hauptfensters. Die Datenobjekte (einschliesslich Arrays) muessen aus dem
+  // Hauptfenster-Realm stammen, sonst weist Firestore sie als 'custom Object' ab.
+  // Zeitstempel erst NACH der Umwandlung hinzufuegen, damit Sentinels erhalten bleiben.
+  const vereinDaten={
     name,vorstand:contacts.join(' / '),ansprechpartner:contacts.join(' / '),ansprechpartnerListe:contacts,
     strasse:vereinswert('vStrasse'),plz:vereinswert('vPLZ'),ort:vereinswert('vOrt'),telefon:vereinswert('vTelefon'),
-    email:emails.join('; '),emails,homepage:vereinswert('vHomepage'),updatedAt:serverTimestamp()
+    email:emails.join('; '),emails,homepage:vereinswert('vHomepage')
   };
+  const payload=embeddedInMain
+    ? window.parent.JSON.parse(window.parent.JSON.stringify(vereinDaten))
+    : vereinDaten;
+  payload.updatedAt=serverTimestamp();
   const duplicate=vereineCache.find(v=>v.id!==editId&&(v.name||'').trim().toLowerCase()===name.toLowerCase());
   if(duplicate&&!confirm('Ein Verein mit diesem Namen existiert bereits. Trotzdem speichern?'))return;
   try{
     document.getElementById('vereinSaveBtn').disabled=true;
-    if(editId)await updateDoc(doc(db,'vereine',editId),payload);
-    else await addDoc(collection(db,'vereine'),{...payload,createdAt:serverTimestamp()});
+    // Kein Spread-Objekt im iframe erzeugen: Firestore-Compat akzeptiert nur
+    // Plain Objects aus demselben JavaScript-Realm wie die Parent-Firebase-App.
+    if(editId){
+      await updateDoc(doc(db,'vereine',editId),payload);
+    }else{
+      payload.createdAt=serverTimestamp();
+      await addDoc(collection(db,'vereine'),payload);
+    }
     clearVereinForm();notify(editId?'Vereinsadresse aktualisiert.':'Vereinsadresse gespeichert.');
-  }catch(e){dbError(e)}finally{document.getElementById('vereinSaveBtn').disabled=false}
+  }catch(e){
+    dbError(e);
+    const status=document.getElementById('vereinFormStatus');
+    if(status)status.textContent='Speichern fehlgeschlagen: '+String(e?.message||e||'Unbekannter Fehler');
+  }finally{document.getElementById('vereinSaveBtn').disabled=false}
 }
 async function deleteVereinAdresse(id){
   const v=vereineCache.find(x=>x.id===id);if(!v)return;
@@ -5413,7 +5686,7 @@ const DOC_DEFAULTS={
   startGruss:'Der EC-Wegscheid wünscht viel Erfolg beim Turnier!',logo:'',titelbild:''
 };
 let documentDrafts=new Map(), activeDocumentId='',imageBusy=false;
-const DOC_FIELDS=[['ausstellungsdatum','Ausstellungsdatum','date'],['einschreibung','Einschreibung','select'],['startgeld','Startgeld','text'],['zahlung','Hinweis zum Startgeld','text'],['meldungLabel','Beschriftung der Meldungszeile','text'],['meldungEmailText','Meldungszeile 1 – Text vor der E-Mail','text'],['email','Meldungszeile 1 – E-Mail-Adresse','email'],['meldungTelefonText','Meldungszeile 2 – Text vor der Telefonnummer','text'],['telefon','Meldungszeile 2 – Telefonnummer','text'],['schiedsrichter','Schiedsrichter','text'],['durchfuehrung','Durchführung','text'],['siegerehrung','Siegerehrung','text'],['preise','Preise','text'],['haftung','Haftung','text'],['datenschutz','Hinweis zu Daten und Fotos','textarea'],['abschluss','Abschlusstext Einladung','textarea'],['gruss','Grußformel','text'],['vorstandRolle','Vorstand – Funktion','text'],['vorstandName','Vorstand – Name','text'],['vorstandEmail','Vorstand – E-Mail-Adresse','email'],['schriftRolle','Schriftführer – Funktion','text'],['schriftName','Schriftführer – Name','text'],['schriftEmail','Schriftführer – E-Mail-Adresse','email'],['startGruss','Abschlusstext Startliste','text']];
+const DOC_FIELDS=[['einladungsTitel','Titel der Einladung (nur Einladung)','text'],['ausstellungsdatum','Ausstellungsdatum','date'],['einschreibung','Einschreibung','select'],['startgeld','Startgeld','text'],['zahlung','Hinweis zum Startgeld','text'],['meldungLabel','Beschriftung der Meldungszeile','text'],['meldungEmailText','Meldungszeile 1 – Text vor der E-Mail','text'],['email','Meldungszeile 1 – E-Mail-Adresse','email'],['meldungTelefonText','Meldungszeile 2 – Text vor der Telefonnummer','text'],['telefon','Meldungszeile 2 – Telefonnummer','text'],['schiedsrichter','Schiedsrichter','text'],['durchfuehrung','Durchführung','text'],['siegerehrung','Siegerehrung','text'],['preise','Preise','text'],['haftung','Haftung','text'],['datenschutz','Hinweis zu Daten und Fotos','textarea'],['abschluss','Abschlusstext Einladung','textarea'],['gruss','Grußformel','text'],['vorstandRolle','Vorstand – Funktion','text'],['vorstandName','Vorstand – Name','text'],['vorstandEmail','Vorstand – E-Mail-Adresse','email'],['schriftRolle','Schriftführer – Funktion','text'],['schriftName','Schriftführer – Name','text'],['schriftEmail','Schriftführer – E-Mail-Adresse','email'],['startGruss','Abschlusstext Startliste','text']];
 function selectedTournament(){return turniereCache.find(t=>t.id===document.getElementById('dTurnierSelect').value);}
 function safeDocumentImage(value,fallback){return typeof value==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)?value:fallback;}
 function currentDraft(){
@@ -5435,13 +5708,14 @@ function setDocumentField(key,value){
 function initDocumentEditor(){
   const editor=document.getElementById('dEditorFields');
   DOC_FIELDS.forEach(([key,label,type])=>{
-    const box=document.createElement('div');if(type==='textarea')box.className='wide';
+    const box=document.createElement('div');if(type==='textarea')box.className='wide';if(key==='einladungsTitel')box.id='dEinladungsTitelFeld';
     const lab=document.createElement('label');lab.htmlFor='edit_'+key;lab.textContent=label;box.appendChild(lab);
     const field=document.createElement(type==='textarea'?'textarea':type==='select'?'select':'input');field.id='edit_'+key;
     if(type==='select')field.innerHTML='<option value="auto">Aus Turnier übernehmen / 30 Minuten vorher</option><option value="15 Minuten vor Turnierbeginn">15 Minuten vor Turnierbeginn</option><option value="½ Stunde vor Turnierbeginn">½ Stunde vor Turnierbeginn</option><option value="1 Stunde vor Turnierbeginn">1 Stunde vor Turnierbeginn</option>';
     else if(type!=='textarea')field.type=type;
     if(type==='textarea'){field.rows=key==='datenschutz'?5:3;field.maxLength=5000;}else field.maxLength=300;
     if(['schiedsrichter','durchfuehrung','siegerehrung','preise'].includes(key))field.setAttribute('list','suggest_'+key);
+    if(key==='einladungsTitel')field.placeholder='Leer lassen = ursprünglicher Turniername';
     field.addEventListener('input',()=>{setDocumentField(key,field.value);renderDocumentPreview();});box.appendChild(field);editor.appendChild(box);
   });
 }
@@ -5451,7 +5725,9 @@ function fillDocumentEditor(){
   DOC_FIELDS.forEach(([key])=>{const f=document.getElementById('edit_'+key);const value=d.values[key]||'';
     if(f.tagName==='SELECT' && ![...f.options].some(o=>o.value===value)){const o=document.createElement('option');o.value=value;o.textContent=value;f.appendChild(o);}
     f.value=value;
-  });updateDraftStatus();
+  });
+  const titleBox=document.getElementById('dEinladungsTitelFeld');if(titleBox)titleBox.hidden=document.getElementById('dDokumentArt').value!=='einladung';
+  updateDraftStatus();
 }
 function clearDocumentPreview(){
   dokumenteGeladen=false;dokumenteMeldungen=[];
@@ -5501,7 +5777,7 @@ function invitationHtml(t,c){
   const weekday=t.datum?new Date(t.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long'}):'';
   return `<article class="paper invitation-paper"><div class="inv-header"><img class="inv-photo" alt="Titelbild Stocksporthalle" src="${safeDocumentImage(c.titelbild,DEFAULT_TITLE_IMAGE)}"><img class="inv-logo" alt="EC Wegscheid Logo" src="${safeDocumentImage(c.logo,DEFAULT_INV_LOGO)}"></div>
     <div class="inv-issuedate">${c.ausstellungsdatum?formatDatum(c.ausstellungsdatum):''}</div>
-    <h2 class="inv-title">Einladung</h2><p class="inv-intro">Der EC-Wegscheid veranstaltet am ${weekday?escapeHtml(weekday)+', den ':''}<strong><em>${escapeHtml(longDate(t.datum))}</em></strong> sein</p><h3 class="inv-event">„${escapeHtml(t.name||'Turnier')}“</h3><p class="inv-welcome">wozu wir euren Verein recht herzlich einladen möchten.</p>
+    <h2 class="inv-title">Einladung</h2><p class="inv-intro">Der EC-Wegscheid veranstaltet am ${weekday?escapeHtml(weekday)+', den ':''}<strong><em>${escapeHtml(longDate(t.datum))}</em></strong> sein</p><h3 class="inv-event">„${editable('einladungsTitel',{...c,einladungsTitel:(c.einladungsTitel||'').trim()||(t.name||'Turnier')})}“</h3><p class="inv-welcome">wozu wir euren Verein recht herzlich einladen möchten.</p>
     <div class="inv-details">${row('Austragungsort:',escapeHtml(t.ort||'Ort offen'))}${row('Turnierbeginn:',escapeHtml(longDate(t.datum,true)+' um '+reportTime(t)))}${row('Mannschaften:',t.maxMannschaften?'maximal '+escapeHtml(t.maxMannschaften):'unbegrenzt')}${row('Einschreibung:',escapeHtml(registrationText(t,c)))}${row('Startgeld:',editable('startgeld',c)+'<div>'+editable('zahlung',c)+'</div>')}${row(editable('meldungLabel',c),editable('meldungEmailText',c)+' '+editable('email',c,'span','document-email')+'<div>'+editable('meldungTelefonText',c)+' '+editable('telefon',c)+'</div>')}${row('Schiedsrichter:',editable('schiedsrichter',c))}${row('Durchführung:',editable('durchfuehrung',c))}${row('Siegerehrung:',editable('siegerehrung',c))}${row('Preise:',editable('preise',c))}${row('Haftung:',editable('haftung',c))}</div>
     ${editable('datenschutz',c,'p','inv-privacy')}${editable('abschluss',c,'p','inv-closing')}${footerHtml(c)}</article>`;
 }
@@ -5584,7 +5860,7 @@ async function buildWordDocument(){
   if(kind==='einladung'){
     setWordParagraph(xml,ps[5],'\t\t\t\t\t\t\t\t\t\t\t\t\t   '+(c.ausstellungsdatum?formatDatum(c.ausstellungsdatum):''));
     const texts=ps[8].getElementsByTagNameNS(W_NS,'t');
-    if(texts.length>=5){const weekday=t.datum?new Date(t.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long'}):'';texts[0].textContent='Der EC-Wegscheid veranstaltet am '+(weekday?weekday+', den ':'');texts[1].textContent=longDate(t.datum)+' ';texts[4].textContent=(t.name||'Turnier')+'“';}
+    if(texts.length>=5){const weekday=t.datum?new Date(t.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long'}):'';texts[0].textContent='Der EC-Wegscheid veranstaltet am '+(weekday?weekday+', den ':'');texts[1].textContent=longDate(t.datum)+' ';texts[4].textContent=((c.einladungsTitel||'').trim()||(t.name||'Turnier'))+'“';}
     const replacements={9:'wozu wir euren Verein recht herzlich einladen möchten.',11:'Austragungsort:\t\t'+(t.ort||'Ort offen'),12:'Turnierbeginn:\t\t'+longDate(t.datum,true)+' um '+reportTime(t),14:'Einschreibung:\t\t'+registrationText(t,c),15:'Startgeld:\t\t\t'+c.startgeld,16:c.zahlung,17:c.meldungLabel+'\t\t\t'+c.meldungEmailText+' '+c.email,18:'\t\t\t\t\t'+c.meldungTelefonText+' '+c.telefon,19:'Schiedsrichter:\t\t'+c.schiedsrichter,20:'Durchführung:\t'+c.durchfuehrung,21:'Siegerehrung:\t\t'+c.siegerehrung,22:'Preise:\t\t\t'+c.preise,23:'Haftung:\t\t\t'+c.haftung,24:c.datenschutz,25:c.abschluss,26:'\t\t\t\t\t\t'+c.gruss,27:'\t\t'+c.vorstandRolle+'\t\t\t\t\t\t'+c.schriftRolle,28:'  '+c.vorstandName+'\t\t\t\t\t\t\t'+c.schriftName,29:'\t'+c.vorstandEmail+'\t\t\t\t\t\t\t\t'+c.schriftEmail};
     Object.entries(replacements).forEach(([i,text])=>setWordParagraph(xml,ps[Number(i)],text));
     setWordParagraph(xml,ps[17],c.meldungLabel+'\t'+c.meldungEmailText+' ');
@@ -5772,15 +6048,16 @@ function renderRecipients(){
     const text=document.createElement('span');text.textContent=r.clubs.join(' / ')+' · '+r.email+(r.categories.length?' · '+r.categories.join(' / '):'');label.append(input,text);area.appendChild(label);
   }
   document.getElementById('sEmpty').textContent=!vereineGeladen?'Vereinsadressen werden geladen …':!all.length?'Noch keine Vereinsadressen vorhanden. Sobald wir Vereine mit E-Mail-Adressen anlegen, kannst du sie hier einzeln auswählen.':!filtered.length?'Keine passenden Vereinsadressen gefunden.':'';
-  document.getElementById('sSelectAll').disabled=!filtered.length;document.getElementById('sSelectNone').disabled=!selectedRecipients.size;updateSendStatus();
+  document.getElementById('sSelectAll').disabled=!filtered.length;document.getElementById('sSelectNone').disabled=!selectedRecipients.size;document.getElementById('sClearPhaseSelection').disabled=!selectedRecipients.size;updateSendStatus();
 }
 function updateSendStatus(){
   const t=sendTournament(),recipients=clubEmailAddresses().filter(r=>selectedRecipients.has(r.key));
   document.getElementById('sSummary').textContent=t?`${t.name||'Turnier'} · ${longDate(t.datum)} · ${recipients.length} E-Mail-Adresse${recipients.length===1?'':'n'} ausgewählt`:'Bitte ein Turnier auswählen.';
   document.getElementById('sEmlBtn').disabled=sendBusy||!t||!recipients.length;
   document.getElementById('sMailtoBtn').disabled=sendBusy||!t||!recipients.length;
+  document.getElementById('sGmailBtn').disabled=sendBusy||!t||!recipients.length;
   document.getElementById('sPdfBtn').disabled=sendBusy||!t;
-  document.getElementById('sEditBtn').disabled=!t;document.getElementById('sSelectNone').disabled=!selectedRecipients.size;
+  document.getElementById('sEditBtn').disabled=!t;document.getElementById('sSelectNone').disabled=!selectedRecipients.size;document.getElementById('sClearPhaseSelection').disabled=!selectedRecipients.size;
 }
 function resetSend(){currentInvitePhase=1;currentInviteCategory='Alle';selectedRecipients.clear();document.getElementById('sSearch').value='';document.getElementById('sTurnierSelect').replaceChildren(new Option('– Turnier auswählen –',''));document.getElementById('sSubject').value='';document.getElementById('sMessage').value='';document.getElementById('sFrom').value='';document.getElementById('sStatus').textContent='';renderRecipients();}
 function setSendDefaults(){const t=sendTournament();document.getElementById('sSubject').value=t?'Einladung: '+(t.name||'Turnier')+' am '+formatDatum(t.datum):'';document.getElementById('sMessage').value=t?'Liebe Sportfreunde,\n\nanbei erhaltet ihr die Einladung zu unserem '+(t.name||'Turnier')+' am '+longDate(t.datum)+'.\nWir freuen uns auf eure Anmeldung.\n\nMit sportlichen Grüßen\nEC Wegscheid':'';document.getElementById('sStatus').textContent='';updateSendStatus();}
@@ -5788,6 +6065,7 @@ document.getElementById('sTurnierSelect').addEventListener('change',()=>{setSend
 document.getElementById('sSearch').addEventListener('input',renderRecipients);
 document.getElementById('sSelectAll').addEventListener('click',()=>{document.querySelectorAll('#sRecipients input').forEach(el=>selectedRecipients.add(el.value));renderRecipients();});
 document.getElementById('sSelectNone').addEventListener('click',()=>{selectedRecipients.clear();renderRecipients();});
+document.getElementById('sClearPhaseSelection').addEventListener('click',()=>{selectedRecipients.clear();renderRecipients();document.getElementById('sPhaseInfo').textContent='Alle Empfänger abgewählt. Du kannst einzelne Adressen neu auswählen.';});
 document.getElementById('sEditBtn').addEventListener('click',()=>{const t=sendTournament();if(!t)return;document.getElementById('dTurnierSelect').value=t.id;document.getElementById('dDokumentArt').value='einladung';navigate('#dokumente');});
 function utf8Base64(text){const bytes=new TextEncoder().encode(text);let binary='';for(const b of bytes)binary+=String.fromCharCode(b);return btoa(binary);}
 function wrapBase64(text){return text.match(/.{1,76}/g)?.join('\r\n')||'';}
@@ -5802,6 +6080,25 @@ async function prepareInvitationMail(action){
   try{
     const pdf=pagesToPdf(await renderExportPages(invitationHtml(t,config))),name=documentBasename(t,'einladung')+'.pdf';
     if(action==='pdf'){downloadBlob(pdf,name);document.getElementById('sStatus').textContent='PDF-Einladung heruntergeladen.';}
+    else if(action==='gmail'){
+      downloadBlob(pdf,name);
+      const bcc=recipients.map(r=>r.email).join(',');
+      const gmailUrl='https://mail.google.com/mail/?view=cm&fs=1&bcc='+encodeURIComponent(bcc)+'&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+      const status=document.getElementById('sStatus');
+      status.replaceChildren();
+      const intro=document.createElement('span');intro.textContent='PDF heruntergeladen. ';status.appendChild(intro);
+      if(gmailUrl.length<=6500){
+        const link=document.createElement('a');link.href=gmailUrl;link.target='_blank';link.rel='noopener noreferrer';link.className='mail-open-link';link.textContent='Gmail-Entwurf öffnen';status.appendChild(link);
+        const reminder=document.createElement('span');reminder.textContent=' – anschließend die heruntergeladene PDF manuell anhängen und vor dem Versand Empfänger kontrollieren.';status.appendChild(reminder);
+      }else{
+        const warning=document.createElement('span');warning.textContent='Zu viele Empfänger für einen zuverlässigen Gmail-Link. ';status.appendChild(warning);
+        const copy=document.createElement('button');copy.type='button';copy.className='secondary';copy.textContent='BCC-Adressen kopieren';copy.addEventListener('click',async()=>{
+          try{await navigator.clipboard.writeText(bcc);notify('BCC-Adressen kopiert. In Gmail in das BCC-Feld einfügen.');}
+          catch(e){notify('Kopieren nicht möglich. Bitte weniger Empfänger auswählen.',true);}
+        });status.appendChild(copy);
+        const link=document.createElement('a');link.href='https://mail.google.com/mail/?view=cm&fs=1';link.target='_blank';link.rel='noopener noreferrer';link.className='mail-open-link';link.textContent='Gmail öffnen';status.appendChild(link);
+      }
+    }
     else if(action==='eml'){
       const boundary='ECW_'+crypto.randomUUID(),filename=name.replace(/[^A-Za-z0-9_.-]/g,'_');
       const mail=['X-Unsent: 1','MIME-Version: 1.0',...(from.value.trim()?['From: '+from.value.trim()]:[]),'To: undisclosed-recipients:;','Bcc: '+recipients.map(r=>r.email).join(', '),'Subject: =?UTF-8?B?'+utf8Base64(subject)+'?=','Content-Type: multipart/mixed; boundary="'+boundary+'"','','--'+boundary,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',wrapBase64(utf8Base64(body)),'--'+boundary,'Content-Type: application/pdf; name="'+filename+'"','Content-Disposition: attachment; filename="'+filename+'"','Content-Transfer-Encoding: base64','',await attachmentBase64(pdf),'--'+boundary+'--',''].join('\r\n');
@@ -5818,6 +6115,7 @@ async function prepareInvitationMail(action){
   finally{sendBusy=false;updateSendStatus();}
 }
 document.getElementById('sEmlBtn').addEventListener('click',()=>prepareInvitationMail('eml'));
+document.getElementById('sGmailBtn').addEventListener('click',()=>prepareInvitationMail('gmail'));
 document.getElementById('sMailtoBtn').addEventListener('click',()=>prepareInvitationMail('mailto'));
 document.getElementById('sPdfBtn').addEventListener('click',()=>prepareInvitationMail('pdf'));
 
@@ -5844,6 +6142,18 @@ function escapeHtml(str) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 }
+</script>
+<script>
+// Bei Auswahl eines Vereins die eingeklappten Details automatisch anzeigen.
+['historyBody','historyCompareBody'].forEach(function(id){
+  const list=document.getElementById(id);
+  if(list)list.addEventListener('click',function(event){
+    if(event.target.closest('tr')){
+      const panel=document.getElementById('historyDetailPanel');
+      if(panel)panel.open=true;
+    }
+  });
+});
 </script>
 </body>
 </html>

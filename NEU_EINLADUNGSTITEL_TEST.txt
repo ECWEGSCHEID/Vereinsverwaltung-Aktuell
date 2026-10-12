@@ -1,0 +1,14 @@
+TEST: Individueller Einladungstitel
+
+1. VS Code: entpackten Ordner öffnen und bei Bedarf als vertrauenswürdig einstufen.
+2. index.html mit Live Server starten.
+3. Einladungen / Startlisten erstellen -> Turnier auswählen -> Dokument: Einladung.
+4. Im Feld 'Titel der Einladung (nur Einladung)' einen anderen Namen eintragen.
+5. Vorschau prüfen und 'Vorlage für dieses Turnier speichern' klicken.
+6. PDF, PNG und Word prüfen: geänderter Einladungstitel soll erscheinen.
+7. Dokument: Startliste auswählen: Dort muss der ursprüngliche Turniername stehen.
+8. Unter Turnier verwalten muss ebenfalls der ursprüngliche Turniername stehen.
+9. Nach Neuladen der Seite die Einladung erneut öffnen: Der individuelle Titel soll erhalten bleiben.
+10. Zum Rücksetzen den Titel im Feld vollständig löschen und Vorlage speichern.
+
+Unverändert: Turniername in Datenbank, Live-Startliste, Anmeldung, Firebase-Regeln.

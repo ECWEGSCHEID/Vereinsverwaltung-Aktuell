@@ -1,0 +1,1 @@
+Solo-Pyramide: Modulcode nach js/solo-pyramide.js ausgelagert. Interner Hauptmenue-Button in iframe ausgeblendet, alleinstehend sichtbar. Bestehende Cup-/Firebase-Funktionen unveraendert. Test: Vorschau laden, Spielerpyramide pruefen, Hauptmenue unten rechts, Solo-Pyramide in neuem Tab testen.

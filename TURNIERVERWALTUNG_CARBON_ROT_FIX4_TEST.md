@@ -1,0 +1,1 @@
+Test: Turnierverwaltung oeffnen, roten Metallic-Hintergrund und rote Bedienflaechen pruefen. Zurueck-Button unten rechts, Einladungen/Startlisten weiterhin weiss. ZIP vollstaendig entpacken, Strg+F5. Keine Firebase-Daten veraendert.

@@ -1,0 +1,1 @@
+Testversion: Reiter Übersichtsseite Verwaltung aus dem Seitenmenü entfernt. Vorhandene interne Funktionen und Daten bleiben bestehen. Bei eingebettetem Reservierungssystem wird der zusätzliche Button Zurück zur letzten Ansicht unterdrückt. Der eigene Zurück-Button der externen Reservierungs-App ist damit noch nicht entfernt und muss in deren eigenem Repository angepasst werden.

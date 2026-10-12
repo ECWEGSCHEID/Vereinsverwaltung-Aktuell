@@ -1,0 +1,11 @@
+HISTORIE KORREKTUREN – TEST
+
+- Zeigt Zahl der gespeicherten Korrekturen an.
+- Bestätigung nach Übernehmen bleibt sichtbar.
+- Ausblenden auch bei leerem Vereinsnamen möglich.
+- Export einer leeren Sicherung wird verhindert.
+- Import bestätigt die Anzahl nach der Neuberechnung.
+- Originaltermine bleiben unverändert.
+- Speicherung bleibt lokal im Browser; kein Firebase-Schreibzugriff.
+
+WICHTIG: Bestehende JSON-Datei mit corrections: {} enthält keine Daten und kann keine Änderungen wiederherstellen.

@@ -1,0 +1,26 @@
+EC Wegscheid – Historie: Jahresvergleich Mannschaften
+Basis: zuletzt funktionierende V2.0.14 mit Einladungstitel und Speicherfix.
+
+NEU:
+- Historie: Jahresauswahl ab 2021 oder alle Jahre.
+- Mannschaftenzahl je Verein und Jahr, bisherige Kategorie- und Suchfilter bleiben.
+- Gegenbesuche: bei uns vs. wir dort, jeweils Mannschaften.
+- Daten aus abgeschlossenen Heimturnieren und vergangenen externen Turnieren im Turnier-/Terminplaner.
+- Jede Eintragung eines externen Turniers im Terminplaner zählt als 1 Mannschaft.
+- Meisterschaften, interne Turniere, zukünftige Termine und ausgeschlossene Turniere werden nicht als Gegenbesuch gezählt.
+- Gleiche Vereine werden über vorhandene Aliaslisten und einfache Namensnormalisierung zusammengeführt.
+- Tabellenzeile anklicken für Einzeltermine.
+
+WICHTIG:
+- Im Hauptprogramm index.html über Live Server starten, dann Turnierverwaltung > Historie.
+- Der Gegenbesuchsvergleich funktioniert nicht vollständig, wenn turnierverwaltung.html allein geöffnet wird.
+- Historische Daten ohne Einzeldatum/Jahr können nicht künstlich auf Jahre aufgeteilt werden.
+- Kategorie-Filter bezieht sich auf die Heim-Historie, Vergleich berücksichtigt alle Kategorien.
+- Produktive Firebase-Daten werden nicht verändert.
+
+TEST:
+1. Jahr 2026 wählen, Mannschaften und Gegenbesuche prüfen.
+2. Verein anklicken und Termine kontrollieren.
+3. Andere Jahre und Alle Jahre wählen.
+4. Zwei Mannschaften desselben Vereins auf demselben Turnier prüfen.
+5. Bestehende Einladung und Live-Startliste kontrollieren.

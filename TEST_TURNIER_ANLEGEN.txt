@@ -1,0 +1,8 @@
+# Testkorrektur – Turnier anlegen (Basis V2.0.14)
+
+Geaendert wurde ausschliesslich `turnierverwaltung.html` beim Speichern eines neuen Turniers.
+Im eingebetteten Modus werden die Firestore-Nutzdaten jetzt im Hauptfenster erzeugt; der Firebase-Zeitstempel bleibt erhalten.
+
+**Test:** Die bisher funktionierende V2.0.14 sichern. Diese ZIP separat entpacken und ueber die normale `index.html` starten. Unter Turnier anlegen ein Testturnier speichern. Danach pruefen, ob Turnier verwalten geoeffnet wird und das Turnier in Einladungen erstellen auswaehlbar ist. Das Testturnier anschliessend bei Bedarf wieder loeschen.
+
+**Wichtig:** Keine Firebase-Regeln, Authentifizierung oder GitHub-Dateien veraendert. Es wurde kein echter Firebase-Schreibtest ausgefuehrt. Wenn das Speichern weiterhin fehlschlaegt, bitte den exakten Fehlertext mitteilen.

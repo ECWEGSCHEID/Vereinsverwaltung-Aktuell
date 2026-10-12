@@ -1,0 +1,10 @@
+EC Wegscheid – Historie: Gegenbesuche korrigieren
+
+Turnierverwaltung -> Historie -> Gegenbesuche -> „Gegenbesuche prüfen und korrigieren“ öffnen.
+Dort kannst du den erkannten Vereinsnamen ersetzen, die Mannschaftszahl ändern oder einen Termin für die Vergleichsauswertung ausblenden. Mit „Übernehmen“ speichern.
+
+WICHTIG: Diese Korrekturen liegen nur im lokalen Browser-Speicher (localStorage). Sie werden NICHT in Firebase gespeichert und sind auf anderen PCs/Browsern nicht automatisch verfügbar.
+Mit „Korrekturen sichern (JSON)“ kannst du sie exportieren und später mit „Korrekturen laden (JSON)“ wieder importieren.
+Originaltermine, Turniere, Live-Startlisten und Einladungen werden nicht geändert.
+
+Die bestehende Filterung der Termine im Terminplaner bleibt erhalten. Es können dennoch unpassende Datensätze auftauchen, die sich hier gezielt ausblenden lassen.
