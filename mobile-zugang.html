@@ -80,7 +80,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 <div class="wrap">
   <div class="top">
     <div class="brand"><h1>EC Wegscheid Mobilzugang</h1><p>Smartphone & Tablet</p></div>
-    <div class="badge">Version 2.0.0</div>
+    <div class="badge">Version 2.5.0</div>
   </div>
 
   <section id="qrView" class="panel qr-mode hidden">
@@ -2506,7 +2506,7 @@ function renderQrMode(){
   const u=new URL(location.href);
   u.search='';
   u.hash='';
-  u.searchParams.set('v','2.0.0');
+  u.searchParams.set('v','2.5.0');
   $('qrUrl').value=u.href;
   const qr=qrcode(0,'M');qr.addData(u.href);qr.make();
   $('qrBox').innerHTML=qr.createSvgTag({cellSize:5,margin:14,scalable:true});
@@ -2690,7 +2690,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
   $('logoutBtn').onclick=logout;
   document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>{show('homeView');applyTiles()});
-  $('tileTv').onclick=()=>{if(can('tv'))location.href='turnierverwaltung.html?v=2.0.0#mobil'};
+  $('tileTv').onclick=()=>{if(can('tv'))location.href='turnierverwaltung.html?v=2.5.0#mobil'};
   $('tileNews').onclick=()=>{if(can('n'))show('newsView')};
   $('tilePlanner').onclick=()=>{if(can('tp')){show('plannerView');if(!$('tpDate').value)$('tpDate').value=todayIso()}};
   $('tileJm').onclick=()=>{if(can('jm')){show('jmView');loadJm()}};

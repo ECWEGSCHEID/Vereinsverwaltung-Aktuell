@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>EC Wegscheid Turnierauswertung – Version 2.0.0 · Vereinsverwaltung</title>
+  <title>EC Wegscheid Turnierauswertung – Version 2.5.0 · Vereinsverwaltung</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <script>if (window.self !== window.top) document.documentElement.classList.add("cup-in-verwaltung");</script>
   <style>
     :root {
       --bg-overlay: rgba(25, 5, 7, 0.68);
@@ -144,6 +145,56 @@
       .btn-admin-corner { position: static; width: 100%; margin-top: 2px; text-align: center; }
       .view { padding: 6px; }
     }
+
+
+    /* V2.5.0: Whiteboard-Tabelle und Gruppenauswahl in voller Breite */
+    #view-groups,#view-table {width:min(100%,1800px);align-self:center;padding:clamp(12px,1.3vw,24px);gap:clamp(10px,1.2vh,18px)}
+    #view-groups #groupsTitle,#view-table #tableTitle {font-size:clamp(1.5rem,2.4vw,2.5rem)!important;margin-bottom:8px!important}
+    #view-groups #groupsSub {font-size:clamp(1rem,1.2vw,1.3rem)!important;color:#e2e8f0!important}
+    #groupCardsContainer {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:clamp(12px,1.5vw,24px)}
+    #view-groups .group-card {padding:clamp(14px,1.6vw,28px);border-radius:12px;margin:0;background:rgba(24,9,12,.88)}
+    #view-groups .group-card h3 {font-size:clamp(1.3rem,1.8vw,2rem);color:#fff;margin-bottom:16px}
+    #view-groups .group-card .btn {padding:clamp(12px,1.2vw,20px)!important;font-size:clamp(1rem,1.2vw,1.3rem)!important;min-height:54px}
+    #view-table>p {font-size:clamp(.95rem,1.15vw,1.25rem)!important;color:#dbe2eb!important}
+    #view-table .table-container {max-height:calc(100dvh - 230px);overflow:auto;border:1px solid rgba(255,255,255,.2);border-radius:12px}
+    #view-table table {font-size:clamp(1rem,1.28vw,1.45rem);width:100%}
+    #view-table th,#view-table td {padding:clamp(10px,1.2vh,18px) clamp(7px,1vw,18px);line-height:1.25}
+    #view-table th {font-size:clamp(.95rem,1.15vw,1.25rem);background:rgba(112,20,28,.97)}
+    #view-table td:nth-child(2) {max-width:none;overflow:visible;text-overflow:clip;white-space:normal;min-width:200px}
+    #view-table .player-row {min-height:54px;touch-action:manipulation}
+    #view-table .player-row:active {background:rgba(185,45,55,.45)}
+    .cup-status-label {display:inline-block;font-weight:800;font-size:.82em;padding:3px 9px;border-radius:7px;margin-left:8px;background:#802f38;border:1px solid #ed8b94;color:#fff}
+    /* Detailansicht als großzügiger Dialog: Tabelle bleibt im Hintergrund. */
+    #playerMatchesContainer {position:fixed;inset:clamp(12px,4vh,50px) clamp(12px,5vw,100px);z-index:10010;background:linear-gradient(145deg,rgba(51,9,15,.98),rgba(18,19,23,.99));border:2px solid #a8a8ad;border-radius:18px;padding:clamp(14px,2vw,32px);box-shadow:0 0 0 100vmax rgba(0,0,0,.76),0 18px 60px #000;flex-direction:column;gap:clamp(10px,1.3vh,22px);overflow:hidden}
+    #playerMatchesContainer[style*="display: flex"] {display:flex!important}
+    #playerMatchesContainer>div:first-child {margin-bottom:0!important;gap:15px}
+    #playerMatchesContainer>div:first-child .btn {width:auto!important;min-height:46px;font-size:1rem!important;padding:10px 20px!important}
+    #playerMatchesList {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));grid-auto-rows:minmax(0,1fr);align-content:stretch;gap:clamp(8px,1.2vh,16px);flex:1;min-height:0;overflow:auto;font-size:clamp(1rem,1.15vw,1.35rem)}
+    #playerMatchesList .cup-player-match {display:flex;flex-direction:column;justify-content:center;gap:9px;padding:clamp(12px,1.2vw,22px);background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.22);border-radius:12px;min-height:0}
+    #playerMatchesList .cup-player-match .cup-opponent {font-size:1.08em;font-weight:700;overflow-wrap:anywhere}
+    #playerMatchesList .cup-player-match .cup-result {font-size:1.12em}
+    #playerMatchesList .cup-player-match .cup-status-label {margin-left:0}
+    @media(max-width:800px){#playerMatchesContainer{inset:10px;padding:12px}#playerMatchesList{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}#view-table td:nth-child(2){min-width:140px}#view-table .table-container{max-height:calc(100dvh - 160px)}}
+    @media(max-height:720px){#playerMatchesContainer{inset:8px}#playerMatchesList{gap:6px}#playerMatchesList .cup-player-match{padding:8px;gap:4px}#view-table th,#view-table td{padding-top:7px;padding-bottom:7px}}
+
+    
+/* V2.5.0 – Gruppen und Tabellen für 16:9, größenabhängig */
+#groupCardsContainer{grid-template-columns:repeat(var(--cup-group-cols,2),minmax(0,1fr))!important;gap:clamp(10px,1.2vw,20px)!important;align-content:center}
+#view-groups .group-card{padding:clamp(12px,1.2vw,22px)!important;margin:0!important}
+#view-groups .group-card h3{font-size:clamp(1.25rem,1.65vw,1.9rem)!important;margin-bottom:12px!important}
+#view-groups .group-card .btn{font-size:clamp(1rem,1.15vw,1.3rem)!important;min-height:48px!important}
+#view-table{--cup-row-font:1.2rem;--cup-row-pad:12px;--cup-table-available:65vh}
+#view-table .table-container{max-height:none!important;overflow:visible!important;flex:0 1 auto}
+#view-table table{font-size:var(--cup-row-font)!important;table-layout:auto}
+#view-table th,#view-table td{padding:var(--cup-row-pad) clamp(4px,.7vw,13px)!important;line-height:1.13!important}
+#view-table .player-row{min-height:0!important}
+#view-table td:nth-child(2){min-width:0!important}
+#playerMatchesContainer{inset:clamp(8px,2vh,26px) clamp(10px,5vw,90px)!important;gap:clamp(5px,.7vh,12px)!important}
+#playerMatchesList{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;gap:var(--cup-match-gap,7px)!important;overflow:hidden!important;font-size:var(--cup-match-font,1.15rem)!important}
+#playerMatchesList .cup-player-match{flex:1 1 0!important;min-height:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:12px!important;padding:var(--cup-match-pad,10px) clamp(10px,1.5vw,24px)!important}
+#playerMatchesList .cup-player-match .cup-opponent{font-size:1em!important}
+#playerMatchesList .cup-player-match .cup-result{font-size:1em!important;text-align:right}
+@media(max-width:700px){#groupCardsContainer{grid-template-columns:1fr!important}#playerMatchesList .cup-player-match{grid-template-columns:1fr;gap:1px!important}#playerMatchesList .cup-player-match .cup-result{text-align:left}}
 
     /* --- DRUCKOPTIMIERUNG: 2 Wertungsblätter untereinander auf A4 Querformat --- */
     #printArea { display: none; }
@@ -455,15 +506,178 @@
     .role-denied{opacity:.45!important;filter:grayscale(.75);pointer-events:none!important}
     @media(max-width:700px){.auth-box{position:static;justify-content:center;margin:4px auto 0;flex-wrap:wrap}}
 html.embedded-admin .auth-box{display:none!important}
-html.embedded-admin #globalStartMenuBtn{display:none!important}
+html.embedded-admin #globalStartMenuBtn{display:none!important} /* cup-navigation-visible overrides this */
 
 
 /* Embedded: eigener Startmenue-Button ueber dem Ruecksprung der Verwaltung. */
 html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!important;}
 @media(max-width:600px){html.embedded-admin .btn-section-start-fixed{right:10px!important;bottom:72px!important;}}
+
+    html:not(.cup-in-verwaltung) #globalStartMenuBtn {bottom:75px!important;}
+    @media(max-width:600px){html:not(.cup-in-verwaltung) #globalStartMenuBtn{bottom:70px!important;}}
+
+    /* EC Wegscheid – Cup: großzügige Ergebniseingabe für WM65B */
+    #view-match { width: min(100%, 1220px); max-width: none; align-self: center; padding: clamp(12px, 2vw, 26px); }
+    #view-match #matchGroupHeader { font-size: clamp(1.35rem, 2vw, 2rem) !important; margin-bottom: 14px !important; }
+    #view-match label { font-size: 1.05rem; margin-top: 6px; }
+    #view-match select { font-size: clamp(1rem, 1.35vw, 1.25rem); padding: 12px; min-height: 52px; }
+    #scoreArea { margin-top: 14px; }
+    .cup-entry-head, #view-match .game-row {
+      display: grid; grid-template-columns: 74px minmax(0,1fr) clamp(48px, 6vw, 100px) minmax(0,1fr);
+      gap: 10px; align-items: center;
+    }
+    .cup-entry-head { margin: 12px 0; font-weight: 800; font-size: clamp(1rem, 1.7vw, 1.5rem); text-align: center; }
+    .cup-entry-player { overflow-wrap: anywhere; color: #fff; padding: 10px 6px; }
+    .cup-entry-caption { font-size: 1rem; color: #d1d5db; }
+    .cup-entry-separator { height: 70%; width: 3px; justify-self: center; background: #d94b55; border-radius: 3px; }
+    #view-match .game-row { padding: 9px 10px; margin-bottom: 9px; border-radius: 12px; background: rgba(22,27,36,.94); }
+    #view-match .game-title { font-size: clamp(1rem, 1.35vw, 1.3rem); text-align: center; color: #f1f5f9; }
+    #view-match .stepper { display: flex; justify-content: space-between; gap: 8px; background: #303742; border-radius: 10px; padding: 6px; min-width: 0; }
+    #view-match .btn-step { min-width: clamp(42px, 4.5vw, 66px); height: clamp(48px, 5vw, 68px); line-height: normal; font-size: clamp(1.6rem, 2.5vw, 2.3rem); border-radius: 8px; background: #596473; }
+    #view-match .score-disp { font-size: clamp(1.6rem, 2.6vw, 2.5rem); min-width: 30px; color: #fff; }
+    #view-match .game-separator { height: 68%; width: 3px; background: #d94b55; border-radius: 4px; justify-self: center; }
+    .cup-total-panel { text-align: center; background: rgba(43,51,63,.96); padding: 15px; border: 1px solid rgba(255,255,255,.23); border-radius: 12px; margin: 14px 0; }
+    .cup-total-label { color: #d7dce4; font-weight: 800; letter-spacing: .06em; font-size: clamp(.95rem,1.3vw,1.2rem); }
+    .cup-total-number { color: #fff; font-weight: 900; font-variant-numeric: tabular-nums; font-size: clamp(2.5rem,5vw,4.6rem); line-height: 1.18; margin-top: 6px; }
+    .cup-match-points { background: rgba(88,29,36,.96); border-color: rgba(248,132,140,.6); }
+    .cup-confirm-button { padding: 19px 12px; font-size: clamp(1.05rem,1.8vw,1.5rem); min-height: 72px; line-height: 1.3; }
+    @media (max-width: 650px) {
+      .cup-entry-head, #view-match .game-row { grid-template-columns: 46px minmax(0,1fr) 24px minmax(0,1fr); gap: 4px; }
+      #view-match .game-row { padding: 6px 3px; }
+      #view-match .stepper { gap: 1px; padding: 3px; }
+      #view-match .btn-step { min-width: 30px; height: 46px; font-size: 1.4rem; }
+      #view-match .score-disp { min-width: 18px; font-size: 1.45rem; }
+      .cup-entry-head { font-size: .85rem; }
+      .cup-entry-player { padding: 4px 1px; }
+    }
+
+    /* V2.5.0 – Cup-Ergebniseingabe: 16:9 Whiteboard ohne Seitenscrollen */
+    @media screen and (min-width: 900px) and (min-height: 580px) {
+      body:has(#view-match.active) { height: 100dvh; min-height: 0; overflow: hidden; }
+      body:has(#view-match.active) > header { flex: 0 0 auto; margin-bottom: 3px; padding: 2px 8px; }
+      body:has(#view-match.active) > .container { flex: 1 1 auto; min-height: 0; max-width: none; width: 100%; }
+      #view-match.active { height: 100%; min-height: 0; width: 100%; max-width: none; overflow: hidden; padding: 8px 14px; }
+    }
+    #view-match #matchGroupHeader { font-size: clamp(1.05rem,1.55vw,1.5rem)!important; margin: 0 0 6px!important; flex: 0 0 auto; }
+    #view-match .cup-workspace { display: grid; grid-template-columns: minmax(250px, 26%) minmax(0, 1fr); gap: clamp(10px,1.5vw,24px); flex: 1 1 auto; min-height: 0; }
+    #view-match .cup-match-selector { background: rgba(22,26,34,.96); border: 1px solid rgba(255,255,255,.26); border-radius: 12px; padding: clamp(10px,1.1vw,18px); min-width: 0; }
+    #view-match .cup-match-selector h3 { font-size: clamp(1.05rem,1.5vw,1.4rem); color: #ffb6ba; margin-bottom: clamp(10px,2vh,20px); }
+    #view-match .cup-match-selector label { font-size: clamp(.9rem,1.15vw,1.12rem); margin: 0 0 7px; }
+    #view-match .cup-match-selector select { width: 100%; min-height: 48px; padding: 10px; font-size: clamp(.9rem,1.1vw,1.12rem); margin-bottom: clamp(12px,2.5vh,26px); }
+    #view-match .cup-selection-note { font-size: clamp(.82rem,1vw,1rem); line-height: 1.5; color: #b9c1cc; margin-top: 12px; }
+    #view-match .cup-empty-selection { display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: clamp(1rem,1.5vw,1.4rem); color: #cbd5e1; background: rgba(25,28,35,.75); border: 1px dashed rgba(255,255,255,.28); border-radius: 12px; }
+    #view-match .cup-score-area { min-width: 0; min-height: 0; flex-direction: column; gap: clamp(3px,.5vh,7px); margin: 0; }
+    #view-match .cup-entry-head, #view-match .game-row { display: grid; grid-template-columns: clamp(48px,5vw,76px) minmax(0,1fr) clamp(45px,5vw,90px) minmax(0,1fr); gap: clamp(4px,.6vw,10px); align-items: center; }
+    #view-match .cup-entry-head { flex: 0 0 auto; margin: 0; min-height: 32px; font-size: clamp(.95rem,1.3vw,1.4rem); }
+    #view-match .cup-entry-player { padding: 3px; line-height: 1.12; overflow-wrap: anywhere; }
+    #view-match .cup-entry-caption { font-size: clamp(.82rem,1vw,1.05rem); }
+    #view-match #gamesContainer { display: grid; grid-template-rows: repeat(var(--cup-set-count,5), minmax(0,1fr)); gap: clamp(2px,.45vh,6px); flex: 1 1 auto; min-height: 0; }
+    #view-match .game-row { margin: 0; padding: clamp(2px,.35vh,5px) clamp(4px,.5vw,9px); min-height: 0; border-radius: 8px; }
+    #view-match .game-title { font-size: clamp(.82rem,1.12vw,1.2rem); white-space: nowrap; }
+    #view-match .stepper { height: 100%; min-height: 0; padding: clamp(1px,.22vh,4px); gap: clamp(2px,.3vw,6px); }
+    #view-match .btn-step { min-width: clamp(30px,3.2vw,56px); height: 100%; min-height: 30px; max-height: 62px; line-height: 1; font-size: clamp(1.25rem,2vw,2rem); }
+    #view-match .score-disp { font-size: clamp(1.2rem,2vw,2rem); min-width: 22px; }
+    #view-match .cup-total-panel { flex: 0 0 auto; margin: 0; padding: clamp(3px,.5vh,8px) 8px; border-radius: 9px; }
+    #view-match .cup-total-label { font-size: clamp(.75rem,.95vw,1.03rem); line-height: 1.12; }
+    #view-match .cup-stock-points .cup-total-number { font-size: clamp(1.4rem,2.2vw,2.25rem); line-height: 1.08; margin-top: 1px; }
+    #view-match .cup-match-points .cup-total-number { font-size: clamp(2.1rem,3.7vw,3.8rem); line-height: 1.03; margin-top: 2px; }
+    #view-match .cup-confirm-button { flex: 0 0 auto; width: calc(100% - 225px); min-height: clamp(43px,5.5vh,60px); padding: 5px 10px; margin: 0; font-size: clamp(.9rem,1.25vw,1.2rem); line-height: 1.2; }
+    /* Dynamisch verkleinern, wenn ein Cup 8 bis 10 Sätze hat. */
+    #view-match .cup-score-area[data-density="compact"] .cup-entry-head { min-height: 27px; }
+    #view-match .cup-score-area[data-density="dense"] .cup-entry-head { min-height: 24px; font-size: 1rem; }
+    #view-match .cup-score-area[data-density="dense"] .game-row { padding-top: 1px; padding-bottom: 1px; }
+    #view-match .cup-score-area[data-density="dense"] .btn-step { min-height: 27px; }
+    #view-match .cup-score-area[data-density="dense"] .cup-total-panel { padding: 2px 7px; }
+    #view-match .cup-score-area[data-density="dense"] .cup-stock-points .cup-total-number { font-size: clamp(1.2rem,1.8vw,1.8rem); }
+    #view-match .cup-score-area[data-density="dense"] .cup-match-points .cup-total-number { font-size: clamp(1.8rem,2.7vw,2.8rem); }
+    @media screen and (min-width:900px) and (max-height:760px) {
+      #view-match .cup-selection-note { display:none; }
+      #view-match .cup-match-selector select { min-height: 40px; padding: 6px; margin-bottom: 9px; }
+      #view-match .cup-entry-head { min-height: 24px; }
+      #view-match .cup-total-panel { padding: 2px 7px; }
+      #view-match .cup-stock-points .cup-total-number { font-size: 1.45rem; }
+      #view-match .cup-match-points .cup-total-number { font-size: 2.1rem; }
+      #view-match .cup-confirm-button { min-height: 40px; }
+    }
+    /* Auf schmalen Displays ist Scrollen als sichere Rückfallebene erlaubt. */
+    @media screen and (max-width:899px), screen and (max-height:579px) {
+      #view-match { width:100%; max-width:none; padding: 10px; }
+      #view-match .cup-workspace { display:flex; flex-direction:column; gap:10px; }
+      #view-match .cup-match-selector { padding:10px; }
+      #view-match .cup-selection-note { display:none; }
+      #view-match .cup-score-area { gap:7px; }
+      #view-match #gamesContainer { display:flex; flex-direction:column; gap:5px; }
+      #view-match .game-row { min-height:52px; }
+      #view-match .btn-step { height:42px; }
+      #view-match .cup-confirm-button { width:100%; }
+    }
+    /* Die Navigation der Vereinsverwaltung rechts unten bleibt maßgeblich. */
+    /* Innerhalb der Vereinsverwaltung: nur die festen Navigationsbuttons rechts unten. */
+    html.cup-in-verwaltung #view-main > .nav-bar,
+    html.cup-in-verwaltung #view-groups > .nav-bar,
+    html.cup-in-verwaltung #view-table > .nav-bar,
+    html.cup-in-verwaltung #view-match > .nav-bar,
+    html.cup-in-verwaltung #view-ko > .nav-bar,
+    html.cup-in-verwaltung #view-admin > .nav-bar { display:none!important; }
+    html.cup-in-verwaltung #globalStartMenuBtn { display:none!important; right:25px; bottom:84px; }
+    html.cup-in-verwaltung.cup-navigation-visible #globalStartMenuBtn { display:block!important; }
+    @media (max-width:600px) { html.cup-in-verwaltung #globalStartMenuBtn {right:10px;bottom:70px;} }
+    #view-match > .nav-bar { display:none!important; }
+
+
+    /* V2.5.0: Die vier Auswertungen fuellen den eingebetteten 16:9-Bildschirm. */
+    html, body { height:100%; min-height:100%; }
+    body { height:100vh; height:100dvh; overflow:hidden; }
+    body > header { flex:0 0 auto; }
+    body > .container { flex:1 1 auto; min-height:0; height:auto; overflow:hidden; }
+    body > .container > .view.active { min-height:0; }
+    body > .container > #view-stockdart.active,
+    body > .container > #view-jahresmeisterschaft.active,
+    body > .container > #view-auslosung.active {
+      flex:1 1 auto; min-height:0; height:100%;
+      width:100% !important; max-width:none !important;
+      margin:0 !important; padding:2px !important;
+      border:0; border-radius:0; background:transparent;
+      box-shadow:none; backdrop-filter:none;
+      overflow:hidden;
+    }
+    #view-stockdart #stockdartFrame,
+    #view-jahresmeisterschaft #jahresmeisterschaftFrame,
+    #view-auslosung #auslosungFrame {
+      display:block; flex:1 1 auto; width:100% !important;
+      height:100% !important; min-height:0 !important;
+      max-height:100% !important; border:0; border-radius:0;
+      background:transparent;
+    }
+    html.cup-in-verwaltung #view-stockdart .stockdart-bottom-back,
+    html.cup-in-verwaltung #view-auslosung .btn-section-start-fixed {display:none !important;}
+    /* Keine ungenutzte Flaeche unter den vier Bereichen. */
+    html.cup-in-verwaltung #view-main.active,
+    html.cup-in-verwaltung #view-groups.active,
+    html.cup-in-verwaltung #view-table.active,
+    html.cup-in-verwaltung #view-match.active { max-height:100%; }
+
+/* V2.5.0: Cup-Auswahl zentriert und Whiteboard-gerecht */
+#view-main.active {align-items:center!important;justify-content:flex-start!important;padding-top:clamp(20px,6vh,85px)!important}
+#view-main > h2 {width:100%!important;font-size:clamp(1.45rem,2.1vw,2.25rem)!important;margin-bottom:clamp(18px,3vh,42px)!important}
+#view-main #tournamentButtons {width:min(90%,850px)!important;align-items:center!important;gap:clamp(16px,2.2vh,30px)!important;margin:0 auto!important}
+#view-main #tournamentButtons .btn-tournament {width:100%!important;max-width:780px!important;min-height:clamp(75px,10vh,125px)!important;font-size:clamp(1.35rem,2.1vw,2.3rem)!important;padding:clamp(16px,2vw,28px)!important;border-radius:14px!important}
+/* Gruppen wie die Überschrift: jeweils eine kompakte Karte über die volle Breite */
+#view-groups #groupsInfo,#view-groups #groupCardsContainer {width:100%!important;max-width:none!important;align-self:stretch!important}
+#view-groups #groupCardsContainer {display:flex!important;flex-direction:column!important;grid-template-columns:none!important;gap:clamp(8px,1.1vh,15px)!important;align-content:stretch!important}
+#view-groups #groupCardsContainer .group-card {width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:clamp(12px,2vw,32px)!important;padding:clamp(10px,1.1vh,16px) clamp(16px,2vw,28px)!important;min-height:clamp(70px,9vh,108px)!important}
+#view-groups #groupCardsContainer .group-card h3 {flex:1 1 auto!important;margin:0!important;font-size:clamp(1.2rem,1.7vw,1.85rem)!important}
+#view-groups #groupCardsContainer .group-card .cup-group-actions {display:flex!important;flex:0 1 55%!important;gap:clamp(8px,1vw,16px)!important}
+#view-groups #groupCardsContainer .group-card .cup-group-actions .btn {flex:1 1 0!important;min-height:44px!important;font-size:clamp(.95rem,1.15vw,1.3rem)!important;padding:9px 12px!important}
+@media(max-width:650px){#view-groups #groupCardsContainer .group-card{flex-direction:column!important;align-items:stretch!important}#view-groups #groupCardsContainer .group-card .cup-group-actions{flex-basis:auto!important;width:100%!important}}
+
+    /* V2.5.0: Zielschiessen nutzt dieselbe Arbeitsbreite wie die Ueberschrift. */
+    body > .container:has(#view-jahresmeisterschaft.active){width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+    body > .container > #view-jahresmeisterschaft.active{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;align-self:stretch!important}
+    body > .container > #view-jahresmeisterschaft.active > #jahresmeisterschaftFrame{width:100%!important;max-width:none!important;min-width:0!important;align-self:stretch!important}
 </style>
 
-  <script type="module" src="js/auswertung-teil-01.js?v=2.0.7"></script>
+  <script type="module" src="js/auswertung-teil-01.js?v=2.5.0"></script>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -526,10 +740,12 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
     @keyframes ecwMigSpin{to{transform:rotate(360deg)}}
   </style>
 
+  <a id="ecwStandaloneReturn" href="index.html#startseite" class="btn-startmenu-fixed" style="display:none;text-decoration:none;right:20px;bottom:20px;">⌂ Zurück zur Vereinsverwaltung</a>
+  <script>if(window.self===window.top)document.getElementById('ecwStandaloneReturn').style.display='block';</script>
   <button id="globalStartMenuBtn" class="btn-startmenu-fixed" onclick="goBackToStartMenu()" style="display:none;">↩️ Zurück zum Startmenü</button>
 
   <header>
-    <div class="version-badge">Version 2.0.0 · Vereinsverwaltung</div>
+    <div class="version-badge">Version 2.5.0 · Vereinsverwaltung</div>
     <h1 id="headerTitle">EC Wegscheid Turnierauswertung</h1>
     <button id="adminCornerBtn" class="btn-admin-corner" onclick="checkAdminAccess()" style="display:none;">⚙️ Admin</button>
     <div class="auth-box">
@@ -634,12 +850,12 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       </div>
 
       <!-- SPIELER-ERGEBNISSE DRILL-DOWN CONTAINER -->
-      <div id="playerMatchesContainer" style="display: none; margin-top: 6px; background: rgba(25, 12, 15, 0.90); border: 1px solid var(--border-silver); border-radius: 6px; padding: 6px;">
+      <div id="playerMatchesContainer" role="dialog" aria-modal="true" aria-labelledby="playerMatchesTitle" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <h3 id="playerMatchesTitle" style="color: #38bdf8; font-size: 0.85rem; margin: 0;">Spiele</h3>
+          <h3 id="playerMatchesTitle" style="color: #ffffff; font-size: 1.35rem; margin: 0;">Spiele</h3>
           <button class="btn btn-secondary" style="width: auto; padding: 2px 6px; font-size: 0.7rem; margin: 0;" onclick="closePlayerMatches()">✕ Schließen</button>
         </div>
-        <div id="playerMatchesList" style="max-height: 130px; overflow-y: auto; font-size: 0.75rem;"></div>
+        <div id="playerMatchesList"></div>
       </div>
 
       <div class="nav-bar">
@@ -648,38 +864,46 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       </div>
     </div>
 
-    <!-- ERGEBNIS EINTRAGEN -->
+    <!-- ERGEBNIS EINTRAGEN: 16:9 Whiteboard, Spielauswahl links -->
     <div id="view-match" class="view">
-      <h2 id="matchGroupHeader" style="font-size: 1.05rem; margin-bottom: 4px;">Ergebnis eintragen</h2>
-      
-      <label>1. Mannschaft:</label>
-      <select id="selectTeamA" onchange="onTeamASelected()">
-        <option value="">-- Mannschaft wählen --</option>
-      </select>
-
-      <label>2. Offenes Spiel:</label>
-      <select id="selectTeamB" onchange="onTeamBSelected()" disabled>
-        <option value="">-- Zuerst Mannschaft wählen --</option>
-      </select>
-      <div id="noOpenMatchesHint" style="display:none; margin:6px 0; color:var(--text-muted); font-size:0.9rem;">
-        Für diese Mannschaft sind keine offenen Spiele mehr vorhanden.
-      </div>
-
-      <div id="scoreArea" style="display: none;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: center; font-size: 0.9rem; font-weight: bold; margin: 4px 0; color: #38bdf8;">
-          <div id="teamAName">Team A</div>
-          <div id="teamBName">Team B</div>
+      <h2 id="matchGroupHeader">Ergebnis eintragen</h2>
+      <div class="cup-workspace">
+        <aside class="cup-match-selector" aria-label="Spielauswahl">
+          <h3>Spielauswahl</h3>
+          <label for="selectTeamA">1. Mannschaft / Spieler wählen</label>
+          <select id="selectTeamA" onchange="onTeamASelected()">
+            <option value="">-- Mannschaft wählen --</option>
+          </select>
+          <label for="selectTeamB">2. Offenes Spiel wählen</label>
+          <select id="selectTeamB" onchange="onTeamBSelected()" disabled>
+            <option value="">-- Zuerst Mannschaft wählen --</option>
+          </select>
+          <div id="noOpenMatchesHint" style="display:none; margin:8px 0; color:var(--text-muted); font-size:.95rem;">
+            Für diese Mannschaft sind keine offenen Spiele mehr vorhanden.
+          </div>
+          <p class="cup-selection-note">Die Spielernamen und die Reihenfolge werden automatisch aus der Spielkarte übernommen.</p>
+        </aside>
+        <div id="scoreArea" class="cup-score-area" style="display:none;">
+          <div class="cup-entry-head">
+            <div class="cup-entry-caption">Satz</div>
+            <div id="teamAName" class="cup-entry-player">Spieler 1</div>
+            <div class="cup-entry-separator" aria-hidden="true"></div>
+            <div id="teamBName" class="cup-entry-player">Spieler 2</div>
+          </div>
+          <div id="gamesContainer"></div>
+          <div class="cup-total-panel cup-stock-points">
+            <div class="cup-total-label">GESAMTE STOCKPUNKTE</div>
+            <div id="matchStockTotal" class="cup-total-number" aria-live="polite">0 : 0</div>
+          </div>
+          <div class="cup-total-panel cup-match-points">
+            <div class="cup-total-label">SPIELERGEBNIS · SATZPUNKTE</div>
+            <div id="matchSummary" class="cup-total-number" aria-live="polite">0 : 0</div>
+          </div>
+          <button class="btn btn-success cup-confirm-button" onclick="saveMatchResult()">Ergebnis mit Gegner kontrollieren und bestätigen.</button>
         </div>
-
-        <div id="gamesContainer"></div>
-        <div class="match-summary" id="matchSummary">Endstand: Satzpunkte 0 : 0</div>
-        <button class="btn btn-success" onclick="saveMatchResult()">Ergebnis Speichern</button>
+        <div id="cupEmptySelection" class="cup-empty-selection">Links Spieler und offene Begegnung auswählen, um die Satzeingabe zu öffnen.</div>
       </div>
-
-      <div class="nav-bar">
-        <button class="btn btn-secondary" onclick="showView('view-groups')">⬅️ Zurück</button>
-        <button class="btn btn-mainmenu" onclick="goToMainMenu()">🏠 Hauptmenü</button>
-      </div>
+      <!-- Navigation rechts unten über die festen Programmbuttons. -->
     </div>
 
     <!-- KO-PHASE -->
@@ -948,14 +1172,14 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div id="printArea"></div>
 
-  <script src="js/auswertung-teil-02.js?v=2.0.7"></script>
+  <script src="js/auswertung-teil-02.js?v=2.5.0"></script>
 
   <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
   <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
-  <script src="js/auswertung-teil-03.js?v=2.0.7"></script>
-  <script src="js/auswertung-teil-04.js?v=2.0.7"></script>
-  <script src="js/auswertung-teil-05.js?v=2.0.7"></script>
-  <script src="js/auswertung-teil-06.js?v=2.0.7"></script>
+  <script src="js/auswertung-teil-03.js?v=2.5.0"></script>
+  <script src="js/auswertung-teil-04.js?v=2.5.0"></script>
+  <script src="js/auswertung-teil-05.js?v=2.5.0"></script>
+  <script src="js/auswertung-teil-06.js?v=2.5.0"></script>
 
 <div id="centralBackupOverlay" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);padding:18px;overflow:auto;">
     <div style="max-width:760px;margin:45px auto;background:rgba(25,29,35,.98);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);">
@@ -974,3 +1198,4 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
   </div>
 </body>
 </html>
+<!-- V2.5.0: Einheitliche Cup-Einstiege und roter Carbon-Hintergrund. -->

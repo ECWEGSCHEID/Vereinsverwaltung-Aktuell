@@ -10,7 +10,7 @@ const infoSystemNavBadge = document.getElementById('infoSystemNavBadge');
 const topRightLoginInfoBox = document.getElementById('topRightLoginInfoBox');
 const logoutNavBtn = document.getElementById('logoutNavBtn');
 
-// V2.0.0: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
+// V2.5.0: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
 // Whiteboard: ?mode=whiteboard oder ?whiteboard=1 -> keine separate Anmeldung.
 // Verwaltung: ?mode=admin-embedded -> übernimmt ausschließlich eine bereits
 // angemeldete Administrator-Sitzung aus der übergeordneten Vereinsverwaltung.
@@ -90,7 +90,7 @@ let selected = null;
 let pending = null;
 let currentSession = null;
 
-// V2.0.0: Login-Session auf diesem Gerät merken.
+// V2.5.0: Login-Session auf diesem Gerät merken.
 // Es wird nur Benutzername/Rolle gespeichert, niemals das Passwort.
 const SESSION_STORAGE_KEY = 'soloPyramide_session_v1';
 try {
@@ -173,7 +173,7 @@ function buildPayload(){
     infoLines, customTitle, customSubtitle,
     currentMaxPlayers, vacations, ruleLockHoursAfterGame,
     ruleChallengeDays, ruleWithdrawHours,
-    appVersion: '2.0.0',
+    appVersion: '2.5.0',
     updatedAt: new Date().toISOString()
   };
 }

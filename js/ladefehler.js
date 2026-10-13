@@ -1,4 +1,4 @@
-/* EC Wegscheid V2.0.14 – nicht-blockierende Anzeige fehlender Programmdateien. */
+/* EC Wegscheid V2.5.0 – nicht-blockierende Anzeige fehlender Programmdateien. */
 (function(){
   window.addEventListener('error',function(ev){
     const node=ev.target;

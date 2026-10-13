@@ -1,61 +1,53 @@
 {
-  "version": "2.0.14",
-  "release": "Lokaler Test: Google-Kalender-Exportstatus und erneute Aktualisierung",
+  "version": "2.5.0",
+  "release": "EC Wegscheid – konsolidierter Hauptprogrammstand V2.5.0 auf Basis der getesteten V2.0.28",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
-      "status": "integriert",
-      "sha256": "6b5b1aa9c7ca3adbe9aa66c3691cf68e21f93f250470b8157b052a84eccbfaac"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "57ee6b1fd4538909b5f3619a0632629451da18d0f18fef94bce14fd29848a70b"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
-      "status": "bestehend",
-      "sha256": "d14ad88e773dd9b13c85fb065a02f204ac95c703a179790bccb90d880004b44e"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "1f77a44d65ee15f5c733f9cee026a40b9cc96c250a42e15232cddb9cc39c6807"
     },
     "turnierverwaltung": {
       "datei": "turnierverwaltung.html",
-      "status": "bestehend",
-      "sha256": "74cbf205c8354f795bb68a1ff56b0ca7a2626be6d579d78481d030c78ae70f64"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "90e019a0817e6ea157ecbd5613ab7113cf94536dd5b29960166685e1a22af9d6"
     },
     "turnierauswertung": {
       "datei": "turnierauswertung.html",
-      "status": "bestehend",
-      "sha256": "5db6e83acb15fe54686da8854a7d47a1cd699bc7506d98ec33fafed0def0f3b2"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "ebb61a462f513600b82d568076471cfed162689e03ed413964ec37f1ad8784c9"
     },
     "turnierwirtschaftlichkeit": {
       "datei": "turnierwirtschaftlichkeit.html",
-      "status": "bestehend",
-      "sha256": "8fd94e7e34a6c1909b88817c1ee74004103c8f8cf4d62a8339ba4ea248dc1bf9"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "4e35cbf3b46473e513a4116f008c8675dbc02a8de77db421232ed2c1f1719f19"
     },
     "solo-pyramide": {
       "datei": "solo-pyramide.html",
-      "status": "bestehend",
-      "sha256": "32d566782d0fdd2f345f6d88dd09ba5e4c5966d3db40811b097726e1d2fedba7"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "1751482fd4c440d9cd9fd6d49f6b14c87b1ff4ecf6ad8dbac23ddf39c2573bc7"
     },
     "smartphone-zugang": {
       "datei": "mobile-zugang.html",
-      "status": "bestehend",
-      "sha256": "e51aff4ff6f5141b3cca7b37dc8e6e0d838cb9cbf8bc2baf64b8f1e8a392fb0c"
+      "status": "im Paket V2.5.0 enthalten",
+      "sha256": "64b225a7938685ee38f03a99370c093a4bb4a0a75340226bc61b501c9187a456"
     },
     "live-startlisten": {
       "datei": "live-startlisten.html",
-      "status": "bestehend",
+      "status": "im Paket V2.5.0 enthalten",
       "sha256": "14f1f5ca7320f4372ba922a617a4583f647b5437ff4ca40306aa3ce0a6c9fd66"
     }
   },
   "changes": [
-    "CSS in css/hauptprogramm.css ausgelagert",
-    "Carbon-Hintergrund als assets/hintergrund-carbon-rot.png ausgelagert",
-    "Startseiten-Standardhintergrund als eigene Bilddatei ausgelagert",
-    "Firebase-Initialisierung, Hauptprogramm und Turnierverwaltungsintegration in js/ ausgelagert",
-    "Zentrale Versionsdatei und Prüfroutine ergänzt",
-    "Bestehende HTML-Einzelmodule nicht verändert",
-    "Mitgliederverwaltung: große Inline-Skripte als externe Dateien eingebunden, HTML-Script-Parser-Konflikt vermieden",
-    "Turnierauswertung: eingebettete Unterseiten-Skripte als externe Dateien eingebunden",
-    "Fehlenden Hintergrundbild-Pfad in Turnierauswertung korrigiert",
-    "Spielerpass-Übersicht zeigt vorhandene Pässe unabhängig von Mitgliederverknüpfung; keine automatische Änderung an Daten",
-    "Spielerpass-Übersicht rendert geladene Datensätze fehlertolerant und zeigt Filter-/Zuordnungsdiagnose an; ohne Schreibvorgang.",
-    "Spielerpass-Suche und Filter beim Öffnen der Übersicht zurücksetzen.",
-    "Live-Startlisten: Firebase-kompatible Objekte im Hauptfenster erzeugen (iframe-Realm-Fehler)."
+    "Konsolidierung der zuletzt bestätigten Version V2.0.28 ohne Eingriff in Wertungs- und Firebase-Daten",
+    "Einheitliche sichtbare Versionsnummer V2.5.0 in Hauptprogramm und eingebetteten Modulen",
+    "Interne Links und Cache-Abfragen auf V2.5.0 umgestellt",
+    "Zentrale SHA256-Prüfsummen der HTML-Module aktualisiert",
+    "Firebase-Regeln und private Datensicherungen bewusst NICHT in GitHub-Upload-Ordner enthalten"
   ]
 }

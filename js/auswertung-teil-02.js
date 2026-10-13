@@ -158,8 +158,30 @@ setDefaultTeamsTemplate();
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(id)?.classList.add('active');
       const backBtn = document.getElementById('globalStartMenuBtn');
-      // Der globale Zurück-Button gehört zur Cupauswertung; Startmenü, StockDart und Platzhalter haben eigene Zurück-Buttons.
-      if (backBtn) backBtn.style.display = (id === 'view-home' || id === 'view-stockdart' || id === 'view-auslosung' || id === 'view-soon') ? 'none' : 'block';
+      // Nur die Cup-Ebenen verwenden den eigenen Zurueck-Button.
+      // Bei Einbettung wird der Hauptmenue-Button vom Hauptprogramm angezeigt.
+      const cupLevel = ['view-main','view-groups','view-table','view-match','view-ko','view-admin'].includes(id);
+      document.documentElement.classList.toggle('cup-navigation-visible',cupLevel);
+      if (backBtn) backBtn.style.display = cupLevel ? 'block' : 'none';
+      if (backBtn) {
+        if (id === 'view-match' || id === 'view-table' || id === 'view-groups' || id === 'view-ko') {
+          backBtn.textContent = '← Zurück';
+          backBtn.onclick = () => {
+            if (id === 'view-table') {
+              const detail = document.getElementById('playerMatchesContainer');
+              if (detail && detail.style.display !== 'none') { closePlayerMatches(); return; }
+              showView('view-groups');
+            } else if (id === 'view-groups') {
+              goToMainMenu();
+            } else {
+              showView('view-groups');
+            }
+          };
+        } else {
+          backBtn.textContent = '↩️ Zurück zum Startmenü';
+          backBtn.onclick = goBackToStartMenu;
+        }
+      }
       if (typeof updateHeader === 'function') updateHeader(id);
     }
 
@@ -220,13 +242,26 @@ switchAdminTab('new');
       });
     }
 
+    // Stabile Gruppenreihenfolge auch nach Firebase-Ladevorgängen: A, B, C ...
+    function cupSortedGroups(groups) {
+      return Object.entries(groups || {}).sort(([keyA, a], [keyB, b]) => {
+        const index = (key, data) => {
+          const m = String(key).match(/^group_(\d+)$/i);
+          if (m) return Number(m[1]);
+          const n = String(data?.name || key).match(/(?:Gruppe\s*)?([A-Z])$/i);
+          return n ? n[1].toUpperCase().charCodeAt(0) - 64 : Number.MAX_SAFE_INTEGER;
+        };
+        return index(keyA,a)-index(keyB,b) || String(keyA).localeCompare(String(keyB),'de',{numeric:true});
+      });
+    }
+
     function openGroupSelection(id) {
       activeId = id;
       const t = tournaments[id];
       if (!t) return;
 
       if (t.groups) {
-        Object.entries(t.groups).forEach(([gKey, gData]) => {
+        cupSortedGroups(t.groups).forEach(([gKey, gData]) => {
           if (!gData.matches || Object.keys(gData.matches).length === 0) {
             if (gData.teams && gData.teams.length >= 2) {
               gData.matches = generateFixturesForTeams(gData.teams, !!t.hasReturnLeg);
@@ -244,11 +279,14 @@ switchAdminTab('new');
       c.innerHTML = '';
       
       if (t.groups) {
-        Object.entries(t.groups).forEach(([gKey, gData]) => {
+        const groupCount = cupSortedGroups(t.groups).length;
+        // V2.5.0: Gruppen unabhängig von der Anzahl untereinander anzeigen.
+        c.style.setProperty('--cup-group-cols', 1);
+        cupSortedGroups(t.groups).forEach(([gKey, gData]) => {
           const div = document.createElement('div');
           div.className = 'group-card';
           div.innerHTML = `<h3>${gData.name || gKey}</h3>
-            <div style="display:flex; gap:4px;">
+            <div class="cup-group-actions">
               <button class="btn" style="padding:6px; font-size:0.8rem;" onclick="openMatchSelection('${gKey}')">✏️ Ergebnis eingeben</button>
               <button class="btn btn-secondary" style="padding:6px; font-size:0.8rem;" onclick="openGroupTable('${gKey}')">📊 Tabelle</button>
             </div>`;
@@ -284,7 +322,7 @@ switchAdminTab('new');
         }
         tr.innerHTML = `
           <td>${idx + 1}</td>
-          <td>${row.name} ${row.dq ? '(DQ)' : row.dnf ? '(DNF)' : ''}</td>
+          <td>${row.name} ${row.dq ? '<span class="cup-status-label">DSQ</span>' : row.dnf ? '<span class="cup-status-label">DNF</span>' : ''}</td>
           <td>${row.played}</td>
           <td>${row.points}</td>
           <td>${row.stocksFor}:${row.stocksAgainst}</td>
@@ -296,6 +334,35 @@ switchAdminTab('new');
       });
 
       showView('view-table');
+      // Die Zeilenhöhe wird nach der tatsächlichen Mannschaftszahl und Displayhöhe berechnet.
+      requestAnimationFrame(() => ecwFitCupTable());
+    }
+
+    function ecwFitCupTable() {
+      const view = document.getElementById('view-table');
+      const table = view?.querySelector('table');
+      if (!view || !table || !view.classList.contains('active')) return;
+      const rows = view.querySelectorAll('#tableBody tr').length;
+      const top = table.getBoundingClientRect().top;
+      const available = Math.max(160, window.innerHeight - top - 96);
+      const rowHeight = Math.min(62, Math.max(19, available / Math.max(1, rows + 1)));
+      const font = Math.min(24, Math.max(11, rowHeight * .38));
+      const padding = Math.max(1, Math.min(18, (rowHeight - font * 1.25) / 2));
+      view.style.setProperty('--cup-row-font', font.toFixed(1) + 'px');
+      view.style.setProperty('--cup-row-pad', padding.toFixed(1) + 'px');
+    }
+    window.addEventListener('resize', () => { ecwFitCupTable(); ecwFitCupPlayerMatches(); });
+
+    function ecwFitCupPlayerMatches() {
+      const panel = document.getElementById('playerMatchesContainer');
+      const list = document.getElementById('playerMatchesList');
+      if (!panel || !list || panel.style.display === 'none') return;
+      const n = Math.max(1, list.children.length);
+      const available = Math.max(120, list.getBoundingClientRect().height);
+      const row = available / n;
+      list.style.setProperty('--cup-match-gap', Math.min(12,Math.max(2,row*.08)).toFixed(1)+'px');
+      list.style.setProperty('--cup-match-font', Math.min(24,Math.max(10,row*.27)).toFixed(1)+'px');
+      list.style.setProperty('--cup-match-pad', Math.min(18,Math.max(1,row*.1)).toFixed(1)+'px');
     }
 
     function showPlayerMatchesInTable(teamId, teamName) {
@@ -305,7 +372,9 @@ switchAdminTab('new');
       const titleEl = document.getElementById('playerMatchesTitle');
       const listEl = document.getElementById('playerMatchesList');
 
-      titleEl.textContent = `Spiele von ${teamName}`;
+      const selectedTeam = (g.teams || []).find(tm => String(tm.id) === String(teamId));
+      const ownStatus = selectedTeam && selectedTeam.dq ? ' · DSQ' : selectedTeam && selectedTeam.dnf ? ' · DNF' : '';
+      titleEl.textContent = `Spiele von ${teamName}${ownStatus}`;
       listEl.innerHTML = '';
 
       const teamMap = new Map((g.teams || []).map(tm => [String(tm.id), tm]));
@@ -320,8 +389,14 @@ switchAdminTab('new');
           const opponentObj = teamMap.get(String(opponentId));
           const opponentName = opponentObj ? opponentObj.name : 'Unbekannt';
           const legText = m.leg ? `[${m.leg}]` : '';
+          const opponentStatus = opponentObj && opponentObj.dq ? 'DSQ' : opponentObj && opponentObj.dnf ? 'DNF' : '';
 
-          let resultText = '<span style="color:var(--text-muted);">Offen</span>';
+          // Bei nicht gespielten Partien den hinterlegten Teamstatus statt "Offen" zeigen.
+          const ownTeamStatus = selectedTeam && selectedTeam.dq ? 'DSQ' : selectedTeam && selectedTeam.dnf ? 'DNF' : '';
+          const matchStatus = ownTeamStatus || opponentStatus;
+          let resultText = matchStatus
+            ? `<span class="cup-status-label" style="font-weight:700;">${matchStatus}</span>`
+            : '<span style="color:var(--text-muted);">Offen</span>';
           if (m.completed) {
             const ownPoints = isA ? m.pointsA : m.pointsB;
             const oppPoints = isA ? m.pointsB : m.pointsA;
@@ -333,17 +408,18 @@ switchAdminTab('new');
           }
 
           const div = document.createElement('div');
-          div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--border);';
+          div.className = 'cup-player-match';
           div.innerHTML = `
-            <span>${legText} vs. <b>${opponentName}</b></span>
-            <span>${resultText}</span>
+            <span class="cup-opponent">${legText} vs. ${opponentName} ${opponentStatus ? '<span class="cup-status-label">' + opponentStatus + '</span>' : ''}</span>
+            <span class="cup-result">${resultText}</span>
           `;
           listEl.appendChild(div);
         });
       }
 
-      container.style.display = 'block';
-      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      container.style.display = 'flex';
+      // Alle Begegnungen untereinander; Größe automatisch an die Anzahl anpassen.
+      requestAnimationFrame(() => ecwFitCupPlayerMatches());
     }
 
     function closePlayerMatches() {
@@ -433,6 +509,7 @@ switchAdminTab('new');
       const t = tournaments[activeId];
       const g = t.groups[gKey];
       
+      document.getElementById('matchGroupHeader').textContent = `Ergebnis eintragen · ${g.name || gKey}`;
       const selA = document.getElementById('selectTeamA');
       const selB = document.getElementById('selectTeamB');
       
@@ -455,6 +532,8 @@ switchAdminTab('new');
       selB.innerHTML = '<option value="">-- Zuerst Mannschaft wählen --</option>';
       selB.disabled = true;
       document.getElementById('scoreArea').style.display = 'none';
+      const emptyHint = document.getElementById('cupEmptySelection');
+      if (emptyHint) emptyHint.style.display = 'flex';
       
       showView('view-match');
     }
@@ -496,6 +575,8 @@ switchAdminTab('new');
       selB.disabled = openMatches.length === 0;
       hint.style.display = openMatches.length === 0 ? 'block' : 'none';
       document.getElementById('scoreArea').style.display = 'none';
+      const emptyHint = document.getElementById('cupEmptySelection');
+      if (emptyHint) emptyHint.style.display = 'flex';
     }
 
     function onTeamBSelected() {
@@ -513,9 +594,10 @@ switchAdminTab('new');
         document.getElementById('scoreArea').style.display = 'none';
         return;
       }
-      const valB = String(selectedMatch.teamA) === String(valA) ? selectedMatch.teamB : selectedMatch.teamA;
-      const teamAObj = g.teams.find(x => x.id == valA);
-      const teamBObj = g.teams.find(x => x.id == valB);
+      // Dieselbe Reihenfolge wie auf der gedruckten Spielkarte, auch wenn Spieler 2 das Spiel auswählt.
+      const teamAObj = g.teams.find(x => String(x.id) === String(selectedMatch.teamA));
+      const teamBObj = g.teams.find(x => String(x.id) === String(selectedMatch.teamB));
+      if (!teamAObj || !teamBObj) return;
 
       document.getElementById('teamAName').textContent = teamAObj.name;
       document.getElementById('teamBName').textContent = teamBObj.name;
@@ -534,7 +616,12 @@ switchAdminTab('new');
       }
 
       renderMatchSteppers();
-      document.getElementById('scoreArea').style.display = 'block';
+      const scoreArea = document.getElementById('scoreArea');
+      scoreArea.style.setProperty('--cup-set-count', String(currentMatchGames.length));
+      scoreArea.dataset.density = currentMatchGames.length >= 8 ? 'dense' : currentMatchGames.length >= 6 ? 'compact' : 'normal';
+      scoreArea.style.display = 'flex';
+      const emptyHint = document.getElementById('cupEmptySelection');
+      if (emptyHint) emptyHint.style.display = 'none';
     }
 
     function renderMatchSteppers() {
@@ -551,7 +638,7 @@ switchAdminTab('new');
             <span class="score-disp" id="scoreA_${idx}">${gm.sA}</span>
             <button class="btn-step" onclick="changeScore(${idx}, 'A', 1)">+</button>
           </div>
-          <div style="font-weight:bold; color:var(--text-muted);">:</div>
+          <div class="game-separator" aria-hidden="true"></div>
           <div class="stepper">
             <button class="btn-step" onclick="changeScore(${idx}, 'B', -1)">-</button>
             <span class="score-disp" id="scoreB_${idx}">${gm.sB}</span>
@@ -583,7 +670,8 @@ switchAdminTab('new');
         else if (gm.sB > gm.sA) pB += 2;
         else if (gm.sA > 0 || gm.sB > 0) { pA += 1; pB += 1; }
       });
-      document.getElementById('matchSummary').textContent = `Endstand: Satzpunkte ${pA} : ${pB} (Stöcke ${stA} : ${stB})`;
+      document.getElementById('matchStockTotal').textContent = `${stA} : ${stB}`;
+      document.getElementById('matchSummary').textContent = `${pA} : ${pB}`;
     }
 
     function saveMatchResult() {
@@ -604,12 +692,19 @@ switchAdminTab('new');
       const g = t.groups[activeGroup];
       g.matches ||= {};
       const scheduledMatch = g.matches[targetMatchId];
-      if (!scheduledMatch) {
-        alert("Spiel nicht gefunden.");
+      if (!scheduledMatch || scheduledMatch.completed) {
+        alert("Dieses Spiel ist nicht mehr offen.");
         return;
       }
+      const nameA = g.teams.find(x => String(x.id) === String(scheduledMatch.teamA))?.name || 'Spieler 1';
+      const nameB = g.teams.find(x => String(x.id) === String(scheduledMatch.teamB))?.name || 'Spieler 2';
+      const confirmed = window.confirm(
+        `Ergebnis mit Gegner kontrollieren und bestätigen.\n\n${nameA} – ${nameB}\n` +
+        `Gesamte Stockpunkte: ${stA} : ${stB}\nSpielergebnis: ${pA} : ${pB}\n\nErgebnis verbindlich speichern?`
+      );
+      if (!confirmed) return;
 
-      const selectedIsHome = String(scheduledMatch.teamA) === String(selectedTeamId);
+      const selectedIsHome = true; // Eingabe entspricht immer der Reihenfolge der Spielkarte.
       const valA = scheduledMatch.teamA;
       const valB = scheduledMatch.teamB;
       const savedGames = selectedIsHome
@@ -1355,7 +1450,7 @@ switchAdminTab('new');
       
       const t = tournaments[tId];
       
-      Object.entries(t.groups).forEach(([gKey, gData]) => {
+      cupSortedGroups(t.groups).forEach(([gKey, gData]) => {
         if (!gData.matches || Object.keys(gData.matches).length === 0) {
           if (gData.teams && gData.teams.length >= 2) {
             gData.matches = generateFixturesForTeams(gData.teams, !!t.hasReturnLeg);
@@ -1364,7 +1459,7 @@ switchAdminTab('new');
       });
 
       let html = '';
-      Object.entries(t.groups).forEach(([gKey, gData]) => {
+      cupSortedGroups(t.groups).forEach(([gKey, gData]) => {
         if (gData.matches) {
           Object.entries(gData.matches).forEach(([mId, m]) => {
             const tA = gData.teams.find(x => x.id == m.teamA)?.name || 'Team A';
