@@ -740,7 +740,7 @@ body.embedded-main-auth{
 }
 @media print{html,body{background:#fff!important;background-image:none!important;}}
 
-/* V2.5.0 – eingebettete Turnierverwaltung: gemeinsame Anmeldung */
+/* V2.5.2 – eingebettete Turnierverwaltung: gemeinsame Anmeldung */
 body.embedded-main-auth #logoutBtn{display:none!important}
 body.embedded-main-auth #loginScreen{display:none!important}
 body.embedded-main-auth{background-color:#240607!important}
@@ -1470,7 +1470,7 @@ copy of the Program in return for a fee.
   <header>
     <div>
       <h1>EC Wegscheid – Turnierverwaltung</h1>
-      <div class="version">Version 2.5.0</div>
+      <div class="version">Version 2.5.2</div>
     <div id="userStatus"></div></div><div><button id="logoutBtn">Abmelden</button></div>
   </header>
 
@@ -1506,7 +1506,28 @@ copy of the Program in return for a fee.
         <select id="tMeldeUhrzeit"></select></div>
         <div><label for="tMax">Maximale Anzahl Mannschaften</label>
         <select id="tMax"></select></div>
-        </div><button class="primary" id="tAddBtn">Turnier anlegen</button>
+        </div><details class="ecw-stockapp-options"><summary>Zusätzliche Turnierdaten / StockApp (optional)</summary><p class="meta">Alle Felder können leer bleiben. Für StockApp wird eine Datei mit den angemeldeten Mannschaften erzeugt.</p><div class="form-grid">
+<div><label for="tStock_venue">Veranstaltungsort</label><input id="tStock_venue" type="text" ></div>
+<div><label for="tStock_organizer">Veranstalter</label><input id="tStock_organizer" type="text" ></div>
+<div><label for="tStock_operator">Durchführer</label><input id="tStock_operator" type="text" ></div>
+<div><label for="tStock_fee">Startgebühr (€)</label><input id="tStock_fee" type="number" min="0" step="0.01"></div>
+<div><label for="tStock_feeWords">Startgebühr in Worten</label><input id="tStock_feeWords" type="text" ></div>
+<div><label for="tStock_refName">Schiedsrichter – Name</label><input id="tStock_refName" type="text" ></div>
+<div><label for="tStock_refClub">Schiedsrichter – Verein</label><input id="tStock_refClub" type="text" ></div>
+<div><label for="tStock_leaderName">Wettbewerbsleiter – Name</label><input id="tStock_leaderName" type="text" ></div>
+<div><label for="tStock_leaderClub">Wettbewerbsleiter – Verein</label><input id="tStock_leaderClub" type="text" ></div>
+<div><label for="tStock_scoreName">Wertungsführer – Name</label><input id="tStock_scoreName" type="text" ></div>
+<div><label for="tStock_scoreClub">Wertungsführer – Verein</label><input id="tStock_scoreClub" type="text" ></div>
+<div><label for="tStock_endText">Endbemerkung Ergebnisliste</label><textarea id="tStock_endText" rows="2"></textarea></div>
+<div><label for="tStock_rowSpace">Zeilenabstand Ergebnisliste</label><input id="tStock_rowSpace" type="number" min="0" step="1"></div>
+<div><label for="tStock_fontSize">Schriftgröße Ergebnisliste</label><input id="tStock_fontSize" type="number" min="0" step="1"></div>
+<div><label for="tStock_fontBefore">Schriftgröße Vorbemerkung</label><input id="tStock_fontBefore" type="number" min="0" step="1"></div>
+<div><label for="tStock_fontAfter">Schriftgröße Endbemerkung</label><input id="tStock_fontAfter" type="number" min="0" step="1"></div>
+<div><label for="tStock_up">Aufsteiger</label><input id="tStock_up" type="number" min="0" step="1"></div>
+<div><label for="tStock_down">Absteiger</label><input id="tStock_down" type="number" min="0" step="1"></div>
+<div><label for="tStock_header">Briefkopf für StockApp</label><select id="tStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (Pfad in StockApp später wählen)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (Pfad in StockApp später wählen)</option></select></div>
+<div><label><input type="checkbox" id="tStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
+</div></details><button class="primary" id="tAddBtn">Turnier anlegen</button>
       </div>
 
     </section>
@@ -1551,7 +1572,7 @@ copy of the Program in return for a fee.
             <h2 id="tdName"></h2>
             <div class="meta" id="tdMeta"></div>
           </div>
-          <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button></div>
+          <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp exportieren (.skmr)</button></div>
         </div>
         <div id="tdEditForm" class="hidden">
           <div class="form-grid"><div><label for="tdEditName">Turniername</label>
@@ -1568,7 +1589,28 @@ copy of the Program in return for a fee.
           <select id="tdEditMeldeUhrzeit"></select></div>
           <div><label for="tdEditMax">Maximale Anzahl Mannschaften</label>
           <select id="tdEditMax"></select></div>
-          </div><button class="primary" id="tdEditSaveBtn">Speichern</button>
+          </div><details class="ecw-stockapp-options"><summary>Zusätzliche Turnierdaten / StockApp (optional)</summary><p class="meta">Alle Felder können leer bleiben. Für StockApp wird eine Datei mit den angemeldeten Mannschaften erzeugt.</p><div class="form-grid">
+<div><label for="tdEditStock_venue">Veranstaltungsort</label><input id="tdEditStock_venue" type="text" ></div>
+<div><label for="tdEditStock_organizer">Veranstalter</label><input id="tdEditStock_organizer" type="text" ></div>
+<div><label for="tdEditStock_operator">Durchführer</label><input id="tdEditStock_operator" type="text" ></div>
+<div><label for="tdEditStock_fee">Startgebühr (€)</label><input id="tdEditStock_fee" type="number" min="0" step="0.01"></div>
+<div><label for="tdEditStock_feeWords">Startgebühr in Worten</label><input id="tdEditStock_feeWords" type="text" ></div>
+<div><label for="tdEditStock_refName">Schiedsrichter – Name</label><input id="tdEditStock_refName" type="text" ></div>
+<div><label for="tdEditStock_refClub">Schiedsrichter – Verein</label><input id="tdEditStock_refClub" type="text" ></div>
+<div><label for="tdEditStock_leaderName">Wettbewerbsleiter – Name</label><input id="tdEditStock_leaderName" type="text" ></div>
+<div><label for="tdEditStock_leaderClub">Wettbewerbsleiter – Verein</label><input id="tdEditStock_leaderClub" type="text" ></div>
+<div><label for="tdEditStock_scoreName">Wertungsführer – Name</label><input id="tdEditStock_scoreName" type="text" ></div>
+<div><label for="tdEditStock_scoreClub">Wertungsführer – Verein</label><input id="tdEditStock_scoreClub" type="text" ></div>
+<div><label for="tdEditStock_endText">Endbemerkung Ergebnisliste</label><textarea id="tdEditStock_endText" rows="2"></textarea></div>
+<div><label for="tdEditStock_rowSpace">Zeilenabstand Ergebnisliste</label><input id="tdEditStock_rowSpace" type="number" min="0" step="1"></div>
+<div><label for="tdEditStock_fontSize">Schriftgröße Ergebnisliste</label><input id="tdEditStock_fontSize" type="number" min="0" step="1"></div>
+<div><label for="tdEditStock_fontBefore">Schriftgröße Vorbemerkung</label><input id="tdEditStock_fontBefore" type="number" min="0" step="1"></div>
+<div><label for="tdEditStock_fontAfter">Schriftgröße Endbemerkung</label><input id="tdEditStock_fontAfter" type="number" min="0" step="1"></div>
+<div><label for="tdEditStock_up">Aufsteiger</label><input id="tdEditStock_up" type="number" min="0" step="1"></div>
+<div><label for="tdEditStock_down">Absteiger</label><input id="tdEditStock_down" type="number" min="0" step="1"></div>
+<div><label for="tdEditStock_header">Briefkopf für StockApp</label><select id="tdEditStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (Pfad in StockApp später wählen)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (Pfad in StockApp später wählen)</option></select></div>
+<div><label><input type="checkbox" id="tdEditStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
+</div></details><button class="primary" id="tdEditSaveBtn">Speichern</button>
           <button class="secondary" id="tdEditCancelBtn" style="margin-top:8px;width:100%;">Abbrechen</button>
         </div>
       </div>
@@ -1684,7 +1726,7 @@ copy of the Program in return for a fee.
         <datalist id="suggest_durchfuehrung"><option value="angelehnt an IER und ISPO (keine Passpflicht)"><option value="nach IER und ISPO"></datalist>
         <datalist id="suggest_siegerehrung"><option value="im Anschluss in der Stocksporthalle"><option value="im Anschluss im Vereinsheim"></datalist>
         <datalist id="suggest_preise"><option value="Die ersten Plätze erhalten Wertvolle Pokale oder Sachpreise"><option value="Alle Mannschaften erhalten Sachpreise"></datalist>
-        <div class="form-grid"><div><label for="dLogoInput">Logo austauschen (Einladung und Startliste)</label><input type="file" id="dLogoInput" accept="image/png,image/jpeg,image/webp"></div>
+        <div class="form-grid"><div><label for="ecwDocImageChoice">Bildvorlage für Einladung und Startliste</label><select id="ecwDocImageChoice"><option value="original">Bisherige Originalbilder</option><option value="halle">Hallenbild für Einladung und Startliste</option><option value="briefkopf">EC-Wegscheid-Briefkopf (fest gespeichert)</option><option value="custom">Eigenes hochgeladenes Bild</option><option value="none">Kein Titelbild</option></select></div></div><div class="form-grid"><div><label for="dLogoInput">Logo austauschen (Einladung und Startliste)</label><input type="file" id="dLogoInput" accept="image/png,image/jpeg,image/webp"></div>
         <div><label for="dTitleImageInput">Titelbild der Einladung austauschen</label><input type="file" id="dTitleImageInput" accept="image/png,image/jpeg,image/webp"></div></div>
         <button class="secondary" id="dOriginalImagesBtn">Originalbilder wieder verwenden</button></details>
         <p class="meta" id="dSaveStatus" role="status"></p><button class="primary" id="dSaveBtn" disabled>Vorlage für dieses Turnier speichern</button>
@@ -5184,7 +5226,7 @@ function liveStartlistHtml(x){
   const tt={name:x.name||'Turnier',datum:x.datum||'',uhrzeit:x.uhrzeit||'',meldeUhrzeit:x.meldeUhrzeit||'',maxMannschaften:x.maxMannschaften||null};
   const rows=liveStartlistRows(x),groups=[];if(rows.length){for(let i=0;i<rows.length;i+=14)groups.push(rows.slice(i,i+14));}else groups.push([]);
   const title='Startliste '+(tt.name||'Turnier')+(/EC[ -]?Wegscheid/i.test(tt.name||'')?'':' EC Wegscheid');
-  return groups.map((part,page)=>`<article class="paper start-paper"><div class="start-header"><img alt="EC Wegscheid Logo" src="${safeDocumentImage(c.logo,DEFAULT_START_LOGO)}"></div><h2 class="start-title">${escapeHtml(title)} <span class="live-badge">LIVE</span></h2><p class="start-date">am ${escapeHtml(longDate(tt.datum))} ${escapeHtml(reportTime(tt))}</p><table class="start-entries"><tbody>${part.map((m,i)=>{const nr=page*14+i+1;if(m.free)return `<tr class="start-free"><td>${nr}.</td><td>Freier Startplatz</td><td></td></tr>`;return `<tr><td>${nr}.</td><td>${escapeHtml(m.vereinName||'')}${m.teamZusatz?' · '+escapeHtml(m.teamZusatz):''}</td><td>${m.anmeldedatum?'gem. am '+escapeHtml(formatDatum(m.anmeldedatum)):''}</td></tr>`;}).join('')}</tbody></table>${part.length?'':'<p>Noch keine Mannschaften gemeldet.</p>'}<p class="start-registration">${c.einschreibung==='auto'?'Meldung'+(registrationTime(tt)?' ab '+escapeHtml(registrationTime(tt)):' ½ Stunde vor Turnierbeginn'):'Meldung '+escapeHtml(c.einschreibung)}</p><p class="start-closing">${escapeHtml(c.startGruss)}</p></article>`).join('');
+  return groups.map((part,page)=>`<article class="paper start-paper"><div class="start-header">${c.titelbild?`<img alt="Ausgewählter Briefkopf" style="max-height:65px;max-width:65%;object-fit:contain" src="${safeDocumentImage(c.titelbild,DEFAULT_TITLE_IMAGE)}">`:``}<img alt="EC Wegscheid Logo" src="${safeDocumentImage(c.logo,DEFAULT_START_LOGO)}"></div><h2 class="start-title">${escapeHtml(title)} <span class="live-badge">LIVE</span></h2><p class="start-date">am ${escapeHtml(longDate(tt.datum))} ${escapeHtml(reportTime(tt))}</p><table class="start-entries"><tbody>${part.map((m,i)=>{const nr=page*14+i+1;if(m.free)return `<tr class="start-free"><td>${nr}.</td><td>Freier Startplatz</td><td></td></tr>`;return `<tr><td>${nr}.</td><td>${escapeHtml(m.vereinName||'')}${m.teamZusatz?' · '+escapeHtml(m.teamZusatz):''}</td><td>${m.anmeldedatum?'gem. am '+escapeHtml(formatDatum(m.anmeldedatum)):''}</td></tr>`;}).join('')}</tbody></table>${part.length?'':'<p>Noch keine Mannschaften gemeldet.</p>'}<p class="start-registration">${c.einschreibung==='auto'?'Meldung'+(registrationTime(tt)?' ab '+escapeHtml(registrationTime(tt)):' ½ Stunde vor Turnierbeginn'):'Meldung '+escapeHtml(c.einschreibung)}</p><p class="start-closing">${escapeHtml(c.startGruss)}</p></article>`).join('');
 }
 function renderLiveStartliste(){
   const select=document.getElementById('liveStartTurnierSelect'),preview=document.getElementById('liveStartPreview'),status=document.getElementById('liveStartStatus');if(!select||!preview||!status)return;
@@ -5202,6 +5244,80 @@ function startLiveStartlistenViewer(){
 }
 function showLiveStartliste(){startLiveStartlistenViewer();showView('viewLiveStartliste','navLiveStartliste');}
 
+// V2.5.2 StockApp – separate Zusatzfelder, keine Änderung an bisherigen Turnierdaten.
+const ECW_STOCK_KEYS = ["venue", "organizer", "operator", "fee", "feeWords", "refName", "refClub", "leaderName", "leaderClub", "scoreName", "scoreClub", "endText", "rowSpace", "fontSize", "fontBefore", "fontAfter", "up", "down", "header", "stockTV"];
+function ecwStockRead(prefix){const v={};for(const key of ECW_STOCK_KEYS){const el=document.getElementById(prefix+'Stock_'+key);if(el)v[key]=el.type==='checkbox'?el.checked:el.value;}return v;}
+function ecwStockFill(prefix,v={}){for(const key of ECW_STOCK_KEYS){const el=document.getElementById(prefix+'Stock_'+key);if(el){if(el.type==='checkbox')el.checked=!!v[key];else el.value=v[key]??'';}}}
+function ecwStockText(parent,tag,value){const node=parent?.querySelector(tag);if(node)node.textContent=String(value??'');}
+function ecwStockDownloadXml(xml,name){const text=new XMLSerializer().serializeToString(xml);const a=document.createElement('a');const u=URL.createObjectURL(new Blob(['<?xml version="1.0" encoding="utf-8"?>\n'+text.replace(/^<\?xml[^>]*>\s*/, '')],{type:'application/xml;charset=utf-8'}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}
+// Experimentelle dynamische StockApp-Spielpläne (2–15 Teams).
+// Das XML-Schema wurde aus einer echten 9er-StockApp-Datei übernommen;
+// andere Spielplan-IDs müssen noch mit StockApp praktisch getestet werden.
+function ecwStockSetChild(doc, parent, tag, value){
+ let el=parent.querySelector(':scope > '+tag);
+ if(!el){el=doc.createElement(tag);parent.appendChild(el);}
+ el.textContent=String(value);
+}
+function ecwStockBuildSchedule(xml, b, teams){
+ const n=teams.length;
+ if(n===9)return; // geprüfte Originalauslosung unverändert erhalten
+ const originals=[...b.querySelectorAll('Mannschaften > Mannschaft')];
+ const parent=b.querySelector('Mannschaften');
+ const sample=originals[0].cloneNode(true);
+ parent.replaceChildren();
+ teams.forEach((name,i)=>{
+  const node=sample.cloneNode(true);
+  ecwStockText(node,'StartNumber',i+1);
+  ecwStockText(node,'TeamName',name);
+  parent.appendChild(node);
+ });
+ const matches=b.querySelector('Spiele');
+ const matchSample=matches.querySelector('Spiel').cloneNode(true);
+ matches.replaceChildren();
+ // Circle-Methode: jede Paarung genau einmal, bei ungerader Zahl Freilos.
+ const count=n%2===0?n:n+1;
+ const slots=Array.from({length:count},(_,i)=>i<n?i+1:0);
+ const rounds=count-1;
+ for(let round=1;round<=rounds;round++){
+  let court=0;
+  for(let i=0;i<count/2;i++){
+   const a=slots[i],c=slots[count-1-i],bye=(!a||!c);
+   const game=matchSample.cloneNode(true);
+   if(!bye)court++;
+   const aNum=bye?(a||c):a, bNum=bye?aNum:c;
+   for(const [tag,value] of Object.entries({RoundOfGame:1,CourtNumber:bye?0:court,GameNumber:round,GameNumberOverAll:round,StartnummerA:aNum,StartnummerB:bNum,IsTeamA_Starting:(round+i)%2===0?'true':'false'}))ecwStockText(game,tag,value);
+   ecwStockText(game,'Spielstand > A',0);
+   ecwStockText(game,'Spielstand > B',0);
+   const kehren=game.querySelector('Spielstand > Kehren');if(kehren)kehren.replaceChildren();
+   matches.appendChild(game);
+  }
+  slots.splice(1,0,slots.pop());
+ }
+ ecwStockText(b,'Spielplan',String(n*100+Math.floor(n/2)*10));
+ ecwStockText(b,'AnzahlAussetzer',n%2);
+}
+async function ecwExportStockApp(){
+ const t=aktuellesTurnier;if(!t){alert('Bitte ein Turnier auswählen.');return;}
+ const teams=meldungenCache.filter(m=>m.vereinName).map(m=>[m.vereinName,m.teamZusatz].filter(Boolean).join(' · '));
+ if(teams.length<2||teams.length>15){alert('StockApp-Export ist für 2 bis 15 angemeldete Mannschaften vorgesehen. Aktuell: '+teams.length+'.');return;}
+ const response=await fetch('assets/stockapp-vorlage-9-teams.skmr?v=2.5.2',{cache:'no-store'});if(!response.ok)throw Error('StockApp-Vorlage nicht gefunden.');
+ const xml=new DOMParser().parseFromString(await response.text(),'application/xml');if(xml.querySelector('parsererror'))throw Error('StockApp-Vorlage ist ungültig.');
+ const org=xml.querySelector('Organisation'),b=xml.querySelector('Teambewerb'),x=t.stockApp||{};
+ for(const [tag,val] of Object.entries({Venue:x.venue||t.ort||'',Organizer:x.organizer||'EC Wegscheid',Operator:x.operator||'EC Wegscheid',TournamentName:t.name||'',DateOfTournament:t.datum?t.datum+'T00:00:00':'',}))ecwStockText(org,tag,val);
+ ecwStockText(org,'Starttgebuehr > Value',x.fee||'');ecwStockText(org,'Starttgebuehr > Verbal',x.feeWords||'');
+ for(const [tag,n,c] of [['Schiedsrichter',x.refName,x.refClub],['Wettbewerbsleiter',x.leaderName,x.leaderClub],['Rechenbuero',x.scoreName,x.scoreClub]]){ecwStockText(org,tag+' > Name',n);ecwStockText(org,tag+' > ClubName',c);}
+ for(const [tag,val] of Object.entries({Endtext:x.endText,RowSpace:x.rowSpace,FontSize:x.fontSize,FontSizeVorText:x.fontBefore,FontSizeEndText:x.fontAfter,Aufsteiger:x.up,Absteiger:x.down}))if(val!==undefined&&val!=='')ecwStockText(b,tag,val);
+ ecwStockBuildSchedule(xml,b,teams);
+ if(teams.length===9){const nodes=[...b.querySelectorAll('Mannschaften > Mannschaft')];nodes.forEach((node,i)=>{ecwStockText(node,'StartNumber',i+1);ecwStockText(node,'TeamName',teams[i]);});}
+ const safe=(t.name||'Turnier').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g,'_').slice(0,65);
+ ecwStockDownloadXml(xml,'ECW_StockApp_'+safe+'_'+teams.length+'_Teams.skmr');
+ const notes=[];
+ if(teams.length!==9)notes.push('Der '+teams.length+'er-Spielplan wurde automatisch erzeugt und ist noch nicht mit StockApp praktisch getestet. Bitte zuerst in StockApp öffnen und die Paarungen kontrollieren.');
+ if(x.header||x.stockTV)notes.push('Briefkopf bitte in StockApp als lokale Bilddatei auswählen; StockTV dort aktivieren.');
+ if(notes.length)alert('StockApp-Datei erstellt.\n\n'+notes.join('\n'));
+}
+document.getElementById('ecwStockExportBtn')?.addEventListener('click',()=>ecwExportStockApp().catch(e=>alert('StockApp-Export: '+e.message)));
+
 // ---------- Turniere ----------
 document.getElementById("tAddBtn").addEventListener("click", () => saveAction(document.getElementById("tAddBtn"), async () => {
   const name = document.getElementById("tName").value.trim();
@@ -5217,7 +5333,7 @@ document.getElementById("tAddBtn").addEventListener("click", () => saveAction(do
   // Die Compat-SDK-Pruefung akzeptiert keine einfachen Objekte aus dem iframe-Realm.
   // Daher Nutzdaten im Realm des Hauptfensters erzeugen und den Zeitstempel
   // anschliessend als echte Firestore-Sentinel hinzufuegen.
-  const turnierDaten = {name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften};
+  const turnierDaten = {name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften, stockApp:ecwStockRead("t")};
   const savePayload = embeddedInMain
     ? window.parent.JSON.parse(window.parent.JSON.stringify(turnierDaten))
     : turnierDaten;
@@ -5229,9 +5345,9 @@ document.getElementById("tAddBtn").addEventListener("click", () => saveAction(do
   document.getElementById("tUhrzeit").value = "";
   document.getElementById("tOrt").value = "";
   document.getElementById("tMeldeUhrzeit").value = "";
-  document.getElementById("tMax").value = "";
+  document.getElementById("tMax").value = ""; ecwStockFill("t");
   notify("Turnier angelegt. Jetzt Mannschaften hinzufügen.");
-  openTurnier(created.id, {name,datum,kategorie,uhrzeit,ort,meldeUhrzeit,maxMannschaften});
+  openTurnier(created.id, {name,datum,kategorie,uhrzeit,ort,meldeUhrzeit,maxMannschaften,stockApp:turnierDaten.stockApp});
 }));
 
 function listenTurniere() {
@@ -5322,6 +5438,7 @@ document.getElementById("tdEditBtn").addEventListener("click", () => {
   document.getElementById("tdEditOrt").value = aktuellesTurnier.ort || "";
   document.getElementById("tdEditMeldeUhrzeit").value = aktuellesTurnier.meldeUhrzeit || "";
   document.getElementById("tdEditMax").value = aktuellesTurnier.maxMannschaften ? String(aktuellesTurnier.maxMannschaften) : "";
+  ecwStockFill("tdEdit",aktuellesTurnier.stockApp||{});
   document.getElementById("tdEditForm").classList.remove("hidden");
 });
 document.getElementById("tdEditCancelBtn").addEventListener("click", () => {
@@ -5338,7 +5455,7 @@ document.getElementById("tdEditSaveBtn").addEventListener("click", () => saveAct
   const maxMannschaftenRaw = document.getElementById("tdEditMax").value;
   const maxMannschaften = maxMannschaftenRaw ? parseInt(maxMannschaftenRaw, 10) : null;
   if (!name) { alert("Bitte einen Turniernamen eingeben."); return; }
-  const updated = { name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften };
+  const updated = { name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften, stockApp:ecwStockRead("tdEdit") };
   await updateDoc(doc(db, "turniere", aktuellesTurnier.id), updated);
   aktuellesTurnier = { ...aktuellesTurnier, ...updated };
   document.getElementById("tdName").textContent = name;
@@ -5831,6 +5948,24 @@ for(const [id,key]of [['dLogoInput','logo'],['dTitleImageInput','titelbild']])do
   try {const data=await imageToData(file);d.values[key]=data;d.dirty=true;if(selectedTournament()?.id===t.id)renderDocumentPreview();notify('Bild ersetzt. Bitte die Vorlage speichern.');}
   catch(err){notify(err.message||'Bild konnte nicht geladen werden.',true);}
   finally {imageBusy=false;e.target.value='';if(selectedTournament()?.id===t.id)renderDocumentPreview();updateDraftStatus();}
+});
+document.getElementById('ecwDocImageChoice')?.addEventListener('change',e=>{
+ const d=currentDraft();if(!d)return;
+ const choice=e.target.value;
+ if(choice==='original'){d.values.titelbild='';}
+ else if(choice==='halle'){d.values.titelbild=DEFAULT_TITLE_IMAGE;}
+ else if(choice==='none'){d.values.titelbild='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';}
+ else if(choice==='briefkopf'){d.values.titelbild='assets/briefkopf-asphalt.png';}
+ else if(choice==='custom'){document.getElementById('dTitleImageInput')?.click();return;}
+ d.dirty=true;renderDocumentPreview();
+});
+// Bei Upload kann die Vorlage auch als wiederverwendbarer Briefkopf am aktuellen Gerät gespeichert werden.
+document.getElementById('dTitleImageInput')?.addEventListener('change',async e=>{
+ const f=e.target.files?.[0];if(!f)return;
+ // Die bestehende Bildfunktion setzt das Bild pro Turnier; keine automatische Firebase-Aenderung.
+ if(confirm('Dieses Bild zusätzlich als EC-Wegscheid-Briefkopf auf diesem Gerät für weitere Einladungen und Startlisten vormerken?')){
+  try{const data=await imageToData(f);localStorage.setItem('ecw-briefkopf-v252',data);}catch(err){console.warn('Briefkopf lokal nicht gespeichert:',err);}
+ }
 });
 document.getElementById('dOriginalImagesBtn').addEventListener('click',()=>{const d=currentDraft();if(!d)return;d.values.logo='';d.values.titelbild='';d.dirty=true;renderDocumentPreview();});
 async function waitForDocumentImages(){await Promise.all([...document.querySelectorAll('#printArea img')].map(img=>img.decode?.().catch(()=>{})||Promise.resolve()));await document.fonts?.ready;}

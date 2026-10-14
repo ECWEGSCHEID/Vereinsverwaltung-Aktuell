@@ -1,5 +1,5 @@
 
-const APP_VERSION='2.5.0';
+const APP_VERSION='2.5.2';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -124,7 +124,7 @@ function openTournamentListDirect(){
 let currentMonth=null,currentPage=0,adminTournamentPage=0,newsTimer=null,newsIndex=0,photoAlbumMonth=null,photoTimer=null,photoScrollTimer=null,currentUser=null;
 let pdfPendingFiles=[],pdfPendingIndex=0,pdfSelectedPages=new Set(),editingNewsId=null;
 
-// Version 2.5.0: Medien liegen in IndexedDB, nicht im begrenzten localStorage.
+// Version 2.5.2: Medien liegen in IndexedDB, nicht im begrenzten localStorage.
 const MEDIA_DB='verein_info_media_v123',MEDIA_STORE='files';
 let mediaObjectUrls=[];
 function openMediaDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(new Error('IndexedDB nicht verfügbar'));const r=indexedDB.open(MEDIA_DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(MEDIA_STORE))r.result.createObjectStore(MEDIA_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
@@ -401,7 +401,7 @@ if(firebaseReady&&window.firebaseAuth){
 
 
 
-/* ===== V2.5.0 SICHERHEITSSCHICHT =====
+/* ===== V2.5.2 SICHERHEITSSCHICHT =====
    - Kein "nur lokal gespeichert" bei zentralen Verwaltungsdaten.
    - Vor destruktiven Synchronisationen wird der aktuelle Firebase-Stand geprüft.
    - Vor Turnier-/Nachrichten-Synchronisationen wird automatisch ein lokaler
@@ -500,7 +500,7 @@ function ecwRequireCentralSave(action){
 window.addEventListener('offline',()=>{try{centralSetStatus('Offline · Änderungen werden nicht zentral gespeichert',false)}catch(e){}});
 window.addEventListener('online',()=>{try{centralSetStatus('Internet wieder verfügbar · Firebase wird geprüft …',true)}catch(e){}});
 
-/* ===== V2.5.0: Firebase ist die zentrale Datenquelle =====
+/* ===== V2.5.2: Firebase ist die zentrale Datenquelle =====
    localStorage/IndexedDB dienen nur noch als Cache bzw. Offline-Fallback. */
 let centralFirebaseUnsubs=[];
 let centralFirebaseReady=false;
@@ -1087,9 +1087,9 @@ function openUserRightsAdmin(){
     '<div class="card" style="margin-bottom:14px">'+
       '<h3 style="margin-top:0">📱 Mobilzugang – Smartphone & Tablet</h3>'+
       '<p class="small">Ein gemeinsamer QR-Code führt zu einer einfachen mobilen Übersicht mit vier Bereichen: Turnierverwaltung, Vereinsnachrichten, neuen Termin/Turnier anlegen und Ziel Jahresmeisterschaft eingeben. Welche Bereiche ein Benutzer sieht, wird über die Rechte unten gesteuert.</p>'+
-      '<iframe src="mobile-zugang.html?qr=1&v=2.5.0" title="QR-Code Mobilzugang" style="width:100%;max-width:760px;height:500px;border:0;border-radius:12px;background:transparent;display:block;margin:10px auto"></iframe>'+
+      '<iframe src="mobile-zugang.html?qr=1&v=2.5.2" title="QR-Code Mobilzugang" style="width:100%;max-width:760px;height:500px;border:0;border-radius:12px;background:transparent;display:block;margin:10px auto"></iframe>'+
       '<div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">'+
-        '<button type="button" onclick="window.open(\'mobile-zugang.html?v=2.5.0\',\'_blank\')">Mobilzugang öffnen</button>'+
+        '<button type="button" onclick="window.open(\'mobile-zugang.html?v=2.5.2\',\'_blank\')">Mobilzugang öffnen</button>'+
       '</div>'+
     '</div>'+
     '<div class="card"><p class="small">Benutzer werden über Firebase Authentication angelegt. Sobald sich ein Benutzer einmal anmeldet, erscheint er hier. Der Administrator vergibt anschließend die freigegebenen Anwendungen.</p><div id="userRightsList">Benutzer werden geladen …</div></div>';
@@ -1203,7 +1203,7 @@ function openPublicSection(id){
   }catch(e){console.error('Navigation:',e);}
 }
 
-/* ===== Version 2.5.0: Startseite-Rücksprung, Mannschaften, Link-Erzeugung ===== */
+/* ===== Version 2.5.2: Startseite-Rücksprung, Mannschaften, Link-Erzeugung ===== */
 const STARTSEITE_DEFAULT='Startseite.html';
 const BASE_DEFAULT='https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
 let centralNavigationSettings={baseUrl:'',startseiteUrl:''};
@@ -1217,17 +1217,17 @@ function getStartseiteUrl(){
 const SH_BG='assets/startseite-standard.jpg';
 const SH_KEY='ecw-startseite-v1';
 const SH_B='https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
-const SOLO_PYRAMIDE_PAGE=SH_B+'solo-pyramide.html?v=2.5.0';
+const SOLO_PYRAMIDE_PAGE=SH_B+'solo-pyramide.html?v=2.5.2';
 const SH_DEF={title:'Informationssystem',cols:3,bg:null,buttons:[
 {t:'Turnier-\neinladungen',u:SH_B+'#turniere-monatsuebersicht'},{t:'Termin\nKalender',u:SH_B+'#turnierliste'},
 {t:'Bahn\nReservierung',u:'https://ecwegscheid.github.io/Reservierungssystem/'},{t:'Homepage',u:'https://www.ec-wegscheid.de/'},
 {t:'Mannschaften',u:SH_B+'#mannschaften'},{t:'Vereins\nVeranstaltungen',u:SH_B+'#nachrichten'},{t:'Google',u:'https://www.google.de/'},
 {t:'Sponsoren',u:SH_B+'#fotos-sponsoren'},{t:'Links',u:SH_B+'#links'},
 {t:'Ergebnisse\nTurniere Intern',u:'',sub:[
- {t:'Cupauswertung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.0&seite=cup'},
- {t:'Jahresmeisterschaft Ziel',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.0&seite=jahresmeisterschaft'},
- {t:'Turnierauslosung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.0&seite=auslosung'},
- {t:'Stockdartauswertung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.0&seite=stockdart'},
+ {t:'Cupauswertung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=cup'},
+ {t:'Jahresmeisterschaft Ziel',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=jahresmeisterschaft'},
+ {t:'Turnierauslosung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=auslosung'},
+ {t:'Stockdartauswertung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=stockdart'},
  {t:'Solo Pyramide',u:SOLO_PYRAMIDE_PAGE}
 ]},
 {t:'Fotos\nVerein',u:SH_B+'#fotos'},
@@ -1253,7 +1253,7 @@ function shEnsureSoloPyramide(d){
        && /^\/Vereinsverwaltung-Aktuell\/turnierauswertung\.html$/i.test(u.pathname);
 
      if((legacy||local) && ['cup','jahresmeisterschaft','auslosung','stockdart'].includes(mode)){
-       return SH_B+'turnierauswertung.html?v=2.5.0&seite='+encodeURIComponent(mode);
+       return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode);
      }
    }catch(e){}
    return value;
@@ -1287,7 +1287,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
 let SH=(function(){try{return shSane(JSON.parse(localStorage.getItem(SH_KEY)))}catch(e){return shSane({})}})();
 
 
-/* ===== V2.5.0: zentrale Startseiten-Speicherung in Firebase =====
+/* ===== V2.5.2: zentrale Startseiten-Speicherung in Firebase =====
    Lokal bleibt weiterhin eine Zwischensicherung im Browser bestehen.
    Die freigegebene/produktive Startseite liegt zentral in Firestore. */
 const SH_FB_COLLECTION='appSettings';
@@ -1848,7 +1848,7 @@ async function teamDelete(i){
   teamsData.splice(i,1);await teamsPersist();renderTeamsAdmin();
 }
 
-/* ===== V2.5.0 Mannschaftsfotos: stabiles Pointer-Drag & Drop ===== */
+/* ===== V2.5.2 Mannschaftsfotos: stabiles Pointer-Drag & Drop ===== */
 let teamPointerDrag=null;
 
 function teamPhotoSwap(teamIndex,a,b){
@@ -1975,7 +1975,7 @@ async function teamPhotoDelete(i,j){
 }
 
 
-/* ===== V2.5.0: Einfaches Zuschneiden für Mannschaften und Turniereinladungen ===== */
+/* ===== V2.5.2: Einfaches Zuschneiden für Mannschaften und Turniereinladungen ===== */
 let cropState=null,cropImage=null;
 async function cropLoadImage(src){
  return await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src});
@@ -2139,11 +2139,11 @@ function renderOverviewAdmin(){
 }
 function soloPyramideAdminUrl(){
  const base=getBaseUrl();
- return new URL('solo-pyramide.html?v=2.5.0&mode=admin-embedded',base).href;
+ return new URL('solo-pyramide.html?v=2.5.2&mode=admin-embedded',base).href;
 }
 function soloPyramidePreviewUrl(){
  const base=getBaseUrl();
- return new URL('solo-pyramide.html?v=2.5.0&mode=whiteboard',base).href;
+ return new URL('solo-pyramide.html?v=2.5.2&mode=whiteboard',base).href;
 }
 function soloPyramideSetAdminReturnButton(){
  const b=document.querySelector('#ecwExternalHomeBar button');
@@ -2170,7 +2170,7 @@ function openSoloPyramidePreview(){
 function internalCupUrl(mode='home',extra=''){
  const base=getBaseUrl();
  const u=new URL('turnierauswertung.html',base);
- u.searchParams.set('v','2.5.0');
+ u.searchParams.set('v','2.5.2');
  u.searchParams.set('mode','admin-embedded');
  u.searchParams.set('seite',mode||'home');
  if(extra)u.searchParams.set(extra,'1');
@@ -2523,12 +2523,12 @@ function openExternalPage(value,title){
  document.getElementById('externalPrevious').hidden=isReservationApp||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
- // V2.5.0: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
+ // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
  // Versionierung der gespeicherten Startseitenlinks wird hier vereinheitlicht.
  if(isEcwTournament){
    try{
      const normalized=new URL('turnierauswertung.html',getBaseUrl());
-     normalized.searchParams.set('v','2.5.0');
+     normalized.searchParams.set('v','2.5.2');
      normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
@@ -2616,7 +2616,7 @@ function showView(id){
    }
    const f=document.getElementById('turnierverwaltungFrame');
    if(f){
-     const wanted=f.dataset.src||'turnierverwaltung.html?v=2.5.0';
+     const wanted=f.dataset.src||'turnierverwaltung.html?v=2.5.2';
      const cur=String(f.getAttribute('src')||'');
      if(!cur || cur==='about:blank')f.src=wanted;
    }
@@ -2808,7 +2808,7 @@ function returnToPowerPoint(){
    return;
  }
  currentUser=null;
- // V2.5.0: Beim normalen Zurückkehren zur Startseite wird NICHT mehr automatisch
+ // V2.5.2: Beim normalen Zurückkehren zur Startseite wird NICHT mehr automatisch
  // aus Firebase abgemeldet. Abmelden erfolgt nur noch bewusst über die Logout-Funktion.
  // Das verhindert besonders am Whiteboard eine erneute Kennwortabfrage bei jedem Start.
  goToStartseite();
@@ -3082,7 +3082,7 @@ function wbRefreshLiveStartlistButtons(){
  });
 }
 function openWhiteboardLiveStartlist(id){
- const u=SH_B+'live-startlisten.html?v=2.5.0&turnier='+encodeURIComponent(id);
+ const u=SH_B+'live-startlisten.html?v=2.5.2&turnier='+encodeURIComponent(id);
  openExternalPage(u,'Live Startliste');
 }
 function renderOwnTournaments(){
@@ -5128,7 +5128,7 @@ function renderTurnierWirtschaftlichkeitAdmin(){
   a.innerHTML='<div class="row" style="align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
     +'<h2 style="margin:0">Turnierwirtschaftlichkeit</h2>'
     +'<button type="button" onclick="renderAdminMenuLanding()">← Zurück zur Verwaltung</button></div>'
-    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.5.0" '
+    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.5.2" '
     +'style="width:100%;height:calc(100vh - 185px);min-height:690px;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:#16080b" '
     +'loading="eager" referrerpolicy="same-origin"></iframe>';
 }
@@ -5941,7 +5941,7 @@ window.addEventListener('resize',()=>{if(document.getElementById('tournaments').
 window.addEventListener('resize',()=>{if(document.getElementById('tournaments')?.classList.contains('active')) requestAnimationFrame(renderTournaments)});
 document.addEventListener('fullscreenchange',()=>{ if(document.fullscreenElement){ if(document.getElementById('tournaments').classList.contains('active')){requestAnimationFrame(()=>requestAnimationFrame(()=>renderTournaments()))} }else if(!['tournamentMonths','tournaments','news','photos'].some(id=>document.getElementById(id).classList.contains('active'))) leavePresentationFullscreen(); });
 
-// V2.5.0: Direkte öffentliche Aufrufe werden erst nach dem Firebase-Laden ausgeführt.
+// V2.5.2: Direkte öffentliche Aufrufe werden erst nach dem Firebase-Laden ausgeführt.
 window.__directRouteV1248=function(){
   try{
     const params=new URLSearchParams(window.location.search);
@@ -5965,7 +5965,7 @@ window.__directRouteV1248=function(){
 
   }catch(e){console.error('Direktaufruf konnte nicht verarbeitet werden:',e)}
 };
-/* V2.5.0: Öffentliche Firebase-Daten laden, ohne die lokale Sicherung zu überschreiben.
+/* V2.5.2: Öffentliche Firebase-Daten laden, ohne die lokale Sicherung zu überschreiben.
    Wichtig: Die Firebase-Daten bleiben im Arbeitsspeicher. Dadurch werden die großen
    Data-URLs nicht in localStorage geschrieben und die Navigation bleibt unabhängig. */
 async function autoLoadPublicFirebaseDataV1245(){
@@ -6178,10 +6178,10 @@ async function publicWhiteboardBootstrap(){
     return false;
   }
 }
-// V2.5.0: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
+// V2.5.2: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(!isPublicWhiteboardMode() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
-// V2.5.0: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
+// V2.5.2: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
 async function ecwWaitForInitialAuth(){
   try{
     if(window.__ecwPersistenceReady){
@@ -6257,7 +6257,7 @@ async function ecwStartupAfterAuth(){
 }
 ecwStartupAfterAuth();
 
-// V2.5.0: Sicherheitsnetz für PC und Whiteboard.
+// V2.5.2: Sicherheitsnetz für PC und Whiteboard.
 // Wenn Firebase keinen Benutzer wiederhergestellt hat, darf die App nicht auf
 // einer leeren/roten Ansicht hängen bleiben.
 setTimeout(()=>{

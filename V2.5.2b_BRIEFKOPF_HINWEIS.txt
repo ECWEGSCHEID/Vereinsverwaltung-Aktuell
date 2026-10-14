@@ -1,0 +1,6 @@
+EC Wegscheid V2.5.2b TEST
+
+Briefkopf Asphalt.png ist als assets/briefkopf-asphalt.png integriert.
+Bei Einladungen und Startlisten im Feld Bildvorlage EC-Wegscheid-Briefkopf auswählen und die Dokumentvorlage speichern.
+StockApp speichert beim ImageHeader einen lokalen Windows-Pfad. Die Datei assets/briefkopf-asphalt.png kann dafür auf dem StockApp-PC gespeichert und dort ausgewählt werden; ein automatischer StockApp-Bildimport ist nicht bestätigt.
+Die Spielpläne für 2 bis 15 Teams sind weiterhin Testfunktionen.

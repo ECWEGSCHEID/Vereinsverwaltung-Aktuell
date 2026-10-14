@@ -10,17 +10,26 @@ const infoSystemNavBadge = document.getElementById('infoSystemNavBadge');
 const topRightLoginInfoBox = document.getElementById('topRightLoginInfoBox');
 const logoutNavBtn = document.getElementById('logoutNavBtn');
 
-// V2.5.0: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
+// V2.5.2: Betriebsarten für Whiteboard und zentrale EC-Wegscheid-Verwaltung.
 // Whiteboard: ?mode=whiteboard oder ?whiteboard=1 -> keine separate Anmeldung.
 // Verwaltung: ?mode=admin-embedded -> übernimmt ausschließlich eine bereits
 // angemeldete Administrator-Sitzung aus der übergeordneten Vereinsverwaltung.
 const APP_URL_PARAMS = new URLSearchParams(window.location.search);
-const WHITEBOARD_MODE = APP_URL_PARAMS.get('mode') === 'whiteboard' || APP_URL_PARAMS.get('whiteboard') === '1';
+const WHITEBOARD_REQUESTED = APP_URL_PARAMS.get('mode') === 'whiteboard' || APP_URL_PARAMS.get('whiteboard') === '1';
+const WHITEBOARD_MODE = WHITEBOARD_REQUESTED && hasCentralWhiteboardParent();
 const ADMIN_EMBED_MODE = APP_URL_PARAMS.get('mode') === 'admin-embedded';
 const INTEGRATED_HOSTED_MODE = location.hostname === 'ecwegscheid.github.io' &&
   /^\/Vereinsverwaltung-Aktuell\/solo-pyramide\.html$/i.test(location.pathname);
 
 
+function hasCentralWhiteboardParent(){
+  if(window.parent===window)return false;
+  try{return window.parent.location.origin===window.location.origin &&
+    !!window.parent.firebaseAuthUser &&
+    (window.parent.appPermissions?.whiteboard===true || window.parent.appPermissions?.admin===true ||
+     (typeof window.parent.isWhiteboardUser==='function' && window.parent.isWhiteboardUser()));}
+  catch(e){return false;}
+}
 function hasCentralAdminParent(){
   if(!ADMIN_EMBED_MODE || window.parent === window) return false;
   try {
@@ -38,8 +47,10 @@ const MAX_VACATION_DAYS = 14;
 
 const defaultTitle = "Solo Pyramide 2026";
 const defaultSubtitle = "EC Wegscheid";
-const defaultPassword = "081500";
-const defaultInfoSystemPassword = "081500";
+// Kein öffentlich bekanntes Admin-Standardpasswort mehr.
+const defaultPassword = null;
+// Kein öffentlich bekanntes Informationssystem-Standardpasswort mehr.
+const defaultInfoSystemPassword = null;
 const defaultPyramidSize = 28;
 
 const defaultRuleLockHoursAfterGame = 24; 
@@ -90,19 +101,21 @@ let selected = null;
 let pending = null;
 let currentSession = null;
 
-// V2.5.0: Login-Session auf diesem Gerät merken.
+// V2.5.2: Keine privilegierten Sitzungen aus Browser-Speicher wiederherstellen.
+// Login-Session auf diesem Gerät merken.
 // Es wird nur Benutzername/Rolle gespeichert, niemals das Passwort.
 const SESSION_STORAGE_KEY = 'soloPyramide_session_v1';
+try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch(e) {}
 try {
-  const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+  const savedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
   if (savedSession) {
     const parsedSession = JSON.parse(savedSession);
-    if (parsedSession && ['player','admin','infosystem'].includes(parsedSession.type)) {
+    if (parsedSession && parsedSession.type === 'player' && typeof parsedSession.name === 'string') {
       currentSession = parsedSession;
     }
   }
 } catch (e) {
-  localStorage.removeItem(SESSION_STORAGE_KEY);
+  sessionStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
 // Im Whiteboard-Modus wird bewusst keine Anmeldung verlangt.
@@ -119,8 +132,8 @@ function persistSession() {
     // Der Whiteboard-Modus wird ausschließlich über die URL aktiviert.
     // Dadurch entsteht auf normalen Geräten kein dauerhaft angemeldeter Whiteboard-Benutzer.
     if (currentSession && (currentSession.type === 'whiteboard' || currentSession.embeddedCentralAdmin)) return;
-    if (currentSession) localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentSession));
-    else localStorage.removeItem(SESSION_STORAGE_KEY);
+    if (currentSession && currentSession.type === 'player') sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentSession));
+    else sessionStorage.removeItem(SESSION_STORAGE_KEY);
   } catch (e) {}
 }
 
@@ -173,7 +186,7 @@ function buildPayload(){
     infoLines, customTitle, customSubtitle,
     currentMaxPlayers, vacations, ruleLockHoursAfterGame,
     ruleChallengeDays, ruleWithdrawHours,
-    appVersion: '2.5.0',
+    appVersion: '2.5.2',
     updatedAt: new Date().toISOString()
   };
 }
@@ -362,6 +375,9 @@ window.returnToMainMenu = function(){
 }
 
 function checkLoginOrRender(){
+  if(currentSession?.type === 'player' && !players.includes(currentSession.name)){
+    currentSession = null; persistSession();
+  }
   if(!currentSession && hasCentralAdminParent()){
     currentSession = { type: 'admin', name: null, embeddedCentralAdmin: true };
   }
@@ -456,7 +472,7 @@ window.submitPlayerLogin = function(){
 
   if(!passwords[name]) passwords[name] = "1234";
 
-  if(passwords[name] === pw || (passwords[name] === "1234" && pw === "")){
+  if(pw && passwords[name] === pw){
     currentSession = { type: 'player', name: name };
     persistSession();
     checkLoginOrRender();
@@ -466,7 +482,7 @@ window.submitPlayerLogin = function(){
 }
 
 window.submitAdminLogin = function(){
-  if(INTEGRATED_HOSTED_MODE && !hasCentralAdminParent()){
+  if(INTEGRATED_HOSTED_MODE || !adminPassword){
     alert('Den Admin-Modus bitte über die Vereinsverwaltung öffnen. Dort reicht die einmalige zentrale Admin-Anmeldung.');
     return;
   }
@@ -596,7 +612,7 @@ function openAdminMenu(activeTab = 'general'){
   if(!currentSession || currentSession.type !== 'admin'){
     const pw = prompt('Administrator-Passwort');
     if(pw === null) return;
-    if(pw !== adminPassword){ alert('Falsches Passwort'); return; }
+    if(!adminPassword || pw !== adminPassword){ alert('Falsches Passwort'); return; }
     currentSession = { type: 'admin', name: null };
     persistSession();
     sideNavEl.style.display = 'flex';
@@ -628,7 +644,7 @@ function openAdminMenu(activeTab = 'general'){
         <div style="display:flex; align-items:center; justify-content:space-between; background:#141419; border:1px solid #444; padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:13px;">
           <div><b>#${i+1} ${escapeHtml(pName)}</b></div>
           <div style="display:flex; align-items:center; gap:6px;">
-            <span style="color:#aaa; font-size:12px;">Passwort: <code>${escapeHtml(passwords[pName])}</code></span>
+            <span style="color:#aaa; font-size:12px;">Passwort wird aus Sicherheitsgründen nicht angezeigt</span>
             <button class="btn" style="margin:0; padding:4px 8px; font-size:11px; background:#d48806; color:#000; width:auto;" onclick="resetPlayerPwToDefault('${escapeHtml(pName)}')">Auf 1234 zurücksetzen</button>
           </div>
         </div>
@@ -719,9 +735,9 @@ function openAdminMenu(activeTab = 'general'){
 
     <div id="tab_system" class="adminTabContent ${activeTab==='system'?'active':''}">
       <label><b>Administrator-Passwort ändern:</b></label>
-      <input type="password" id="adminNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="${escapeHtml(adminPassword)}">
+      <input type="password" id="adminNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="" placeholder="Leer lassen: bisheriges Kennwort beibehalten">
       <label><b>Informationssystem-Passwort ändern:</b></label>
-      <input type="password" id="adminInfoSystemNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="${escapeHtml(infoSystemPassword)}">
+      <input type="password" id="adminInfoSystemNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="" placeholder="Leer lassen: bisheriges Kennwort beibehalten">
       <br><br>
       <button class="btn btnDanger" onclick="resetAllData()">⚠️ Alle Spiele, Forderungen & Historie zurücksetzen</button>
     </div>
@@ -832,10 +848,10 @@ window.resetAllData = function(){
 window.saveAdminSettings = function(){
   currentMaxPlayers = parseInt(document.getElementById('adminMaxPlayers').value, 10) || defaultPyramidSize;
   const newPwEl = document.getElementById('adminNewPw');
-  if(newPwEl) adminPassword = newPwEl.value.trim() || defaultPassword;
+  if(newPwEl && newPwEl.value.trim()) adminPassword = newPwEl.value.trim();
 
   const newInfoPwEl = document.getElementById('adminInfoSystemNewPw');
-  if(newInfoPwEl) infoSystemPassword = newInfoPwEl.value.trim() || defaultInfoSystemPassword;
+  if(newInfoPwEl && newInfoPwEl.value.trim()) infoSystemPassword = newInfoPwEl.value.trim();
   
   customTitle = document.getElementById('adminTitle').value.trim() || defaultTitle;
   customSubtitle = document.getElementById('adminSubtitle').value.trim() || defaultSubtitle;

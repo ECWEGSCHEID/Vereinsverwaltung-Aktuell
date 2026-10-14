@@ -280,7 +280,7 @@ switchAdminTab('new');
       
       if (t.groups) {
         const groupCount = cupSortedGroups(t.groups).length;
-        // V2.5.0: Gruppen unabhängig von der Anzahl untereinander anzeigen.
+        // V2.5.2: Gruppen unabhängig von der Anzahl untereinander anzeigen.
         c.style.setProperty('--cup-group-cols', 1);
         cupSortedGroups(t.groups).forEach(([gKey, gData]) => {
           const div = document.createElement('div');

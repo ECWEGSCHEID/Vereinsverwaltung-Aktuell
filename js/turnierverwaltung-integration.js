@@ -1243,5 +1243,5 @@ function renderTurnierverwaltungAdmin(){
    +'<h2 style="margin:0">Turnierverwaltung</h2>'
    +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
    +'<div class="card small" style="margin-bottom:10px">Die Turnierverwaltung verwendet dieselbe Firebase-Anmeldung. Smartphone-Zugang und QR-Code findest du direkt in der Turnierverwaltung.</div>'
-   +'<iframe title="Turnierverwaltung Admin" src="turnierverwaltung.html?v=2.5.0" style="width:100%;height:calc(100vh - 220px);min-height:620px;border:0;border-radius:10px;background:#fff"></iframe>';
+   +'<iframe title="Turnierverwaltung Admin" src="turnierverwaltung.html?v=2.5.2" style="width:100%;height:calc(100vh - 220px);min-height:620px;border:0;border-radius:10px;background:#fff"></iframe>';
 }

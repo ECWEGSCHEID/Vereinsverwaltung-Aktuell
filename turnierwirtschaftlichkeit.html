@@ -55,7 +55,7 @@ dialog{background:#202025;color:#fff;border:1px solid #a64550;box-shadow:0 24px 
 @media(max-width:960px){.comparison-grid{grid-template-columns:1fr}.chart-wide{grid-column:auto}}
 @media print{.chart-card{background:#fff!important;color:#111!important}.chart-card h3,.chart-card p{color:#111!important}.chart-area svg text{fill:#333!important}.chart-legend{color:#111!important}}
 
-/* V2.5.0: Automatische Rechnung auf dunklem Carbon-Hintergrund gut lesbar */
+/* V2.5.2: Automatische Rechnung auf dunklem Carbon-Hintergrund gut lesbar */
 #liveCalc{background:linear-gradient(145deg,#302329,#1b1b20)!important;color:#fff!important;border:1px solid #8c424d;padding:16px!important;border-radius:11px}
 #liveCalc .calc-row{color:#f9f3f4!important}
 #liveCalc .calc-row span,#liveCalc .calc-row b{color:inherit!important}
@@ -72,7 +72,7 @@ dialog{background:#202025;color:#fff;border:1px solid #a64550;box-shadow:0 24px 
 .expense-item .expense-sponsor{width:100%}
 @media(max-width:620px){.expense-item{grid-template-columns:minmax(0,1fr) 90px 90px 32px;gap:4px}}
 </style></head><body>
-<header class="head"><div class="head-inner"><div><h1>EC Wegscheid · Turnierwirtschaftlichkeit</h1><p>Turniere, Einnahmen, Ausgaben, Helfer und Sponsoring</p></div><div class="version">Version 2.5.0</div></div></header>
+<header class="head"><div class="head-inner"><div><h1>EC Wegscheid · Turnierwirtschaftlichkeit</h1><p>Turniere, Einnahmen, Ausgaben, Helfer und Sponsoring</p></div><div class="version">Version 2.5.2</div></div></header>
 <div id="twGuard" role="alertdialog" aria-modal="true" style="position:fixed;inset:0;background:#11080df5;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;font:16px system-ui"><div style="max-width:570px;width:100%;background:#272127;border:1px solid #8f737b;border-radius:14px;padding:25px;box-shadow:0 12px 50px #000"><h2 id="twGuardTitle">Firebase-Anmeldung wird geprüft …</h2><div id="twGuardText">Bitte warten.</div><div id="twGuardActions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"></div></div></div>
 <div id="twCloudStatus" role="status" style="padding:6px 15px;background:#18151bd9;color:#fff;text-align:center;font:13px system-ui">Firebase wird verbunden …</div>
 <main class="wrap">
@@ -305,7 +305,7 @@ function saveHelpers(){HELPER_ROLES.forEach((role,j)=>addHelper(j));const r=stat
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id?.startsWith('helperInput')){e.preventDefault();addHelper(Number(e.target.id.replace('helperInput','')))}});
 
 
-// EC Wegscheid V2.5.0 – sichere zentrale Datenhaltung der Turnierwirtschaftlichkeit.
+// EC Wegscheid V2.5.2 – sichere zentrale Datenhaltung der Turnierwirtschaftlichkeit.
 const TW_FIREBASE_CONFIG={
  apiKey:'AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I',
  authDomain:'ec-wegscheid-verwaltung-neu.firebaseapp.com',

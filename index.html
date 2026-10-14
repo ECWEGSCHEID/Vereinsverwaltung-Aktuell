@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.5.0</title>
-<script src="js/ladefehler.js?v=2.5.0"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=2.5.0">
+<title>Vereins-Informationssystem – V2.5.2</title>
+<script src="js/ladefehler.js?v=2.5.2"></script>
+<link rel="stylesheet" href="css/hauptprogramm.css?v=2.5.2">
 </head>
-<body data-ecw-build="V2.5.0-STABIL-20261013">
+<body data-ecw-build="V2.5.2-STABIL-20261013">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 2.5.0</div>
+<div id="appVersion" class="app-version">Version 2.5.2</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -80,7 +80,7 @@
 </section>
 
 <section id="tournaments" class="view">
-  <div class="header tournament-header"><div class="tournament-version">Version 2.5.0</div><div class="tournament-title" id="tTitle">Turniereinladungen</div><div id="tMonth" class="tournament-month"></div></div>
+  <div class="header tournament-header"><div class="tournament-version">Version 2.5.2</div><div class="tournament-title" id="tTitle">Turniereinladungen</div><div id="tMonth" class="tournament-month"></div></div>
   <div id="tContent" class="tournament-pages"></div>
   <div id="tFooter" class="tournament-footer" style="display:none">Über eine Meldung würden wir uns freuen!</div>
   <div class="bottom tournament-bottom">
@@ -113,12 +113,12 @@
 </section>
 
 <section id="turnierverwaltung" class="view" style="padding:0">
-  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="about:blank" data-src="turnierverwaltung.html?v=2.5.0" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
+  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="about:blank" data-src="turnierverwaltung.html?v=2.5.2" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
   <button id="tvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
 </section>
 
 <section id="tournamentPlanner" class="view">
-  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.5.0</div></div>
+  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.5.2</div></div>
   <div id="tpStats" class="tp-stats"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
   <div class="tp-toolbar"><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" onclick="tpScrollToCurrentEntry()">Aktueller Termin</button><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
@@ -187,8 +187,8 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
-<script src="js/firebase-init.js?v=2.5.0"></script>
-<script src="js/hauptprogramm.js?v=2.5.0"></script>
+<script src="js/firebase-init.js?v=2.5.2"></script>
+<script src="js/hauptprogramm.js?v=2.5.2"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
 <div id="cropModal" class="crop-modal" hidden>
@@ -426,7 +426,7 @@
 </div>
 
 </div></div>
-<script src="js/turnierverwaltung-integration.js?v=2.5.0"></script>
+<script src="js/turnierverwaltung-integration.js?v=2.5.2"></script>
 
 
 <div id="tpTournamentEvalModal" class="hidden" onclick="if(event.target===this)closeTpTournamentEvaluation()">
@@ -459,7 +459,7 @@
     </div>
   </div>
 </div>
-<script src="designvorlagen-daten.js?v=2.5.0"></script>
-<script src="systemeinstellungen.js?v=2.5.0"></script>
+<script src="designvorlagen-daten.js?v=2.5.2"></script>
+<script src="systemeinstellungen.js?v=2.5.2"></script>
 </body>
 </html>

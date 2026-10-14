@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>EC Wegscheid Turnierauswertung – Version 2.5.0 · Vereinsverwaltung</title>
+  <title>EC Wegscheid Turnierauswertung – Version 2.5.2 · Vereinsverwaltung</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -147,7 +147,7 @@
     }
 
 
-    /* V2.5.0: Whiteboard-Tabelle und Gruppenauswahl in voller Breite */
+    /* V2.5.2: Whiteboard-Tabelle und Gruppenauswahl in voller Breite */
     #view-groups,#view-table {width:min(100%,1800px);align-self:center;padding:clamp(12px,1.3vw,24px);gap:clamp(10px,1.2vh,18px)}
     #view-groups #groupsTitle,#view-table #tableTitle {font-size:clamp(1.5rem,2.4vw,2.5rem)!important;margin-bottom:8px!important}
     #view-groups #groupsSub {font-size:clamp(1rem,1.2vw,1.3rem)!important;color:#e2e8f0!important}
@@ -178,7 +178,7 @@
     @media(max-height:720px){#playerMatchesContainer{inset:8px}#playerMatchesList{gap:6px}#playerMatchesList .cup-player-match{padding:8px;gap:4px}#view-table th,#view-table td{padding-top:7px;padding-bottom:7px}}
 
     
-/* V2.5.0 – Gruppen und Tabellen für 16:9, größenabhängig */
+/* V2.5.2 – Gruppen und Tabellen für 16:9, größenabhängig */
 #groupCardsContainer{grid-template-columns:repeat(var(--cup-group-cols,2),minmax(0,1fr))!important;gap:clamp(10px,1.2vw,20px)!important;align-content:center}
 #view-groups .group-card{padding:clamp(12px,1.2vw,22px)!important;margin:0!important}
 #view-groups .group-card h3{font-size:clamp(1.25rem,1.65vw,1.9rem)!important;margin-bottom:12px!important}
@@ -551,7 +551,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       .cup-entry-player { padding: 4px 1px; }
     }
 
-    /* V2.5.0 – Cup-Ergebniseingabe: 16:9 Whiteboard ohne Seitenscrollen */
+    /* V2.5.2 – Cup-Ergebniseingabe: 16:9 Whiteboard ohne Seitenscrollen */
     @media screen and (min-width: 900px) and (min-height: 580px) {
       body:has(#view-match.active) { height: 100dvh; min-height: 0; overflow: hidden; }
       body:has(#view-match.active) > header { flex: 0 0 auto; margin-bottom: 3px; padding: 2px 8px; }
@@ -625,7 +625,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
     #view-match > .nav-bar { display:none!important; }
 
 
-    /* V2.5.0: Die vier Auswertungen fuellen den eingebetteten 16:9-Bildschirm. */
+    /* V2.5.2: Die vier Auswertungen fuellen den eingebetteten 16:9-Bildschirm. */
     html, body { height:100%; min-height:100%; }
     body { height:100vh; height:100dvh; overflow:hidden; }
     body > header { flex:0 0 auto; }
@@ -657,7 +657,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
     html.cup-in-verwaltung #view-table.active,
     html.cup-in-verwaltung #view-match.active { max-height:100%; }
 
-/* V2.5.0: Cup-Auswahl zentriert und Whiteboard-gerecht */
+/* V2.5.2: Cup-Auswahl zentriert und Whiteboard-gerecht */
 #view-main.active {align-items:center!important;justify-content:flex-start!important;padding-top:clamp(20px,6vh,85px)!important}
 #view-main > h2 {width:100%!important;font-size:clamp(1.45rem,2.1vw,2.25rem)!important;margin-bottom:clamp(18px,3vh,42px)!important}
 #view-main #tournamentButtons {width:min(90%,850px)!important;align-items:center!important;gap:clamp(16px,2.2vh,30px)!important;margin:0 auto!important}
@@ -671,13 +671,13 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 #view-groups #groupCardsContainer .group-card .cup-group-actions .btn {flex:1 1 0!important;min-height:44px!important;font-size:clamp(.95rem,1.15vw,1.3rem)!important;padding:9px 12px!important}
 @media(max-width:650px){#view-groups #groupCardsContainer .group-card{flex-direction:column!important;align-items:stretch!important}#view-groups #groupCardsContainer .group-card .cup-group-actions{flex-basis:auto!important;width:100%!important}}
 
-    /* V2.5.0: Zielschiessen nutzt dieselbe Arbeitsbreite wie die Ueberschrift. */
+    /* V2.5.2: Zielschiessen nutzt dieselbe Arbeitsbreite wie die Ueberschrift. */
     body > .container:has(#view-jahresmeisterschaft.active){width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
     body > .container > #view-jahresmeisterschaft.active{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;align-self:stretch!important}
     body > .container > #view-jahresmeisterschaft.active > #jahresmeisterschaftFrame{width:100%!important;max-width:none!important;min-width:0!important;align-self:stretch!important}
 </style>
 
-  <script type="module" src="js/auswertung-teil-01.js?v=2.5.0"></script>
+  <script type="module" src="js/auswertung-teil-01.js?v=2.5.2"></script>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -745,7 +745,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
   <button id="globalStartMenuBtn" class="btn-startmenu-fixed" onclick="goBackToStartMenu()" style="display:none;">↩️ Zurück zum Startmenü</button>
 
   <header>
-    <div class="version-badge">Version 2.5.0 · Vereinsverwaltung</div>
+    <div class="version-badge">Version 2.5.2 · Vereinsverwaltung</div>
     <h1 id="headerTitle">EC Wegscheid Turnierauswertung</h1>
     <button id="adminCornerBtn" class="btn-admin-corner" onclick="checkAdminAccess()" style="display:none;">⚙️ Admin</button>
     <div class="auth-box">
@@ -1172,14 +1172,14 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div id="printArea"></div>
 
-  <script src="js/auswertung-teil-02.js?v=2.5.0"></script>
+  <script src="js/auswertung-teil-02.js?v=2.5.2"></script>
 
   <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
   <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
-  <script src="js/auswertung-teil-03.js?v=2.5.0"></script>
-  <script src="js/auswertung-teil-04.js?v=2.5.0"></script>
-  <script src="js/auswertung-teil-05.js?v=2.5.0"></script>
-  <script src="js/auswertung-teil-06.js?v=2.5.0"></script>
+  <script src="js/auswertung-teil-03.js?v=2.5.2"></script>
+  <script src="js/auswertung-teil-04.js?v=2.5.2"></script>
+  <script src="js/auswertung-teil-05.js?v=2.5.2"></script>
+  <script src="js/auswertung-teil-06.js?v=2.5.2"></script>
 
 <div id="centralBackupOverlay" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);padding:18px;overflow:auto;">
     <div style="max-width:760px;margin:45px auto;background:rgba(25,29,35,.98);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);">
@@ -1198,4 +1198,4 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
   </div>
 </body>
 </html>
-<!-- V2.5.0: Einheitliche Cup-Einstiege und roter Carbon-Hintergrund. -->
+<!-- V2.5.2: Einheitliche Cup-Einstiege und roter Carbon-Hintergrund. -->

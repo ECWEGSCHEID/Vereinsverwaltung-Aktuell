@@ -1,45 +1,45 @@
 {
-  "version": "2.5.0",
-  "release": "EC Wegscheid – konsolidierter Hauptprogrammstand V2.5.0 auf Basis der getesteten V2.0.28",
+  "version": "2.5.2",
+  "release": "EC Wegscheid V2.5.2 – StockApp-Testexport, Bildauswahl und Tablet-/Smartphone-Anpassung",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "57ee6b1fd4538909b5f3619a0632629451da18d0f18fef94bce14fd29848a70b"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "22655a85dec8c235d5674ea9e57a44a60586a930c8bce9189d282771961d160f"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "1f77a44d65ee15f5c733f9cee026a40b9cc96c250a42e15232cddb9cc39c6807"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "ce323b9f00ea5671e10c33f2144ba44b19b2f46ca31b072b53c37a80201b4d2d"
     },
     "turnierverwaltung": {
       "datei": "turnierverwaltung.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "90e019a0817e6ea157ecbd5613ab7113cf94536dd5b29960166685e1a22af9d6"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "b3453f27c6fad323b0ef3fa5a739500d7402810ff2bce71113267a395296d508"
     },
     "turnierauswertung": {
       "datei": "turnierauswertung.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "ebb61a462f513600b82d568076471cfed162689e03ed413964ec37f1ad8784c9"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "8a40af57ed0f632040431f8bc55da2977e57469e2a8b7c4dfdf423df0fbb8bd7"
     },
     "turnierwirtschaftlichkeit": {
       "datei": "turnierwirtschaftlichkeit.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "4e35cbf3b46473e513a4116f008c8675dbc02a8de77db421232ed2c1f1719f19"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "683becf7882e16f93a9f6c28ab2efdff4adeff764be67e69b657a1ac080564cc"
     },
     "solo-pyramide": {
       "datei": "solo-pyramide.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "1751482fd4c440d9cd9fd6d49f6b14c87b1ff4ecf6ad8dbac23ddf39c2573bc7"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "e6681a87d11d4efb479e7542b32af875a01d8a496d03a8ac5a5dc93d6ae70cb4"
     },
     "smartphone-zugang": {
       "datei": "mobile-zugang.html",
-      "status": "im Paket V2.5.0 enthalten",
-      "sha256": "64b225a7938685ee38f03a99370c093a4bb4a0a75340226bc61b501c9187a456"
+      "status": "Version 2.5.2 enthalten",
+      "sha256": "575f1913d93d5849aa73756d117dc7368e742b1ba7a01bc3a97c722e4d18b819"
     },
     "live-startlisten": {
       "datei": "live-startlisten.html",
-      "status": "im Paket V2.5.0 enthalten",
+      "status": "Version 2.5.2 enthalten",
       "sha256": "14f1f5ca7320f4372ba922a617a4583f647b5437ff4ca40306aa3ce0a6c9fd66"
     }
   },

@@ -11,7 +11,7 @@ let firebaseReady=false, firestoreDb=null, firebaseAuth=null, firebaseAuthUser=n
 let loginPurpose='admin';
 let appPermissions={};
 
-// V2.5.0: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
+// V2.5.2: Öffentlicher Whiteboard-Anzeigemodus ohne Firebase-Anmeldung.
 // Nur Lesen. Schreib-/Adminfunktionen bleiben weiterhin authentifiziert.
 const ECW_PUBLIC_WHITEBOARD=(function(){
   try{
@@ -49,7 +49,7 @@ try{
   firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
-  // V2.5.0: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
+  // V2.5.2: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
   window.__ecwPersistenceReady=firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(()=>true)
     .catch(e=>{console.warn('Firebase Persistenz:',e);return false;});
