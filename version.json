@@ -1,6 +1,6 @@
 {
-  "version": "2.5.2",
-  "release": "EC Wegscheid V2.5.2 – StockApp-Testexport, Bildauswahl und Tablet-/Smartphone-Anpassung",
+  "version": "2.5.2c",
+  "release": "EC Wegscheid V2.5.2c – StockApp-Datei speichern und Turnier-Speicherstatus (TEST)",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
@@ -14,8 +14,8 @@
     },
     "turnierverwaltung": {
       "datei": "turnierverwaltung.html",
-      "status": "Version 2.5.2 enthalten",
-      "sha256": "b3453f27c6fad323b0ef3fa5a739500d7402810ff2bce71113267a395296d508"
+      "status": "Version 2.5.2c – StockApp-Korrektur (TEST)",
+      "sha256": "6e294210cf5f941a5e6df9b0ab6131fe3aaaa6d1ad32a158f7ce1c16b9c2c3ca"
     },
     "turnierauswertung": {
       "datei": "turnierauswertung.html",

@@ -1572,9 +1572,9 @@ copy of the Program in return for a fee.
             <h2 id="tdName"></h2>
             <div class="meta" id="tdMeta"></div>
           </div>
-          <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp exportieren (.skmr)</button></div>
+          <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp-Datei speichern (.skmr)</button><span id="ecwStockExportStatus" role="status" aria-live="polite" class="meta" style="display:block;margin-top:8px"></span></div>
         </div>
-        <div id="tdEditForm" class="hidden">
+        <div id="ecwStockSaveStatus" role="status" aria-live="polite" class="meta" style="margin:10px 0"></div><div id="tdEditForm" class="hidden">
           <div class="form-grid"><div><label for="tdEditName">Turniername</label>
           <input type="text" id="tdEditName" /></div>
           <div><label for="tdEditDatum">Datum</label>
@@ -5249,7 +5249,15 @@ const ECW_STOCK_KEYS = ["venue", "organizer", "operator", "fee", "feeWords", "re
 function ecwStockRead(prefix){const v={};for(const key of ECW_STOCK_KEYS){const el=document.getElementById(prefix+'Stock_'+key);if(el)v[key]=el.type==='checkbox'?el.checked:el.value;}return v;}
 function ecwStockFill(prefix,v={}){for(const key of ECW_STOCK_KEYS){const el=document.getElementById(prefix+'Stock_'+key);if(el){if(el.type==='checkbox')el.checked=!!v[key];else el.value=v[key]??'';}}}
 function ecwStockText(parent,tag,value){const node=parent?.querySelector(tag);if(node)node.textContent=String(value??'');}
-function ecwStockDownloadXml(xml,name){const text=new XMLSerializer().serializeToString(xml);const a=document.createElement('a');const u=URL.createObjectURL(new Blob(['<?xml version="1.0" encoding="utf-8"?>\n'+text.replace(/^<\?xml[^>]*>\s*/, '')],{type:'application/xml;charset=utf-8'}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}
+async function ecwStockSaveXml(xml,name,handle){
+ const text=new XMLSerializer().serializeToString(xml);
+ const blob=new Blob(['<?xml version="1.0" encoding="utf-8"?>\n'+text.replace(/^<\?xml[^>]*>\s*/, '')],{type:'application/xml;charset=utf-8'});
+ if(handle){const writable=await handle.createWritable();await writable.write(blob);await writable.close();return 'Datei gespeichert: '+handle.name;}
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+ return 'Download gestartet: '+name+' – bitte im Download-Ordner prüfen.';
+}
+function ecwStockStatus(message,error=false){const el=document.getElementById('ecwStockExportStatus');if(el){el.textContent=message;el.style.color=error?'#ff9d9d':'';}notify(message,error);}
+
 // Experimentelle dynamische StockApp-Spielpläne (2–15 Teams).
 // Das XML-Schema wurde aus einer echten 9er-StockApp-Datei übernommen;
 // andere Spielplan-IDs müssen noch mit StockApp praktisch getestet werden.
@@ -5293,30 +5301,49 @@ function ecwStockBuildSchedule(xml, b, teams){
   }
   slots.splice(1,0,slots.pop());
  }
- ecwStockText(b,'Spielplan',String(n*100+Math.floor(n/2)*10));
+ // Keine unbekannten StockApp-Spielplan-IDs erfinden. Original-Kennung nur für die getestete 9er-Vorlage.
+ ecwStockText(b,'Spielplan','0');
  ecwStockText(b,'AnzahlAussetzer',n%2);
+ ecwStockText(b,'SpielRunden','1');
 }
 async function ecwExportStockApp(){
- const t=aktuellesTurnier;if(!t){alert('Bitte ein Turnier auswählen.');return;}
- const teams=meldungenCache.filter(m=>m.vereinName).map(m=>[m.vereinName,m.teamZusatz].filter(Boolean).join(' · '));
- if(teams.length<2||teams.length>15){alert('StockApp-Export ist für 2 bis 15 angemeldete Mannschaften vorgesehen. Aktuell: '+teams.length+'.');return;}
- const response=await fetch('assets/stockapp-vorlage-9-teams.skmr?v=2.5.2',{cache:'no-store'});if(!response.ok)throw Error('StockApp-Vorlage nicht gefunden.');
- const xml=new DOMParser().parseFromString(await response.text(),'application/xml');if(xml.querySelector('parsererror'))throw Error('StockApp-Vorlage ist ungültig.');
+ const t=aktuellesTurnier;
+ if(!t){ecwStockStatus('Bitte zuerst ein Turnier auswählen.',true);return;}
+ if(!meldungenGeladen){ecwStockStatus('Mannschaften sind noch nicht geladen. Bitte warten und erneut versuchen.',true);return;}
+ const teams=meldungenCache.map(m=>[String(m.vereinName||'').trim(),String(m.teamZusatz||'').trim()].filter(Boolean).join(' · ')).filter(Boolean);
+ if(teams.length!==meldungenCache.length){ecwStockStatus('Ein oder mehrere Mannschaftsnamen fehlen. Bitte zuerst die Meldungen kontrollieren.',true);return;}
+ if(teams.length<2||teams.length>15){ecwStockStatus('StockApp-Export benötigt 2 bis 15 angemeldete Mannschaften. Aktuell: '+teams.length+'.',true);return;}
+ const safe=(t.name||'Turnier').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g,'_').slice(0,65);
+ const filename='ECW_StockApp_'+safe+'_'+teams.length+'_Teams.skmr';
+ let handle=null;
+ if(typeof window.showSaveFilePicker==='function'){
+  try{handle=await window.showSaveFilePicker({suggestedName:filename,types:[{description:'StockApp Turnierdatei',accept:{'application/xml':['.skmr']}}]});}
+  catch(e){if(e.name==='AbortError'){ecwStockStatus('Speichern abgebrochen. Es wurde keine Datei geschrieben.');return;}if(e.name==='SecurityError'||e.name==='NotAllowedError'||e.name==='TypeError'){handle=null;}else throw e;}
+ }
+ ecwStockStatus('StockApp-Datei wird mit '+teams.length+' Mannschaften vorbereitet …');
+ const response=await fetch('assets/stockapp-vorlage-9-teams.skmr?v=2.5.2c',{cache:'no-store'});
+ if(!response.ok)throw Error('StockApp-Vorlage fehlt. Bitte alle Dateien aus der ZIP auf GitHub hochladen.');
+ const xml=new DOMParser().parseFromString(await response.text(),'application/xml');
+ if(xml.querySelector('parsererror'))throw Error('StockApp-Vorlage ist ungültig.');
  const org=xml.querySelector('Organisation'),b=xml.querySelector('Teambewerb'),x=t.stockApp||{};
- for(const [tag,val] of Object.entries({Venue:x.venue||t.ort||'',Organizer:x.organizer||'EC Wegscheid',Operator:x.operator||'EC Wegscheid',TournamentName:t.name||'',DateOfTournament:t.datum?t.datum+'T00:00:00':'',}))ecwStockText(org,tag,val);
+ if(!org||!b)throw Error('StockApp-Vorlage enthält nicht die erwarteten Turnierdaten.');
+ for(const [tag,val] of Object.entries({Venue:x.venue||t.ort||'',Organizer:x.organizer||'EC Wegscheid',Operator:x.operator||'EC Wegscheid',TournamentName:t.name||'',DateOfTournament:t.datum?t.datum+'T00:00:00':''}))ecwStockText(org,tag,val);
  ecwStockText(org,'Starttgebuehr > Value',x.fee||'');ecwStockText(org,'Starttgebuehr > Verbal',x.feeWords||'');
  for(const [tag,n,c] of [['Schiedsrichter',x.refName,x.refClub],['Wettbewerbsleiter',x.leaderName,x.leaderClub],['Rechenbuero',x.scoreName,x.scoreClub]]){ecwStockText(org,tag+' > Name',n);ecwStockText(org,tag+' > ClubName',c);}
  for(const [tag,val] of Object.entries({Endtext:x.endText,RowSpace:x.rowSpace,FontSize:x.fontSize,FontSizeVorText:x.fontBefore,FontSizeEndText:x.fontAfter,Aufsteiger:x.up,Absteiger:x.down}))if(val!==undefined&&val!=='')ecwStockText(b,tag,val);
  ecwStockBuildSchedule(xml,b,teams);
  if(teams.length===9){const nodes=[...b.querySelectorAll('Mannschaften > Mannschaft')];nodes.forEach((node,i)=>{ecwStockText(node,'StartNumber',i+1);ecwStockText(node,'TeamName',teams[i]);});}
- const safe=(t.name||'Turnier').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g,'_').slice(0,65);
- ecwStockDownloadXml(xml,'ECW_StockApp_'+safe+'_'+teams.length+'_Teams.skmr');
- const notes=[];
- if(teams.length!==9)notes.push('Der '+teams.length+'er-Spielplan wurde automatisch erzeugt und ist noch nicht mit StockApp praktisch getestet. Bitte zuerst in StockApp öffnen und die Paarungen kontrollieren.');
- if(x.header||x.stockTV)notes.push('Briefkopf bitte in StockApp als lokale Bilddatei auswählen; StockTV dort aktivieren.');
- if(notes.length)alert('StockApp-Datei erstellt.\n\n'+notes.join('\n'));
+ const written=[...b.querySelectorAll('Mannschaften > Mannschaft')].map(n=>n.querySelector('TeamName')?.textContent||'');
+ if(written.length!==teams.length||written.some((name,i)=>name!==teams[i]))throw Error('Kontrolle fehlgeschlagen: Mannschaftsnamen konnten nicht vollständig übernommen werden.');
+ const games=b.querySelectorAll('Spiele > Spiel').length;
+ // Bei ungerader Mannschaftszahl enthält die Vorlage zusätzlich ein Freilos pro Runde.
+ const expectedGames=teams.length%2?(teams.length+1)*teams.length/2:teams.length*(teams.length-1)/2;
+ if(games!==expectedGames)throw Error('Spielplanprüfung fehlgeschlagen ('+games+' statt '+expectedGames+' Spiele).');
+ const result=await ecwStockSaveXml(xml,filename,handle);
+ const hint=teams.length===9?'9er-Vorlage mit Mannschaftsnamen gefüllt.':'Spielplan für '+teams.length+' Teams ist weiterhin ein UNGETESTETER StockApp-Import. Bitte in StockApp prüfen.';
+ ecwStockStatus(result+' | '+teams.length+' Mannschaften, '+games+' Spielplaneinträge. '+hint+(x.header?' Briefkopf in StockApp lokal auswählen.':''));
 }
-document.getElementById('ecwStockExportBtn')?.addEventListener('click',()=>ecwExportStockApp().catch(e=>alert('StockApp-Export: '+e.message)));
+document.getElementById('ecwStockExportBtn')?.addEventListener('click',()=>ecwExportStockApp().catch(e=>ecwStockStatus('StockApp-Export fehlgeschlagen: '+e.message,true)));
 
 // ---------- Turniere ----------
 document.getElementById("tAddBtn").addEventListener("click", () => saveAction(document.getElementById("tAddBtn"), async () => {
@@ -5439,6 +5466,7 @@ document.getElementById("tdEditBtn").addEventListener("click", () => {
   document.getElementById("tdEditMeldeUhrzeit").value = aktuellesTurnier.meldeUhrzeit || "";
   document.getElementById("tdEditMax").value = aktuellesTurnier.maxMannschaften ? String(aktuellesTurnier.maxMannschaften) : "";
   ecwStockFill("tdEdit",aktuellesTurnier.stockApp||{});
+  document.getElementById('ecwStockSaveStatus').textContent='Änderungen erst nach Klick auf „Speichern“ dauerhaft übernommen.';
   document.getElementById("tdEditForm").classList.remove("hidden");
 });
 document.getElementById("tdEditCancelBtn").addEventListener("click", () => {
@@ -5456,7 +5484,8 @@ document.getElementById("tdEditSaveBtn").addEventListener("click", () => saveAct
   const maxMannschaften = maxMannschaftenRaw ? parseInt(maxMannschaftenRaw, 10) : null;
   if (!name) { alert("Bitte einen Turniernamen eingeben."); return; }
   const updated = { name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften, stockApp:ecwStockRead("tdEdit") };
-  await updateDoc(doc(db, "turniere", aktuellesTurnier.id), updated);
+  const updatePayload=embeddedInMain?window.parent.JSON.parse(window.parent.JSON.stringify(updated)):updated;
+  await updateDoc(doc(db, "turniere", aktuellesTurnier.id), updatePayload);
   aktuellesTurnier = { ...aktuellesTurnier, ...updated };
   document.getElementById("tdName").textContent = name;
   document.getElementById("tdMeta").textContent =
@@ -5468,7 +5497,8 @@ document.getElementById("tdEditSaveBtn").addEventListener("click", () => saveAct
     (maxMannschaften ? " · max. " + maxMannschaften + " Mannschaften" : "");
   document.getElementById("tdEditForm").classList.add("hidden");
   updateKapazitaetsAnzeige();
-  notify("Turnier gespeichert.");
+  document.getElementById('ecwStockSaveStatus').textContent='✓ Turnierdaten und StockApp-Zusatzfelder erfolgreich in Firebase gespeichert.';
+  notify('✓ Turnierdaten und StockApp-Zusatzfelder gespeichert.');
 }));
 
 // ---------- Meldungen / Startliste ----------

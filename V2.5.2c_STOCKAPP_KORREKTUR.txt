@@ -1,0 +1,13 @@
+EC Wegscheid V2.5.2c – Korrekturpaket, noch nicht mit StockApp oder Firebase live getestet
+
+1. Turnier bearbeiten: Firestore-Nutzdaten im Hauptfenster-Realm konvertiert (wie beim bereits bestehenden Turnier-anlegen-Code). Dadurch soll die Firebase-Compat-SDK-Prüfung beim eingebetteten Bearbeiten nicht mehr scheitern.
+2. Nach erfolgreichem Firestore-updateDoc wird eine sichtbare, dauerhafte Speichermeldung im Turnierdetail eingeblendet. Bei Fehler wird keine Erfolgsmeldung angezeigt.
+3. StockApp: Nur nach geladenen Meldungen exportieren, alle Mannschaften und Teamzusätze übernehmen und vor dem Speichern überprüfen, ob die Anzahl und Namen im XML stehen.
+4. Chrome/Edge: Speichern-unter-Dateidialog (wenn showSaveFilePicker im Browserkontext verfügbar). Safari/iPad/andere Browser: Download-Fallback mit deutlichem Hinweis. Im Browser kann der Dateidialog aus Sicherheitsgründen nicht erzwungen werden.
+5. Sichtbarer Status bei Export/Fehler, XML-Spieleanzahl wird geprüft.
+6. 2–15 Teams bleiben EXPERIMENTELL, nur die echte 9er-Vorlage wurde früher in StockApp geöffnet. Die interne Spielplan-ID anderer Größen ist nicht verifiziert. Keine Garantie für Import in StockApp.
+
+TEST: Turnier auswählen > Bearbeiten > StockApp-Feld ändern > Speichern. Danach Turnier neu öffnen, Wert kontrollieren. Mindestens 2 angemeldete Mannschaften > StockApp-Datei speichern > Datei im StockApp-PC öffnen und Paarungen prüfen.
+Bei Firebase-Berechtigungsfehler bitte den vollständigen Wortlaut senden.
+
+Nur Dateien dieses GitHub-Upload-ZIP ins GitHub-Repository laden, nicht das gesamte private Gesamtpaket.
