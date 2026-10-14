@@ -1,0 +1,13 @@
+EC WEGSCHEID V2.5.3 – DOKUMENTE / DRUCKEN (TEST)
+
+1. Vor dem Upload die vorhandenen Firebase-Regeln sichern.
+2. Die beigefügten FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules mit den tatsächlich aktiven Regeln vergleichen und die Freigabe für appSettings/druckdokumente sowie druckpdf_* ergänzen. Nicht blind alte Regeln ersetzen!
+3. GitHub-Dateien aus diesem Paket ins Repository hochladen.
+4. Verwaltung -> Dokumente & Drucken verwalten: Kategorien ändern, PDFs bis 8 MB hinzufügen/entfernen. Speicherung erfolgt zentral in Firebase.
+5. Verwaltung -> Startseite bearbeiten -> Startseite speichern: Startseiten-Button und Unterbuttons zentral übernehmen.
+6. Whiteboard: Dokumente drucken -> Unterbutton -> PDF öffnen bzw. Zum Drucken öffnen. Im Browser/PDF-Viewer Drucken wählen und 1 Exemplar einstellen.
+
+ACHTUNG: Browserdruck erlaubt weiterhin eine Änderung der Kopienzahl und des Druckers. Keine Missbrauchssperre.
+Die PDF-Daten werden in Firestore in mehreren Dokumenten gespeichert, nicht in Firebase Storage. Das kann Firestore-Kosten verursachen. Nur freigegebene, nicht vertrauliche PDF-Dateien verwenden, da sie im Whiteboardmodus lesbar sind.
+Der Browser kann Drucker, Kopienzahl, Duplex und Papierformat nicht erzwingen. Druckerbezeichnung im Adminbereich ist nur ein Hinweis.
+Keine tatsächliche Whiteboard-/iPad-/Firebase-Liveprüfung erfolgt.

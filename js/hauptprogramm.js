@@ -1,5 +1,5 @@
 
-const APP_VERSION='2.5.2';
+const APP_VERSION='2.5.3';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1283,6 +1283,15 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  if(Array.isArray(j.buttons))d.buttons=j.buttons.filter(b=>b&&typeof b.t==='string').map(b=>{const o={t:b.t,u:typeof b.u==='string'?b.u:''};
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>({t:x.t,u:typeof x.u==='string'?x.u:''}));if(sb.length)o.sub=sb}
   return o});
+ if(j.docMenuInitialized===true)d.docMenuInitialized=true;
+ if(!d.docMenuInitialized){
+   if(!d.buttons.some(b=>String(b.u||'').includes('#druckdokumente')||b.sub?.some(x=>String(x.u||'').includes('#druckdokumente'))))
+     d.buttons.push({t:'Dokumente\nDrucken',u:'',sub:[
+       {t:'Vereinsdokumente',u:'#druckdokumente-verein'},
+       {t:'Turnierunterlagen',u:'#druckdokumente-turnier'},
+       {t:'Formulare',u:'#druckdokumente-formulare'}]});
+   d.docMenuInitialized=true;
+ }
  return shEnsureSoloPyramide(d)}
 let SH=(function(){try{return shSane(JSON.parse(localStorage.getItem(SH_KEY)))}catch(e){return shSane({})}})();
 
@@ -5136,12 +5145,13 @@ function renderTurnierWirtschaftlichkeitAdmin(){
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
- const permKey=(s==='zr'?'t':s);
+ const permKey=(s==='zr'?'t':s==='docs'?'sh':s);
  const adminOnly=['u','backup','wb','solo','ic','sysconfig'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
  try{unloadMvAdmin()}catch(e){}
  try{document.getElementById('adminMain').classList.remove('mv-mode')}catch(e){}
+ if(s==='docs'){ecwDocsAdmin();return}
  if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}
  if(s==='u'){openUserRightsAdmin();return}
@@ -5957,6 +5967,7 @@ window.__directRouteV1248=function(){
     else if(seite==='fotos-sponsoren' || hash==='#fotos-sponsoren') showView('sponsorPhotos');
     else if(seite==='mannschaften' || hash==='#mannschaften') openTeams();
     else if(hash.startsWith('#mannschaft-')) openTeamDirect(hash.slice(12));
+    else if(seite==='druckdokumente'||hash.startsWith('#druckdokumente')) ecwDocsOpen(hash.startsWith('#druckdokumente-')?decodeURIComponent(hash.slice(16)):null);
     else if(seite==='startseite' || hash==='#startseite') showView('startseite');
      else if(seite==='links' || hash==='#links') showView('links');
     else if(seite==='mitglieder' || hash==='#mitglieder') openMemberManagement();

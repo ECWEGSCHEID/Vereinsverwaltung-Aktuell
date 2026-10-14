@@ -1525,7 +1525,8 @@ copy of the Program in return for a fee.
 <div><label for="tStock_fontAfter">Schriftgröße Endbemerkung</label><input id="tStock_fontAfter" type="number" min="0" step="1"></div>
 <div><label for="tStock_up">Aufsteiger</label><input id="tStock_up" type="number" min="0" step="1"></div>
 <div><label for="tStock_down">Absteiger</label><input id="tStock_down" type="number" min="0" step="1"></div>
-<div><label for="tStock_header">Briefkopf für StockApp</label><select id="tStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (Pfad in StockApp später wählen)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (Pfad in StockApp später wählen)</option></select></div>
+<div><label for="tStock_header">Briefkopf für StockApp</label><select id="tStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (gespeicherten Windows-Pfad verwenden)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (automatisch übernehmen)</option></select></div>
+<div><label for="tStock_headerPath">Bildpfad auf dem StockApp-Windows-PC (optional; beim Hallenbild einmal eintragen)</label><input id="tStock_headerPath" type="text" placeholder="C:\Bilder\Hallenbild.png"></div>
 <div><label><input type="checkbox" id="tStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
 </div></details><button class="primary" id="tAddBtn">Turnier anlegen</button>
       </div>
@@ -1608,7 +1609,8 @@ copy of the Program in return for a fee.
 <div><label for="tdEditStock_fontAfter">Schriftgröße Endbemerkung</label><input id="tdEditStock_fontAfter" type="number" min="0" step="1"></div>
 <div><label for="tdEditStock_up">Aufsteiger</label><input id="tdEditStock_up" type="number" min="0" step="1"></div>
 <div><label for="tdEditStock_down">Absteiger</label><input id="tdEditStock_down" type="number" min="0" step="1"></div>
-<div><label for="tdEditStock_header">Briefkopf für StockApp</label><select id="tdEditStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (Pfad in StockApp später wählen)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (Pfad in StockApp später wählen)</option></select></div>
+<div><label for="tdEditStock_header">Briefkopf für StockApp</label><select id="tdEditStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (gespeicherten Windows-Pfad verwenden)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (automatisch übernehmen)</option></select></div>
+<div><label for="tdEditStock_headerPath">Bildpfad auf dem StockApp-Windows-PC (optional; beim Hallenbild einmal eintragen)</label><input id="tdEditStock_headerPath" type="text" placeholder="C:\Bilder\Hallenbild.png"></div>
 <div><label><input type="checkbox" id="tdEditStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
 </div></details><button class="primary" id="tdEditSaveBtn">Speichern</button>
           <button class="secondary" id="tdEditCancelBtn" style="margin-top:8px;width:100%;">Abbrechen</button>
@@ -5245,7 +5247,7 @@ function startLiveStartlistenViewer(){
 function showLiveStartliste(){startLiveStartlistenViewer();showView('viewLiveStartliste','navLiveStartliste');}
 
 // V2.5.2 StockApp – separate Zusatzfelder, keine Änderung an bisherigen Turnierdaten.
-const ECW_STOCK_KEYS = ["venue", "organizer", "operator", "fee", "feeWords", "refName", "refClub", "leaderName", "leaderClub", "scoreName", "scoreClub", "endText", "rowSpace", "fontSize", "fontBefore", "fontAfter", "up", "down", "header", "stockTV"];
+const ECW_STOCK_KEYS = ["venue", "organizer", "operator", "fee", "feeWords", "refName", "refClub", "leaderName", "leaderClub", "scoreName", "scoreClub", "endText", "rowSpace", "fontSize", "fontBefore", "fontAfter", "up", "down", "header", "headerPath", "stockTV"];
 function ecwStockRead(prefix){const v={};for(const key of ECW_STOCK_KEYS){const el=document.getElementById(prefix+'Stock_'+key);if(el)v[key]=el.type==='checkbox'?el.checked:el.value;}return v;}
 function ecwStockFill(prefix,v={}){for(const key of ECW_STOCK_KEYS){const el=document.getElementById(prefix+'Stock_'+key);if(el){if(el.type==='checkbox')el.checked=!!v[key];else el.value=v[key]??'';}}}
 function ecwStockText(parent,tag,value){const node=parent?.querySelector(tag);if(node)node.textContent=String(value??'');}
@@ -5331,6 +5333,17 @@ async function ecwExportStockApp(){
  ecwStockText(org,'Starttgebuehr > Value',x.fee||'');ecwStockText(org,'Starttgebuehr > Verbal',x.feeWords||'');
  for(const [tag,n,c] of [['Schiedsrichter',x.refName,x.refClub],['Wettbewerbsleiter',x.leaderName,x.leaderClub],['Rechenbuero',x.scoreName,x.scoreClub]]){ecwStockText(org,tag+' > Name',n);ecwStockText(org,tag+' > ClubName',c);}
  for(const [tag,val] of Object.entries({Endtext:x.endText,RowSpace:x.rowSpace,FontSize:x.fontSize,FontSizeVorText:x.fontBefore,FontSizeEndText:x.fontAfter,Aufsteiger:x.up,Absteiger:x.down}))if(val!==undefined&&val!=='')ecwStockText(b,tag,val);
+ // StockApp liest den Briefkopf aus ImageHeader als lokalen Windows-Dateipfad.
+ // Der folgende Pfad stammt aus einer vom Benutzer mit StockApp gespeicherten Beispieldatei.
+ // Ein Browser kann eine lokale Windows-Datei nicht in die .skmr einbetten.
+ const ecwKnownAsphaltPath='C:\\Users\\Martin\\OneDrive\\EC Wegscheid\\Briefkopf Asphalt.png';
+ let headerPath='';
+ if(x.header==='briefkopf')headerPath=(x.headerPath||'').trim()||ecwKnownAsphaltPath;
+ else if(x.header==='halle'){
+  headerPath=(x.headerPath||'').trim();
+  if(!headerPath)throw Error('Für das Hallenbild fehlt noch der Windows-Dateipfad. Bitte im Turnier unter StockApp einmal eintragen und speichern.');
+ }
+ ecwStockSetChild(xml,b,'ImageHeader',headerPath);
  ecwStockBuildSchedule(xml,b,teams);
  if(teams.length===9){const nodes=[...b.querySelectorAll('Mannschaften > Mannschaft')];nodes.forEach((node,i)=>{ecwStockText(node,'StartNumber',i+1);ecwStockText(node,'TeamName',teams[i]);});}
  const written=[...b.querySelectorAll('Mannschaften > Mannschaft')].map(n=>n.querySelector('TeamName')?.textContent||'');
@@ -5341,7 +5354,7 @@ async function ecwExportStockApp(){
  if(games!==expectedGames)throw Error('Spielplanprüfung fehlgeschlagen ('+games+' statt '+expectedGames+' Spiele).');
  const result=await ecwStockSaveXml(xml,filename,handle);
  const hint=teams.length===9?'9er-Vorlage mit Mannschaftsnamen gefüllt.':'Spielplan für '+teams.length+' Teams ist weiterhin ein UNGETESTETER StockApp-Import. Bitte in StockApp prüfen.';
- ecwStockStatus(result+' | '+teams.length+' Mannschaften, '+games+' Spielplaneinträge. '+hint+(x.header?' Briefkopf in StockApp lokal auswählen.':''));
+ ecwStockStatus(result+' | '+teams.length+' Mannschaften, '+games+' Spielplaneinträge. '+hint+(x.header?' Briefkopf-Pfad in .skmr übernommen: '+headerPath:''));
 }
 document.getElementById('ecwStockExportBtn')?.addEventListener('click',()=>ecwExportStockApp().catch(e=>ecwStockStatus('StockApp-Export fehlgeschlagen: '+e.message,true)));
 

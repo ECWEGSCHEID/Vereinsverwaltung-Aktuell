@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.5.2</title>
+<title>Vereins-Informationssystem – V2.5.3</title>
 <script src="js/ladefehler.js?v=2.5.2"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=2.5.2">
+<link rel="stylesheet" href="css/hauptprogramm.css?v=2.5.3">
+<link rel="stylesheet" href="css/dokumente-drucken.css?v=2.5.3">
 </head>
 <body data-ecw-build="V2.5.2-STABIL-20261013">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
-<div id="appVersion" class="app-version">Version 2.5.2</div>
+<div id="appVersion" class="app-version">Version 2.5.3</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -73,6 +74,13 @@
   <button id="shGear" title="Zurück zur Verwaltung" aria-label="Zurück zur Verwaltung" onclick="returnToPowerPoint()" style="display:none">↩</button>
 </section>
 
+
+<section id="druckdokumente" class="view ecw-doc-view">
+  <div class="header"><div><div class="title">Dokumente öffnen &amp; drucken</div><div class="subtitle">EC Wegscheid · PDF-Dokumente</div></div></div>
+  <div id="ecwDocPublic" class="ecw-doc-content" aria-live="polite">Dokumente werden geladen …</div>
+  <div class="bottom tournament-bottom"><button type="button" onclick="ecwDocsBack()">Zurück zur Startseite</button></div>
+</section>
+
 <section id="tournamentMonths" class="view">
   <div class="header"><div><div class="title" id="tMonthsTitle">Turniereinladungen</div><div class="subtitle" id="tMonthsSubtitle">Monatsübersicht</div></div></div>
   <div id="tMonthOverview" class="month-overview"></div>
@@ -80,7 +88,7 @@
 </section>
 
 <section id="tournaments" class="view">
-  <div class="header tournament-header"><div class="tournament-version">Version 2.5.2</div><div class="tournament-title" id="tTitle">Turniereinladungen</div><div id="tMonth" class="tournament-month"></div></div>
+  <div class="header tournament-header"><div class="tournament-version">Version 2.5.3</div><div class="tournament-title" id="tTitle">Turniereinladungen</div><div id="tMonth" class="tournament-month"></div></div>
   <div id="tContent" class="tournament-pages"></div>
   <div id="tFooter" class="tournament-footer" style="display:none">Über eine Meldung würden wir uns freuen!</div>
   <div class="bottom tournament-bottom">
@@ -118,7 +126,7 @@
 </section>
 
 <section id="tournamentPlanner" class="view">
-  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.5.2</div></div>
+  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Turnierplaner</div><div class="tp-header-version">Version 2.5.3</div></div>
   <div id="tpStats" class="tp-stats"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
   <div class="tp-toolbar"><label style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select><label style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select><button type="button" onclick="tpScrollToCurrentEntry()">Aktueller Termin</button><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div>
@@ -170,6 +178,7 @@
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="mv" onclick="adminSection('mv')">Mitgliederverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="mv" title="Vorschau öffnen" onclick="adminPreviewOpen('mv')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="m" onclick="adminSection('m')">Mannschaften</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('m')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite bearbeiten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
+      <button style="width:100%;margin-bottom:8px" data-app-perm="sh" onclick="adminSection('docs')">📄 Dokumente &amp; Drucken verwalten</button>
       <button style="width:100%;margin-bottom:8px" data-app-perm="lk" onclick="adminSection('lk')">Links für die Startseite</button>
       <button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('sysconfig')">⚙ Systemeinstellungen</button>
       <button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('wb')">Whiteboard-Freigaben</button>
@@ -188,7 +197,8 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
 <script src="js/firebase-init.js?v=2.5.2"></script>
-<script src="js/hauptprogramm.js?v=2.5.2"></script>
+<script src="js/hauptprogramm.js?v=2.5.3"></script>
+<script src="js/dokumente-drucken.js?v=2.5.3"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
 <div id="cropModal" class="crop-modal" hidden>

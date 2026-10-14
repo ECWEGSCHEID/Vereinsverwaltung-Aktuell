@@ -1,0 +1,13 @@
+#druckdokumente{overflow:auto!important;overscroll-behavior:contain;min-height:100dvh}
+#druckdokumente .ecw-doc-content{overflow:auto;flex:1;min-height:0;padding:20px 22px 100px;color:#fff}
+.ecw-doc-card{max-width:1050px;margin:0 auto;background:rgba(24,0,0,.78);border:1px solid rgba(255,255,255,.25);border-radius:15px;padding:24px}
+.ecw-doc-card h2{font-size:1.5rem;margin:12px 0 18px}
+.ecw-doc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.ecw-doc-tiles button{padding:30px 16px;min-height:100px;font-size:1.2rem}
+.ecw-doc-list{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.ecw-doc-file,.ecw-doc-adminrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.22);border-radius:9px;flex-wrap:wrap}
+.ecw-doc-file span{font-weight:700}
+.ecw-doc-file button{margin:3px}
+.ecw-doc-adminrow input{flex:1;min-width:160px}
+.ecw-doc-adminrow span{flex:1}
+@media(max-width:650px){#druckdokumente .ecw-doc-content{padding:12px 12px 110px}.ecw-doc-card{padding:16px}.ecw-doc-file{align-items:stretch}.ecw-doc-file div{display:flex;flex-wrap:wrap}}

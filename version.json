@@ -1,11 +1,11 @@
 {
-  "version": "2.5.2c",
-  "release": "EC Wegscheid V2.5.2c – StockApp-Datei speichern und Turnier-Speicherstatus (TEST)",
+  "version": "2.5.3",
+  "release": "EC Wegscheid V2.5.3 – Dokumentenverwaltung PDF / Whiteboard (TEST)",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
       "status": "Version 2.5.2 enthalten",
-      "sha256": "22655a85dec8c235d5674ea9e57a44a60586a930c8bce9189d282771961d160f"
+      "sha256": "fd4ceb1c60e54ff473f69b4ce979cf059412794f5c45e27f6b421074702102c6"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
@@ -15,7 +15,7 @@
     "turnierverwaltung": {
       "datei": "turnierverwaltung.html",
       "status": "Version 2.5.2c – StockApp-Korrektur (TEST)",
-      "sha256": "6e294210cf5f941a5e6df9b0ab6131fe3aaaa6d1ad32a158f7ce1c16b9c2c3ca"
+      "sha256": "9a69f84faf535f84c3dfbae8148f79c5b6399eaa9df7823f89ecd029a10dfe38"
     },
     "turnierauswertung": {
       "datei": "turnierauswertung.html",
@@ -49,5 +49,6 @@
     "Interne Links und Cache-Abfragen auf V2.5.0 umgestellt",
     "Zentrale SHA256-Prüfsummen der HTML-Module aktualisiert",
     "Firebase-Regeln und private Datensicherungen bewusst NICHT in GitHub-Upload-Ordner enthalten"
-  ]
+  ],
+  "hinweis": "Dokumente in Firestore appSettings/druckdokumente und druckpdf_*; Regeln FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules vor Nutzung veröffentlichen."
 }

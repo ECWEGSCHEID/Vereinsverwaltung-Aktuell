@@ -1,0 +1,5 @@
+V2.5.2d TEST: StockApp ImageHeader wird in .skmr gesetzt.
+EC-Wegscheid Asphalt: Pfad aus testturnier.skmr auf dem Windows-PC.
+Hallenbild: lokalen Windows-Pfad einmal in Turnierdaten eintragen und speichern.
+StockApp braucht Zugriff auf die Bilddatei unter genau diesem Pfad.
+Die anderen Änderungen der V2.5.2c bleiben bestehen.

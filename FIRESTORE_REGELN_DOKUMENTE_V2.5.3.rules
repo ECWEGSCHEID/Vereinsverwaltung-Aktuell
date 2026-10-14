@@ -1,0 +1,477 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // EC Wegscheid Vereinsverwaltung V3.0.76
+    // inkl. öffentlichem Whiteboard + Solo Pyramide
+    // ============================================================
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function profileExists() {
+      return signedIn() && exists(profilePath());
+    }
+
+    function profile() {
+      return get(profilePath()).data;
+    }
+
+    function isAdmin() {
+      return profileExists()
+        && profile().get('admin', false) == true;
+    }
+
+    function isWhiteboard() {
+      return profileExists()
+        && !isAdmin()
+        && (
+          profile().get('whiteboard', false) == true
+          || (
+            !profile().keys().hasAny(['whiteboard'])
+            && profile().get('shView', false) == true
+            && profile().get('tp', false) == true
+            && profile().get('tv', false) == false
+            && profile().get('t', false) == false
+            && profile().get('o', false) == false
+            && profile().get('n', false) == false
+            && profile().get('p', false) == false
+            && profile().get('sp', false) == false
+            && profile().get('mv', false) == false
+            && profile().get('m', false) == false
+            && profile().get('lk', false) == false
+            && profile().get('sh', false) == false
+          )
+        );
+    }
+
+    function canEdit(permission) {
+      return profileExists()
+        && (
+          isAdmin()
+          || (
+            profile().get(permission, false) == true
+            && (!isWhiteboard() || permission == 'tp')
+          )
+        );
+    }
+
+    function canRead(permission) {
+      return profileExists()
+        && (
+          isAdmin()
+          || canEdit(permission)
+          || profile().get(permission + 'View', false) == true
+          || (
+            isWhiteboard()
+            && permission in ['tp','t','o','n','p','sp','m','lk','sh']
+          )
+        );
+    }
+
+    function safeNewProfile(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+
+        && request.resource.data.keys().hasAll([
+          'uid', 'email', 'name', 'createdAt', 'updatedAt',
+          'admin', 'whiteboard',
+          'tp', 'tv', 't', 'o', 'n', 'p', 'sp', 'mv', 'm', 'lk', 'sh',
+          'shView', 'tpView', 'tView', 'oView', 'nView', 'pView',
+          'spView', 'mView', 'lkView', 'mvView'
+        ])
+
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'name', 'createdAt', 'updatedAt',
+          'admin', 'whiteboard',
+          'tp', 'tv', 'tw', 't', 'o', 'n', 'p', 'sp', 'mv', 'm', 'lk', 'sh',
+          'shView', 'tpView', 'tView', 'oView', 'nView', 'pView',
+          'spView', 'mView', 'lkView', 'mvView'
+        ])
+
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string
+
+        && request.resource.data.admin == false
+        && request.resource.data.whiteboard == false
+
+        && request.resource.data.tp == false
+        && request.resource.data.tv == false
+        && request.resource.data.get('tw', false) == false
+        && request.resource.data.t == false
+        && request.resource.data.o == false
+        && request.resource.data.n == false
+        && request.resource.data.p == false
+        && request.resource.data.sp == false
+        && request.resource.data.mv == false
+        && request.resource.data.m == false
+        && request.resource.data.lk == false
+        && request.resource.data.sh == false
+
+        && request.resource.data.shView == false
+        && request.resource.data.tpView == false
+        && request.resource.data.tView == false
+        && request.resource.data.oView == false
+        && request.resource.data.nView == false
+        && request.resource.data.pView == false
+        && request.resource.data.spView == false
+        && request.resource.data.mView == false
+        && request.resource.data.lkView == false
+        && request.resource.data.mvView == false;
+    }
+
+    // ============================================================
+    // Benutzer und Rechte
+    // ============================================================
+
+    match /users/{uid} {
+      allow get: if signedIn()
+        && (request.auth.uid == uid || isAdmin());
+
+      allow list: if isAdmin();
+
+      allow create: if isAdmin() || safeNewProfile(uid);
+
+      allow update: if isAdmin()
+        && (
+          uid != request.auth.uid
+          || request.resource.data.admin == true
+        );
+
+      allow delete: if isAdmin()
+        && uid != request.auth.uid;
+    }
+
+    // ============================================================
+    // Turnierplaner
+    // Öffentliche Anzeige am Informationssystem ist erlaubt.
+    // Bearbeitung bleibt geschützt.
+    // ============================================================
+
+    match /tournamentPlanner/{id} {
+      allow read: if true;
+
+      // Neue Termine anlegen und Termine löschen bleiben geschützt.
+      allow create, delete: if canEdit('tp')
+        && !isWhiteboard();
+
+      // Administrator / berechtigter Benutzer:
+      // normaler Zugriff wie bisher.
+      //
+      // Öffentliches Whiteboard:
+      // darf an BESTEHENDEN Terminen ausschließlich die vier Spieler,
+      // "Gemeldet von" und updatedAt ändern. Alle anderen Felder
+      // (Termin, Titel, Ort, Art usw.) bleiben gesperrt.
+      allow update: if (
+          canEdit('tp')
+          && (
+            !isWhiteboard()
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['players', 'reportedBy', 'updatedAt'])
+
+              && request.resource.data.players is list
+              && request.resource.data.players.size() == 4
+              && request.resource.data.players[0] is string
+              && request.resource.data.players[1] is string
+              && request.resource.data.players[2] is string
+              && request.resource.data.players[3] is string
+              && request.resource.data.reportedBy is string
+              && request.resource.data.updatedAt is string
+            )
+          )
+        )
+        || (
+          request.auth == null
+
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['players', 'reportedBy', 'updatedAt'])
+
+          && request.resource.data.players is list
+          && request.resource.data.players.size() == 4
+          && request.resource.data.players[0] is string
+          && request.resource.data.players[1] is string
+          && request.resource.data.players[2] is string
+          && request.resource.data.players[3] is string
+          && request.resource.data.reportedBy is string
+          && request.resource.data.updatedAt is string
+        );
+    }
+
+    // ============================================================
+    // Turniereinladungen
+    // ============================================================
+
+    match /tournamentInvitations/{id} {
+      allow read: if true;
+      allow write: if canEdit('t');
+    }
+
+    // ============================================================
+    // Eigene Turniere
+    // ============================================================
+
+    match /ownTournamentInvitations/{id} {
+      allow read: if true;
+      allow write: if canEdit('o');
+    }
+
+    // ============================================================
+    // Zeitungsberichte
+    // Gehören verwaltungsseitig zum Bereich Turniereinladungen.
+    // ============================================================
+
+    match /pressReports/{id} {
+      allow read: if true;
+      allow write: if canEdit('t');
+    }
+
+    // ============================================================
+    // Vereinsnachrichten
+    // ============================================================
+
+    match /news/{id} {
+      allow read: if true;
+      allow write: if canEdit('n');
+    }
+
+    // ============================================================
+    // Fotos Verein
+    // ============================================================
+
+    match /photos/{id} {
+      allow read: if true;
+      allow write: if canEdit('p');
+    }
+
+    // ============================================================
+    // Sponsorenfotos
+    // ============================================================
+
+    match /sponsorPhotos/{id} {
+      allow read: if true;
+      allow write: if canEdit('sp');
+    }
+
+    // ============================================================
+    // Mannschaften
+    // ============================================================
+
+    match /teams/{id} {
+      allow read: if true;
+      allow write: if canEdit('m');
+    }
+
+
+    // ============================================================
+    // Live-Startlisten
+    // Öffentliche Anzeige am Whiteboard / auf live-startlisten.html.
+    // Schreiben nur über die freigegebene Turnierverwaltung.
+    // ============================================================
+
+    match /liveStartlisten/{id} {
+      allow read: if true;
+      allow write: if canEdit('tv');
+    }
+
+    // ============================================================
+    // Turnierverwaltung
+    // NICHT öffentlich
+    // ============================================================
+
+    match /turniere/{id} {
+      allow read: if canRead('tv');
+      allow write: if canEdit('tv');
+    }
+
+    match /vereine/{id} {
+      allow read: if canRead('tv');
+      allow write: if canEdit('tv');
+    }
+
+    match /meldungen/{id} {
+      allow read: if canRead('tv');
+      allow write: if canEdit('tv');
+    }
+
+    match /einstellungen/{id} {
+      allow read: if canRead('tv');
+      allow write: if canEdit('tv');
+    }
+
+    // ============================================================
+    // Mitgliederverwaltung
+    // Vollständige Daten bleiben geschützt.
+    // Öffentliche Whiteboard-Daten liegen separat in publicMembers.
+    // ============================================================
+
+    match /ecw/state {
+      allow read, write: if canEdit('mv');
+    }
+
+    match /ecw/publicMembers {
+      allow read: if true;
+      allow write: if canEdit('mv');
+    }
+
+    // ============================================================
+    // Linkeinstellungen
+    // Die Anzeige muss im öffentlichen Whiteboard lesbar sein.
+    // ============================================================
+
+    match /linkPreferences/config {
+      allow read: if true;
+      allow write: if canEdit('lk') || canEdit('sh');
+    }
+
+    // ============================================================
+    // App-Einstellungen
+    // Nur die für das öffentliche Informationssystem benötigten
+    // Dokumente sind ohne Anmeldung lesbar.
+    // ============================================================
+
+    match /appSettings/{id} {
+      allow read: if profileExists()
+        || id in [
+          'startseite',
+          'druckdokumente',
+          'navigation',
+          'whiteboardFreigaben',
+          'turnierAuswertungAusschluesse',
+          'turnierAuswertungNamen'
+        ] || id.matches('druckpdf_[A-Za-z0-9_-]+_[0-9]+');
+
+      allow write: if isAdmin()
+        || canEdit('sh')
+        || canEdit('lk');
+    }
+
+    // ============================================================
+    // SOLO PYRAMIDE
+    // Zentrale Daten: soloPyramide/state
+    //
+    // Das Whiteboard arbeitet bewusst ohne separate Firebase-
+    // Anmeldung. Deshalb ist der Spielbetrieb für dieses Dokument
+    // öffentlich les- und in den notwendigen Spielfeldern schreibbar.
+    //
+    // Administrative Einstellungen der Solo-Pyramide können nur
+    // über den zentral angemeldeten Administrator geändert werden.
+    // ============================================================
+
+    match /soloPyramide/state {
+
+      allow read: if true;
+
+      // Erstanlage:
+      // - bevorzugt durch zentralen Admin
+      // - alternativ auch durch die öffentliche Solo-App, falls beim
+      //   allerersten Start noch kein Dokument vorhanden ist.
+      allow create: if isAdmin()
+        || request.resource.data.keys().hasOnly([
+          'players',
+          'passwords',
+          'hist',
+          'challengerLocks',
+          'opponentLocks',
+          'fixedChallenges',
+          'infoLines',
+          'customTitle',
+          'customSubtitle',
+          'currentMaxPlayers',
+          'vacations',
+          'ruleLockHoursAfterGame',
+          'ruleChallengeDays',
+          'ruleWithdrawHours',
+          'appVersion',
+          'updatedAt'
+        ]);
+
+      // Öffentlicher Spielbetrieb:
+      // Nur spielrelevante Felder dürfen ohne zentrale Adminanmeldung
+      // geändert werden. Admin-Einstellungen bleiben geschützt.
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'players',
+            'passwords',
+            'hist',
+            'challengerLocks',
+            'opponentLocks',
+            'fixedChallenges',
+            'vacations',
+            'appVersion',
+            'updatedAt'
+          ]);
+
+      allow delete: if isAdmin();
+    }
+
+
+    // ============================================================
+    // TURNIERAUSWERTUNG / INTERNE CUP
+    // ============================================================
+    match /turnierauswertung/{id} {
+      allow read: if true;
+
+      // Cup-Ergebnisbetrieb am öffentlichen Whiteboard:
+      // Das Whiteboard läuft absichtlich ohne sichtbare Firebase-Anmeldung.
+      // Deshalb darf ausschließlich das Dokument "cup" mit den benötigten
+      // Ergebnisfeldern öffentlich angelegt/aktualisiert werden.
+      allow create: if isAdmin()
+        || (
+          id == 'cup'
+          && request.resource.data.keys()
+            .hasOnly(['tournaments','updatedAt','updatedBy'])
+          && request.resource.data.keys()
+            .hasAll(['tournaments','updatedAt'])
+          && request.resource.data.tournaments is map
+          && request.resource.data.updatedAt is string
+        );
+
+      allow update: if isAdmin()
+        || (
+          id == 'cup'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['tournaments','updatedAt','updatedBy'])
+          && request.resource.data.tournaments is map
+          && request.resource.data.updatedAt is string
+        );
+
+      // Andere interne Auswertungsbereiche bleiben beim Schreiben Admin-only.
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // Turnierwirtschaftlichkeit – vertrauliche Finanzdaten
+    // Nur Administratoren oder explizit freigegebene Benutzer (tw).
+    // Kein öffentlicher Zugriff und kein Whiteboard-Zugriff.
+    // ============================================================
+    match /turnierWirtschaftlichkeit/{id} {
+      allow read, write: if isAdmin()
+        || (canEdit('tw') && !isWhiteboard());
+    }
+
+    // Zentrale Finanz-Sicherungen ausschließlich für Administratoren.
+    match /turnierWirtschaftlichkeitSicherungen/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ============================================================
+    // Alles andere standardmäßig sperren
+    // ============================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
