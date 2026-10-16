@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – V2.5.3</title>
+<title>Vereins-Informationssystem – V2.5.4</title>
 <script src="js/ladefehler.js?v=2.5.2"></script>
 <link rel="stylesheet" href="css/hauptprogramm.css?v=2.5.3">
-<link rel="stylesheet" href="css/dokumente-drucken.css?v=2.5.3">
+<link rel="stylesheet" href="css/dokumente-drucken.css?v=2.5.4">
 </head>
 <body data-ecw-build="V2.5.2-STABIL-20261013">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
@@ -169,6 +169,7 @@
       <div class="row" id="twAdminMenuRow" style="margin-bottom:8px;gap:6px;display:none"><button style="flex:1" data-app-perm="tw" onclick="adminSection('tw')">Turnierwirtschaftlichkeit</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tv" onclick="adminSection('tv')">Turnierverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="tv" title="Vorschau öffnen" onclick="adminPreviewOpen('tv')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="adminSection('ic')">Interne Cup</button><button style="flex:none;width:44px;padding:12px 0" title="Turnierauswertung öffnen" onclick="openInternalCupAdmin('home')">👁</button></div>
+      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="openInternalCupAdmin('doppelko')">Doppel KO System</button><button style="flex:none;width:44px;padding:12px 0" title="Doppel KO öffnen" onclick="openInternalCupAdmin('doppelko')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="adminSection('solo')">Solo Pyramide</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('solo')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="o" onclick="adminSection('o')">Eigene Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('o')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="n" onclick="adminSection('n')">Vereinsnachrichten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('n')">👁</button></div>
@@ -197,8 +198,8 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
 <script src="js/firebase-init.js?v=2.5.2"></script>
-<script src="js/hauptprogramm.js?v=2.5.3"></script>
-<script src="js/dokumente-drucken.js?v=2.5.3"></script>
+<script src="js/hauptprogramm.js?v=2.8.5-firebase-einzeltermin"></script>
+<script src="js/dokumente-drucken.js?v=2.8.6-serverdiagnose"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
 <div id="cropModal" class="crop-modal" hidden>

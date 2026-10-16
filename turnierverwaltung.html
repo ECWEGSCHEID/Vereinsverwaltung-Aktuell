@@ -1764,7 +1764,22 @@ copy of the Program in return for a fee.
       <div class="card"><h3>E-Mail vorbereiten</h3><label for="sFrom">Absender-E-Mail (optional, im Mailprogramm auswählbar)</label><input id="sFrom" type="email" maxlength="254" placeholder="Deine E-Mail-Adresse">
         <label for="sSubject">Betreff</label><input id="sSubject" maxlength="200"><label for="sMessage">Nachricht</label><textarea id="sMessage" rows="7" maxlength="10000"></textarea>
         <p id="sSummary" class="meta"></p><div class="inline-actions"><button class="primary" id="sEmlBtn" disabled>EML für Outlook/Thunderbird herunterladen</button><button class="primary" id="sGmailBtn" disabled>Mit Gmail vorbereiten</button><button class="secondary" id="sMailtoBtn" disabled>Für Mailprogramm vorbereiten</button><button class="secondary" id="sPdfBtn" disabled>Einladung als PDF herunterladen</button></div>
-        <p class="meta"><strong>Gmail:</strong> „Mit Gmail vorbereiten“ lädt die PDF herunter und stellt einen Link zum Gmail-Entwurf mit BCC, Betreff und Nachricht bereit. <strong>PDF anschließend selbst anhängen.</strong> Gmail kann EML-Dateien nicht als bearbeitbaren Entwurf importieren. EML ist nur für kompatible Desktop-Mailprogramme (z. B. Thunderbird) gedacht. Es wird nichts automatisch versendet.</p><p id="sStatus" role="status"></p></div>
+        <p class="meta"><strong>Gmail-Entwurf:</strong> „Mit Gmail vorbereiten“ lädt die PDF herunter und öffnet einen Entwurfslink. Die PDF muss dabei weiterhin manuell angehängt werden. EML bleibt für Desktop-Mailprogramme verfügbar.</p>
+        <div class="card-soft" id="ecwGmailTestPanel" style="margin-top:18px;border:2px solid #c0392b;border-radius:12px;padding:16px">
+          <h3 style="margin-top:0">Gmail API – Einzelversand testen (V2.8.7)</h3>
+          <p class="meta">Diese Testfunktion verschickt <strong>nur eine einzelne E-Mail</strong> mit dem fertigen PDF-Anhang. Die oben ausgewählten Vereinsadressen werden für den Testversand <strong>nicht</strong> verwendet.</p>
+          <label for="ecwGmailClientId">Google OAuth-Client-ID der Webanwendung</label>
+          <input id="ecwGmailClientId" type="text" autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com" />
+          <p class="meta">Die Client-ID ist öffentlich und wird nur auf diesem Gerät im Browser gespeichert. Keine Client-Secrets oder Passwörter eintragen. Für Live Server ggf. dessen eigene OAuth-Client-ID verwenden.</p>
+          <div class="inline-actions"><button class="secondary" id="ecwGmailConnectBtn" type="button">Mit Gmail verbinden (Testkonto)</button><button class="secondary" id="ecwGmailDisconnectBtn" type="button">Verbindung trennen</button></div>
+          <p id="ecwGmailConnectionStatus" class="meta" role="status" aria-live="polite">Noch nicht mit Gmail verbunden.</p>
+          <label for="ecwGmailTestTo">Testempfänger – genau eine E-Mail-Adresse</label>
+          <input id="ecwGmailTestTo" type="email" maxlength="254" placeholder="Deine eigene Testadresse" autocomplete="email" />
+          <p class="meta">Absender: <strong>turniereinladungen@ec-wegscheid.de</strong> · Google-Konto: <strong>m.stadler1978@gmail.com</strong>. Wähle dieses Konto im Google-Anmeldefenster aus.</p>
+          <button class="primary" id="ecwGmailTestSendBtn" type="button" disabled>Eine Test-Einladung mit PDF versenden</button>
+          <p id="ecwGmailTestStatus" role="status" aria-live="polite" class="meta"></p>
+        </div>
+        <p id="sStatus" role="status"></p></div>
     </section>
   </main>
 </div>
@@ -6296,6 +6311,168 @@ document.getElementById('sEmlBtn').addEventListener('click',()=>prepareInvitatio
 document.getElementById('sGmailBtn').addEventListener('click',()=>prepareInvitationMail('gmail'));
 document.getElementById('sMailtoBtn').addEventListener('click',()=>prepareInvitationMail('mailto'));
 document.getElementById('sPdfBtn').addEventListener('click',()=>prepareInvitationMail('pdf'));
+
+
+// ---------- EC Wegscheid: Gmail API Einzelversand (V2.8.7) ----------
+// Keine OAuth-Tokens in localStorage/Firebase speichern. Testmodus: nur ein Empfänger,
+// ausdrückliche Bestätigung, kein Serienversand und keine automatische Wiederholung.
+const ECW_GMAIL_SENDER='turniereinladungen@ec-wegscheid.de';
+const ECW_GMAIL_LOGIN='m.stadler1978@gmail.com';
+const ECW_GMAIL_SCOPE='https://www.googleapis.com/auth/gmail.send';
+const ECW_GMAIL_CLIENT_KEY='ecw_gmail_oauth_client_id_v287';
+let ecwGmailToken='',ecwGmailTokenUntil=0,ecwGmailTokenClient=null,ecwGmailSending=false;
+const ecwGmailById=id=>document.getElementById(id);
+function ecwGmailStatus(message,kind='info'){
+  const el=ecwGmailById('ecwGmailTestStatus');el.textContent=message;
+  el.style.color=kind==='error'?'#ad1d1d':kind==='ok'?'#176c38':'';
+}
+function ecwGmailRefresh(){
+  const ready=!!ecwGmailToken && Date.now()<ecwGmailTokenUntil;
+  ecwGmailById('ecwGmailConnectionStatus').textContent=ready
+    ?'Gmail-Sendeberechtigung für diese Sitzung vorhanden. Vor dem Senden das richtige Google-Konto prüfen.'
+    :'Nicht mit Gmail verbunden. Google-Anmeldung erforderlich.';
+  ecwGmailById('ecwGmailTestSendBtn').disabled=!ready||ecwGmailSending||sendBusy||!sendTournament();
+}
+function ecwGmailClientId(){return ecwGmailById('ecwGmailClientId').value.trim();}
+function ecwGmailLoadLibrary(){
+  if(window.google?.accounts?.oauth2)return Promise.resolve();
+  if(window.ecwGmailLibraryPromise)return window.ecwGmailLibraryPromise;
+  window.ecwGmailLibraryPromise=new Promise((resolve,reject)=>{
+    const tag=document.createElement('script');tag.src='https://accounts.google.com/gsi/client';tag.async=true;
+    tag.onload=()=>window.google?.accounts?.oauth2?resolve():reject(Error('Google-Anmeldung nicht verfügbar.'));
+    tag.onerror=()=>reject(Error('Google-Anmeldeskript konnte nicht geladen werden.'));
+    document.head.appendChild(tag);
+  }).catch(e=>{window.ecwGmailLibraryPromise=null;throw e;});
+  return window.ecwGmailLibraryPromise;
+}
+async function ecwGmailConnect(){
+  const clientId=ecwGmailClientId();
+  if(!/^[0-9]+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(clientId)){
+    ecwGmailStatus('Bitte eine gültige Google OAuth-Client-ID eintragen.', 'error');return;
+  }
+  ecwGmailToken='';ecwGmailTokenUntil=0;ecwGmailRefresh();
+  try{
+    localStorage.setItem(ECW_GMAIL_CLIENT_KEY,clientId);
+  }catch(e){console.warn('Gmail-Client-ID konnte nicht lokal gespeichert werden:',e);}
+  try{
+    ecwGmailStatus('Google-Anmeldung wird geöffnet …');
+    if(!window.google?.accounts?.oauth2){
+      await ecwGmailLoadLibrary();
+      ecwGmailStatus('Google-Anmeldeskript ist bereit. Bitte erneut auf „Mit Gmail verbinden“ klicken, damit das Anmeldefenster zuverlässig geöffnet wird.');
+      return;
+    }
+    ecwGmailTokenClient=window.google.accounts.oauth2.initTokenClient({
+      client_id:clientId,scope:ECW_GMAIL_SCOPE,login_hint:ECW_GMAIL_LOGIN,
+      callback:response=>{
+        if(response.error||!response.access_token){
+          ecwGmailStatus('Google-Anmeldung fehlgeschlagen: '+(response.error_description||response.error||'Keine Berechtigung erhalten.'),'error');
+          ecwGmailRefresh();return;
+        }
+        ecwGmailToken=response.access_token;
+        ecwGmailTokenUntil=Date.now()+Math.max(0,Number(response.expires_in||3500)-90)*1000;
+        ecwGmailStatus('Google-Berechtigung erteilt. Jetzt genau eine Testadresse eintragen und den Versand bestätigen.','ok');
+        ecwGmailRefresh();
+      },
+      error_callback:error=>{ecwGmailStatus('Google-Anmeldung abgebrochen oder blockiert: '+(error?.type||'Unbekannter Fehler'),'error');ecwGmailRefresh();}
+    });
+    ecwGmailTokenClient.requestAccessToken({prompt:'consent'});
+  }catch(e){ecwGmailStatus('Google-Verbindung fehlgeschlagen: '+(e.message||e),'error');ecwGmailRefresh();}
+}
+function ecwGmailDisconnect(){
+  const token=ecwGmailToken;ecwGmailToken='';ecwGmailTokenUntil=0;ecwGmailRefresh();
+  if(token&&window.google?.accounts?.oauth2?.revoke){
+    try{window.google.accounts.oauth2.revoke(token,()=>{});}catch(e){console.warn(e);}
+  }
+  ecwGmailStatus('Gmail-Verbindung getrennt.');
+}
+function ecwGmailMimeText(text){return utf8Base64(String(text||''));}
+function ecwGmailBase64UrlFromBinary(binary){return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function ecwGmailMimeHeader(value){return '=?UTF-8?B?'+utf8Base64(String(value||''))+'?=';}
+async function ecwGmailRawMail({to,subject,body,pdf,filename}){
+  const boundary='ECW_'+crypto.randomUUID().replaceAll('-','');
+  const safeFilename=String(filename).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7e]/g,'_').replace(/[\r\n"\\]/g,'_').slice(0,180);
+  const lines=[
+    'From: EC Wegscheid <'+ECW_GMAIL_SENDER+'>',
+    'To: <'+to+'>',
+    'Subject: '+ecwGmailMimeHeader(subject),
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="'+boundary+'"',
+    '',
+    '--'+boundary,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    wrapBase64(ecwGmailMimeText(body)),
+    '--'+boundary,
+    'Content-Type: application/pdf; name="'+safeFilename+'"',
+    'Content-Disposition: attachment; filename="'+safeFilename+'"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    await attachmentBase64(pdf),
+    '--'+boundary+'--',''
+  ];
+  const bytes=new TextEncoder().encode(lines.join('\r\n'));
+  let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  return ecwGmailBase64UrlFromBinary(binary);
+}
+async function ecwGmailSendTest(){
+  if(ecwGmailSending||sendBusy)return;
+  const t=sendTournament(),to=ecwGmailById('ecwGmailTestTo').value.trim();
+  const subject=ecwGmailById('sSubject').value.trim(),body=ecwGmailById('sMessage').value;
+  if(!t){ecwGmailStatus('Bitte zuerst ein Turnier auswählen.','error');return;}
+  if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to)||to.includes(',')||to.includes(';')){
+    ecwGmailStatus('Bitte genau eine gültige Test-E-Mail-Adresse eingeben.','error');return;
+  }
+  if(!subject||!body.trim()){ecwGmailStatus('Bitte Betreff und Nachricht ausfüllen.','error');return;}
+  if(!ecwGmailToken||Date.now()>=ecwGmailTokenUntil){ecwGmailStatus('Gmail-Verbindung abgelaufen. Bitte neu verbinden.','error');ecwGmailRefresh();return;}
+  if(!auth.currentUser){ecwGmailStatus('Bitte als Administrator in Firebase anmelden.','error');return;}
+  if(!confirm('TESTVERSAND – eine einzige E-Mail\n\nTurnier: '+(t.name||'Turnier')+'\nEmpfänger: '+to+'\nAbsender: '+ECW_GMAIL_SENDER+'\n\nPDF-Einladung jetzt wirklich über Gmail versenden?'))return;
+  ecwGmailSending=true;sendBusy=true;updateSendStatus();ecwGmailRefresh();
+  let gmailAccepted=false,messageId='';
+  try{
+    ecwGmailStatus('PDF wird erzeugt …');
+    const config={...DOC_DEFAULTS,...(t.einladungVorlage||{}),...(documentDrafts.get(t.id)?.values||{})};
+    const pdf=pagesToPdf(await renderExportPages(invitationHtml(t,config)));
+    if(pdf.size>18*1024*1024)throw Error('PDF ist für diesen Test zu groß (max. 18 MB).');
+    const name=documentBasename(t,'einladung')+'.pdf';
+    ecwGmailStatus('PDF fertig. Testmail wird an Gmail übertragen …');
+    const raw=await ecwGmailRawMail({to,subject,body,pdf,filename:name});
+    const response=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',headers:{'Authorization':'Bearer '+ecwGmailToken,'Content-Type':'application/json'},
+      body:JSON.stringify({raw})
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||!result.id){
+      const details=result?.error?.message||'HTTP '+response.status;
+      if(response.status===401)ecwGmailToken='';
+      throw Error('Gmail hat den Versand nicht bestätigt: '+details);
+    }
+    gmailAccepted=true;messageId=result.id;
+    ecwGmailStatus('Gmail hat die Testmail angenommen (Nachrichten-ID: '+messageId+'). Bitte Posteingang und PDF-Anhang prüfen.','ok');
+    // Protokoll im bereits freigegebenen Turnier-Dokument, kein neues Firestore-Regelwerk.
+    // Nach erfolgreicher Gmail-Antwort darf ein Protokollfehler NICHT zu einem automatischen Neuversand führen.
+    try{
+      await updateDoc(doc(db,'turniere',t.id),{
+        gmailTestversand:{zeit:new Date().toISOString(),empfaenger:to,absender:ECW_GMAIL_SENDER,
+          googleKontoHinweis:ECW_GMAIL_LOGIN,gmailMessageId:messageId,betreff:subject,anhang:name}
+      });
+      ecwGmailStatus('Testmail von Gmail angenommen und in Firebase protokolliert. Nachrichten-ID: '+messageId+'.','ok');
+    }catch(logError){
+      console.error('Gmail-Protokoll:',logError);
+      ecwGmailStatus('Testmail von Gmail ANGENOMMEN (ID: '+messageId+'), aber Firebase-Protokoll fehlgeschlagen: '+(logError.message||logError)+'. NICHT erneut senden, bevor die Zustellung geprüft ist.','error');
+    }
+  }catch(e){
+    console.error('Gmail-Testversand:',e);
+    ecwGmailStatus((gmailAccepted?'Gmail hat bereits gesendet: ':'Versand fehlgeschlagen: ')+(e.message||e),'error');
+  }finally{ecwGmailSending=false;sendBusy=false;updateSendStatus();ecwGmailRefresh();}
+}
+try{ecwGmailById('ecwGmailClientId').value=localStorage.getItem(ECW_GMAIL_CLIENT_KEY)||'';}catch(e){}
+ecwGmailById('ecwGmailConnectBtn').addEventListener('click',ecwGmailConnect);
+ecwGmailById('ecwGmailDisconnectBtn').addEventListener('click',ecwGmailDisconnect);
+ecwGmailById('ecwGmailTestSendBtn').addEventListener('click',ecwGmailSendTest);
+ecwGmailById('sTurnierSelect').addEventListener('change',ecwGmailRefresh);
+ecwGmailRefresh();
+
 
 function fillVereinSelect() {
   updateMobileClubSuggestions();

@@ -1228,7 +1228,8 @@ const SH_DEF={title:'Informationssystem',cols:3,bg:null,buttons:[
  {t:'Jahresmeisterschaft Ziel',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=jahresmeisterschaft'},
  {t:'Turnierauslosung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=auslosung'},
  {t:'Stockdartauswertung',u:'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/turnierauswertung.html?v=2.5.2&seite=stockdart'},
- {t:'Solo Pyramide',u:SOLO_PYRAMIDE_PAGE}
+ {t:'Solo Pyramide',u:SOLO_PYRAMIDE_PAGE},
+ {t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'}
 ]},
 {t:'Fotos\nVerein',u:SH_B+'#fotos'},
 {t:'Mitgliederliste\nGeburtstage',u:SH_B+'#mitglieder'},{t:'Eigene Turniere',u:SH_B+'#eigene-turniere'},{t:'Nützliches',u:''}]};
@@ -1243,7 +1244,7 @@ function shEnsureSoloPyramide(d){
 
      if(!mode){
        const vv=String(u.searchParams.get('v')||'');
-       const mm=vv.match(/\?seite=(cup|jahresmeisterschaft|auslosung|stockdart)/i);
+       const mm=vv.match(/\?seite=(cup|doppelko|jahresmeisterschaft|auslosung|stockdart)/i);
        if(mm)mode=mm[1].toLowerCase();
      }
 
@@ -1252,7 +1253,7 @@ function shEnsureSoloPyramide(d){
      const local=u.origin==='https://ecwegscheid.github.io'
        && /^\/Vereinsverwaltung-Aktuell\/turnierauswertung\.html$/i.test(u.pathname);
 
-     if((legacy||local) && ['cup','jahresmeisterschaft','auslosung','stockdart'].includes(mode)){
+     if((legacy||local) && ['cup','doppelko','jahresmeisterschaft','auslosung','stockdart'].includes(mode)){
        return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode);
      }
    }catch(e){}
@@ -1274,6 +1275,7 @@ function shEnsureSoloPyramide(d){
  if(!Array.isArray(target.sub))target.sub=[];
  const exists=target.sub.some(x=>norm(x?.t)==='solo pyramide'||String(x?.u||'').toLowerCase().includes('solo-pyramide'));
  if(!exists)target.sub.push({t:'Solo Pyramide',u:SOLO_PYRAMIDE_PAGE});
+ if(!target.sub.some(x=>norm(x?.t)==='doppel ko system'||/seite=doppelko/i.test(String(x?.u||''))))target.sub.push({t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'});
  return d;
 }
 function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
@@ -2198,7 +2200,7 @@ function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
  window.__adminBack='menu';
  window.__adminPreviewMode=false;
- const labels={home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
+ const labels={doppelko:'Doppel KO System',home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
  openExternalPage(internalCupUrl(mode),labels[mode]||'Interne Cup');
  setInternalCupAdminReturnButton();
 }
@@ -2215,6 +2217,7 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
   +'<div class="card"><h3>Bereich auswählen</h3><div class="ovmenu">'
   +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung</button>'
+  +'<button type="button" onclick="openInternalCupAdmin(\'doppelko\')">Doppel KO System</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'stockdart\')">Stockdartauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'auslosung\')">Turnierauslosung</button>'
@@ -2391,7 +2394,7 @@ function isEcwTournamentAppUrl(value){
  try{
    const u=new URL(value,location.href);
    const mode=ecwTournamentModeFromUrl(u.href);
-   if(!['cup','jahresmeisterschaft','auslosung','stockdart','home'].includes(mode))return false;
+   if(!['cup','doppelko','jahresmeisterschaft','auslosung','stockdart','home'].includes(mode))return false;
    // Auch lokale Testkopien, GitHub-Subpfade und zentral gespeicherte Links
    // muessen dieselbe interne Vollbildansicht verwenden.
    const localFile=/(?:^|\/)turnierauswertung\.html$/i.test(u.pathname);
@@ -2415,7 +2418,8 @@ const WHITEBOARD_RESULT_DEFAULTS={
   jahresmeisterschaft:true,
   auslosung:true,
   stockdart:false,
-  soloPyramide:true
+  soloPyramide:true,
+  doppelko:true
 };
 let whiteboardResultPermissions={...WHITEBOARD_RESULT_DEFAULTS};
 
@@ -2427,12 +2431,12 @@ function ecwInternalResultMode(value){
    const legacy=/^\/Turnierverwaltung\/?$/i.test(u.pathname);
    if(u.origin!=='https://ecwegscheid.github.io'||(!local&&!legacy))return '';
    const mode=ecwTournamentModeFromUrl(u.href);
-   return ['cup','jahresmeisterschaft','auslosung','stockdart'].includes(mode)?mode:'';
+   return ['cup','doppelko','jahresmeisterschaft','auslosung','stockdart'].includes(mode)?mode:'';
  }catch(e){return ''}
 }
 function isWhiteboardInternalResultAllowed(value){
  const mode=ecwInternalResultMode(value);
- if(['cup','jahresmeisterschaft','auslosung','soloPyramide'].includes(mode))return true;
+ if(['cup','doppelko','jahresmeisterschaft','auslosung','soloPyramide'].includes(mode))return true;
  return !!mode && whiteboardResultPermissions[mode]===true;
 }
 async function loadWhiteboardResultPermissions(){
@@ -2466,6 +2470,7 @@ async function saveWhiteboardResultPermissions(){
    auslosung:get('wbPermAuslosung'),
    stockdart:get('wbPermStockdart'),
    soloPyramide:get('wbPermSoloPyramide'),
+   doppelko:get('wbPermDoppelKo'),
    updatedAt:new Date().toISOString()
  };
  const status=document.getElementById('wbPermStatus');
@@ -2491,6 +2496,7 @@ function renderWhiteboardPermissionsAdmin(){
   +'<label class="checkbox-row"><input id="wbPermJm" type="checkbox" '+(p.jahresmeisterschaft?'checked':'')+'><span>Jahresmeisterschaft Ziel</span></label>'
   +'<label class="checkbox-row"><input id="wbPermAuslosung" type="checkbox" '+(p.auslosung?'checked':'')+'><span>Turnierauslosung</span></label>'
   +'<label class="checkbox-row"><input id="wbPermStockdart" type="checkbox" '+(p.stockdart?'checked':'')+'><span>Stockdartauswertung</span></label>'
+  +'<label class="checkbox-row"><input id="wbPermDoppelKo" type="checkbox" '+(p.doppelko!==false?'checked':'')+'><span>Doppel KO System</span></label>'
   +'<label class="checkbox-row"><input id="wbPermSoloPyramide" type="checkbox" '+(p.soloPyramide?'checked':'')+'><span>Solo Pyramide</span></label>'
   +'<button class="primary" style="width:100%;margin-top:14px" onclick="saveWhiteboardResultPermissions()">Freigaben speichern</button>'
   +'<div id="wbPermStatus" class="small" style="margin-top:10px"></div></div>'
@@ -4209,6 +4215,190 @@ async function tpGoogleDelete(x){
   let message='';try{const body=await r.json();message=body?.error?.message||''}catch(e){}
   throw new Error(message||('Google Kalender: Fehler '+r.status));
 }
+// Kalenderabgleich V2.8.3: Vor einem neuen Google-Eintrag zunächst vorhandene
+// Termine prüfen. Keine automatische Löschung und kein POST bei unklarer Zuordnung.
+function tpCalendarNorm(v){
+  return String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('de-DE')
+    .replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
+function tpCalendarIcsUid(x){
+  const orgId=tpCalendarSettings().orgName.toLowerCase().replace(/[^a-z0-9]+/g,'')||'verein';
+  return String(x.id)+'@'+orgId;
+}
+function tpCalendarGoogleDate(e){return String(e?.start?.date||e?.start?.dateTime||'').slice(0,10)}
+function tpCalendarGoogleTime(e){return e?.start?.date?'':String(e?.start?.dateTime||'').slice(11,16)}
+function tpCalendarMatch(x,e){
+  const sameName=tpCalendarNorm(x.name)===tpCalendarNorm(e.summary);
+  const sameDate=String(x.date||'')===tpCalendarGoogleDate(e);
+  const sameTime=String(x.time||'')===tpCalendarGoogleTime(e);
+  const sameUid=String(e.iCalUID||'')===tpCalendarIcsUid(x);
+  return {sameName,sameDate,sameTime,sameUid,exact:sameName&&sameDate&&sameTime};
+}
+function tpCalendarEventLabel(e){
+  return (e.summary||'(Ohne Titel)')+' · '+tpCalendarGoogleDate(e)
+    +(tpCalendarGoogleTime(e)?' · '+tpCalendarGoogleTime(e)+' Uhr':' · ganztägig')
+    +(e.location?' · '+e.location:'');
+}
+async function tpGoogleListNearby(x){
+  const cfg=tpCalendarSettings();
+  const tok=await tpGoogleToken();
+  const day=new Date(String(x.date)+'T12:00:00Z');
+  if(!Number.isFinite(day.getTime()))throw new Error('Ungültiges Veranstaltungsdatum');
+  const min=new Date(day);min.setUTCDate(min.getUTCDate()-15);
+  const max=new Date(day);max.setUTCDate(max.getUTCDate()+16);
+  let page='',pages=0,all=[];
+  // Zuerst die eindeutige ICS-UID prüfen: damit werden auch ältere importierte
+  // Termine gefunden, deren Datum oder Titel nachträglich geändert wurde.
+  const uidUrl=new URL('https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(cfg.calendarId)+'/events');
+  uidUrl.searchParams.set('iCalUID',tpCalendarIcsUid(x));
+  const uidResponse=await fetch(uidUrl.toString(),{headers:{Authorization:'Bearer '+tok}});
+  if(!uidResponse.ok)throw new Error('Google Kalender: ICS-UID-Abfrage fehlgeschlagen ('+uidResponse.status+')');
+  const uidData=await uidResponse.json();
+  all.push(...(uidData.items||[]).filter(e=>e&&e.id&&e.status!=='cancelled'));
+  do{
+    const url=new URL('https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(cfg.calendarId)+'/events');
+    url.searchParams.set('timeMin',min.toISOString());
+    url.searchParams.set('timeMax',max.toISOString());
+    url.searchParams.set('singleEvents','true');
+    url.searchParams.set('maxResults','2500');
+    if(page)url.searchParams.set('pageToken',page);
+    const r=await fetch(url.toString(),{headers:{Authorization:'Bearer '+tok}});
+    if(!r.ok){if(r.status===401)tpGToken=null;let m='';try{m=(await r.json()).error?.message||''}catch(e){}throw new Error(m||('Google Kalender: Fehler '+r.status))}
+    const body=await r.json();
+    all.push(...(body.items||[]).filter(e=>e&&e.id&&e.status!=='cancelled'));
+    page=body.nextPageToken||'';
+    if(++pages>=10&&page)throw new Error('Zu viele Google-Termine im Suchzeitraum. Abgleich aus Sicherheitsgründen abgebrochen.');
+  }while(page);
+  // Auch Termine mit inzwischen geändertem Datum finden, wenn der Titel gleich ist.
+  const seen=new Set();
+  return all.filter(e=>{
+      const q=tpCalendarMatch(x,e);
+      if(!(q.sameUid||q.sameName||q.sameDate)||seen.has(String(e.id)))return false;
+      seen.add(String(e.id));return true;
+    }).sort((a,b)=>{
+      const m=e=>{const q=tpCalendarMatch(x,e);return (q.sameUid?1000:0)+(q.exact?100:0)+(q.sameName?10:0)+(q.sameDate?5:0)+(q.sameTime?1:0)};
+      return m(b)-m(a);
+    });
+}
+let tpCalendarReview=null;
+function tpCalendarReviewClose(){
+  document.getElementById('tpCalendarReviewOverlay')?.remove();
+  tpCalendarReview=null;
+}
+function tpCalendarReviewRender(){
+  const ctx=tpCalendarReview;if(!ctx)return;
+  const x=tpFindEvent(ctx.id);if(!x){tpCalendarReviewClose();return;}
+  document.getElementById('tpCalendarReviewOverlay')?.remove();
+  const overlay=document.createElement('div');overlay.id='tpCalendarReviewOverlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box';
+  const panel=document.createElement('section');
+  panel.style.cssText='width:min(780px,100%);max-height:90vh;overflow:auto;background:#211f22;color:#fff;border:2px solid #bd3636;border-radius:12px;padding:20px;box-sizing:border-box;font-size:15px;line-height:1.5';
+  const title=document.createElement('h2');title.textContent='Google Kalender · Vorhandene Termine abgleichen';title.style.margin='0 0 10px';panel.appendChild(title);
+  const info=document.createElement('p');info.textContent='Turnierplaner: '+x.name+' · '+x.date+(x.time?' · '+x.time+' Uhr':'');panel.appendChild(info);
+  const status=document.createElement('p');status.style.cssText='padding:9px;border-radius:6px;background:#363038';
+  status.textContent=x.googleEventId?'Verknüpfter Google-Eintrag: '+x.googleEventId:'Noch keine Google-Ereignis-ID gespeichert. Es wird NICHT automatisch ein neuer Termin angelegt.';
+  panel.appendChild(status);
+  const list=ctx.events.slice(0,80);
+  if(ctx.events.length>80){const warn=document.createElement('p');warn.textContent='Mehr als 80 mögliche Termine gefunden. Es werden nur die ersten 80 angezeigt.';panel.appendChild(warn)}
+  if(!list.length){const p=document.createElement('p');p.textContent='Im Zeitraum von 15 Tagen vor bis 16 Tagen nach dem Turnier wurde kein Termin mit gleichem Namen oder gleichem Datum gefunden. Bitte den Google Kalender auch außerhalb dieses Zeitraums prüfen.';panel.appendChild(p)}
+  for(const e of list){
+    const m=tpCalendarMatch(x,e);
+    const linked=String(x.googleEventId||'')===String(e.id);
+    const used=(data.tournamentPlanner||[]).some(y=>y&&String(y.id)!==String(x.id)&&String(y.googleEventId||'')===String(e.id));
+    const box=document.createElement('div');box.style.cssText='padding:11px;margin:8px 0;border:1px solid #66575b;border-radius:7px;background:#2c292d';
+    const name=document.createElement('div');name.textContent=(m.sameUid?'✓ Gleiche ursprüngliche ICS-ID · ':m.exact?'✓ Genaue Übereinstimmung · ':m.sameName?'Ähnlicher Termin · ':'Gleiches Datum · ')+tpCalendarEventLabel(e);
+    name.style.cssText='font-weight:600;overflow-wrap:anywhere';box.appendChild(name);
+    const btns=document.createElement('div');btns.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:8px';
+    if(linked){const b=document.createElement('span');b.textContent='✓ Dieser Termin ist verknüpft';btns.appendChild(b)}
+    else if(used){const b=document.createElement('span');b.textContent='Bereits einem anderen Turnier zugeordnet – gesperrt';btns.appendChild(b)}
+    else {
+      const b=document.createElement('button');b.type='button';b.textContent='Diesen Termin verknüpfen';
+      b.onclick=()=>tpCalendarReviewLink(e.id);btns.appendChild(b);
+      if(x.googleEventId&&m.exact){
+        const del=document.createElement('button');del.type='button';del.textContent='Doppelten Eintrag löschen';
+        del.style.cssText='background:#8c2222;color:white';del.onclick=()=>tpCalendarReviewDelete(e.id);btns.appendChild(del);
+      }
+    }
+    box.appendChild(btns);panel.appendChild(box);
+  }
+  const foot=document.createElement('div');foot.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin-top:18px';
+  if(!x.googleEventId){
+    const create=document.createElement('button');create.type='button';create.textContent='Nach Prüfung neuen Termin erstellen';
+    create.onclick=tpCalendarReviewCreate;foot.appendChild(create);
+  }
+  const close=document.createElement('button');close.type='button';close.textContent='Schließen (ohne Änderung)';close.onclick=tpCalendarReviewClose;foot.appendChild(close);
+  panel.appendChild(foot);overlay.appendChild(panel);document.body.appendChild(overlay);
+}
+async function tpCalendarReviewOpen(id){
+  if(isWhiteboardUser()){showToast('Kalenderabgleich nur für Administratoren.');return;}
+  const x=tpFindEvent(id);if(!x||!x.date){showToast('Turnier oder Datum fehlt');return;}
+  const sid=String(x.id);
+  if(tpCalendarExportInFlight.has(sid))return;
+  if(!tpCalendarSettings().clientId){showToast('Bitte zuerst die Google Client-ID in den Kalendereinstellungen hinterlegen.');return;}
+  tpCalendarExportInFlight.add(sid);renderTournamentPlannerAdminList();
+  try{
+    const events=await tpGoogleListNearby(x);
+    tpCalendarReview={id:sid,events,calendarId:tpCalendarSettings().calendarId};
+    tpCalendarReviewRender();
+  }catch(e){console.error('Google-Kalender-Abgleich:',e);showToast('Kalenderabgleich fehlgeschlagen: '+(e?.message||e),12000)}
+  finally{tpCalendarExportInFlight.delete(sid);renderTournamentPlannerAdminList()}
+}
+async function tpCalendarReviewLink(googleId){
+  const ctx=tpCalendarReview;if(!ctx)return;
+  const x=tpFindEvent(ctx.id),e=ctx.events.find(v=>String(v.id)===String(googleId));
+  if(!x||!e)return;
+  if(ctx.calendarId!==tpCalendarSettings().calendarId){alert('Kalender-ID wurde während der Prüfung geändert. Bitte erneut prüfen.');return;}
+  if((data.tournamentPlanner||[]).some(y=>y&&String(y.id)!==String(x.id)&&String(y.googleEventId||'')===String(googleId))){alert('Dieser Google-Termin ist bereits einem anderen Turnier zugeordnet.');return;}
+  if(!confirm('Vorhandenen Google-Termin mit diesem Turnier verknüpfen?\n\n'+tpCalendarEventLabel(e)+'\n\nDer Google-Termin wird dabei nicht verändert.'))return;
+  x.googleEventId=String(e.id);x.googleEventCalendarId=ctx.calendarId;
+  x.calendarExported=true;x.calendarExportedBeforeChange=false;
+  if(!save()){alert('Verknüpfung lokal nicht speicherbar. Bitte nicht erneut exportieren.');return;}
+  const fb=await tpSyncEventToFirebase(x);
+  renderTournamentPlannerAdminList();tpCalendarReviewRender();
+  if(fb)showToast('Bestehender Google-Termin verknüpft. Kein neuer Eintrag erstellt.',8000);
+  else alert('Google-Termin lokal verknüpft, aber Firebase-Speicherung fehlgeschlagen. Bitte vor weiteren Änderungen Firebase prüfen.');
+}
+async function tpCalendarReviewDelete(googleId){
+  const ctx=tpCalendarReview;if(!ctx)return;
+  const x=tpFindEvent(ctx.id),e=ctx.events.find(v=>String(v.id)===String(googleId));
+  if(!x||!e||!x.googleEventId||String(x.googleEventId)===String(googleId))return;
+  if(ctx.calendarId!==tpCalendarSettings().calendarId)return;
+  if(!tpCalendarMatch(x,e).exact){alert('Nur exakt passende Duplikate können hier gelöscht werden.');return;}
+  if((data.tournamentPlanner||[]).some(y=>y&&String(y.googleEventId||'')===String(googleId))){alert('Dieser Termin ist bereits verknüpft und darf hier nicht gelöscht werden.');return;}
+  const confirmText=prompt('ACHTUNG: Dieser Eintrag wird endgültig aus dem Google Kalender gelöscht.\n\n'+tpCalendarEventLabel(e)+'\n\nZum Bestätigen LÖSCHEN eingeben:');
+  if(confirmText!=='LÖSCHEN')return;
+  if(!confirm('Diesen doppelten Google-Kalendereintrag wirklich löschen?'))return;
+  try{
+    const tok=await tpGoogleToken();
+    const url='https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(ctx.calendarId)+'/events/'+encodeURIComponent(e.id);
+    const r=await fetch(url,{method:'DELETE',headers:{Authorization:'Bearer '+tok}});
+    if(!(r.ok||r.status===404||r.status===410))throw new Error('Google Kalender: Löschfehler '+r.status);
+    ctx.events=ctx.events.filter(v=>String(v.id)!==String(googleId));
+    tpCalendarReviewRender();showToast('Doppelter Google-Eintrag gelöscht.',7000);
+  }catch(err){showToast('Nicht gelöscht: '+(err?.message||err),10000)}
+}
+async function tpCalendarReviewCreate(){
+  const ctx=tpCalendarReview;if(!ctx)return;
+  const x=tpFindEvent(ctx.id);if(!x||x.googleEventId)return;
+  if(ctx.calendarId!==tpCalendarSettings().calendarId){alert('Kalender-ID geändert. Bitte erneut prüfen.');return;}
+  const code=prompt('Nur wenn du im Google Kalender geprüft hast, dass der Termin nicht bereits existiert:\n\nZum Erstellen eines NEUEN Eintrags NEU eingeben:');
+  if(code!=='NEU')return;
+  const sid=String(x.id);
+  if(tpCalendarExportInFlight.has(sid))return;
+  tpCalendarExportInFlight.add(sid);
+  try{
+    const created=await tpGoogleInsert(x);
+    x.googleEventId=created.id;x.googleEventCalendarId=created.calendarId;
+    x.calendarExported=true;x.calendarExportedBeforeChange=false;
+    if(!save())throw new Error('Google-Eintrag erstellt, aber lokale ID-Speicherung fehlgeschlagen. Bitte NICHT erneut exportieren.');
+    const fb=await tpSyncEventToFirebase(x);
+    tpCalendarReviewClose();renderTournamentPlannerAdminList();
+    if(fb)showToast('Neuer Google-Termin erstellt und ID in Firebase gespeichert.',8000);
+    else alert('Google-Eintrag erstellt, aber Firebase-Speicherung fehlgeschlagen. Bitte NICHT erneut exportieren.');
+  }catch(e){console.error('Kalender neu erstellen:',e);alert(e?.message||String(e))}
+  finally{tpCalendarExportInFlight.delete(sid);renderTournamentPlannerAdminList()}
+}
+
 const tpCalendarExportInFlight=new Set();
 async function tpAddToCalendar(id){
   if(isWhiteboardUser()){showToast('Whiteboard: Kalenderexport nur für Administratoren.');return;}
@@ -4219,14 +4409,16 @@ async function tpAddToCalendar(id){
   if(tpCalendarExportInFlight.has(sid)){showToast('Kalenderübertragung läuft bereits. Bitte warten.');return;}
   const cfg=tpCalendarSettings();
   if(cfg.clientId){
+    // Ohne verknüpfte ID niemals direkt POST: zuerst den Kalender abgleichen.
+    if(!x.googleEventId){await tpCalendarReviewOpen(id);return;}
     // Exportiert ist ein Status, kein Grund, eine bestehende Google-ID zu blockieren.
     // Ohne Ereignis-ID ist ein erneutes POST möglicherweise ein Duplikat: erst klären.
     if(x.calendarExported&&!x.googleEventId){
-      alert('Dieser Termin ist als exportiert markiert, aber es ist keine Google-Ereignis-ID gespeichert.\n\nBitte zuerst im Google Kalender prüfen, ob der Termin existiert. Einen erneuten Export nicht automatisch starten, da sonst ein doppelter Eintrag entstehen kann.');
+      await tpCalendarReviewOpen(id);
       return;
     }
     if(!x.googleEventId&&x.calendarExportedBeforeChange){
-      alert('Ein früherer Kalenderexport hat keine gespeicherte Google-Ereignis-ID. Bitte den alten Eintrag zuerst manuell prüfen und gegebenenfalls entfernen. Erst danach über ↺ den Export zurücksetzen.');
+      await tpCalendarReviewOpen(id);
       return;
     }
     tpCalendarExportInFlight.add(sid);
@@ -4279,6 +4471,8 @@ async function tpAddToCalendar(id){
 
 function tpResetCalendarExport(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   const x=tpFindEvent(id);if(!x)return;
+  if(x.googleEventId){showToast('Dieser Termin ist bereits mit Google verknüpft. Der Exportstatus darf nicht zurückgesetzt werden.');return;}
+  if(!confirm('Exportstatus zurücksetzen? Nur fortfahren, wenn du den bestehenden Google-Eintrag geprüft hast.'))return;
   x.calendarExported=false;x.calendarExportedBeforeChange=false;
   save();
   tpSyncEventToFirebase(x);
@@ -4294,7 +4488,8 @@ function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spi
     +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
     +'<label>Veranstaltungsort</label><input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>'
     +'<div class="row" style="margin-top:14px"><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
-    +'<div class="row" style="margin-top:10px"><button class="primary" style="width:100%" onclick="saveAllTournamentPlannerChanges()">Veranstaltung speichern</button></div>'
+    +'<div class="row" style="margin-top:10px"><button class="primary" style="width:100%" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">Veranstaltung speichern</button></div>'
+    +'<div class="small" style="margin-top:8px">Neue Veranstaltungen werden beim Speichern automatisch mit Google Kalender synchronisiert (bei bestehender Google-Verbindung). Bereits vorhandene Termine werden vor dem Erstellen geprüft.</div>'
     +'<div id="firebaseTpInfo" class="small" style="margin-top:10px"></div>'
     +'</div>';
 }
@@ -4447,13 +4642,16 @@ function renderTournamentPlannerAdminList(){if(isWhiteboardUser()){showToast('Wh
     const players=(x.players||[]).filter(Boolean).join(', ');
     const isPast=x.date&&x.date<today;
     const calBusy=tpCalendarExportInFlight.has(String(x.id));
+    const googleReady=!!tpCalendarSettings().clientId;
     const calBtn=calBusy
-      ?'<button disabled title="Google-Kalender-Übertragung läuft">⏳ Übertragung läuft</button>'
-      :(x.googleEventId
-        ?'<button onclick="tpAddToCalendar('+jsArg(x.id)+')" title="Bestehenden Google-Termin erneut aktualisieren">📅 In Google aktualisieren</button>'
+      ?'<button disabled title="Google-Kalender-Übertragung läuft">⏳ Kalenderprüfung läuft</button>'
+      :(googleReady
+        ?(x.googleEventId
+          ?'<button onclick="tpAddToCalendar('+jsArg(x.id)+')" title="Verknüpften Google-Termin aktualisieren">📅 In Google aktualisieren</button><button onclick="tpCalendarReviewOpen('+jsArg(x.id)+')" title="Vorhandene Duplikate prüfen">🔎 Duplikate prüfen</button>'
+          :'<button onclick="tpCalendarReviewOpen('+jsArg(x.id)+')" title="Vorhandene Google-Termine suchen und sicher zuordnen">🔎 '+(x.calendarExported||x.calendarExportedBeforeChange?'Export prüfen':'Abgleichen / exportieren')+'</button>')
         :(x.calendarExported
-          ?'<button onclick="tpAddToCalendar('+jsArg(x.id)+')" title="Exportstatus prüfen">⚠ Export prüfen</button><button title="Exportstatus nach manueller Kalenderprüfung zurücksetzen" onclick="tpResetCalendarExport('+jsArg(x.id)+')">↺</button>'
-          :'<button onclick="tpAddToCalendar('+jsArg(x.id)+')" title="Neuen Google-Termin erstellen">📅 Exportieren</button>'));
+          ?'<button onclick="tpAddToCalendar('+jsArg(x.id)+')" title="ICS-Exportstatus prüfen">⚠ Export prüfen</button>'
+          :'<button onclick="tpAddToCalendar('+jsArg(x.id)+')" title="ICS-Datei herunterladen">📅 ICS herunterladen</button>'));
     html+='<div class="list-item"'+(isPast?' style="opacity:.45"':'')+'><div><b>'+esc(x.name)+'</b>'+(x.type?' <span class="tp-type-badge">'+esc(x.type)+'</span>':'')+'<div class="small">'+esc(tpFormatDate(x.date))+(x.time?' · '+esc(x.time)+' Uhr':'')+(x.location?' · '+esc(x.location):'')+'</div><div class="small">'+(x.reportedBy?'Gemeldet von '+esc(x.reportedBy)+' · ':'')+(players||'keine Spieler eingetragen')+'</div></div><div class="row">'+calBtn+'<button onclick="tpEditEvent('+jsArg(x.id)+')">Bearbeiten</button><button class="danger" onclick="tpDeleteEvent('+jsArg(x.id)+')">Löschen</button></div></div>';
   });
   el.innerHTML=html;
@@ -4551,23 +4749,116 @@ function tpSaveCalendarSettings(){if(isWhiteboardUser()){showToast('Whiteboard: 
   save();
   showToast('Kalendereinstellungen gespeichert');
 }
+// V2.8.4: Neue Termine unmittelbar beim Speichern nach Google übertragen.
+// Es wird niemals blind ein zweites Ereignis erzeugt: zunächst nach bereits
+// vorhandenen Einträgen suchen. Bei Treffern ist eine manuelle Zuordnung nötig.
+async function tpCalendarAutoAfterSave(item,isNew,authPromise){
+  const info=document.getElementById('firebaseTpInfo');
+  const setInfo=msg=>{if(info)info.textContent=msg;};
+  const sid=String(item.id);
+  if(tpCalendarExportInFlight.has(sid))return {ok:false,reason:'Kalenderübertragung läuft bereits'};
+  tpCalendarExportInFlight.add(sid);
+  renderTournamentPlannerAdminList();
+  setInfo('✓ In Firebase gespeichert. Google Kalender: vorhandene Termine werden geprüft …');
+  try{
+    if(authPromise)await authPromise;
+    if(isNew&&!item.googleEventId){
+      const nearby=await tpGoogleListNearby(item);
+      const possible=nearby.filter(e=>{
+        const m=tpCalendarMatch(item,e);
+        return m.sameUid||(m.sameName&&m.sameDate);
+      });
+      if(possible.length){
+        const message='Termin in Firebase gespeichert. Im Google Kalender gibt es '+possible.length+' mögliche Übereinstimmung(en). Bitte den bestehenden Termin über „Abgleichen / exportieren“ verknüpfen. Es wurde KEIN neuer Google-Termin angelegt.';
+        setInfo('⚠ '+message);showToast(message,14000);
+        return {ok:false,reason:'possible-duplicate'};
+      }
+      setInfo('✓ Firebase gespeichert. Google Kalender: neuer Termin wird erstellt …');
+      const created=await tpGoogleInsert(item);
+      // Die Google-ID sofort lokal sichern. Selbst wenn Firebase danach ausfällt,
+      // darf der Benutzer nicht versehentlich einen zweiten Termin erzeugen.
+      item.googleEventId=created.id;
+      item.googleEventCalendarId=created.calendarId;
+    }else if(item.googleEventId){
+      setInfo('✓ Firebase gespeichert. Google Kalender: bestehender Termin wird aktualisiert …');
+      await tpGoogleUpdate(item);
+    }else return {ok:false,reason:'no-google-id'};
+    item.calendarExported=true;
+    item.calendarExportedBeforeChange=false;
+    if(!save()){
+      const message='Google-Termin erfolgreich übertragen, aber lokale Ereignis-ID konnte nicht gespeichert werden. Bitte KEINEN neuen Export starten!';
+      setInfo('⚠ '+message);alert(message);return {ok:false,reason:'local-save'};
+    }
+    setInfo('✓ Google Kalender bestätigt. Speichere Google-Ereignis-ID in Firebase …');
+    const saved=await tpSyncEventToFirebase(item);
+    renderTournamentPlannerAdminList();
+    if(!saved){
+      const message='Google-Termin übertragen, aber Google-Ereignis-ID nicht in Firebase gespeichert. Bitte KEINEN zweiten Termin anlegen!';
+      setInfo('⚠ '+message);alert(message);return {ok:false,reason:'firebase-id'};
+    }
+    const message=isNew?'✓ Veranstaltung und Google-Kalendereintrag erstellt und gespeichert.':'✓ Bestehender Google-Kalendereintrag aktualisiert und gespeichert.';
+    setInfo(message);showToast(message,8000);
+    return {ok:true};
+  }catch(e){
+    console.error('Automatische Google-Kalender-Synchronisierung:',e);
+    const message='Veranstaltung in Firebase gespeichert, Google-Kalender jedoch nicht bestätigt: '+(e?.message||e)+'. Bitte unter „Vorhandene Veranstaltungen“ den Kalenderstatus prüfen.';
+    setInfo('⚠ '+message);showToast(message,14000);
+    return {ok:false,reason:e?.message||String(e)};
+  }finally{
+    tpCalendarExportInFlight.delete(sid);
+    renderTournamentPlannerAdminList();
+  }
+}
+
 async function saveAllTournamentPlannerChanges(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   if(!ecwRequireCentralSave('Turnierplaner speichern'))return {ok:false,error:'Firebase ist nicht verfügbar'};
-  const wasEditing=!!(document.getElementById('tpEditId')&&document.getElementById('tpEditId').value);
+  const editId=String(document.getElementById('tpEditId')?.value||'');
+  const wasEditing=!!editId;
+  const beforeIds=new Set((data.tournamentPlanner||[]).filter(x=>x&&x.id).map(x=>String(x.id)));
   if(tpCommitFormIfFilled()===false)return {ok:false,error:'Pflichtfeld fehlt'};
+  const newItems=(data.tournamentPlanner||[]).filter(x=>x&&x.id&&!beforeIds.has(String(x.id)));
+  const editedItem=editId?tpFindEvent(editId):null;
+  // Beim normalen Formularspeichern nur das eine betroffene Dokument schreiben.
+  // Die vollständige Synchronisierung ist für separate Massen-/Importvorgänge reserviert.
+  const firebaseTarget=newItems[0]||editedItem||null;
+  const calendarTarget=newItems[0]||((editedItem&&editedItem.googleEventId&&editedItem.calendarExportedBeforeChange)?editedItem:null);
+  const calendarIsNew=!!newItems.length;
+  // OAuth möglichst innerhalb der unmittelbaren Benutzeraktion anstoßen;
+  // nach einem langen Firebase-Speichervorgang können Browser Popups sperren.
+  const calendarAuth=calendarTarget&&tpCalendarSettings().clientId?tpGoogleToken():null;
+  if(calendarAuth)calendarAuth.catch(()=>{}); // unhandled rejection bis zur Auswertung vermeiden
   if(!save()){const i=document.getElementById('firebaseTpInfo');if(i)i.textContent='Fehler: lokales Speichern fehlgeschlagen';return {ok:false,error:'Lokales Speichern fehlgeschlagen'}}
   if(wasEditing&&tpReturnToList)tpReturnToEventList();
   tpRenderStats();
   tpRefreshHistoryIfOpen();
   const info=document.getElementById('firebaseTpInfo');
-  if(info)info.textContent='Turnierplaner wird in Programm und Firebase gespeichert …';
+  if(info)info.textContent=firebaseTarget?'Speichere Veranstaltung in Firebase …':'Turnierplaner wird in Firebase abgeglichen …';
   try{
     let fb=null;
-    if(firebaseReady&&firestoreDb)fb=await syncTournamentPlannerToFirebase();
+    if(firebaseTarget){
+      // Wichtig: KEIN ecwSafetyPreflight / KEINE erneute Speicherung aller
+      // Veranstaltungen / KEIN Abgleich mit möglicher Massenlöschung.
+      const singleOk=await tpSyncEventToFirebase(firebaseTarget);
+      fb=singleOk?{ok:true,count:1}:{ok:false,error:'Firebase-Speicherung der Veranstaltung fehlgeschlagen'};
+    }else if(firebaseReady&&firestoreDb){
+      fb=await syncTournamentPlannerToFirebase();
+    }
     renderTournamentPlannerAdminList();
     if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();
-    if(fb&&!fb.ok){showToast('Lokal gespeichert - aber Firebase: '+(fb.error||fb.message),8000);return {ok:false,error:fb.error||fb.message}}
-    showToast('Turnierplaner zentral in Firebase gespeichert ✓');
+    if(fb&&!fb.ok){if(info)info.textContent='⚠ Lokal gespeichert, aber Firebase-Speicherung fehlgeschlagen.';showToast('Lokal gespeichert - aber Firebase: '+(fb.error||fb.message),8000);return {ok:false,error:fb.error||fb.message}}
+    if(calendarTarget){
+      if(!tpCalendarSettings().clientId){
+        const message='Termin gespeichert, aber nicht in Google übertragen: Google Client-ID fehlt.';
+        if(info)info.textContent='⚠ '+message;
+        showToast(message,12000);
+        return {ok:true,fb,calendarOk:false};
+      }
+      const calendarResult=await tpCalendarAutoAfterSave(calendarTarget,calendarIsNew,calendarAuth);
+      if(!calendarResult.ok)return {ok:true,fb,calendarOk:false,calendarReason:calendarResult.reason};
+      return {ok:true,fb,calendarOk:true};
+    }
+    if(info)info.textContent='✓ Veranstaltung in Firebase gespeichert.';
+    showToast('Veranstaltung in Firebase gespeichert ✓');
     return {ok:true,fb};
   }catch(e){console.error(e);showToast('Speichern des Turnierplaners fehlgeschlagen: '+(e?.message||e),6000);return {ok:false,error:e?.message||String(e)}}
 }
@@ -5201,7 +5492,7 @@ function adminSection(s){
     +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
-   +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings();tpGoogleConnect()">Mit Google verbinden</button></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Der Kalender-Export (📅) steht nur im Admin-Bereich zur Verfügung. Google-Kalender: Nach dem ersten Export wird die Google-Ereignis-ID gespeichert. Bei einer Änderung wird nach Rückfrage derselbe Termin aktualisiert. Frühere Google-Einträge ohne gespeicherte ID und importierte .ics-Dateien müssen gegebenenfalls manuell aus dem Kalender entfernt werden. ↺ erlaubt erneuten Export.</div></div></div>'
+   +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings();tpGoogleConnect()">Mit Google verbinden</button></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Neue Termine werden beim Speichern automatisch in Google Kalender angelegt, sofern die Verbindung eingerichtet ist und keine mögliche Dublette gefunden wird. Bei einer Änderung eines bereits verknüpften Termins wird derselbe Kalendereintrag aktualisiert. Ältere Einträge ohne gespeicherte Google-ID werden mit „Export prüfen“ gesucht und sicher verknüpft. Doppelte Google-Termine können nach Auswahl des zu behaltenden Termins einzeln und nur nach Bestätigung gelöscht werden. Vor jedem neuen Export wird der Kalender abgeglichen.</div></div></div>'
    +'<div id="tpSub-players"><h3>Spielerliste (Auswahl für Turniere/Meisterschaften)</h3><div class="card"><div class="row"><input id="tpNewPlayer" type="text" placeholder="Name, z. B. Mustermann Max" style="flex:1" onkeydown="if(event.key===\'Enter\')tpAddPlayer()"><button type="button" onclick="tpAddPlayer()">Hinzufügen</button></div><div id="tpPlayersAdminList" style="margin-top:10px"></div></div></div>'
    +'<div id="tpSub-events"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar" style="margin:0 0 10px"><label style="margin:0">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div><div id="tpAdminList"></div></div>';
   renderTpPlayersAdminList();

@@ -1,11 +1,11 @@
 {
-  "version": "2.5.3",
-  "release": "EC Wegscheid V2.5.3 – Dokumentenverwaltung PDF / Whiteboard (TEST)",
+  "version": "2.5.4",
+  "release": "EC Wegscheid V2.5.4 + Doppel KO V2.6 – Integrationstest",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
       "status": "Version 2.5.2 enthalten",
-      "sha256": "fd4ceb1c60e54ff473f69b4ce979cf059412794f5c45e27f6b421074702102c6"
+      "sha256": "8d5b7a1d90de58808bc3f04eaa8151669dbff1eeedb6613a63cac5cefd37fae2"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
@@ -48,7 +48,17 @@
     "Einheitliche sichtbare Versionsnummer V2.5.0 in Hauptprogramm und eingebetteten Modulen",
     "Interne Links und Cache-Abfragen auf V2.5.0 umgestellt",
     "Zentrale SHA256-Prüfsummen der HTML-Module aktualisiert",
-    "Firebase-Regeln und private Datensicherungen bewusst NICHT in GitHub-Upload-Ordner enthalten"
+    "Firebase-Regeln und private Datensicherungen bewusst NICHT in GitHub-Upload-Ordner enthalten",
+    "V2.5.4: Button Drucken öffnet sofort ein Druckfenster und versucht nach dem Laden des PDFs den nativen Druckdialog automatisch aufzurufen; Wiederholen und PDF-Fallback verfügbar.",
+    "Doppel KO V2.6: getrennte JS-Datei, Firebase-Turnierarchiv, Ergebnisspeicherung, vollständige Whiteboard-Bedienung, eigener Admin-Menübutton"
   ],
-  "hinweis": "Dokumente in Firestore appSettings/druckdokumente und druckpdf_*; Regeln FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules vor Nutzung veröffentlichen."
+  "hinweis": "Dokumente in Firestore appSettings/druckdokumente und druckpdf_*; Regeln FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules vor Nutzung veröffentlichen. Automatischer PDF-Druckdialog ist browserabhängig und muss auf dem Samsung WM65B geprüft werden. 1 Exemplar kann nicht erzwungen werden.",
+  "doppelKo": {
+    "version": "2.6",
+    "status": "Integrationstest; Firebase erst nach Freigabe der Regeln und echtem Funktionstest",
+    "dateien": [
+      "doppel-ko.html",
+      "doppel-ko-app-v26.js"
+    ]
+  }
 }

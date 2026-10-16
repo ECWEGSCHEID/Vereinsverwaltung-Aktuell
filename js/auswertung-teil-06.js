@@ -382,6 +382,8 @@
       if(!target) return false;
       if(!window.isForcedWhiteboardView?.() && (!window.currentFirebaseUser || r==='guest')) return false;
 
+      if(target==='doppelko' || target==='doppel-ko' || target==='doppelkosystem'){ openDoppelKo(); return true; }
+
       if(target==='cup' || target==='cupauswertung'){
         openCup();
         return true;
@@ -510,6 +512,7 @@
       if(cb) cb.style.display=(u && (r==='admin'||r==='turnierauswertung'))?'':'none';
 const map={
         homeCupBtn:['admin','whiteboard','turnierauswertung'],
+        homeDoppelKoBtn:['admin','whiteboard','turnierauswertung'],
         homeStockdartBtn:['admin'],
         homeJmBtn:['admin','whiteboard','turnierauswertung']
       };
@@ -570,6 +573,7 @@ const map={
       const t = document.getElementById('headerTitle'), a = document.getElementById('adminCornerBtn');
       let title = 'EC Wegscheid Cupauswertung', admin = true;
       if (id === 'view-home') { title = 'EC Wegscheid Turnierauswertung'; admin = false; }
+      else if (id === 'view-doppelko') { title = 'Doppel KO System'; admin = false; }
       else if (id === 'view-stockdart') { title = 'Stockdartauswertung'; admin = false; }
       else if (id === 'view-auslosung') { title = 'Turnierauslosung'; admin = false; }
       else if (id === 'view-jahresmeisterschaft') { title = 'Zielschießen Jahresmeisterschaft'; admin = false; }
@@ -577,7 +581,45 @@ const map={
       if (t) t.textContent = title;
       if (a) { const r=window.getEffectiveRole?window.getEffectiveRole():(window.currentRole||'guest'); a.style.display = (admin && (r==='admin'||r==='turnierauswertung')) ? '' : 'none'; }
     }
-    function showHome() { const af = document.getElementById('auslosungFrame'); if (af) af.classList.remove('full'); showView('view-home'); }
+    /* V2.7: Whiteboard-Knopf im Doppel-KO-iFrame fordert echtes Vollbild
+       über das Elterndokument an; CSS bietet einen zuverlässigen Fallback. */
+    window.ECW_DKO_ENTER_WHITEBOARD = function() {
+      const frame = document.getElementById('doppelKoFrame');
+      if (!frame) return false;
+      document.body.classList.add('dko-whiteboard-active');
+      try {
+        if (document.fullscreenElement !== frame && typeof frame.requestFullscreen === 'function') {
+          const pending = frame.requestFullscreen({ navigationUI: 'hide' });
+          if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+        }
+      } catch (_) { /* CSS-Vollbild bleibt aktiv. */ }
+      return true;
+    };
+    window.ECW_DKO_EXIT_WHITEBOARD = function() {
+      document.body.classList.remove('dko-whiteboard-active');
+      const frame = document.getElementById('doppelKoFrame');
+      if (frame && document.fullscreenElement === frame && document.exitFullscreen) {
+        try { const pending = document.exitFullscreen(); if (pending && pending.catch) pending.catch(() => {}); } catch (_) {}
+      }
+    };
+    document.addEventListener('fullscreenchange', function() {
+      const frame = document.getElementById('doppelKoFrame');
+      if (frame && document.fullscreenElement !== frame && document.body.classList.contains('dko-whiteboard-active')) {
+        // V2.8: Browser verlassen beim Öffnen eines Druckdialogs oft automatisch
+        // den nativen Vollbildmodus. Das ist KEIN Wunsch, die Whiteboard-Ansicht
+        // zu schließen! Die CSS-Vollbildansicht bleibt daher erhalten.
+        // Ausschließlich „Zurück zur Eingabe“ beendet die Whiteboard-Ansicht.
+        try { frame.contentWindow.ECW_DKO_FIT_AFTER_PRINT?.(); } catch (_) {}
+      }
+    });
+    function showHome() { window.ECW_DKO_EXIT_WHITEBOARD(); const af = document.getElementById('auslosungFrame'); if (af) af.classList.remove('full'); showView('view-home'); }
+    function openDoppelKo() {
+      if(!requireRole(['admin','whiteboard','turnierauswertung'],'Doppel KO System'))return;
+      const frame=document.getElementById('doppelKoFrame');
+      if(frame && !frame.dataset.loaded){frame.src='doppel-ko.html?v=2.8-druck-whiteboard';frame.dataset.loaded='1';}
+      showView('view-doppelko');
+    }
+    window.openDoppelKo=openDoppelKo;
     function openCup() { if(!requireRole(['admin','whiteboard','turnierauswertung'],'Cupauswertung')) return; goToMainMenu(); }
     function openStockdart() {
       if(!requireRole(['admin'],'Stockdartauswertung')) return;

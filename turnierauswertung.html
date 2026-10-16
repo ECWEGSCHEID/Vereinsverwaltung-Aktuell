@@ -322,6 +322,30 @@
     #view-stockdart .sd-bar .btn { width: auto; padding: 6px 12px; font-size: .85rem; }
     #stockdartFrame { width: 100%; height: calc(100vh - 118px); height: calc(100dvh - 118px); min-height: 480px; border: 0; border-radius: 6px; background: transparent; }
 
+    #view-doppelko { padding: 3px; backdrop-filter: none; }
+    #doppelKoFrame { display:block; width:100%; height:calc(100dvh - 120px); min-height:540px; border:0; border-radius:8px; background:#180b0e; }
+    @media(max-width:750px){#doppelKoFrame{height:calc(100dvh - 165px);min-height:450px}}
+    /* V2.7: Doppel-KO-Whiteboard übernimmt die gesamte sichtbare Fläche.
+       Greift auch dann, wenn Samsung Internet die Fullscreen-API ablehnt. */
+    body.dko-whiteboard-active #view-doppelko {
+      position: fixed !important; inset: 0 !important;
+      width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+      max-width: none !important; min-height: 0 !important;
+      margin: 0 !important; padding: 0 !important; border: 0 !important;
+      border-radius: 0 !important; box-shadow: none !important;
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+      background: #130b0e !important; z-index: 2147483000 !important;
+      overflow: hidden !important;
+    }
+    body.dko-whiteboard-active #doppelKoFrame {
+      display: block !important; width: 100% !important; height: 100% !important;
+      min-height: 0 !important; border: 0 !important; border-radius: 0 !important;
+    }
+    body.dko-whiteboard-active #view-doppelko > button { display: none !important; }
+    #doppelKoFrame:fullscreen {
+      width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+      min-height: 0 !important; border-radius: 0 !important;
+    }
     /* Turnierauslosung (eingebettete Live-Auslosung) */
     /* backdrop-filter würde position:fixed im Rahmen auf die Ansicht begrenzen -> hier aus */
     #view-auslosung { padding: 4px; gap: 4px; backdrop-filter: none; -webkit-backdrop-filter: none; }
@@ -766,11 +790,15 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       <h2 style="margin-bottom: 6px; text-align: center; font-size: 1.05rem;">Bereich auswählen</h2>
       <div class="tournament-grid home-grid">
         <button id="homeCupBtn" class="btn-tournament btn-home" onclick="openCup()"><span class="ht"><b>Cupauswertung</b><small>Turniere, Gruppen, Tabellen, KO-Runden</small></span></button>
+        <button id="homeDoppelKoBtn" class="btn-tournament btn-home" onclick="openDoppelKo()"><span class="ht"><b>Doppel KO System</b><small>8 / 16 / 32 Spieler · 4 Bahnen · Wertungsblätter</small></span></button>
         <button id="homeStockdartBtn" class="btn-tournament btn-home" onclick="openStockdart()"><span class="ht"><b>Stockdartauswertung</b><small>Stockschießen &amp; Darten, Urkunden, Ergebnisliste</small></span></button>
         <button id="homeJmBtn" class="btn-tournament btn-home" onclick="openJahresmeisterschaft()"><span class="ht"><b>Zielschießen Jahresmeisterschaft</b><small>Jahreswertung</small></span></button>
         <button id="homeDrawBtn" class="btn-tournament btn-home" onclick="window.openAuslosung()"><span class="ht"><b>Turnierauslosung</b><small>Live-Auslosung der Mannschaften, Liste drucken</small></span></button>
       </div>
     </div>
+
+    <!-- Doppel-KO: eigenständige Turnierverwaltung, vollständige Touch-Bedienung -->
+    <div id="view-doppelko" class="view"><iframe id="doppelKoFrame" title="Doppel KO System" allow="fullscreen" allowfullscreen></iframe><button class="btn btn-mainmenu" onclick="showHome()">← Zurück zur Turnierauswertung</button></div>
 
     <!-- Stockdartauswertung (eigene Seite, eingebettet) -->
     <div id="view-stockdart" class="view">
@@ -1179,7 +1207,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
   <script src="js/auswertung-teil-03.js?v=2.5.2"></script>
   <script src="js/auswertung-teil-04.js?v=2.5.2"></script>
   <script src="js/auswertung-teil-05.js?v=2.5.2"></script>
-  <script src="js/auswertung-teil-06.js?v=2.5.2"></script>
+  <script src="js/auswertung-teil-06.js?v=2.6-komplett"></script>
 
 <div id="centralBackupOverlay" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);padding:18px;overflow:auto;">
     <div style="max-width:760px;margin:45px auto;background:rgba(25,29,35,.98);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);">

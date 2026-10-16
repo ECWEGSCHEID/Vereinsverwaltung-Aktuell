@@ -1,6 +1,6 @@
 
     import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, getDocs, collection, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import {
       getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
       setPersistence, browserLocalPersistence
@@ -155,6 +155,60 @@
         error
       );
     }
+
+    // Doppel KO: jedes Turnier in einem eigenen Firestore-Dokument.
+    // Kein ungesicherter öffentlicher Schreibzugriff vom Whiteboard.
+    const DKO_COLLECTION='doppelKoTurniere';
+    function dkoUser(){return CENTRAL_PARENT?.firebaseAuthUser || auth.currentUser || null;}
+    function dkoRequireUser(){
+      const u=dkoUser();
+      if(!u)throw new Error('Für Firebase bitte am Whiteboard mit dem freigegebenen Benutzerkonto anmelden. Die lokale Bedienung bleibt möglich.');
+      return u;
+    }
+    function dkoCheckId(id){
+      if(!/^[a-zA-Z0-9_-]{8,80}$/.test(String(id||'')))throw new Error('Ungültige Turnierkennung');
+      return String(id);
+    }
+    function dkoDoc(id){return doc(db,DKO_COLLECTION,dkoCheckId(id));}
+    function dkoCompat(id){return CENTRAL_PARENT?.firestoreDb?.collection(DKO_COLLECTION).doc(dkoCheckId(id))||null;}
+    window.ECW_DKO_API={
+      ready:()=>!!dkoUser(),
+      async login(email,password){
+        if(CENTRAL_PARENT)throw new Error('Bereits über die Vereinsverwaltung angemeldet.');
+        const credential=await signInWithEmailAndPassword(auth,String(email||'').trim(),String(password||''));
+        const u=credential.user;
+        const snap=await getDoc(doc(db,'users',u.uid));
+        const profile=snap.exists()?snap.data():null;
+        if(!profile||(profile.admin!==true&&profile.whiteboard!==true&&profile.doppelKoEdit!==true)){
+          await signOut(auth);throw new Error('Dieses Benutzerkonto ist nicht für Doppel KO freigegeben.');
+        }
+        return true;
+      },
+      user:()=>dkoUser()?.uid||null,
+      async list(){
+        dkoRequireUser();
+        const snap=CENTRAL_PARENT?await CENTRAL_PARENT.firestoreDb.collection(DKO_COLLECTION).get():await getDocs(collection(db,DKO_COLLECTION));
+        return snap.docs.map(d=>{const x=d.data();return {id:d.id,name:x.name,date:x.date,archived:x.archived,updatedAt:x.updatedAt,revision:x.revision,playerCount:x.state?.players?.length||0}}).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+      },
+      async get(id){dkoRequireUser();const snap=CENTRAL_PARENT?await dkoCompat(id).get():await getDoc(dkoDoc(id));return (typeof snap.exists==='function'?snap.exists():snap.exists)?{id:snap.id,...snap.data()}:null},
+      async save(id,content,expectedRevision){
+        const user=dkoRequireUser();const ref=CENTRAL_PARENT?dkoCompat(id):dkoDoc(id);
+        const input=JSON.parse(JSON.stringify(content));
+        if(!input.state||!Array.isArray(input.state.players)||!input.state.results)throw new Error('Ungültige Turnierdaten');
+        const saveFn=async tx=>{
+          const existing=await tx.get(ref);
+          const present=typeof existing.exists==='function'?existing.exists():existing.exists;
+          const current=present?Number(existing.data().revision||0):0;
+          if(current!==Number(expectedRevision||0))throw new Error('KONFLIKT: Dieses Turnier wurde auf einem anderen Gerät geändert. Bitte den Firebase-Stand erneut laden.');
+          const revision=current+1;
+          tx.set(ref,{...input,revision,updatedAt:new Date().toISOString(),updatedBy:user.uid});
+          return revision;
+        };
+        return CENTRAL_PARENT?CENTRAL_PARENT.firestoreDb.runTransaction(saveFn):runTransaction(db,saveFn);
+      },
+      async remove(id){dkoRequireUser();return CENTRAL_PARENT?dkoCompat(id).delete():deleteDoc(dkoDoc(id))},
+      watch(id,onData,onError){dkoRequireUser();return CENTRAL_PARENT?dkoCompat(id).onSnapshot(s=>onData(s.exists?{id:s.id,...s.data()}:null),onError):onSnapshot(dkoDoc(id),s=>onData(s.exists()?{id:s.id,...s.data()}:null),onError)}
+    };
 
     // Im eingebetteten Adminmodus wird die bereits bestehende zentrale Sitzung
     // der Vereinsverwaltung übernommen. Es gibt KEINE zweite Anmeldung.
