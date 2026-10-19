@@ -32,26 +32,30 @@
       try{
         const p=window.parent;
         return p.location.origin===location.origin && !!p.firebaseAuthUser &&
-          p.__ecwVerifiedResultUid===p.firebaseAuthUser.uid;
+          p.__ecwVerifiedResultUid===p.firebaseAuthUser.uid &&
+          p.__ecwVerifiedWhiteboardUid===p.firebaseAuthUser.uid;
       }catch(e){return false;}
     }
     const ECW_FORCED_WHITEBOARD=verifiedCentralWhiteboard();
 
     function getCentralParent(){
-      if(!ECW_EMBEDDED_ADMIN || window.parent===window) return null;
+      if(window.parent===window)return null;
       try{
         const p=window.parent;
-        if(
-          p &&
-          p.appPermissions?.admin === true &&
-          p.firebaseAuthUser &&
-          p.firestoreDb
-        ) return p;
+        if(p.location.origin!==location.origin || !p.firebaseAuthUser || !p.firestoreDb)return null;
+        // Admin und Whiteboard getrennt pruefen. Ein URL-Parameter alleine
+        // reicht nicht aus, um eine der beiden Rollen zu erhalten.
+        if(ECW_EMBEDDED_ADMIN && p.appPermissions?.admin===true)return p;
+        if(ECW_FORCED_WHITEBOARD &&
+           p.__ecwVerifiedResultUid===p.firebaseAuthUser.uid &&
+           p.__ecwVerifiedWhiteboardUid===p.firebaseAuthUser.uid)return p;
       }catch(e){}
       return null;
     }
 
     const CENTRAL_PARENT = getCentralParent();
+    const CENTRAL_ADMIN_PARENT=!!(CENTRAL_PARENT && ECW_EMBEDDED_ADMIN);
+    const CENTRAL_WHITEBOARD_PARENT=!!(CENTRAL_PARENT && ECW_FORCED_WHITEBOARD && !CENTRAL_ADMIN_PARENT);
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -92,13 +96,13 @@
     }
 
     window.getEffectiveRole = function(){
-      if (CENTRAL_PARENT) return 'admin';
-      if (ECW_FORCED_WHITEBOARD && !window.ECW_ADMIN_OVERRIDE) return 'whiteboard';
+      if (CENTRAL_ADMIN_PARENT) return 'admin';
+      if (CENTRAL_WHITEBOARD_PARENT && !window.ECW_ADMIN_OVERRIDE) return 'whiteboard';
       return String(window.currentRole || 'guest').trim().toLowerCase();
     };
 
     window.isForcedWhiteboardView = function(){
-      return ECW_FORCED_WHITEBOARD && !window.ECW_ADMIN_OVERRIDE && !CENTRAL_PARENT;
+      return CENTRAL_WHITEBOARD_PARENT && !window.ECW_ADMIN_OVERRIDE;
     };
 
     function centralUid(){
@@ -243,13 +247,15 @@
       watch(id,onData,onError){dkoRequireUser();return CENTRAL_PARENT?dkoCompat(id).onSnapshot(s=>onData(s.exists?{id:s.id,...s.data()}:null),onError):onSnapshot(dkoDoc(id),s=>onData(s.exists()?{id:s.id,...s.data()}:null),onError)}
     };
 
-    // Im eingebetteten Adminmodus wird die bereits bestehende zentrale Sitzung
-    // der Vereinsverwaltung übernommen. Es gibt KEINE zweite Anmeldung.
+    // Zentral authentifizierte Admin- ODER Whiteboard-Sitzung uebernehmen.
+    // Firebase im iFrame darf keinen zweiten Login erzwingen.
     if(CENTRAL_PARENT){
       window.currentFirebaseUser=CENTRAL_PARENT.firebaseAuthUser;
-      window.currentUserProfile={admin:true,name:'Administrator'};
-      window.currentRole='admin';
-      window.firebaseLogin=async()=>{ throw new Error('Im Verwaltungsmodus ist keine zweite Anmeldung erforderlich.'); };
+      window.currentUserProfile=CENTRAL_ADMIN_PARENT
+        ? {admin:true,name:'Administrator'}
+        : {whiteboard:true,name:'Whiteboard'};
+      window.currentRole=CENTRAL_ADMIN_PARENT?'admin':'whiteboard';
+      window.firebaseLogin=async()=>{ throw new Error('Bereits ueber die Vereinsverwaltung angemeldet.'); };
       window.firebaseLogout=async()=>{};
     }else{
       await setPersistence(auth, browserLocalPersistence);
@@ -273,10 +279,12 @@
     async function readTarget(t){
       if(t.userProfile){
         if(CENTRAL_PARENT){
-          const p=CENTRAL_PARENT.appPermissions?.admin===true
+          const p=CENTRAL_ADMIN_PARENT
             ? {admin:true,name:CENTRAL_PARENT.firebaseAuthUser?.email||'Administrator'}
-            : null;
-          return p ? {...p,active:true,role:'admin'} : null;
+            : CENTRAL_WHITEBOARD_PARENT
+              ? {whiteboard:true,name:CENTRAL_PARENT.firebaseAuthUser?.email||'Whiteboard'}
+              : null;
+          return p ? {...p,active:true,role:CENTRAL_ADMIN_PARENT?'admin':'whiteboard'} : null;
         }
         const s=await getDoc(doc(db,'users',t.userId));
         if(!s.exists())return null;
@@ -616,12 +624,13 @@
     };
 
     if(CENTRAL_PARENT){
-      // Zentraler Verwaltungsmodus: Sitzung sofort übernehmen und Loginfenster
-      // sicher schließen, sobald die Seite aufgebaut ist.
-      const activateCentralAdmin=()=>{
+      // Bereits gepruefte zentrale Anmeldung ohne zweite Passwortabfrage.
+      const activateCentralSession=()=>{
         window.currentFirebaseUser=CENTRAL_PARENT.firebaseAuthUser;
-        window.currentUserProfile={admin:true,name:CENTRAL_PARENT.firebaseAuthUser?.email||'Administrator'};
-        window.currentRole='admin';
+        window.currentUserProfile=CENTRAL_ADMIN_PARENT
+          ? {admin:true,name:CENTRAL_PARENT.firebaseAuthUser?.email||'Administrator'}
+          : {whiteboard:true,name:'Whiteboard'};
+        window.currentRole=CENTRAL_ADMIN_PARENT?'admin':'whiteboard';
 
         const ov=document.getElementById('loginOverlay');
         if(ov)ov.style.display='none';
@@ -640,9 +649,9 @@
       };
 
       if(document.readyState==='loading'){
-        document.addEventListener('DOMContentLoaded',activateCentralAdmin,{once:true});
+        document.addEventListener('DOMContentLoaded',activateCentralSession,{once:true});
       }else{
-        activateCentralAdmin();
+        activateCentralSession();
       }
     }else{
       onAuthStateChanged(auth,async user=>{

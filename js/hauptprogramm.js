@@ -2415,10 +2415,9 @@ function isEcwTournamentAppUrl(value){
 function isSoloPyramideUrl(value){
  try{
    const u=new URL(value,location.href);
-   return u.origin==='https://ecwegscheid.github.io' && (
-     /^\/Vereinsverwaltung-Aktuell\/solo-pyramide\.html$/i.test(u.pathname) ||
-     /^\/Solo-Pyramide\/(?:index\.html)?$/i.test(u.pathname)
-   );
+   const localSolo=u.origin===location.origin && /(?:^|\/)solo-pyramide\.html$/i.test(u.pathname);
+   const legacySolo=u.origin==='https://ecwegscheid.github.io' && /^\/Solo-Pyramide\/(?:index\.html)?$/i.test(u.pathname);
+   return localSolo || legacySolo;
  }catch(e){return false}
 }
 const WHITEBOARD_RESULT_DEFAULTS={
@@ -2435,9 +2434,9 @@ function ecwInternalResultMode(value){
  try{
    const u=new URL(value,location.href);
    if(isSoloPyramideUrl(u.href))return 'soloPyramide';
-   const local=/^\/Vereinsverwaltung-Aktuell\/turnierauswertung\.html$/i.test(u.pathname);
-   const legacy=/^\/Turnierverwaltung\/?$/i.test(u.pathname);
-   if(u.origin!=='https://ecwegscheid.github.io'||(!local&&!legacy))return '';
+   const local=u.origin===location.origin && /(?:^|\/)turnierauswertung\.html$/i.test(u.pathname);
+   const legacy=u.origin==='https://ecwegscheid.github.io' && /^\/Turnierverwaltung\/?$/i.test(u.pathname);
+   if(!local&&!legacy)return '';
    const mode=ecwTournamentModeFromUrl(u.href);
    return ['cup','doppelko','jahresmeisterschaft','auslosung','stockdart'].includes(mode)?mode:'';
  }catch(e){return ''}
@@ -2596,7 +2595,7 @@ async function openExternalPage(value,title){
  if(isEcwTournament){
    try{
      const normalized=new URL('turnierauswertung.html',location.href);
-     normalized.searchParams.set('v','2.9.0-ergebnisse-wb-test');
+     normalized.searchParams.set('v','2.9.2-whiteboard-session-test');
      normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
@@ -2609,7 +2608,7 @@ async function openExternalPage(value,title){
  if(isSoloPyramide){
    try{
      const localSolo=new URL('solo-pyramide.html',location.href);
-     localSolo.searchParams.set('v','2.9.0-ergebnisse-wb-test');
+     localSolo.searchParams.set('v','2.9.2-whiteboard-session-test');
      frameUrl=localSolo.href;
    }catch(e){console.warn('Solo-Testpfad:',e);}
  }
@@ -2619,18 +2618,24 @@ async function openExternalPage(value,title){
  // V2.9.1: Die Solo-Pyramide wird bei jedem Oeffnen anhand des frisch
  // geprueften Firestore-Profils als Whiteboard gestartet. Keine zweite
  // Passwortabfrage und keine Speicherung eines privilegierten Solo-Logins.
- if(isSoloPyramide && firebaseAuthUser &&
+ // V2.9.2: Dieselbe frisch in Firestore gepruefte Whiteboard-Sitzung
+ // fuer ALLE Ergebnisprogramme nutzen. Kein erneutes Login in den iFrames.
+ // Nicht der URL-Parameter, sondern die bestaetigte Eltern-Sitzung erteilt Rechte.
+ const verifiedWhiteboard=!!(firebaseAuthUser &&
     window.__ecwVerifiedResultUid===firebaseAuthUser.uid &&
-    window.__ecwVerifiedWhiteboardUid===firebaseAuthUser.uid){
+    window.__ecwVerifiedWhiteboardUid===firebaseAuthUser.uid);
+ if(verifiedWhiteboard && isWhiteboardInternalResultAllowed(url)){
   try{
    const wu=new URL(frameUrl,location.href);
-   wu.searchParams.set('mode','whiteboard');
+   if(isSoloPyramide)wu.searchParams.set('mode','whiteboard');
+   else wu.searchParams.set('whiteboard','1');
    frameUrl=wu.href;
   }catch(e){}
- }else if(!isSoloPyramide && isWhiteboardUser() && isWhiteboardInternalResultAllowed(url)){
+ }else if(isSoloPyramide && firebaseAuthUser && appPermissions.admin===true){
+  // Admin erhaelt seine bereits authentifizierte zentrale Sitzung.
   try{
    const wu=new URL(frameUrl,location.href);
-   wu.searchParams.set('whiteboard','1');
+   wu.searchParams.set('mode','admin-embedded');
    frameUrl=wu.href;
   }catch(e){}
  }

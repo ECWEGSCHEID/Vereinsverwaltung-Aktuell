@@ -442,10 +442,7 @@ function showLoginScreen(){
 
     <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444;">
       <h3 style="margin-top:0; font-size:14px; color:#81c784;">🖥️ Informationssystem (Vereins-Whiteboard)</h3>
-      <p style="font-size:11px; color:#aaa; margin-top:0;">Zugriff auf alle Spieler und Aktionen für das Whiteboard im Verein.</p>
-      <label style="font-size:12px;">Informationssystem Passwort:</label>
-      <input type="password" id="loginInfoSystemPw" class="adminInput" autocomplete="current-password" spellcheck="false" placeholder="Informationssystem Passwort">
-      <button class="btn" style="background:#388e3c; color:#fff;" onclick="submitInfoSystemLogin()">Als Informationssystem anmelden</button>
+      <p style="font-size:12px; color:#ddd; margin:0;">Bitte über die angemeldete EC-Wegscheid-Vereinsverwaltung öffnen. Das Informationssystem benötigt hier kein zweites Passwort.</p>
     </div>
   `);
 }
