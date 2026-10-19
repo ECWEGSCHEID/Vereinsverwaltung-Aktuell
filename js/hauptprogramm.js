@@ -361,7 +361,10 @@ initFirebaseInfo();
 if(firebaseReady&&window.firebaseAuth){
  window.firebaseAuth.onAuthStateChanged(async user=>{
    firebaseAuthUser=user||null; window.firebaseAuthUser=firebaseAuthUser;
-   if(window.__ecwVerifiedResultUid!==firebaseAuthUser?.uid)window.__ecwVerifiedResultUid=null;
+   if(window.__ecwVerifiedResultUid!==firebaseAuthUser?.uid){
+     window.__ecwVerifiedResultUid=null;
+     window.__ecwVerifiedWhiteboardUid=null;
+   }
    window.__ecwAuthInitialResolved=true;
    window.__ecwAuthInitialUser=firebaseAuthUser;
    if(!user&&!isPublicWhiteboardMode()){
@@ -930,6 +933,10 @@ function isWhiteboardUser(){
  if(isPublicWhiteboardMode())return true;
  if(!firebaseAuthUser||appPermissions.admin===true)return false;
  if(appPermissions.whiteboard===true)return true;
+ // V2.9.1: Firestore-Profile mit role='whiteboard' ebenfalls als
+ // Whiteboard erkennen. Ohne diese Prüfung wurde die Solo-Pyramide beim
+ // erneuten Öffnen nicht mit der bereits verifizierten Sitzung gestartet.
+ if(String(appPermissions.role||'').trim().toLowerCase()==='whiteboard')return true;
  // Kompatibilität mit dem zuerst angelegten Profil ohne Whiteboard-Feld.
  return !Object.prototype.hasOwnProperty.call(appPermissions,'whiteboard')
    && appPermissions.shView===true && appPermissions.tp===true
@@ -2516,6 +2523,7 @@ let externalPreviousView='startseite',externalPreviousSubmenu=-1;
 // Nur eine tatsaechlich angemeldete und in Firestore berechtigte Person darf
 // die eingebetteten internen Ergebnisprogramme im Whiteboardmodus starten.
 window.__ecwVerifiedResultUid=null;
+window.__ecwVerifiedWhiteboardUid=null;
 window.__ecwPendingInternalResult=null;
 async function ecwVerifyResultUser(){
  const u=firebaseAuthUser;
@@ -2527,17 +2535,22 @@ async function ecwVerifyResultUser(){
   const legacy=!Object.prototype.hasOwnProperty.call(profile,'whiteboard')
    && profile.shView===true && profile.tp===true
    && !['tv','jm','t','o','n','p','sp','mv','m','lk','sh'].some(k=>profile[k]===true);
-  return profile.admin===true || profile.whiteboard===true ||
+  const isVerifiedWhiteboard=profile.whiteboard===true ||
    String(profile.role||'').trim().toLowerCase()==='whiteboard' || legacy;
- }catch(e){console.error('Ergebnis-Berechtigung:',e);return false;}
+  // Nur ein aktuell von Firestore bestaetigtes Whiteboard-Profil darf
+  // beim erneuten Oeffnen der Solo-Pyramide den Kiosk-Modus erhalten.
+  window.__ecwVerifiedWhiteboardUid=isVerifiedWhiteboard?u.uid:null;
+  return profile.admin===true || isVerifiedWhiteboard;
+ }catch(e){window.__ecwVerifiedWhiteboardUid=null;console.error('Ergebnis-Berechtigung:',e);return false;}
 }
 async function openExternalPage(value,title){
  const checkUrl=externalWebUrl(value);
  const resultApp=isEcwTournamentAppUrl(checkUrl)||isSoloPyramideUrl(checkUrl);
- if(resultApp && (isPublicWhiteboardMode()||isWhiteboardUser())){
+ if(resultApp && (isPublicWhiteboardMode()||isWhiteboardUser()||isWhiteboardKioskAccount())){
   // Ohne echte Firebase-Sitzung darf der Browser die App nicht als Whiteboard starten.
   if(!firebaseAuthUser){
    window.__ecwVerifiedResultUid=null;
+   window.__ecwVerifiedWhiteboardUid=null;
    window.__ecwPendingInternalResult={url:value,title:title};
    loginPurpose='internalResult';
    showView('login');
@@ -2545,6 +2558,7 @@ async function openExternalPage(value,title){
   }
   if(!await ecwVerifyResultUser()){
    window.__ecwVerifiedResultUid=null;
+   window.__ecwVerifiedWhiteboardUid=null;
    showToast('Benutzer nicht fuer interne Ergebnisse freigegeben.',5000);
    return;
   }
@@ -2602,13 +2616,23 @@ async function openExternalPage(value,title){
  // V2.8.9: Auch ein regulär mit Firebase angemeldetes Whiteboard muss den
  // Whiteboard-Modus an die eingebettete Solo-Pyramide übergeben.
  // Die Solo-Pyramide selbst prüft zusätzlich die authentifizierte Eltern-Sitzung.
- if(isWhiteboardUser() && isWhiteboardInternalResultAllowed(url)){
-   try{
-     const wu=new URL(frameUrl,location.href);
-     if(isSoloPyramideUrl(url))wu.searchParams.set('mode','whiteboard');
-     else wu.searchParams.set('whiteboard','1');
-     frameUrl=wu.href;
-   }catch(e){}
+ // V2.9.1: Die Solo-Pyramide wird bei jedem Oeffnen anhand des frisch
+ // geprueften Firestore-Profils als Whiteboard gestartet. Keine zweite
+ // Passwortabfrage und keine Speicherung eines privilegierten Solo-Logins.
+ if(isSoloPyramide && firebaseAuthUser &&
+    window.__ecwVerifiedResultUid===firebaseAuthUser.uid &&
+    window.__ecwVerifiedWhiteboardUid===firebaseAuthUser.uid){
+  try{
+   const wu=new URL(frameUrl,location.href);
+   wu.searchParams.set('mode','whiteboard');
+   frameUrl=wu.href;
+  }catch(e){}
+ }else if(!isSoloPyramide && isWhiteboardUser() && isWhiteboardInternalResultAllowed(url)){
+  try{
+   const wu=new URL(frameUrl,location.href);
+   wu.searchParams.set('whiteboard','1');
+   frameUrl=wu.href;
+  }catch(e){}
  }
  const direct=document.getElementById('externalNewTab');direct.href=frameUrl;
  showView('externalPage');
