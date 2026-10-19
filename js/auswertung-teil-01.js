@@ -55,6 +55,16 @@
     function roleFromCentralProfile(p){
       if(!p || typeof p!=='object') return 'guest';
       if(p.admin === true) return 'admin';
+      // Das Whiteboard ist ein eigenes, eingeschraenktes Firebase-Profil.
+      // Die Hauptverwaltung erkennt es anhand von `whiteboard` (und bei
+      // historischen Profilen anhand von shView + tp ohne Admin-Rechte).
+      // Dieselbe Erkennung muss in der separaten Turnierauswertung gelten.
+      if(p.whiteboard === true || String(p.role||'').trim().toLowerCase()==='whiteboard')
+        return 'whiteboard';
+      if(!Object.prototype.hasOwnProperty.call(p,'whiteboard')
+         && p.shView===true && p.tp===true
+         && !['tv','jm','t','o','n','p','sp','mv','m','lk','sh'].some(k=>p[k]===true))
+        return 'whiteboard';
       return 'user';
     }
 

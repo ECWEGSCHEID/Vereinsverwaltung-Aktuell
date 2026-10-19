@@ -2436,8 +2436,9 @@ function ecwInternalResultMode(value){
 }
 function isWhiteboardInternalResultAllowed(value){
  const mode=ecwInternalResultMode(value);
+ if(mode==='stockdart')return false; // Whiteboard: niemals Stockdart.
  if(['cup','doppelko','jahresmeisterschaft','auslosung','soloPyramide'].includes(mode))return true;
- return !!mode && whiteboardResultPermissions[mode]===true;
+ return false;
 }
 async function loadWhiteboardResultPermissions(){
  if(!firestoreDb)return whiteboardResultPermissions;
@@ -2450,7 +2451,7 @@ async function loadWhiteboardResultPermissions(){
        cup:x.cup!==false,
        jahresmeisterschaft:x.jahresmeisterschaft!==false,
        auslosung:x.auslosung!==false,
-       stockdart:x.stockdart===true,
+       stockdart:false,
        soloPyramide:x.soloPyramide!==false
      };
    }else whiteboardResultPermissions={...WHITEBOARD_RESULT_DEFAULTS};
@@ -2468,7 +2469,7 @@ async function saveWhiteboardResultPermissions(){
    cup:get('wbPermCup'),
    jahresmeisterschaft:get('wbPermJm'),
    auslosung:get('wbPermAuslosung'),
-   stockdart:get('wbPermStockdart'),
+   stockdart:false, // Stockdart bleibt ausschliesslich ADMIN vorbehalten.
    soloPyramide:get('wbPermSoloPyramide'),
    doppelko:get('wbPermDoppelKo'),
    updatedAt:new Date().toISOString()
@@ -2495,7 +2496,7 @@ function renderWhiteboardPermissionsAdmin(){
   +'<label class="checkbox-row"><input id="wbPermCup" type="checkbox" '+(p.cup?'checked':'')+'><span>Cupauswertung</span></label>'
   +'<label class="checkbox-row"><input id="wbPermJm" type="checkbox" '+(p.jahresmeisterschaft?'checked':'')+'><span>Jahresmeisterschaft Ziel</span></label>'
   +'<label class="checkbox-row"><input id="wbPermAuslosung" type="checkbox" '+(p.auslosung?'checked':'')+'><span>Turnierauslosung</span></label>'
-  +'<label class="checkbox-row"><input id="wbPermStockdart" type="checkbox" '+(p.stockdart?'checked':'')+'><span>Stockdartauswertung</span></label>'
+  +'<p class="small">Stockdartauswertung: ausschliesslich Administrator (nicht fuer das Whiteboard freigegeben).</p>'
   +'<label class="checkbox-row"><input id="wbPermDoppelKo" type="checkbox" '+(p.doppelko!==false?'checked':'')+'><span>Doppel KO System</span></label>'
   +'<label class="checkbox-row"><input id="wbPermSoloPyramide" type="checkbox" '+(p.soloPyramide?'checked':'')+'><span>Solo Pyramide</span></label>'
   +'<button class="primary" style="width:100%;margin-top:14px" onclick="saveWhiteboardResultPermissions()">Freigaben speichern</button>'
@@ -2543,7 +2544,7 @@ function openExternalPage(value,title){
  if(isEcwTournament){
    try{
      const normalized=new URL('turnierauswertung.html',getBaseUrl());
-     normalized.searchParams.set('v','2.5.2');
+     normalized.searchParams.set('v','2.8.8-wb-test');
      normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
