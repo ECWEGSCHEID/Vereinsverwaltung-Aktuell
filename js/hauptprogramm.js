@@ -361,6 +361,7 @@ initFirebaseInfo();
 if(firebaseReady&&window.firebaseAuth){
  window.firebaseAuth.onAuthStateChanged(async user=>{
    firebaseAuthUser=user||null; window.firebaseAuthUser=firebaseAuthUser;
+   if(window.__ecwVerifiedResultUid!==firebaseAuthUser?.uid)window.__ecwVerifiedResultUid=null;
    window.__ecwAuthInitialResolved=true;
    window.__ecwAuthInitialUser=firebaseAuthUser;
    if(!user&&!isPublicWhiteboardMode()){
@@ -2511,7 +2512,44 @@ function clearExternalPage(){
  const page=document.getElementById('externalPage');if(page)page.classList.remove('ecw-tournament-embed');
 }
 let externalPreviousView='startseite',externalPreviousSubmenu=-1;
-function openExternalPage(value,title){
+// V2.9.0: Ein oeffentlicher Whiteboard-Start ist KEIN Firebase-Login.
+// Nur eine tatsaechlich angemeldete und in Firestore berechtigte Person darf
+// die eingebetteten internen Ergebnisprogramme im Whiteboardmodus starten.
+window.__ecwVerifiedResultUid=null;
+window.__ecwPendingInternalResult=null;
+async function ecwVerifyResultUser(){
+ const u=firebaseAuthUser;
+ if(!u||!firestoreDb)return false;
+ try{
+  const snap=await firestoreDb.collection('users').doc(u.uid).get();
+  if(!snap.exists)return false;
+  const profile=snap.data()||{};
+  const legacy=!Object.prototype.hasOwnProperty.call(profile,'whiteboard')
+   && profile.shView===true && profile.tp===true
+   && !['tv','jm','t','o','n','p','sp','mv','m','lk','sh'].some(k=>profile[k]===true);
+  return profile.admin===true || profile.whiteboard===true ||
+   String(profile.role||'').trim().toLowerCase()==='whiteboard' || legacy;
+ }catch(e){console.error('Ergebnis-Berechtigung:',e);return false;}
+}
+async function openExternalPage(value,title){
+ const checkUrl=externalWebUrl(value);
+ const resultApp=isEcwTournamentAppUrl(checkUrl)||isSoloPyramideUrl(checkUrl);
+ if(resultApp && (isPublicWhiteboardMode()||isWhiteboardUser())){
+  // Ohne echte Firebase-Sitzung darf der Browser die App nicht als Whiteboard starten.
+  if(!firebaseAuthUser){
+   window.__ecwVerifiedResultUid=null;
+   window.__ecwPendingInternalResult={url:value,title:title};
+   loginPurpose='internalResult';
+   showView('login');
+   return;
+  }
+  if(!await ecwVerifyResultUser()){
+   window.__ecwVerifiedResultUid=null;
+   showToast('Benutzer nicht fuer interne Ergebnisse freigegeben.',5000);
+   return;
+  }
+  window.__ecwVerifiedResultUid=firebaseAuthUser.uid;
+ }
  const homeBtn=document.querySelector('#ecwExternalHomeBar button');
  if(homeBtn){homeBtn.textContent='Zurück zum Hauptmenü';homeBtn.onclick=closeExternalPage;}
  const url=externalWebUrl(value);if(!url){showToast('Dieser Link kann nicht eingebettet werden.');return;}
@@ -2543,8 +2581,8 @@ function openExternalPage(value,title){
  // Versionierung der gespeicherten Startseitenlinks wird hier vereinheitlicht.
  if(isEcwTournament){
    try{
-     const normalized=new URL('turnierauswertung.html',getBaseUrl());
-     normalized.searchParams.set('v','2.8.8-wb-test');
+     const normalized=new URL('turnierauswertung.html',location.href);
+     normalized.searchParams.set('v','2.9.0-ergebnisse-wb-test');
      normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
@@ -2552,7 +2590,19 @@ function openExternalPage(value,title){
      frameUrl=normalized.href;
    }catch(e){console.warn('Cup-Aufruf:',e);}
  }
- if(isPublicWhiteboardMode() && isWhiteboardInternalResultAllowed(url)){
+ // V2.9.0: Auch bei einer getrennten GitHub-Testseite MUSS die lokal
+ // hochgeladene Solo-Pyramide getestet werden, nicht die alte Produktivseite.
+ if(isSoloPyramide){
+   try{
+     const localSolo=new URL('solo-pyramide.html',location.href);
+     localSolo.searchParams.set('v','2.9.0-ergebnisse-wb-test');
+     frameUrl=localSolo.href;
+   }catch(e){console.warn('Solo-Testpfad:',e);}
+ }
+ // V2.8.9: Auch ein regulär mit Firebase angemeldetes Whiteboard muss den
+ // Whiteboard-Modus an die eingebettete Solo-Pyramide übergeben.
+ // Die Solo-Pyramide selbst prüft zusätzlich die authentifizierte Eltern-Sitzung.
+ if(isWhiteboardUser() && isWhiteboardInternalResultAllowed(url)){
    try{
      const wu=new URL(frameUrl,location.href);
      if(isSoloPyramideUrl(url))wu.searchParams.set('mode','whiteboard');
@@ -2693,6 +2743,7 @@ async function loginFirebaseAdmin(){
    const persistence=firebase.auth.Auth.Persistence.LOCAL;
    await window.firebaseAuth.setPersistence(persistence);
    await window.firebaseAuth.signInWithEmailAndPassword(email,pw);
+   firebaseAuthUser=window.firebaseAuth.currentUser; window.firebaseAuthUser=firebaseAuthUser;
    await loadAppPermissions(window.firebaseAuth.currentUser);
    if(isWhiteboardUser() || isWhiteboardKioskAccount()){
      try{
@@ -2709,6 +2760,13 @@ async function loginFirebaseAdmin(){
  if(window.__publicLoadPromise){
    setStatus('Daten werden geladen …');
    try{await Promise.race([window.__publicLoadPromise,new Promise(r=>setTimeout(r,5000))])}catch(e){}
+ }
+ if(window.__ecwPendingInternalResult){
+  const pending=window.__ecwPendingInternalResult;
+  window.__ecwPendingInternalResult=null;
+  setStatus('Anmeldung erfolgreich. Ergebnisprogramm wird geoeffnet ...');
+  await openExternalPage(pending.url,pending.title);
+  return;
  }
  if(!Object.keys(APP_PERMISSIONS).some(k=>canViewApp(k))){setStatus('Angemeldet. Noch keine Anwendungen freigegeben.');if(canChangeOwnPassword())showView('userPassword');return;}
  if(prefersPresentationStart()){setStatus('Anmeldung erfolgreich.');currentUser=null;window.__adminPreviewMode=false;showView('startseite');return;}

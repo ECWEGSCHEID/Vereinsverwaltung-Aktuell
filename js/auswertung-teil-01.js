@@ -22,8 +22,20 @@
 
     const urlParams = new URLSearchParams(location.search);
     const ECW_EMBEDDED_ADMIN = urlParams.get('mode') === 'admin-embedded';
-    const ECW_FORCED_WHITEBOARD =
+    const ECW_WHITEBOARD_REQUESTED =
       urlParams.get('whiteboard') === '1' || urlParams.get('mode') === 'whiteboard';
+    // URL-Parameter alleine vergeben keine Rechte. Der zentrale Eltern-Frame
+    // muss dieselbe Origin, eine echte Firebase-Sitzung und die zuvor
+    // in Firestore gepruefte Whiteboard-Berechtigung besitzen.
+    function verifiedCentralWhiteboard(){
+      if(!ECW_WHITEBOARD_REQUESTED || window.parent===window)return false;
+      try{
+        const p=window.parent;
+        return p.location.origin===location.origin && !!p.firebaseAuthUser &&
+          p.__ecwVerifiedResultUid===p.firebaseAuthUser.uid;
+      }catch(e){return false;}
+    }
+    const ECW_FORCED_WHITEBOARD=verifiedCentralWhiteboard();
 
     function getCentralParent(){
       if(!ECW_EMBEDDED_ADMIN || window.parent===window) return null;
@@ -52,6 +64,17 @@
 
     if (ECW_EMBEDDED_ADMIN) document.documentElement.classList.add('embedded-admin');
 
+    window.ecwReadAuthenticatedRole=async function(user){
+      if(!user)return 'guest';
+      try{
+        const s=await getDoc(doc(db,'users',user.uid));
+        const p=s.exists()?(s.data()||{}):null;
+        window.currentFirebaseUser=user;
+        window.currentUserProfile=p;
+        window.currentRole=roleFromCentralProfile(p);
+        return window.currentRole;
+      }catch(e){console.error('Benutzerprofil laden:',e);return 'guest';}
+    };
     function roleFromCentralProfile(p){
       if(!p || typeof p!=='object') return 'guest';
       if(p.admin === true) return 'admin';

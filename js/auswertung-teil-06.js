@@ -248,8 +248,11 @@
             window.currentRole='guest';
           }
         }
+        // Auch bei getrennter Firebase-SDK-Instanz das zentrale Firestore-Profil
+        // abwarten, bevor ueber die Benutzerrolle entschieden wird.
+        if(user && window.ecwReadAuthenticatedRole)await window.ecwReadAuthenticatedRole(user);
         const r=window.getEffectiveRole?window.getEffectiveRole():(window.currentRole||'guest');
-        if(r==='admin'||r==='turnierauswertung'){
+        if(r==='admin'||r==='turnierauswertung'||r==='whiteboard'){
           err.textContent='';
           passEl.value='';
           const ov=document.getElementById('loginOverlay');if(ov)ov.style.display='none';
@@ -260,12 +263,9 @@
           resetJahresmeisterschaftForRole();
 
           window.applyFirebaseRole?.();
-          const target=(new URLSearchParams(location.search).get('seite')||'').toLowerCase();
-          if(target==='jahresmeisterschaft'||target==='zielschiessen'||target==='zielschießen'){
-            openJahresmeisterschaft();
-          }else{
-            showHome();
-          }
+          // Nach erfolgreichem Login IMMER zum angeforderten Ergebnisprogramm,
+          // nicht zur Startseite der Turnierauswertung zurueckspringen.
+          if(!openWhiteboardTarget())showHome();
           return;
         }
         if(r==='guest'){

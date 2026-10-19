@@ -26,8 +26,7 @@ function hasCentralWhiteboardParent(){
   if(window.parent===window)return false;
   try{return window.parent.location.origin===window.location.origin &&
     !!window.parent.firebaseAuthUser &&
-    (window.parent.appPermissions?.whiteboard===true || window.parent.appPermissions?.admin===true ||
-     (typeof window.parent.isWhiteboardUser==='function' && window.parent.isWhiteboardUser()));}
+    window.parent.__ecwVerifiedResultUid===window.parent.firebaseAuthUser.uid;}
   catch(e){return false;}
 }
 function hasCentralAdminParent(){
