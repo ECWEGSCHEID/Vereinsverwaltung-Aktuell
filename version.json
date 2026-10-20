@@ -1,56 +1,50 @@
 {
-  "version": "2.5.4",
-  "release": "EC Wegscheid V2.5.4 + Doppel KO V2.6 – Integrationstest",
+  "version": "2.9.11",
+  "release": "EC Wegscheid V2.9.11 – Sammeltest Navigation, Jahresrechnung und Verwaltung",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
-      "status": "Version 2.5.2 enthalten",
-      "sha256": "8d5b7a1d90de58808bc3f04eaa8151669dbff1eeedb6613a63cac5cefd37fae2"
+      "status": "Im Testpaket V2.9.11 enthalten",
+      "sha256": "63ffb3f154474bf63252d3f4aad8d8e1fc2beffaf7b3e28644df232960dfb9b5"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
-      "status": "Version 2.5.2 enthalten",
-      "sha256": "ce323b9f00ea5671e10c33f2144ba44b19b2f46ca31b072b53c37a80201b4d2d"
+      "status": "Im Testpaket V2.9.11 enthalten",
+      "sha256": "e9a41dcd7c03060640466142466bdb17cc0f7fbfd2463d2aee9753a1c456929b"
     },
     "turnierverwaltung": {
       "datei": "turnierverwaltung.html",
-      "status": "Version 2.5.2c – StockApp-Korrektur (TEST)",
-      "sha256": "9a69f84faf535f84c3dfbae8148f79c5b6399eaa9df7823f89ecd029a10dfe38"
+      "status": "Im Testpaket V2.9.11 enthalten",
+      "sha256": "31f4ca1a396de0dae5caa735e655f124c3e0bb7689fb6569b4bc6ed54f5ec709"
     },
     "turnierauswertung": {
       "datei": "turnierauswertung.html",
-      "status": "Version 2.5.2 enthalten",
-      "sha256": "8a40af57ed0f632040431f8bc55da2977e57469e2a8b7c4dfdf423df0fbb8bd7"
+      "status": "Im Testpaket V2.9.11 enthalten",
+      "sha256": "a299b7629cc4b86628cc53307da0209cfde4d15f5ef8f4f69acf4d547d605f42"
     },
     "turnierwirtschaftlichkeit": {
       "datei": "turnierwirtschaftlichkeit.html",
-      "status": "Version 2.5.2 enthalten",
-      "sha256": "683becf7882e16f93a9f6c28ab2efdff4adeff764be67e69b657a1ac080564cc"
+      "status": "Im Testpaket V2.9.11 enthalten",
+      "sha256": "5b0c7ce83e3aba60d48fe8056672ac01a6df49526a45434e9784e2bed2df9ae5"
     },
     "solo-pyramide": {
       "datei": "solo-pyramide.html",
-      "status": "Version 2.5.2 enthalten",
-      "sha256": "e6681a87d11d4efb479e7542b32af875a01d8a496d03a8ac5a5dc93d6ae70cb4"
+      "status": "Im Testpaket V2.9.11 enthalten",
+      "sha256": "3c5c22954287a2c798ef6322e8e7a804915ed50916f7ec90604ffdcc7f6cd5b8"
     },
     "smartphone-zugang": {
       "datei": "mobile-zugang.html",
-      "status": "Version 2.5.2 enthalten",
+      "status": "Im Testpaket V2.9.11 enthalten",
       "sha256": "575f1913d93d5849aa73756d117dc7368e742b1ba7a01bc3a97c722e4d18b819"
     },
     "live-startlisten": {
       "datei": "live-startlisten.html",
-      "status": "Version 2.5.2 enthalten",
+      "status": "Im Testpaket V2.9.11 enthalten",
       "sha256": "14f1f5ca7320f4372ba922a617a4583f647b5437ff4ca40306aa3ce0a6c9fd66"
     }
   },
   "changes": [
-    "Konsolidierung der zuletzt bestätigten Version V2.0.28 ohne Eingriff in Wertungs- und Firebase-Daten",
-    "Einheitliche sichtbare Versionsnummer V2.5.0 in Hauptprogramm und eingebetteten Modulen",
-    "Interne Links und Cache-Abfragen auf V2.5.0 umgestellt",
-    "Zentrale SHA256-Prüfsummen der HTML-Module aktualisiert",
-    "Firebase-Regeln und private Datensicherungen bewusst NICHT in GitHub-Upload-Ordner enthalten",
-    "V2.5.4: Button Drucken öffnet sofort ein Druckfenster und versucht nach dem Laden des PDFs den nativen Druckdialog automatisch aufzurufen; Wiederholen und PDF-Fallback verfügbar.",
-    "Doppel KO V2.6: getrennte JS-Datei, Firebase-Turnierarchiv, Ergebnisspeicherung, vollständige Whiteboard-Bedienung, eigener Admin-Menübutton"
+    "V2.9.11 – Benutzerübersicht, Geburtstagsalter, Rücknavigation, Jahresabrechnung, Menüstruktur und Turnierwirtschaftlichkeit und Helfer"
   ],
   "hinweis": "Dokumente in Firestore appSettings/druckdokumente und druckpdf_*; Regeln FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules vor Nutzung veröffentlichen. Automatischer PDF-Druckdialog ist browserabhängig und muss auf dem Samsung WM65B geprüft werden. 1 Exemplar kann nicht erzwungen werden.",
   "doppelKo": {

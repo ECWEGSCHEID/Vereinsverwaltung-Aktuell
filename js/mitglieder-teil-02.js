@@ -239,14 +239,18 @@ function dashboard(){
  $("s4").textContent=active.filter(m=>+m.memberSince>=2020).length;$("s7").textContent=active.filter(m=>+m.memberSince>=2010).length;
  let upcomingMonths=Math.max(1,Math.min(12,+S.settings?.birthdayUpcomingMonths||1));
  let upcomingEnd=new Date(now.getFullYear(),now.getMonth()+upcomingMonths,now.getDate(),23,59,59,999);
- let normal=active.filter(m=>m.birthDate).map(m=>({...m,n:next(m.birthDate)})).filter(m=>!round(m,y)&&m.n>=now&&m.n<=upcomingEnd).sort((a,b)=>a.n-b.n);
+ let normal=active.filter(m=>m.birthDate).map(m=>({...m,n:next(m.birthDate)})).filter(m=>!round(m,m.n.getFullYear())&&m.n>=now&&m.n<=upcomingEnd).sort((a,b)=>a.n-b.n);
  let currentYearBirthdays=active.filter(m=>m.birthDate).map(m=>({...m,n:next(m.birthDate),bd:new Date(y,+m.birthDate.slice(5,7)-1,+m.birthDate.slice(8,10))})).filter(m=>m.bd.getFullYear()===y);
  currentYearBirthdays.sort((a,b)=>a.bd-b.bd);
  let runde=currentYearBirthdays.filter(m=>round(m,y));
- if((S.settings?.roundBirthdayMode||"future")==="future") runde=runde.filter(m=>m.bd>=new Date(y,now.getMonth(),now.getDate()));
+ if(S.settings?.roundBirthdayMode==='next6'){
+   const nextYearBirthdays=active.filter(m=>m.birthDate).map(m=>({...m,bd:new Date(y+1,+m.birthDate.slice(5,7)-1,+m.birthDate.slice(8,10))})).filter(m=>round(m,y+1));
+   runde=runde.concat(nextYearBirthdays);
+ }
+ runde=memberFilterRoundBirthdays(runde,now,S.settings).sort((a,b)=>a.bd-b.bd);
  $("birthdayUpcomingInfo").textContent=`Angezeigt werden die nächsten ${upcomingMonths} ${upcomingMonths===1?"Monat":"Monate"}.`;
- $("next").innerHTML=normal.map(m=>`<div class="birthdayRow"><b>${esc(m.firstName)} ${esc(m.lastName)}</b> <span class="muted">${fd(m.birthDate)} · ${age(m.birthDate,y)} Jahre</span></div>`).join("")||"Keine Geburtstage im gewählten Zeitraum.";
- $("roundNext").innerHTML=runde.map(m=>`<div class="birthdayRow"><b>${esc(m.firstName)} ${esc(m.lastName)} 🎉</b> <span class="muted">${fd(m.birthDate)} · ${age(m.birthDate,y)} Jahre</span></div>`).join("")||"Keine runden Geburtstage eingetragen.";
+ $("next").innerHTML=normal.map(m=>`<div class="birthdayRow"><b>${esc(m.firstName)} ${esc(m.lastName)}</b> <span class="muted">${fd(m.birthDate)} · ${age(m.birthDate,m.n.getFullYear())} Jahre</span></div>`).join("")||"Keine Geburtstage im gewählten Zeitraum.";
+ $("roundNext").innerHTML=runde.map(m=>`<div class="birthdayRow"><b>${esc(m.firstName)} ${esc(m.lastName)} 🎉</b> <span class="muted">${fd(m.birthDate)} · ${age(m.birthDate,m.bd.getFullYear())} Jahre</span></div>`).join("")||"Keine runden Geburtstage eingetragen.";
  $("s5").textContent=S.members.filter(m=>m.exitType==="departed"&&m.exitDate>=yearStart&&m.exitDate<yearEnd).length;
  $("s6").textContent=S.members.filter(m=>m.exitType==="deceased"&&m.exitDate>=yearStart&&m.exitDate<yearEnd).length;
 }
@@ -351,13 +355,13 @@ function renderM(){
  if(b==="18")a=a.filter(m=>(age(m.birthDate)||0)>=18);
  if(b==="exempt")a=a.filter(m=>contributionExempt(m,new Date().getFullYear()));
  a.sort((x,y)=>(x.lastName||"").localeCompare(y.lastName||"","de"));
- const has=k=>a.some(m=>String(m[k]??"").trim()!=="");
- const labels={birthDate:"Geburtsdatum",memberSince:"Mitglied seit",address:"Adresse",countryCode:"Länderkennung",zip:"PLZ",city:"Ort",phoneMobile:"Mobil",email:"E-Mail"};
- const cols=[["Nr.","id"],["Nachname","lastName"],["Vorname","firstName"]];
+ const has=k=>a.some(m=>String((k==='countryCode'?m.country:m[k])??"").trim()!=="");
+ const labels=memberDisplayLabels();
+ const cols=[["Nr.","id"]];
  const hasStatus=a.some(m=>m.exitType==="departed"||m.exitType==="deceased");
  if(hasStatus)cols.push(["Status","exitStatus"]);
- const order=S.settings.displayOrder||Object.keys(labels);
- order.forEach(k=>{if(labels[k]&&({birthDate:"showBirthDate",memberSince:"showMemberSince",address:"showAddress",countryCode:"showCountryCode",zip:"showAddress",city:"showAddress",phoneMobile:"showContact",email:"showContact"})[k]&&S.settings[{birthDate:"showBirthDate",memberSince:"showMemberSince",address:"showAddress",countryCode:"showCountryCode",zip:"showAddress",city:"showAddress",phoneMobile:"showContact",email:"showContact"}[k]]!==false&&has(k))cols.splice(cols.length,0,[labels[k],k]);});
+ const order=memberDisplayOrder();
+ order.forEach(k=>{if(labels[k]&&memberFieldVisible(k)&&has(k)&&(!memberSensitiveFields.has(k)||U?.bank))cols.push([labels[k],k]);});
  if(a.some(m=>!m.exitType&&contributionExemptUntil(m)))cols.push(["Beitragsbefreit bis","exemptUntil"]);
  const canEditMembers=canEditMemberData();
  if(canEditMembers)cols.unshift(["Bearbeiten","act"]);
@@ -367,7 +371,7 @@ function renderM(){
    if(x[1]==="exitStatus")return `<td>${m.exitType==="deceased"?"Verstorben":m.exitType==="departed"?"Ausgetreten – auf eigenen Wunsch":"Aktiv"}${m.exitDate?`<br><span class="muted">${fd(m.exitDate)}</span>`:""}</td>`;
    if(x[1]==="exemptUntil")return `<td>${m.exitType?"":esc(fd(contributionExemptUntil(m)))}</td>`;
    if(x[1]==="act")return `<td><button class="btn" onclick="editM(${esc(JSON.stringify(m.id))})">Bearbeiten</button></td>`;
-   let cellValue=x[1]==="birthDate"?fd(m[x[1]]):m[x[1]]; if(x[1]==="countryCode")cellValue=memberCountryCode(m.country); return `<td>${esc(cellValue)}</td>`;
+   let cellValue=x[1]==="birthDate"?fd(m[x[1]]):m[x[1]]; if(x[1]==="countryCode")cellValue=memberCountryCode(m.country);if(["birthDate","exitDate","exemptUntil"].includes(x[1]))cellValue=fd(m[x[1]]); return `<td>${esc(cellValue)}</td>`;
  }).join("")+"</tr>").join("")||`<tr><td colspan="${cols.length}">Keine Treffer</td></tr>`;
  let tools="";
  if(S.settings.showBankButton&&U?.bank)tools+='<button class="btn" onclick="toggleBank()">Bankdaten ein-/ausblenden</button> ';
@@ -698,8 +702,12 @@ function backToStartPage(){
 }
 function currentCalendar(){$("calmonth-0")?.scrollIntoView({behavior:"smooth",block:"start"});}
 function msg(id){let m=S.members.find(x=>x.id===id),text=`Hallo ${m.firstName}, der EC Wegscheid wünscht dir alles Gute zum Geburtstag! 🎉`,html="";if(m.phoneMobile){let p=m.phoneMobile.replace(/[^0-9+]/g,"");html+=`<a class="btn primary" target="_blank" href="https://wa.me/${encodeURIComponent(p)}?text=${encodeURIComponent(text)}">WhatsApp</a> `}if(m.email)html+=`<a class="btn" href="mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent("Geburtstagsgrüße vom EC Wegscheid")}&body=${encodeURIComponent(text)}">E-Mail</a>`;if(!html)html="Keine Mobilnummer/E-Mail hinterlegt.";let d=document.createElement("div");d.className="modal show";d.innerHTML=`<div class="modalbox"><h3>Geburtstagsnachricht</h3><p>${esc(text)}</p>${html}<br><br><button class="btn" onclick="this.closest('.modal').remove()">Schließen</button></div>`;document.body.appendChild(d)}
-function application(){let f=[["Name","al"],["Vorname","afn"],["PLZ","az"],["Wohnort","ac"],["Adresse","aa"],["Geburtstag","ad","date"],["Mobil","am"],["Festnetz","afix"],["E-Mail","ae"],["Mitgliedsbeitrag","fee"]];$("af").innerHTML=f.map(x=>`<div class="field"><label>${x[0]}</label><input id="${x[1]}" type="${x[2]||"text"}" ${x[1]==="fee"?"readonly":""} value="${x[1]==="fee"?Number(S.settings.fee).toFixed(2).replace(".",",")+" €":""}"></div>`).join("")}
-function printA(){let f=[["Name","al"],["Vorname","afn"],["PLZ","az"],["Wohnort","ac"],["Adresse","aa"],["Geburtstag","ad"],["Mobil","am"],["Festnetz","afix"],["E-Mail","ae"],["Mitgliedsbeitrag","fee"]];$("pf").innerHTML=f.map(x=>`<div>${x[0]}<div class="line">${esc(x[1]==="ad"?fd($(x[1]).value):$(x[1]).value)}</div></div>`).join("");window.print()}
+// Aufnahmeantrag V2.9.8: Die hochgeladene Original-PDF ist die einzige Druckvorlage.
+// Kein Nachbau des Formulars im Browser: Logo, SEPA-Text und Layout bleiben unverändert.
+function application(){
+ const frame=document.getElementById('ecwMitgliedsantragVorschau');
+ if(frame && !frame.getAttribute('src')) frame.setAttribute('src','assets/Mitgliedsantrag.pdf#view=FitH');
+}
 function renderRoundPages(){let y=new Date().getFullYear(),today=new Date(y,new Date().getMonth(),new Date().getDate()),base=S.members.filter(m=>!m.exitType&&m.birthDate);let all=base.map(m=>({...m,bd:new Date(y,m.birthDate.slice(5,7)-1,m.birthDate.slice(8,10))})).filter(m=>round(m,y)).sort((a,b)=>a.bd-b.bd);let upcoming=all.filter(m=>m.bd>=today);let row=m=>`<div style="padding:8px;border-bottom:1px solid #ffffff22"><b>${esc(m.firstName)} ${esc(m.lastName)} 🎉</b> <span class="muted">${fd(m.birthDate)} · ${age(m.birthDate,y)} Jahre</span></div>`;if($("roundThisYearList"))$("roundThisYearList").innerHTML=all.map(row).join("")||"Keine runden Geburtstage eingetragen.";if($("roundUpcomingList"))$("roundUpcomingList").innerHTML=upcoming.map(row).join("")||"Keine anstehenden runden Geburtstage eingetragen.";}
 function renderAdminPasses(){
  let a=(S.passes||[]).slice().sort((x,y)=>{let mx=(x.memberId!=null?(S.members||[]).find(m=>String(m.id)===String(x.memberId)):null),my=(y.memberId!=null?(S.members||[]).find(m=>String(m.id)===String(y.memberId)):null);return normName(mx?.lastName||x.lastName).localeCompare(normName(my?.lastName||y.lastName),'de-DE')||normName(mx?.firstName||x.firstName).localeCompare(normName(my?.firstName||y.firstName),'de-DE')});
@@ -730,13 +738,13 @@ function admin(){
  <div id="adminSectionApplication" class="adminSection" style="display:none"></div>
  <div id="adminSectionSerial" class="adminSection" style="display:none"></div>
  <div id="adminSectionSponsors" class="adminSection" style="display:none"></div>`;
- const uhtml=`<div class="card"><h3>Benutzer & Rechte</h3><div class="perm"><b>Benutzer</b><b>Edit</b><b>Bank</b><b>Export</b><b>Admin</b>${S.users.map(u=>`<div><b>${esc(u.name)}</b><br><span class="muted">${esc(u.id)}</span></div><div><input type="checkbox" ${u.edit?"checked":""} onchange="perm('${u.id}','edit',this.checked)"></div><div><input type="checkbox" ${u.bank?"checked":""} onchange="perm('${u.id}','bank',this.checked)"></div><div><input type="checkbox" ${u.export?"checked":""} onchange="perm('${u.id}','export',this.checked)"></div><div><input type="checkbox" ${u.admin?"checked":""} onchange="perm('${u.id}','admin',this.checked)"></div>`).join("")}</div><div style="margin-top:10px"><b>Kennwörter</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${S.users.map(u=>`<button class="btn" onclick="resetUserPassword('${u.id}')">Kennwort zurücksetzen: ${esc(u.name)}</button>`).join("")}</div><p class="smallnote">Beim Zurücksetzen erhält der Benutzer ein temporäres Kennwort.</p></div><div style="margin-top:14px"><h4>Benutzer hinzufügen</h4><div class="formgrid"><div class="field"><label>Benutzername</label><input id="nu"></div><div class="field"><label>Name</label><input id="nn"></div><div class="field"><label>Start-Kennwort</label><input id="np" type="password"></div><div class="checkline"><input id="na" type="checkbox"><label for="na">Admin-Berechtigung</label></div></div><button class="btn primary" style="margin-top:10px" onclick="addU()">Anlegen</button></div></div><div class="card" style="margin-top:12px"><h3>Eigenes Admin-Kennwort</h3><div class="formgrid"><div class="field"><label>Neues Kennwort</label><input id="adminNewPw1" type="password"></div><div class="field"><label>Neues Kennwort wiederholen</label><input id="adminNewPw2" type="password"></div></div><button class="btn primary" style="margin-top:10px" onclick="changeAdminPasswordFromSettings()">Admin-Kennwort ändern</button></div>`;
+ const uhtml=`<div class="card"><h3>Benutzer & Rechte – zentrale Firebase-Anmeldung</h3><p>Die Anmeldung erfolgt mit <b>E-Mail-Adresse und Kennwort</b> über Firebase Authentication. „Anzeigename“ ist die sichtbare Bezeichnung des Kontos.</p><p class="smallnote">Die ältere lokale Benutzer-/Kennwortverwaltung der Mitgliederverwaltung wird hier nicht mehr angeboten. Bereits vorhandene Einträge bleiben erhalten und werden nicht gelöscht.</p><button class="btn primary" onclick="memberOpenCentralUsers()">Zentrale Benutzer & Rechte öffnen</button><p class="smallnote">Neue Anmeldekonten werden in Firebase Authentication eingerichtet; die Zugriffsrechte anschließend in der zentralen Benutzerverwaltung vergeben.</p></div>`;
  $("adminSectionUsers").innerHTML=canManageMemberUsers()?uhtml:"";
  $("adminSectionUsers").style.display=canManageMemberUsers()?"":"none";
- $("adminSectionSettings").innerHTML=`<div class="card"><h3>Altersgrenzen & Beitrag</h3><div class="settings-grid"><div class="field"><label>U14 bis einschließlich</label><input id="ageU14Max" type="number" value="${c.ageU14Max}"></div><div class="field"><label>U16 bis einschließlich</label><input id="ageU16Max" type="number" value="${c.ageU16Max}"></div><div class="field"><label>U19 bis einschließlich</label><input id="ageU19Max" type="number" value="${c.ageU19Max}"></div><div class="field"><label>U23 bis einschließlich</label><input id="ageU23Max" type="number" value="${c.ageU23Max}"></div><div class="field"><label>Senioren ab Alter</label><input id="ageSeniorMin" type="number" value="${c.ageSeniorMin}"></div><div class="field"><label>Stichtag</label><input id="ageCutoff" type="text" inputmode="numeric" maxlength="5" placeholder="TT/MM" value="${(c.ageCutoff||"01-01").replace(/^(\d{4})-(\d{2})-(\d{2})$/,"$3/$2").replace(/^(\d{2})-(\d{2})$/,"$2/$1")}"><span class="smallnote">Nur Tag und Monat; Jahr automatisch aktuell.</span></div><div class="field"><label>Runder Geburtstag ab Alter</label><input id="roundAge" type="number" value="${c.roundAge}"></div><div class="field"><label>Mitgliedsbeitrag (€)</label><input id="fee" type="number" min="0" step="0.01" value="${c.fee}"></div><div class="field"><label>Beitragsbefreiung bis Alter</label><input id="contributionFreeAge" type="number" min="0" max="99" value="${c.contributionFreeAge??18}"><span class="smallnote">Stichtag: 01/01 des jeweiligen Jahres.</span></div></div><div class="card" style="margin-top:12px"><h3>Geburtstagsanzeige der Übersicht</h3><div class="settings-grid"><div class="field"><label>Bevorstehende Geburtstage anzeigen</label><select id="birthdayUpcomingMonths"><option value="1" ${(+c.birthdayUpcomingMonths||1)===1?"selected":""}>1 Monat</option><option value="2" ${(+c.birthdayUpcomingMonths||1)===2?"selected":""}>2 Monate</option><option value="3" ${(+c.birthdayUpcomingMonths||1)===3?"selected":""}>3 Monate</option><option value="6" ${(+c.birthdayUpcomingMonths||1)===6?"selected":""}>6 Monate</option><option value="12" ${(+c.birthdayUpcomingMonths||1)===12?"selected":""}>12 Monate</option></select></div><div class="field"><label>Runde Geburtstage dieses Jahr</label><select id="roundBirthdayMode"><option value="future" ${(c.roundBirthdayMode||"future")==="future"?"selected":""}>Nur zukünftig liegende anzeigen</option><option value="all" ${(c.roundBirthdayMode||"future")==="all"?"selected":""}>Alle dieses Jahr anzeigen</option></select></div></div><p class="smallnote">Diese Einstellungen gelten für die beiden Geburtstagsbereiche auf der Übersichtsseite. Auf der Übersichtsseite selbst gibt es keine Auswahlfelder mehr.</p></div><button class="btn primary" style="margin-top:10px" onclick="saveSettings()">Einstellungen speichern</button></div>`;
+ $("adminSectionSettings").innerHTML=`<div class="card"><h3>Altersgrenzen & Beitrag</h3><div class="settings-grid"><div class="field"><label>U14 bis einschließlich</label><input id="ageU14Max" type="number" value="${c.ageU14Max}"></div><div class="field"><label>U16 bis einschließlich</label><input id="ageU16Max" type="number" value="${c.ageU16Max}"></div><div class="field"><label>U19 bis einschließlich</label><input id="ageU19Max" type="number" value="${c.ageU19Max}"></div><div class="field"><label>U23 bis einschließlich</label><input id="ageU23Max" type="number" value="${c.ageU23Max}"></div><div class="field"><label>Senioren ab Alter</label><input id="ageSeniorMin" type="number" value="${c.ageSeniorMin}"></div><div class="field"><label>Stichtag</label><input id="ageCutoff" type="text" inputmode="numeric" maxlength="5" placeholder="TT/MM" value="${(c.ageCutoff||"01-01").replace(/^(\d{4})-(\d{2})-(\d{2})$/,"$3/$2").replace(/^(\d{2})-(\d{2})$/,"$2/$1")}"><span class="smallnote">Nur Tag und Monat; Jahr automatisch aktuell.</span></div><div class="field"><label>Runder Geburtstag ab Alter</label><input id="roundAge" type="number" value="${c.roundAge}"></div><div class="field"><label>Mitgliedsbeitrag (€)</label><input id="fee" type="number" min="0" step="0.01" value="${c.fee}"></div><div class="field"><label>Beitragsbefreiung bis Alter</label><input id="contributionFreeAge" type="number" min="0" max="99" value="${c.contributionFreeAge??18}"><span class="smallnote">Stichtag: 01/01 des jeweiligen Jahres.</span></div></div><div class="card" style="margin-top:12px"><h3>Geburtstagsanzeige der Übersicht</h3><div class="settings-grid"><div class="field"><label>Bevorstehende Geburtstage anzeigen</label><select id="birthdayUpcomingMonths"><option value="1" ${(+c.birthdayUpcomingMonths||1)===1?"selected":""}>1 Monat</option><option value="2" ${(+c.birthdayUpcomingMonths||1)===2?"selected":""}>2 Monate</option><option value="3" ${(+c.birthdayUpcomingMonths||1)===3?"selected":""}>3 Monate</option><option value="6" ${(+c.birthdayUpcomingMonths||1)===6?"selected":""}>6 Monate</option><option value="12" ${(+c.birthdayUpcomingMonths||1)===12?"selected":""}>12 Monate</option></select></div><div class="field"><label>Runde Geburtstage dieses Jahr</label><select id="roundBirthdayMode"><option value="future" ${(c.roundBirthdayMode||"future")==="future"?"selected":""}>Nur zukünftig liegende anzeigen</option><option value="all" ${(c.roundBirthdayMode||"future")==="all"?"selected":""}>Alle dieses Jahr anzeigen</option><option value="next6" ${c.roundBirthdayMode==="next6"?"selected":""}>Nächste 6 Monate</option><option value="firstHalf" ${c.roundBirthdayMode==="firstHalf"?"selected":""}>Januar bis Juni</option><option value="secondHalf" ${c.roundBirthdayMode==="secondHalf"?"selected":""}>Juli bis Dezember</option></select></div></div><p class="smallnote">Diese Einstellungen gelten für die beiden Geburtstagsbereiche auf der Übersichtsseite. Auf der Übersichtsseite selbst gibt es keine Auswahlfelder mehr.</p></div><button class="btn primary" style="margin-top:10px" onclick="saveSettings()">Einstellungen speichern</button></div>`;
  $("adminSectionImport").innerHTML=`<div class="card"><h3>Import & Export</h3><div class="checkline"><input id="exportMembers" type="checkbox" ${c.exportMembers?"checked":""}><label for="exportMembers">Mitglieder-CSV-Export erlauben</label></div><div class="checkline"><input id="importMembers" type="checkbox" ${c.importMembers?"checked":""}><label for="importMembers">Mitglieder-CSV-Import anzeigen</label></div><div class="checkline"><input id="importBank" type="checkbox" ${c.importBank?"checked":""}><label for="importBank">Bankdaten-Datei-Import anzeigen</label></div><div id="importAdminTools" style="margin-top:12px"></div><hr><h3>Beitrags-Exporte</h3><p class="smallnote">Die Exporte enthalten nur aktive Mitglieder. Beim Bankeinzug werden Mitgliedsname, Adresse und Bankdaten ausgegeben. Barzahler werden separat als CSV exportiert.</p><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"><button class="btn primary" onclick="exportDirectDebit()">Bankeinzug – Bankdaten exportieren</button><button class="btn" onclick="exportCashPayers()">Barzahler – CSV exportieren</button><button class="btn" onclick="exportContributionExempt()">Beitragsbefreite – CSV exportieren</button></div></div>`;
- $("adminSectionDisplay").innerHTML=`<div class="card"><h3>Anzeigeeinstellungen</h3><p class="smallnote">Reihenfolge mit ▲/▼ ändern. Leere Spalten werden automatisch ausgeblendet.</p><div id="displayOrder"></div><button class="btn primary" style="margin-top:10px" onclick="saveSettings()">Anzeige-Einstellungen speichern</button></div>`;
- $("adminSectionApplication").innerHTML=`<div class="card"><h3>Aufnahmeantrag</h3><div class="formgrid" id="af"></div><button class="btn primary" style="margin-top:12px" onclick="printA()">Aufnahmeantrag drucken</button></div>`;
+ $("adminSectionDisplay").innerHTML=`<div class="card"><h3>Anzeigeeinstellungen</h3><p class="smallnote">Reihenfolge mit ▲/▼ ändern. Leere Spalten werden automatisch ausgeblendet. Mitgliedsnummer bleibt sichtbar; Vorname und Nachname können separat ein- oder ausgeblendet werden.</p><div id="displayOrder"></div><button class="btn primary" style="margin-top:10px" onclick="saveSettings()">Anzeige-Einstellungen speichern</button></div>`;
+ $("adminSectionApplication").innerHTML=`<div class="card"><h3>Aufnahmeantrag EC Wegscheid</h3><p class="smallnote">Der Beitrag wird automatisch aus „Altersgrenzen & Beitrag“ übernommen. Der aktuelle PDF-Ausdruck wird aus der Originalvorlage des Vereins erstellt.</p><p><b>Aktueller Jahresbeitrag:</b> ${memberFeeEuro()}</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 16px"><button class="btn primary" onclick="memberApplicationOpen()">PDF öffnen / drucken</button><button class="btn" onclick="memberApplicationDownload()">PDF herunterladen</button><button class="btn" onclick="memberApplicationRefresh()">Vorschau aktualisieren</button></div><p id="memberApplicationStatus" role="status" class="smallnote">Vorschau wird erstellt …</p><div style="border:1px solid #ffffff33;border-radius:10px;overflow:hidden;background:#fff"><iframe id="ecwMitgliedsantragVorschau" title="Aufnahmeantrag EC Wegscheid mit aktuellem Mitgliedsbeitrag" style="display:block;width:100%;height:76vh;min-height:540px;border:0"></iframe></div></div>`;
  $("adminSectionSerial").innerHTML=`<div class="card"><h3>Serienbrief</h3><p>Word- oder PDF-Dokumente mit den Adressdaten ausgewählter Mitglieder kombinieren.</p><button class="btn primary" onclick="serialOpen()">Serienbrief öffnen</button></div>`;
  const sponsorSection=`
  <div class="card">
@@ -748,7 +756,7 @@ function admin(){
  $("adminSectionSponsors").innerHTML=sponsorSection;
  renderSponsors();
  application();
- const labels={birthDate:"Geburtsdatum",memberSince:"Mitglied seit",address:"Adresse",countryCode:"Länderkennung",zip:"PLZ",city:"Ort",phoneMobile:"Mobil",email:"E-Mail"}; let order=S.settings.displayOrder||Object.keys(labels); $("displayOrder").innerHTML=order.map((k,i)=>`<div class="checkline" style="border-bottom:1px solid #ffffff22"><input id="sh_${k}" type="checkbox" ${S.settings[{birthDate:"showBirthDate",memberSince:"showMemberSince",address:"showAddress",countryCode:"showCountryCode",zip:"showAddress",city:"showAddress",phoneMobile:"showContact",email:"showContact"}[k]]?"checked":""}><label for="sh_${k}" style="flex:1">${labels[k]}</label><button class="btn" onclick="moveDisplay('${k}',-1)">▲</button><button class="btn" onclick="moveDisplay('${k}',1)">▼</button></div>`).join(""); let it=$("importAdminTools"),z=""; if(c.importBank)z+='<button class="btn" onclick="document.getElementById("bankFileAdmin").click()">Bankdaten-Datei importieren</button><input id="bankFileAdmin" type="file" accept=".csv,.txt" style="display:none" onchange="importBankFile(this.files[0])"> '; if(c.importMembers)z+='<button class="btn" onclick="document.getElementById("memberFileAdmin").click()">Mitglieder-CSV importieren</button><input id="memberFileAdmin" type="file" accept=".csv,.txt" style="display:none" onchange="importMemberFile(this.files[0])"> '; if(c.exportMembers&&U.export)z+='<button class="btn" onclick="csv()">Mitglieder-CSV exportieren</button>'; it.innerHTML=z||'<span class="muted">Keine Import-/Export-Funktion aktiviert.</span>';
+ const labels=memberDisplayLabels();let order=memberDisplayOrder();$("displayOrder").innerHTML=order.filter(k=>!memberSensitiveFields.has(k)||U?.bank).map(k=>`<div class="checkline" style="border-bottom:1px solid #ffffff22"><input id="sh_${k}" type="checkbox" ${memberFieldVisible(k)?"checked":""} onchange="memberDisplayToggle('${k}',this.checked)"><label for="sh_${k}" style="flex:1">${labels[k]}</label><button class="btn" onclick="moveDisplay('${k}',-1)">▲</button><button class="btn" onclick="moveDisplay('${k}',1)">▼</button></div>`).join(""); let it=$("importAdminTools"),z=""; if(c.importBank)z+='<button class="btn" onclick="document.getElementById("bankFileAdmin").click()">Bankdaten-Datei importieren</button><input id="bankFileAdmin" type="file" accept=".csv,.txt" style="display:none" onchange="importBankFile(this.files[0])"> '; if(c.importMembers)z+='<button class="btn" onclick="document.getElementById("memberFileAdmin").click()">Mitglieder-CSV importieren</button><input id="memberFileAdmin" type="file" accept=".csv,.txt" style="display:none" onchange="importMemberFile(this.files[0])"> '; if(c.exportMembers&&U.export)z+='<button class="btn" onclick="csv()">Mitglieder-CSV exportieren</button>'; it.innerHTML=z||'<span class="muted">Keine Import-/Export-Funktion aktiviert.</span>';
  // Tabellenansicht bei Neuzeichnen erhalten: adminSection entfernt sonst ihre active-Klasse.
  if(!activeEmbeddedPage){
    const section=selectedSection&&!['members','passes'].includes(selectedSection)&&!(selectedSection==='users'&&!canManageMemberUsers())?selectedSection:(canManageMemberUsers()?'users':'settings');
@@ -771,22 +779,21 @@ function applyAdminEmbed(){
  document.querySelectorAll("[data-at]").forEach(x=>x.classList.toggle("primary",x.dataset.at===name));
  document.querySelectorAll("[data-p]").forEach(x=>x.classList.toggle("primary",x.dataset.p==="admin"));
 }
-function adminSection(name,preservePages=false){ if(!U?.admin||(name==="users"&&!canManageMemberUsers()))return; if(!preservePages){$("members")?.classList.remove("active"); $("passes")?.classList.remove("active");} document.querySelectorAll('.adminSection').forEach(x=>x.style.display='none'); document.querySelectorAll('[data-at]').forEach(x=>x.classList.toggle('primary',x.dataset.at===name)); const el=$("adminSection"+name.charAt(0).toUpperCase()+name.slice(1)); if(el)el.style.display='block'; }
+function adminSection(name,preservePages=false){ if(!U?.admin||(name==="users"&&!canManageMemberUsers()))return; if(!preservePages){$("members")?.classList.remove("active"); $("passes")?.classList.remove("active");} document.querySelectorAll('.adminSection').forEach(x=>x.style.display='none'); document.querySelectorAll('[data-at]').forEach(x=>x.classList.toggle('primary',x.dataset.at===name)); const el=$("adminSection"+name.charAt(0).toUpperCase()+name.slice(1)); if(el)el.style.display='block'; if(name==='application')memberApplicationRefresh(); }
 
 function perm(id,k,v){if(!canManageMemberUsers())return;let u=S.users.find(x=>x.id===id);if(id==="admin"&&k==="admin"&&!v)return alert("Der Hauptadministrator bleibt Admin.");u[k]=v;save();if(U.id===id)U=u;admin()}
 function addU(){if(!canManageMemberUsers())return;let id=$("nu").value.trim(),name=$("nn").value.trim(),pw=$("np").value;if(!id||!name||!pw)return alert("Bitte alle Felder ausfüllen.");if(S.users.some(x=>x.id===id))return alert("Benutzername existiert.");S.users.push({id,name,password:pw,admin:$("na")?.checked||false,view:true,edit:false,bank:false,export:false,mustChangePassword:true});save();populateLoginUsers();admin()}
 function resetUserPassword(id){if(!canManageMemberUsers())return;if(!U?.admin)return;let u=S.users.find(x=>x.id===id);if(!u)return;let temp=prompt("Temporäres Kennwort für "+u.name+" eingeben:","");if(temp===null)return;if(temp.length<4)return alert("Das Kennwort muss mindestens 4 Zeichen haben.");u.password=temp;u.mustChangePassword=true;save();populateLoginUsers();admin();alert("Kennwort zurückgesetzt. Beim nächsten Login muss ein neues Kennwort vergeben werden.")}
-function moveDisplay(k,dir){let o=[...(S.settings.displayOrder||["birthDate","memberSince","address","countryCode","zip","city","phoneMobile","email"])],i=o.indexOf(k),j=i+dir;if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];S.settings.displayOrder=o;save();admin();}
+function moveDisplay(k,dir){let o=memberDisplayOrder(),i=o.indexOf(k),j=i+dir;if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];S.settings.displayOrder=o;save();admin();}
 function saveSettings(){
  let c=S.settings;
  c.roundAge=Math.max(1,+$("roundAge").value||50);c.fee=Math.max(0,+$("fee").value||0);c.contributionFreeAge=Math.max(0,Math.min(99,+$("contributionFreeAge").value||18));
  c.ageU14Max=Math.max(1,+$("ageU14Max").value||13);c.ageU16Max=Math.max(c.ageU14Max+1,+$("ageU16Max").value||15);
  c.ageU19Max=Math.max(c.ageU16Max+1,+$("ageU19Max").value||18);c.ageU23Max=Math.max(c.ageU19Max+1,+$("ageU23Max").value||22);c.ageSeniorMin=Math.max(c.ageU19Max+1,+$("ageSeniorMin").value||19);let cutoffRaw=$("ageCutoff").value.trim();let cm=cutoffRaw.match(/^(\d{1,2})[.\/-](\d{1,2})\.?$/);if(!cm)return alert("Bitte den Stichtag als TT/MM eingeben, z. B. 01/10.");let cd=String(+cm[1]).padStart(2,"0"),cmo=String(+cm[2]).padStart(2,"0");let test=new Date(new Date().getFullYear(),+cm[2]-1,+cm[1]);if(test.getMonth()!==+cm[2]-1||test.getDate()!==+cm[1])return alert("Der Stichtag ist ungültig. Bitte einen gültigen Tag und Monat eingeben.");c.ageCutoff=cmo+"-"+cd;
  c.exportMembers=$("exportMembers").checked;c.importMembers=$("importMembers").checked;c.importBank=$("importBank").checked;
- c.showBirthDate=$("sh_birthDate")?.checked??c.showBirthDate;c.showMemberSince=$("sh_memberSince")?.checked??c.showMemberSince;
- c.showAddress=$("sh_address")?.checked??c.showAddress;c.showCountryCode=$("sh_countryCode")?.checked??(c.showCountryCode!==false);c.showContact=$("sh_phoneMobile")?.checked??c.showContact;
- c.showAZ=c.showAZ;c.showBirthdayFilters=c.showBirthdayFilters;c.showBankButton=c.showBankButton;c.birthdayUpcomingMonths=Math.max(1,Math.min(12,+$("birthdayUpcomingMonths")?.value||1));c.roundBirthdayMode=$("roundBirthdayMode")?.value==="all"?"all":"future";
- c.displayOrder=[...(c.displayOrder||["birthDate","memberSince","address","countryCode","zip","city","phoneMobile","email"])];
+ // Einzelne Spalten werden über displayVisible gespeichert; alte Sammelschalter nicht mehr überschreiben.
+ c.showAZ=c.showAZ;c.showBirthdayFilters=c.showBirthdayFilters;c.showBankButton=c.showBankButton;c.birthdayUpcomingMonths=Math.max(1,Math.min(12,+$("birthdayUpcomingMonths")?.value||1));c.roundBirthdayMode=["all","future","next6","firstHalf","secondHalf"].includes($("roundBirthdayMode")?.value)?$("roundBirthdayMode").value:"future";
+ c.displayOrder=memberDisplayOrder();
 
  save();
 try{refreshPassGroupsByAgeSettings();}catch(e){console.error("Spielerpässe konnten nach der Einstellungsänderung nicht aktualisiert werden:",e)}
@@ -843,7 +850,17 @@ function sponsorReceiptWarning(s){if(sponsorMoney(s.vatRate)>0||s.receiptType===
 function printSponsorReceipt(id){if(!ensureAdmin())return;let s=S.sponsors.find(x=>+x.id===+id);if(!s)return;if(!sponsorReceiptWarning(s))return;let iss=sponsorIssuer(),d=s.invoiceDate||new Date().toISOString().slice(0,10),amount=sponsorMoney(s.amountGross)||sponsorMoney(s.amountNet),words='';try{words=numberToGermanWords(amount)}catch(e){}let cfg=S.settings||{},purpose=(cfg.sponsorPurpose||s.purposeType||'').trim(),w=window.open('','_blank');if(!w)return alert('Druckfenster konnte nicht geöffnet werden. Bitte Popups erlauben.');let taxLine=(cfg.sponsorTaxOffice||cfg.sponsorTaxNumber)?`Finanzamt: ${esc(cfg.sponsorTaxOffice||'')} &nbsp;&nbsp; Steuernummer: ${esc(cfg.sponsorTaxNumber||'')}`:'';let exemption=(cfg.sponsorExemptionDate||cfg.sponsorAssessmentYear)?`Freistellungsbescheid vom ${esc(fd(cfg.sponsorExemptionDate)||'')} &nbsp;&nbsp; Veranlagungszeitraum: ${esc(cfg.sponsorAssessmentYear||'')}`:'';let sixty=(cfg.sponsor60aOffice||cfg.sponsor60aTaxNumber||cfg.sponsor60aDate)?`Feststellung nach § 60a AO: ${esc(cfg.sponsor60aOffice||'')} &nbsp;&nbsp; StNr. ${esc(cfg.sponsor60aTaxNumber||'')} &nbsp;&nbsp; Bescheid vom ${esc(fd(cfg.sponsor60aDate)||'')}`:'';let proof=exemption?`<p><b>Steuerliche Voraussetzungen</b><br>${exemption}<br>${taxLine}</p>`:(sixty?`<p><b>Steuerliche Voraussetzungen</b><br>${sixty}</p>`:`<p class="notice"><b>Hinweis:</b> Steuerliche Angaben bitte vor Ausstellung ergänzen.</p>`);w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Spendenbestätigung</title><style>@page{size:A4;margin:14mm}body{font-family:Arial,sans-serif;color:#111;font-size:10.5pt;line-height:1.28;margin:0}h1{text-align:center;font-size:19pt;margin:8mm 0 5mm}.issuer{font-size:9.5pt}.box{border:1px solid #777;border-radius:4px;padding:7px;margin:5mm 0}.amount{font-size:20pt;font-weight:800;text-align:center;border:2px solid #111;padding:8px;margin:4mm 0}.meta{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.section{margin-top:4mm}.legal{font-size:8.2pt}.notice{background:#fff4d6;padding:7px;border:1px solid #d8b24a}.sign{margin-top:8mm}.print{position:fixed;right:15px;bottom:15px;padding:10px 16px}@media print{.print{display:none}}</style></head><body><div class="issuer"><b>Aussteller</b><br>${esc(cfg.sponsorLegalName||iss.name)}<br>${esc(iss.address)}<br>${esc(iss.zip)} ${esc(iss.city)}</div><h1>Bestätigung über Geldzuwendungen</h1><div class="box"><b>Name und Anschrift des Zuwendenden</b><br>${esc(s.company)}<br>${esc(s.address)}<br>${esc([s.zip,s.city].filter(Boolean).join(' '))}</div><div class="meta"><div><b>Tag der Zuwendung</b><br>${esc(fd(d))}</div><div><b>Begünstigter Zweck</b><br>${esc(purpose||'—')}</div></div><div class="amount">${esc(sponsorEuro(amount))}</div><div style="text-align:center;font-size:9pt">in Worten: ${esc(words)}</div>${proof}<div class="section"><b>Verzicht auf Erstattung von Aufwendungen</b><br>☐ Ja &nbsp;&nbsp; ☐ Nein</div><div class="section"><b>Verwendung der Zuwendung</b><br>Es wird bestätigt, dass die Zuwendung nur zur Förderung des oben angegebenen begünstigten Zwecks verwendet wird.</div><div class="section"><b>Mitgliedsbeitrag</b><br>Es wird bestätigt, dass es sich nicht um einen Mitgliedsbeitrag handelt, dessen Abzug nach § 10b Abs. 1 EStG ausgeschlossen ist.</div><div class="sign">${esc(iss.city)}, ${esc(fd(d))}<br><br>________________________________________<br>Ort, Datum und Unterschrift des Zuwendungsempfängers</div><p class="legal"><b>Hinweis:</b> Wer vorsätzlich oder grob fahrlässig eine unrichtige Zuwendungsbestätigung erstellt oder veranlasst, dass Zuwendungen nicht zu den in der Zuwendungsbestätigung angegebenen steuerbegünstigten Zwecken verwendet werden, haftet für die entgangene Steuer (§ 10b Abs. 4 EStG, § 9 Abs. 3 KStG, § 9 Nr. 5 GewStG).</p><p class="legal">Diese Bestätigung wird nicht als Nachweis für die steuerliche Berücksichtigung der Zuwendung anerkannt, wenn das Datum des Freistellungsbescheides länger als 5 Jahre bzw. das Datum der Feststellung der Einhaltung der satzungsmäßigen Voraussetzungen nach § 60a Abs. 1 AO länger als 3 Jahre seit Ausstellung des Bescheides zurückliegt (§ 63 Abs. 5 AO).</p><button class="print" onclick="print()">Drucken</button><script>window.onload=()=>setTimeout(()=>print(),250)<\\/script></body></html>`);w.document.close();}
 function numberToGermanWords(n){let x=Math.round(Number(n)*100)/100,whole=Math.floor(x),cent=Math.round((x-whole)*100),ones=['null','eins','zwei','drei','vier','fünf','sechs','sieben','acht','neun'],teens=['zehn','elf','zwölf','dreizehn','vierzehn','fünfzehn','sechzehn','siebzehn','achtzehn','neunzehn'],tens=['','','zwanzig','dreißig','vierzig','fünfzig','sechzig','siebzig','achtzig','neunzig'];function under100(n){if(n<10)return ones[n];if(n<20)return teens[n-10];let t=Math.floor(n/10),o=n%10;return (o?ones[o]+'und':'')+tens[t];}function under1000(n){if(n<100)return under100(n);let h=Math.floor(n/100),r=n%100;return (h===1?'ein':ones[h])+'hundert'+(r?under100(r):'');}function group(n,word,singular){if(!n)return '';return under1000(n)+(n===1?singular:word);}let parts=[];if(whole>=1000000){let m=Math.floor(whole/1000000);parts.push(group(m,'millionen','million'));whole%=1000000;}if(whole>=1000){let t=Math.floor(whole/1000);parts.push(group(t,'tausend','tausend'));whole%=1000;}if(whole||!parts.length)parts.push(under1000(whole));return parts.join(' ')+` Euro und ${String(cent).padStart(2,'0')} Cent`;}
 function sponsorEmailText(s){let gross=sponsorMoney(s.amountGross)||sponsorMoney(s.amountNet),date=s.invoiceDate?fd(s.invoiceDate):fd(new Date().toISOString().slice(0,10));return `Guten Tag ${s.contact||s.company||''},\n\nanbei/zu Ihrer Information erhalten Sie die Unterlagen zum Sponsoring beim EC Wegscheid.\n\nBetrag: ${sponsorEuro(gross)}\nDatum: ${date}\n\nVielen Dank für Ihre Unterstützung.\n\nEC Wegscheid`}
-async function sponsorSendEmail(id){if(!ensureAdmin())return;let s=S.sponsors.find(x=>+x.id===+id);if(!s)return;let to=[s.email,s.email2].filter(Boolean).join(',');if(!to)return alert('Für diesen Sponsor ist keine E-Mail-Adresse hinterlegt.');let subject=`EC Wegscheid – Sponsoring ${new Date().getFullYear()}`,message=sponsorEmailText(s),cfg=S.settings||{};if(cfg.emailjsPublicKey&&cfg.emailjsServiceId&&cfg.emailjsTemplateId&&window.emailjs){try{emailjs.init({publicKey:cfg.emailjsPublicKey});await emailjs.send(cfg.emailjsServiceId,cfg.emailjsTemplateId,{to_email:s.email,to_name:s.contact||s.company,subject,message});alert('E-Mail wurde über den konfigurierten Versanddienst gesendet.');return;}catch(e){console.error(e);alert('Direktversand fehlgeschlagen. Es wird das E-Mail-Programm geöffnet.');}}let href=`mailto:${encodeURIComponent(s.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;if(s.email2)href+=`&cc=${encodeURIComponent(s.email2)}`;location.href=href;}
+function sponsorSendEmail(id){
+ if(!ensureAdmin())return;const sponsor=S.sponsors.find(x=>+x.id===+id);if(!sponsor)return;
+ const to=String(sponsor.email||'').trim();if(!to)return alert('Für diesen Sponsor ist keine E-Mail-Adresse hinterlegt.');
+ const modal=$('sponsorMailDialog');if(!modal)return alert('Mailformular nicht verfügbar.');
+ $('sponsorMailId').value=String(id);$('sponsorMailTo').value=to;
+ $('sponsorMailSubject').value='EC Wegscheid – Sponsoring '+new Date().getFullYear();
+ $('sponsorMailBody').value=sponsorEmailText(sponsor);$('sponsorMailFile').value='';
+ $('sponsorMailStatus').textContent='Google-Anmeldung erforderlich. Dieselbe OAuth-Client-ID wie in Turnierverwaltung → Einladung senden wird verwendet.';
+ modal.style.display='flex';
+}
+
 
 // ==================== Serienbrief 2.5.2 ====================
 let serialFileData=null;
@@ -867,20 +884,30 @@ function serialDisplayName(m){
  const firsts=[...new Set(fam.map(x=>String(x?.firstName||"").trim()).filter(Boolean))];
  return fam.length>1 ? `${String(m?.lastName||"").trim()} ${firsts.join(" + ")}`.trim() : `${String(m?.lastName||"").trim()} ${String(m?.firstName||"").trim()}`.trim() || "Ohne Namen";
 }
+let serialLoadGeneration=0;
+function serialClearFile(){
+ serialLoadGeneration++;
+ serialFileData=null;serialFileType="";
+ const input=$("serialFile");if(input)input.value="";
+ const info=$("serialFileInfo");if(info)info.textContent="Noch kein Dokument ausgewählt.";
+ const preview=$("serialPreview");if(preview)preview.style.display="none";
+ const pages=$("serialPreviewPages");if(pages)pages.innerHTML="";
+ const button=$("serialRemoveFile");if(button)button.disabled=true;
+}
 async function serialLoadFile(file){
  if(!file){
-  serialFileData=null;serialFileType="";
-  $("serialFileInfo").textContent="Noch kein Dokument ausgewählt.";
-  $("serialPreview").style.display="none";$("serialPreviewPages").innerHTML="";
-  return;
+  serialClearFile();return;
  }
+ const generation=++serialLoadGeneration;
  serialFileData=file;
  serialFileType=file.name.toLowerCase().endsWith(".pdf")?"pdf":"docx";
+ $("serialRemoveFile").disabled=false;
  $("serialFileInfo").textContent=`Ausgewählt: ${file.name} (${Math.round(file.size/1024)} KB)`;
  $("serialPreview").style.display="block";
  $("serialPreviewPages").innerHTML='<div class="smallnote">Dokument wird geladen …</div>';
  try{
   let pages=await serialDocumentPages(file);
+  if(generation!==serialLoadGeneration)return;
   let preview=$("serialPreviewPages");preview.innerHTML="";
   pages.forEach(pg=>{
    let box=document.createElement("div");box.className="serialPreviewPage";
@@ -890,6 +917,7 @@ async function serialLoadFile(file){
    preview.appendChild(box);
   });
  }catch(e){
+  if(generation!==serialLoadGeneration)return;
   $("serialPreviewPages").innerHTML=`<div class="notice">Dokument konnte nicht angezeigt werden: ${esc(e?.message||e)}</div>`;
  }
 }
@@ -1128,3 +1156,95 @@ function csv(){
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
+
+// === EC Wegscheid V2.9.9: Mitgliederverwaltung Sammelkorrekturen ===
+const memberSensitiveFields=new Set(['accountHolder','iban','bic','bank','paymentMethod']);
+function memberDisplayLabels(){return {lastName:'Nachname',firstName:'Vorname',birthDate:'Geburtsdatum',memberSince:'Mitglied seit',address:'Adresse',countryCode:'Länderkennung',country:'Land',zip:'PLZ',city:'Ort',phoneMobile:'Mobil',phoneFixed:'Festnetz',email:'E-Mail',notes:'Notizen',exitType:'Austrittsstatus',exitDate:'Austrittsdatum',accountHolder:'Kontoinhaber',iban:'IBAN',bic:'BIC',bank:'Kreditinstitut',paymentMethod:'Zahlungsart'};}
+function memberDisplayOrder(){
+ const labels=memberDisplayLabels();const existing=Array.isArray(S.settings.displayOrder)?S.settings.displayOrder:[];
+ const out=[...new Set(['lastName','firstName',...existing].filter(k=>Object.prototype.hasOwnProperty.call(labels,k)))];
+ Object.keys(labels).forEach(k=>{if(!out.includes(k))out.push(k)});
+ return out;
+}
+function memberFieldVisible(k){
+ const visible=S.settings.displayVisible||{};
+ if(Object.prototype.hasOwnProperty.call(visible,k))return visible[k]===true;
+ if(k==='lastName'||k==='firstName')return true;
+ const legacy={birthDate:'showBirthDate',memberSince:'showMemberSince',address:'showAddress',countryCode:'showCountryCode',zip:'showAddress',city:'showAddress',phoneMobile:'showContact',email:'showContact'};
+ return !!legacy[k] && S.settings[legacy[k]]!==false && (S.settings.displayOrder||[]).includes(k);
+}
+function memberDisplayToggle(k,checked){
+ if(!U?.admin)return;
+ S.settings.displayVisible={...(S.settings.displayVisible||{}),[k]:!!checked};
+ save();renderM();
+}
+function memberFilterRoundBirthdays(rows,now,settings){
+ const mode=settings?.roundBirthdayMode||'future';
+ const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ if(mode==='all')return rows;
+ if(mode==='firstHalf')return rows.filter(m=>m.bd.getMonth()<6);
+ if(mode==='secondHalf')return rows.filter(m=>m.bd.getMonth()>=6);
+ 
+ if(mode==='next6'){
+   const end=new Date(start.getFullYear(),start.getMonth()+6,start.getDate());
+   return rows.filter(m=>m.bd>=start&&m.bd<=end);
+ }
+ return rows.filter(m=>m.bd>=start);
+}
+function memberOpenCentralUsers(){
+ try{
+  if(window.parent&&window.parent!==window&&window.parent.appPermissions?.admin===true&&typeof window.parent.openUserRightsAdmin==='function'){
+   window.parent.openUserRightsAdmin();return;
+  }
+ }catch(e){console.error(e)}
+ alert('Bitte in der zentralen Vereinsverwaltung „Benutzer & Rechte“ öffnen. Dort werden die Firebase-Berechtigungen verwaltet.');
+}
+function memberFeeEuro(){return (Math.max(0,Number(S.settings?.fee)||0)).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+let memberApplicationPdfUrl='',memberApplicationBusy=null,memberApplicationLastFee=null;
+function memberApplicationStatus(text){const el=$('memberApplicationStatus');if(el)el.textContent=text;}
+function memberApplicationPdfFromJpeg(jpegBytes,w,h){
+ // Minimaler, valider einseitiger PDF-Container mit JPEG-Bild (A4).
+ const enc=new TextEncoder();const chunks=[];let length=0;const offsets=[0];
+ function put(v){const b=typeof v==='string'?enc.encode(v):v;chunks.push(b);length+=b.length;}
+ function obj(id,body){offsets[id]=length;put(id+' 0 obj\n'+body+'\nendobj\n');}
+ put('%PDF-1.4\n');
+ obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+ obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+ obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.32 841.92] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+ offsets[4]=length;put('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+w+' /Height '+h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpegBytes.length+' >>\nstream\n');put(jpegBytes);put('\nendstream\nendobj\n');
+ const content='q 595.32 0 0 841.92 0 0 cm /Im0 Do Q\n';
+ obj(5,'<< /Length '+enc.encode(content).length+' >>\nstream\n'+content+'endstream');
+ const xref=length;put('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)put(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
+ put('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
+ return new Blob(chunks,{type:'application/pdf'});
+}
+async function memberApplicationGenerate(){
+ const img=new Image();img.src='assets/mitgliedsantrag_basis.png';await img.decode();
+ const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+ const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
+ const factor=canvas.width/595.32;
+ // Das Original-PDF hatte die Beitragsangabe bei x=411 / y=272 (Koordinaten vom oberen Rand).
+ ctx.fillStyle='#111';ctx.textBaseline='top';ctx.font='bold '+Math.round(17*factor)+'px Arial,sans-serif';
+ ctx.fillText(memberFeeEuro(),411*factor,271*factor);
+ ctx.font=Math.round(9*factor)+'px Arial,sans-serif';
+ ctx.fillText('Aktueller Mitgliedsbeitrag',310*factor,302*factor);
+ const data=canvas.toDataURL('image/jpeg',0.94).split(',')[1];const bin=atob(data);const bytes=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+ return memberApplicationPdfFromJpeg(bytes,canvas.width,canvas.height);
+}
+async function memberApplicationRefresh(){
+ const frame=$('ecwMitgliedsantragVorschau');if(!frame)return;
+ if(memberApplicationBusy)return memberApplicationBusy;
+ memberApplicationBusy=(async()=>{
+  memberApplicationStatus('PDF mit aktuellem Mitgliedsbeitrag wird erstellt …');
+  try{
+   const blob=await memberApplicationGenerate();
+   const url=URL.createObjectURL(blob);const previous=memberApplicationPdfUrl;
+   memberApplicationPdfUrl=url;memberApplicationLastFee=memberFeeEuro();frame.src=url+'#view=FitH';
+   if(previous)setTimeout(()=>URL.revokeObjectURL(previous),3000);
+   memberApplicationStatus('PDF mit '+memberFeeEuro()+' erstellt. Vorschau, Druck und Download verwenden denselben Betrag.');
+  }catch(e){console.error(e);memberApplicationStatus('PDF-Erstellung fehlgeschlagen: '+(e?.message||e));}
+ })();try{await memberApplicationBusy;}finally{memberApplicationBusy=null;}
+}
+async function memberApplicationOpen(){if(!memberApplicationPdfUrl||memberApplicationLastFee!==memberFeeEuro())await memberApplicationRefresh();if(!memberApplicationPdfUrl)return;window.open(memberApplicationPdfUrl,'_blank','noopener');}
+async function memberApplicationDownload(){if(!memberApplicationPdfUrl||memberApplicationLastFee!==memberFeeEuro())await memberApplicationRefresh();if(!memberApplicationPdfUrl)return;const a=document.createElement('a');a.href=memberApplicationPdfUrl;a.download='Mitgliedsantrag_EC_Wegscheid_Aktuell.pdf';document.body.appendChild(a);a.click();a.remove();}

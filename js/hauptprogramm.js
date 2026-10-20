@@ -1,5 +1,5 @@
 
-const APP_VERSION='2.5.3';
+const APP_VERSION='2.9.11';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1014,9 +1014,15 @@ async function restoreAppLocalBackup(){
  finally{appBackupBusy=false;}
 }
 
+
+function renderStorageAdminHtml(){
+ return '<div class="card" style="margin-top:14px"><h3>Speicher verwalten</h3><p class="small">Lokaler Dateispeicher dieses Browsers: Bilder und PDF-Seiten in IndexedDB. Das Löschen betrifft nur diesen Browser und ersetzt keine Firebase-Datensicherung.</p><div id="storageInfo" class="small" style="margin:10px 0">Speicher wird ermittelt …</div><div class="row"><button type="button" class="primary" onclick="showStorageInfo()">Speicher aktualisieren</button><button type="button" class="danger" onclick="clearLocalMedia()">Alle lokalen Bilder/PDF-Seiten löschen</button></div></div>';
+}
+
 function renderBackupAdmin(){
  if(appPermissions.admin!==true)return;
- document.getElementById('adminMain').innerHTML='<h2>Datensicherung – Version '+APP_VERSION+'</h2><div class="card"><p>Die App-Sicherung enthält alle von dieser App verwendeten Firestore-Sammlungen, Benutzerprofile mit Rechten, die vollständigen Mitgliederdaten und die lokalen Einstellungen und Medien dieses Browsers.</p><button class="primary" id="appBackupButton" onclick="exportAppBackup()">App-Daten als ZIP sichern</button> <button id="memberBackupButton" onclick="exportMemberBackup()">Mitglieder als JSON sichern</button><p id="appBackupStatus" role="status"></p><p class="small">Die Dateien tragen das Sicherungsdatum. Firebase-Anmeldekonten samt Passwort-Hashes, veröffentlichte Regeln, Indizes und eventuell separat verwendete Storage-Dateien sind zusätzlich nach der Anleitung im Sicherungspaket zu sichern. Während des Exports bitte keine Daten ändern.</p></div><details class="card" style="margin-top:12px"><summary>Lokale Browserdaten wiederherstellen</summary><p>Aus der Sicherungs-ZIP Lokale_Einstellungen und Lokale_Medien auswählen. Firebase-Daten werden hierdurch nicht geändert.</p><label>Lokale Einstellungen (JSON)<input type="file" accept=".json" onchange="selectAppLocalRestore(\'settings\',this.files[0])"></label><label>Lokale Medien (JSON)<input type="file" accept=".json" onchange="selectAppLocalRestore(\'media\',this.files[0])"></label><button onclick="restoreAppLocalBackup()">Lokale Daten wiederherstellen und App neu laden</button><p id="localRestoreStatus" role="status"></p></details>';
+ document.getElementById('adminMain').innerHTML='<h2>Datensicherung – Version '+APP_VERSION+'</h2><div class="card"><p>Die App-Sicherung enthält alle von dieser App verwendeten Firestore-Sammlungen, Benutzerprofile mit Rechten, die vollständigen Mitgliederdaten und die lokalen Einstellungen und Medien dieses Browsers.</p><button class="primary" id="appBackupButton" onclick="exportAppBackup()">App-Daten als ZIP sichern</button> <button id="memberBackupButton" onclick="exportMemberBackup()">Mitglieder als JSON sichern</button><p id="appBackupStatus" role="status"></p><p class="small">Die Dateien tragen das Sicherungsdatum. Firebase-Anmeldekonten samt Passwort-Hashes, veröffentlichte Regeln, Indizes und eventuell separat verwendete Storage-Dateien sind zusätzlich nach der Anleitung im Sicherungspaket zu sichern. Während des Exports bitte keine Daten ändern.</p></div><details class="card" style="margin-top:12px"><summary>Lokale Browserdaten wiederherstellen</summary><p>Aus der Sicherungs-ZIP Lokale_Einstellungen und Lokale_Medien auswählen. Firebase-Daten werden hierdurch nicht geändert.</p><label>Lokale Einstellungen (JSON)<input type="file" accept=".json" onchange="selectAppLocalRestore(\'settings\',this.files[0])"></label><label>Lokale Medien (JSON)<input type="file" accept=".json" onchange="selectAppLocalRestore(\'media\',this.files[0])"></label><button onclick="restoreAppLocalBackup()">Lokale Daten wiederherstellen und App neu laden</button><p id="localRestoreStatus" role="status"></p></details>' +renderStorageAdminHtml();
+ showStorageInfo();
 }
 async function exportMemberBackup(){
  if(appPermissions.admin!==true||appBackupBusy)return;
@@ -1091,7 +1097,7 @@ function openUserRightsAdmin(){
   if(!appPermissions.admin)return;
   const a=document.getElementById('adminMain');
   a.innerHTML=
-    '<h2>Benutzer & Rechte</h2>'+
+    '<h2>Benutzer, Rechte und Datensicherung</h2>'+
     '<div class="card" style="margin-bottom:14px">'+
       '<h3 style="margin-top:0">📱 Mobilzugang – Smartphone & Tablet</h3>'+
       '<p class="small">Ein gemeinsamer QR-Code führt zu einer einfachen mobilen Übersicht mit vier Bereichen: Turnierverwaltung, Vereinsnachrichten, neuen Termin/Turnier anlegen und Ziel Jahresmeisterschaft eingeben. Welche Bereiche ein Benutzer sieht, wird über die Rechte unten gesteuert.</p>'+
@@ -1100,17 +1106,44 @@ function openUserRightsAdmin(){
         '<button type="button" onclick="window.open(\'mobile-zugang.html?v=2.5.2\',\'_blank\')">Mobilzugang öffnen</button>'+
       '</div>'+
     '</div>'+
-    '<div class="card"><p class="small">Benutzer werden über Firebase Authentication angelegt. Sobald sich ein Benutzer einmal anmeldet, erscheint er hier. Der Administrator vergibt anschließend die freigegebenen Anwendungen.</p><div id="userRightsList">Benutzer werden geladen …</div></div>';
+    '<div class="card" style="margin-bottom:14px"><h3>Kontoverwaltung & Datensicherung</h3><div class="row" style="gap:9px;flex-wrap:wrap"><button type="button" onclick="openUserPassword()" '+(canChangeOwnPassword()?'':'disabled')+'>Benutzerkennwort ändern</button><button type="button" class="primary" onclick="openBackupFromUserRights()">Datensicherung öffnen</button></div><p class="small">Die Datensicherung ist nur für Administratoren verfügbar. Das eigene Kennwort kann mit einem persönlichen Konto geändert werden.</p></div>'+
+    '<div class="card"><h3>Benutzerkonten</h3><p class="small">Hier werden die in Firestore angelegten Benutzerprofile mit ihren Rechten angezeigt. Die vollständige Liste der Firebase-Authentication-Konten ist aus einer Browser-Webseite aus Sicherheitsgründen nicht abrufbar.</p><div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="primary" onclick="openNewFirebaseUserHelp()">+ Neuen Benutzer hinzufügen</button><button type="button" onclick="loadUserRightsAdmin()">Benutzerliste aktualisieren</button></div><div id="userCreateHelp" style="display:none;margin:12px 0" class="small"></div><div id="userRightsList">Benutzer werden geladen …</div></div>' +
+    '<div id="wbPermissionsEmbedded" style="margin-top:20px"></div>';
+  renderWhiteboardPermissionsAdmin(document.getElementById('wbPermissionsEmbedded'));
   loadUserRightsAdmin();
+}
+function openBackupFromUserRights(){
+ if(appPermissions.admin!==true)return;
+ renderBackupAdmin();
+ const root=document.getElementById('adminMain');
+ if(root){const b=document.createElement('button');b.type='button';b.textContent='← Zurück zu Benutzer, Rechte und Datensicherung';b.onclick=openUserRightsAdmin;b.style.marginBottom='12px';root.prepend(b);}
+}
+function openNewFirebaseUserHelp(){
+ if(!appPermissions.admin)return;
+ const el=document.getElementById('userCreateHelp');if(!el)return;
+ const project=String(firebaseConfig?.projectId||'');
+ const url='https://console.firebase.google.com/project/'+encodeURIComponent(project)+'/authentication/users';
+ el.style.display='block';
+ el.innerHTML='<b>Neues Konto sicher anlegen:</b><ol><li>Firebase Authentication öffnen und „Nutzer hinzufügen“ wählen.</li><li>E-Mail-Adresse und sicheres Startkennwort eintragen.</li><li>Den neuen Benutzer einmal in der Vereinsverwaltung anmelden lassen, damit das Firestore-Profil erstellt wird.</li><li>Hier „Benutzerliste aktualisieren“ drücken und die gewünschten Rechte vergeben.</li></ol><p><a href="'+url+'" target="_blank" rel="noopener noreferrer">Firebase Authentication – Benutzer öffnen ↗</a></p><p>Das Anlegen von Authentication-Konten direkt aus dem Browser ohne geschützten Serverdienst wäre nicht ausreichend gegen unbefugte Registrierung abgesichert. Deshalb ist diese Funktion bewusst als geführter Administrationsablauf ausgeführt.</p>';
 }
 async function loadUserRightsAdmin(){
   const el=document.getElementById('userRightsList');if(!el)return;
+  const accountName=u=>String(u.username||u.userName||u.benutzername||u.displayName||u.name||u.email?.split('@')[0]||'').trim();
+  const showRows=rows=>{
+    rows.sort((a,b)=>accountName(a).localeCompare(accountName(b),'de'));
+    const loggedIn=firebaseAuthUser?.email||'';
+    el.innerHTML='<p class="small">Angemeldet: <b>'+esc(firebaseAuthUser?.displayName||loggedIn||'–')+'</b>. Nachfolgend die in Firestore verfügbaren Benutzerprofile ('+rows.length+').</p>'+
+      (rows.map(u=>'<div class="card" style="margin-top:10px"><div><b>Benutzername: '+esc(accountName(u)||'Nicht hinterlegt')+'</b></div><div class="small">'+esc(u.email||'Keine E-Mail im Profil')+' · Rolle: '+esc(u.admin?'Administrator':u.whiteboard?'Whiteboard':'Benutzer')+'</div><details><summary class="small" style="cursor:pointer">Profil-ID und Rechte anzeigen</summary><div class="small">UID: '+esc(u.id)+'</div><label><input type="checkbox" '+(u.whiteboard?'checked':'')+' onchange="changeUserPermission(\''+esc(u.id)+'\',\'whiteboard\',this.checked)"> Whiteboard</label><label style="display:block;margin-top:8px"><input type="checkbox" '+(u.admin?'checked':'')+' onchange="changeUserPermission(\''+esc(u.id)+'\',\'admin\',this.checked)"> Administrator</label><div class="perm-apps">'+Object.entries(APP_PERMISSIONS).map(([k,n])=>'<label><input type="checkbox" '+(u[k]?'checked':'')+' '+(u.admin?'disabled':'')+' onchange="changeUserPermission(\''+esc(u.id)+'\',\''+k+'\',this.checked)"> '+esc(n)+'</label>').join('')+'</div></details></div>').join('')||'<p class="small">Keine Firestore-Benutzerprofile abrufbar. Das ist keine vollständige Firebase-Authentication-Benutzerliste.</p>');
+  };
   try{
     const snap=await firestoreDb.collection('users').get();
     const rows=[];snap.forEach(d=>rows.push({id:d.id,...d.data()}));
-    rows.sort((a,b)=>String(a.email||'').localeCompare(String(b.email||'')));
-    el.innerHTML=rows.map(u=>'<div class="card" style="margin-top:10px"><b>'+esc(u.name||u.email||u.id)+'</b><div class="small">'+esc(u.email||'')+' · UID: '+esc(u.id)+'</div><label><input type="checkbox" '+(u.whiteboard?'checked':'')+' onchange="changeUserPermission(\''+esc(u.id)+'\',\'whiteboard\',this.checked)"> Whiteboard (geteiltes Konto: Präsentation, kein Kennwort-Reiter)</label><label style="display:block;margin-top:8px"><input type="checkbox" '+(u.admin?'checked':'')+' onchange="changeUserPermission(\''+esc(u.id)+'\',\'admin\',this.checked)"> Administrator</label><div class="perm-apps">'+Object.entries(APP_PERMISSIONS).map(([k,n])=>'<label><input type="checkbox" '+(u[k]?'checked':'')+' '+(u.admin?'disabled':'')+' onchange="changeUserPermission(\''+esc(u.id)+'\',\''+k+'\',this.checked)"> '+esc(n)+'</label>').join('')+'</div></div>').join('') || '<p class="small">Noch keine Benutzer in der Rechteverwaltung.</p>';
-  }catch(e){el.textContent='Fehler beim Laden der Benutzer: '+(e.message||e)}
+    showRows(rows);
+  }catch(e){
+    // Falls Firestore nur den eigenen Profilzugriff erlaubt, keine fremden Konten vortäuschen.
+    try{const uid=firebaseAuthUser?.uid;if(!uid)throw e;const own=await firestoreDb.collection('users').doc(uid).get();showRows(own.exists?[{id:own.id,...own.data()}]:[]);el.insertAdjacentHTML('beforeend','<p class="small">Die übrigen Profile konnten aufgrund der Firestore-Berechtigungen nicht geladen werden. Für die vollständige Benutzerliste ist eine sichere Administratorfunktion nötig.</p>');}
+    catch(err){el.textContent='Fehler beim Laden der Benutzer: '+(e.message||e)}
+  }
 }
 async function changeUserPermission(uid,key,value){
   if(!appPermissions.admin)return;
@@ -1133,7 +1166,7 @@ function adminPreviewOpen(kind){
     openSoloPyramidePreview();
     return;
   }
-  const perm=(kind==='zr'?'t':kind);
+  const perm=(kind==='zr'?'t':kind==='docs'?'sh':kind);
   if(!canViewApp(perm)){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
   if(kind==='t'){ openTournamentSection('tournaments'); window.__adminPreviewMode=true; }
   else if(kind==='o'){ openTournamentSection('ownTournaments'); window.__adminPreviewMode=true; }
@@ -1143,6 +1176,7 @@ function adminPreviewOpen(kind){
   else if(kind==='sp'){ openPublicSection('sponsorPhotos'); window.__adminPreviewMode=true; }
   else if(kind==='m'){ openTeams().then(()=>{window.__adminPreviewMode=true}); }
   else if(kind==='sh'){ showView('startseite'); window.__adminPreviewMode=true; shUpdateBack(); }
+  else if(kind==='docs'){ window.__adminPreviewMode=true; ecwDocsOpen(null,true); }
   else if(kind==='tv'){ window.__adminPreviewMode=true; showView('turnierverwaltung'); updateAdminPreviewBackButtons(); try{enterPresentationFullscreen()}catch(e){} }
   else if(kind==='mv'){ window.__adminPreviewMode=true; openMemberManagement(); }
   else if(kind==='zr'){ window.__adminPreviewMode=true; openTournamentSection('pressReports'); }
@@ -1491,14 +1525,12 @@ function shMakeBtn(b,idx){
     }else{
       a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
     }
-   }else if(isWhiteboardUser()&&!isPublicWhiteboardMode()){
-    a.target='_blank';
-    a.rel='noopener noreferrer';
    }else if(shouldEmbedExternal(u,b.t)){
+    // V2.9.3: Die gespeicherte Link-Einstellung gilt auch fuer angemeldete
+    // Whiteboards. Einbettung darf nicht durch die Benutzerrolle ueberschrieben werden.
     a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
-   }else if(isPublicWhiteboardMode()){
-    a.onclick=e=>{e.preventDefault();openWhiteboardExternalDirect(u);};
    }else{
+    // Browser-nativer neuer Tab statt location.href (welches die Vereinsverwaltung ersetzt).
     a.target='_blank';a.rel='noopener noreferrer';
    }
    return a;
@@ -1566,9 +1598,10 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
  +'<h3 style="margin:18px 0 8px">Buttons ('+SH.buttons.length+')</h3>'
  +SH.buttons.map(shAdminRow).join('')
  +'<div class="row" style="margin:10px 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>'
- +'<div class="card"><div class="row"><button onclick="shExport()">Konfiguration exportieren</button><button class="danger" onclick="shReset()">Alles zurücksetzen</button></div><label>Konfiguration importieren (.json)</label><input type="file" accept=".json,application/json" onchange="shImport(this)"></div>';
+ +'<div class="card"><div class="row"><button onclick="shExport()">Konfiguration exportieren</button><button class="danger" onclick="shReset()">Alles zurücksetzen</button></div><label>Konfiguration importieren (.json)</label><input type="file" accept=".json,application/json" onchange="shImport(this)"></div>' +'<div id="shLinksEmbedded" style="margin-top:20px"></div>';
  a.scrollTop=st;
  shUpdateFirebaseStatus();
+ renderLinksAdmin(document.getElementById('shLinksEmbedded'));
 }
 var shAdminOpen=new WeakSet();
 function shAdminRow(b,i){
@@ -2196,13 +2229,7 @@ function internalCupUrl(mode='home',extra=''){
  return u.href;
 }
 function setInternalCupAdminReturnButton(){
- const b=document.querySelector('#ecwExternalHomeBar button');
- if(b){
-   // Die zweite, feste Navigation fuehrt immer zur Startseite.
-   // Eine Ebene zurueck steuert die Cupansicht selbst (globalStartMenuBtn).
-   b.textContent='⌂ Zurück zum Hauptmenü';
-   b.onclick=closeExternalPage;
- }
+ setExternalReturnButton();
 }
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
@@ -2246,9 +2273,9 @@ function ovOpen(k){
 }
 
 /* ---------- Link-Erzeugung für die Startseite ---------- */
-function renderLinksAdmin(){
+function renderLinksAdmin(target){
   teamsAdminEnsure();
-  const a=document.getElementById('adminMain');
+  const a=target||document.getElementById('adminMain');
   const routes=[['Startseite','#startseite'],['Turnierplaner','#turnierliste'],['Turniereinladungen (Monatsübersicht)','#turniere-monatsuebersicht'],['Zeitungsberichte EC Wegscheid','#zeitungsberichte'],['Eigene Turniere','#eigene-turniere'],['Vereinsnachrichten','#nachrichten'],['Fotos Verein','#fotos'],['Fotos Sponsoren','#fotos-sponsoren'],['Mitgliederverwaltung','#mitglieder'],['Links','#links'],['Mannschaften (Übersicht)','#mannschaften']]
     .concat(teamsData.map(t=>['Mannschaft: '+t.name,'#mannschaft-'+t.id]));
   const base=getBaseUrl();
@@ -2259,7 +2286,7 @@ function renderLinksAdmin(){
    +'<div class="card" style="margin-top:12px"><p class="small">Diese Links kopieren und auf der Startseite bei dem jeweiligen Button als Link eintragen.</p><div id="lkList">'
    +routes.map(r=>'<div class="list-item" style="flex-wrap:wrap"><div style="flex:1;min-width:200px"><b>'+esc(r[0])+'</b><input type="text" readonly class="lk-url" data-hash="'+esc(r[1])+'" value="'+esc(base+r[1])+'" onclick="this.select()" style="margin-top:4px"></div><button onclick="lkCopy(this)">Kopieren</button></div>').join('')
    +'</div></div>';
- renderExternalLinkOptions();
+ renderExternalLinkOptions(a);
 }
 async function lkSaveSettings(){
   const b=document.getElementById('lkBase')?.value.trim()||'';
@@ -2327,18 +2354,16 @@ function updateWhiteboardScreenControls(){
  const fs=document.getElementById('shFs');if(fs)fs.hidden=wb||full;
  const prompt=document.getElementById('whiteboardFullscreenPrompt');
  if(prompt)prompt.hidden=!(wb&&!full&&document.documentElement.requestFullscreen);
- const newTab=document.getElementById('externalNewTab');if(newTab)newTab.hidden=wb||!!document.getElementById('externalPage')?.classList.contains('ecw-tournament-embed');
- const note=document.getElementById('externalEmbedNote');if(note)note.textContent=wb?'Externe Webseiten werden im Whiteboard angezeigt. Falls eine Seite das Einbetten sperrt, bitte zum Hauptmenü zurückkehren.':'Falls die Seite leer bleibt oder das Einbetten verhindert: „In neuem Tab öffnen“ verwenden.';
+ // Auch am Whiteboard muss der Ausweichlink erreichbar sein, wenn eine
+ // fremde Webseite die iframe-Einbettung per Sicherheitsheader blockiert.
+ const newTab=document.getElementById('externalNewTab');if(newTab)newTab.hidden=!!document.getElementById('externalPage')?.classList.contains('ecw-tournament-embed');
+ const note=document.getElementById('externalEmbedNote');if(note)note.textContent='Falls die Seite leer bleibt oder das Einbetten verhindert: „In neuem Tab öffnen“ verwenden.';
 }
 async function startWhiteboardFullscreen(){await enterPresentationFullscreen();updateWhiteboardScreenControls();}
 document.addEventListener('fullscreenchange',updateWhiteboardScreenControls);
 document.addEventListener('pointerdown',event=>{if(event.target.closest?.('a[target="_blank"]'))return;if(isWhiteboardUser()&&!document.fullscreenElement)enterPresentationFullscreen();},{capture:true});
 
 let externalLinkPreferences={};
-function openWhiteboardExternalDirect(value){
- const url=externalWebUrl(value);if(!url)return;
- try{location.href=url;}catch(e){location.assign(url);}
-}
 function shouldEmbedExternal(value,title){
  const url=externalWebUrl(value);if(!url)return false;
  if(isEcwTournamentAppUrl(url)||isSoloPyramideUrl(url))return true;
@@ -2361,8 +2386,8 @@ function listExternalLinkOptions(){
  const walk=buttons=>buttons.forEach(b=>{if(b.u)add(b.t,b.u);if(b.sub)walk(b.sub);});walk(SH.buttons);
  return [...list.values()];
 }
-function renderExternalLinkOptions(){
- const main=document.getElementById('adminMain');const card=document.createElement('div');card.className='card';card.style.marginTop='12px';
+function renderExternalLinkOptions(target){
+ const main=target||document.getElementById('adminMain');const card=document.createElement('div');card.className='card';card.style.marginTop='12px';
  const heading=document.createElement('h3');heading.textContent='Externe Links öffnen';card.appendChild(heading);
  listExternalLinkOptions().forEach(item=>{const row=document.createElement('div');row.className='list-item';const label=document.createElement('span');label.textContent=item.title;label.style.flex='1';const select=document.createElement('select');select.style.width='auto';
  [['true','Eingebettet'],['false','In neuem Tab']].forEach(([v,t])=>{const option=document.createElement('option');option.value=v;option.textContent=t;select.appendChild(option);});select.value=String(shouldEmbedExternal(item.url,item.title));select.onchange=()=>saveExternalLinkPreference(item.url,select.value==='true',select);row.append(label,select);card.appendChild(row);});
@@ -2495,8 +2520,8 @@ async function saveWhiteboardResultPermissions(){
    showToast('Whiteboard-Freigaben konnten nicht gespeichert werden.',6000);
  }
 }
-function renderWhiteboardPermissionsAdmin(){
- const a=document.getElementById('adminMain');if(!a)return;
+function renderWhiteboardPermissionsAdmin(target){
+ const a=target||document.getElementById('adminMain');if(!a)return;
  const p=whiteboardResultPermissions||WHITEBOARD_RESULT_DEFAULTS;
  a.innerHTML='<h2>Whiteboard-Freigaben</h2>'
   +'<div class="card"><p class="small">Hier legst du fest, welche Bereiche unter „Ergebnisse Turniere intern“ am öffentlichen Whiteboard ohne zusätzliche Anmeldung geöffnet werden dürfen.</p>'
@@ -2563,8 +2588,6 @@ async function openExternalPage(value,title){
   }
   window.__ecwVerifiedResultUid=firebaseAuthUser.uid;
  }
- const homeBtn=document.querySelector('#ecwExternalHomeBar button');
- if(homeBtn){homeBtn.textContent='Zurück zum Hauptmenü';homeBtn.onclick=closeExternalPage;}
  const url=externalWebUrl(value);if(!url){showToast('Dieser Link kann nicht eingebettet werden.');return;}
  const isEcwTournament=isEcwTournamentAppUrl(url);
  const isSoloPyramide=isSoloPyramideUrl(url);
@@ -2586,8 +2609,9 @@ async function openExternalPage(value,title){
  const internal=shInternalHash(url);if(internal){shGo(internal);return;}
  const active=document.querySelector('.view.active');
  if(active&&active.id!=='externalPage'){externalPreviousView=active.id;externalPreviousSubmenu=active.id==='startseite'?shOpen:-1;}
+ setExternalReturnButton();
  const isReservationApp=/^https:\/\/ecwegscheid\.github\.io\/Reservierungssystem(?:\/|$)/i.test(url);
- document.getElementById('externalPrevious').hidden=isReservationApp||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
+ document.getElementById('externalPrevious').hidden=isReservationApp||externalPreviousView==='admin'||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
@@ -2645,13 +2669,21 @@ async function openExternalPage(value,title){
  frame.setAttribute('sandbox',isEcwInternalApp?'allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals':(isWhiteboardUser()?'allow-scripts allow-forms allow-same-origin allow-modals':'allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals'));
  updateWhiteboardScreenControls();frame.title=String(title||'Externe Webseite');frame.src=frameUrl;
 }
+function setExternalReturnButton(){
+ const b=document.querySelector('#ecwExternalHomeBar button');if(!b)return;
+ const backToAdmin=externalPreviousView==='admin' && !!firebaseAuthUser && appPermissions.admin===true;
+ b.textContent=backToAdmin?'← Zurück zur Verwaltung':'← Zurück zur Startseite';
+ b.onclick=closeExternalPage;
+}
 function backExternalPrevious(){
  clearExternalPage();window.__adminPreviewMode=false;
  shOpen=externalPreviousView==='startseite'?externalPreviousSubmenu:-1;
  showView(externalPreviousView||'startseite');
 }
 function closeExternalPage(){
+ const adminBack=externalPreviousView==='admin'&&!!firebaseAuthUser&&appPermissions.admin===true;
  clearExternalPage();shOpen=-1;window.__adminPreviewMode=false;
+ if(adminBack){returnToAdminManagementView();return;}
  try{history.replaceState(null,'',location.pathname+location.search+'#startseite');}catch(e){}
  showView('startseite');
 }
@@ -2659,9 +2691,7 @@ document.addEventListener('click',event=>{
  const anchor=event.target.closest?.('#links a[href]');if(!anchor||event.defaultPrevented)return;
  const url=externalWebUrl(anchor.getAttribute('href'));if(!url){if(isWhiteboardUser())event.preventDefault();return;}
  if(!shouldEmbedExternal(url,anchor.textContent.trim())){
-   if(isPublicWhiteboardMode()){
-     event.preventDefault();openWhiteboardExternalDirect(url);return;
-   }
+   // Gleiche neue-Tab-Logik wie bei den konfigurierbaren Startseiten-Buttons.
    anchor.target='_blank';anchor.rel='noopener noreferrer';return;
  }
  event.preventDefault();openExternalPage(url,anchor.textContent.trim());
@@ -2910,7 +2940,8 @@ function returnToPowerPoint(){
    showView('admin');
    return;
  }
- currentUser=null;
+ // V2.9.11: Firebase-Sitzung und Benutzerkontext beim Ansichtswechsel erhalten.
+ if(firebaseAuthUser){showView('startseite');return;}
  // V2.5.2: Beim normalen Zurückkehren zur Startseite wird NICHT mehr automatisch
  // aus Firebase abgemeldet. Abmelden erfolgt nur noch bewusst über die Logout-Funktion.
  // Das verhindert besonders am Whiteboard eine erneute Kennwortabfrage bei jedem Start.
@@ -5514,9 +5545,9 @@ function renderTurnierWirtschaftlichkeitAdmin(){
   const a=document.getElementById('adminMain');
   if(!a)return;
   a.innerHTML='<div class="row" style="align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
-    +'<h2 style="margin:0">Turnierwirtschaftlichkeit</h2>'
+    +'<h2 style="margin:0">Turnierwirtschaftlichkeit und Helfer</h2>'
     +'<button type="button" onclick="renderAdminMenuLanding()">← Zurück zur Verwaltung</button></div>'
-    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.5.2" '
+    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit und Helfer EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.9.11" '
     +'style="width:100%;height:calc(100vh - 185px);min-height:690px;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:#16080b" '
     +'loading="eager" referrerpolicy="same-origin"></iframe>';
 }
@@ -5587,15 +5618,15 @@ function adminSection(s){
   renderTournamentPlannerAdminList();
   tpAdminSubSection('plan');
  }else if(s==='n'){
-  a.innerHTML='<h2>Vereinsnachrichten</h2><div class="card"><input id="neditid" type="hidden"><label>Überschrift</label><input id="ntitle" type="text" placeholder="z. B. Vereinsmeisterschaft"><label style="margin-top:8px"><input id="nshowtitle" type="checkbox" style="width:auto;margin-right:8px"> Überschrift oben</label><label>Nachricht</label><textarea id="ntext" placeholder="Text der Nachricht..."></textarea><label>Anzeigeart</label><select id="nmode" onchange="updateNewsModeFields()"><option value="static">Feststehend</option><option value="fade">Ein-/Ausblenden</option><option value="ticker">Lauftext</option></select><div id="ndurWrap"><label>Anzeigedauer pro Nachricht (Sekunden)</label><input id="ndur" type="number" min="1" max="180" value="18"><div class="small">Bei „Lauftext“ bestimmt dieser Wert die Dauer eines kompletten Durchlaufs.</div></div><div id="ngapWrap"><label>Zeit zwischen den jeweiligen Texten (Sekunden)</label><input id="ngap" type="number" min="0" max="180" value="2"><div class="small">Diese Pause wird beim Wechsel zwischen mehreren Nachrichten verwendet.</div></div><div class="row"><div style="flex:1"><label>Startdatum</label><input id="nstart" type="date"></div><div style="flex:1"><label>Enddatum</label><input id="nend" type="date"></div></div><div class="small">Ohne Start- oder Enddatum ist die Nachricht zeitlich unbegrenzt aktiv.</div><div class="row" style="margin-top:14px"><button id="newsCancelBtn" style="display:none" onclick="cancelNewsEdit()">Bearbeitung abbrechen</button></div></div><h3>Gespeicherte Nachrichten</h3><div id="newsAdminList"></div><div class="card" style="margin-top:16px"><div id="firebaseNewsInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllNewsChanges()">Speichern</button></div>';renderNewsAdminList();updateNewsModeFields();
+  a.innerHTML='<h2>Vereinsnachrichten</h2><div class="card"><input id="neditid" type="hidden"><label>Überschrift</label><input id="ntitle" type="text" placeholder="z. B. Vereinsmeisterschaft"><label style="margin-top:8px"><input id="nshowtitle" type="checkbox" style="width:auto;margin-right:8px"> Überschrift oben</label><label>Nachricht</label><textarea id="ntext" placeholder="Text der Nachricht..."></textarea><label>Anzeigeart</label><select id="nmode" onchange="updateNewsModeFields()"><option value="static">Feststehend</option><option value="fade">Ein-/Ausblenden</option><option value="ticker">Lauftext</option></select><div id="ndurWrap"><label>Anzeigedauer pro Nachricht (Sekunden)</label><input id="ndur" type="number" min="1" max="180" value="18"><div class="small">Bei „Lauftext“ bestimmt dieser Wert die Dauer eines kompletten Durchlaufs.</div></div><div id="ngapWrap"><label>Zeit zwischen den jeweiligen Texten (Sekunden)</label><input id="ngap" type="number" min="0" max="180" value="2"><div class="small">Diese Pause wird beim Wechsel zwischen mehreren Nachrichten verwendet.</div></div><div class="row"><div style="flex:1"><label>Startdatum</label><input id="nstart" type="date"></div><div style="flex:1"><label>Enddatum</label><input id="nend" type="date"></div></div><div class="small">Ohne Start- oder Enddatum ist die Nachricht zeitlich unbegrenzt aktiv.</div><div class="row" style="margin-top:14px"><button id="newsCancelBtn" style="display:none" onclick="cancelNewsEdit()">Bearbeitung abbrechen</button></div></div><h3>Gespeicherte Nachrichten</h3><p class="small">Nach Ablauf des Enddatums werden Nachrichten automatisch ausgeblendet. Sie bleiben zur Nachvollziehbarkeit gespeichert, bis du sie ausdrücklich löschst. „Löschen“ entfernt die Nachricht sofort aus Firebase.</p><div id="newsAdminList"></div><div class="card" style="margin-top:16px"><div id="firebaseNewsInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllNewsChanges()">Speichern</button></div>';renderNewsAdminList();updateNewsModeFields();
  }else if(s==='s'){
-  a.innerHTML='<h2>Speicher verwalten</h2><div class="card"><h3>Lokaler Dateispeicher</h3><p class="small">Bilder und PDF-Seiten werden in IndexedDB gespeichert. Dadurch bleibt der begrenzte localStorage für Texte und Einstellungen frei.</p><div id="storageInfo" class="small" style="margin:10px 0">Speicher wird ermittelt …</div><button class="primary" onclick="showStorageInfo()">Speicher aktualisieren</button><button class="danger" style="margin-left:8px" onclick="clearLocalMedia()">Alle Bilder/PDF-Seiten löschen</button></div>';showStorageInfo();
+  a.innerHTML='<h2>Speicher verwalten</h2>'+renderStorageAdminHtml();showStorageInfo();
  }else if(s==='u'){
   a.innerHTML='<h2>Anmeldung & Benutzerrechte</h2><div class="card"><p>Angemeldet als: <b>'+esc(firebaseAuthUser?.email||'')+'</b></p><p class="small">Eine einzige Firebase-Anmeldung gilt für die gesamte Verwaltung. Kennwörter werden ausschließlich von Firebase Authentication verwaltet.</p><button class="primary" onclick="sendOwnPasswordReset()">Eigenes Kennwort per E-Mail zurücksetzen</button></div><div class="card" style="margin-top:12px"><button class="primary" onclick="openUserRightsAdmin()" '+(appPermissions.admin?'':'disabled')+'>Benutzer & Rechte verwalten</button><div id="authInfo" class="small" style="margin-top:10px"></div></div>';
 
  }else if(s==='p'||s==='sp'){
   pCollection=(s==='sp')?'sponsorPhotos':'photos';
-  a.innerHTML='<h2>'+pCfg().label+'</h2><div class="card"><label>Fotos hinzufügen</label><input id="pfiles" type="file" multiple accept=".png,.bmp,.jpg,.jpeg,.webp"><label>Ordner / Monat</label><input id="pmonth" type="month" value="'+monthKey()+'"><label>Ordnername</label><input id="palbum" type="text" placeholder="z. B. Sommerfest 2026"><label>Darstellung</label><select id="pmode"><option value="slideshow" selected>Diashow – Karussell</option><option value="static">Feststehend – Fotowand</option><option value="fade">Verschwinden / Erscheinen</option><option value="scroll">Durchlaufen</option></select><label>Wechselzeit (Sekunden)</label><input id="pdur" type="number" min="2" value="5"></div><h3>Gespeicherte Foto-Ordner</h3><div id="photoAdminList"></div><div class="card" style="margin-top:16px"><div id="firebasePhotosInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllPhotoChanges()">Speichern</button></div>';renderPhotoAdminList();updatePhotoAlbumForm();document.getElementById('pmonth').onchange=updatePhotoAlbumForm;
+  a.innerHTML='<h2>'+pCfg().label+'</h2><div class="card"><label>Fotos hinzufügen</label><input id="pfiles" type="file" multiple accept=".png,.bmp,.jpg,.jpeg,.webp"><label>Ordner / Monat</label><input id="pmonth" type="month" value="'+monthKey()+'"><label>Ordnername</label><input id="palbum" type="text" placeholder="z. B. Sommerfest 2026"><label>Darstellung</label><select id="pmode"><option value="slideshow" selected>Diashow – Karussell</option><option value="static">Feststehend – Fotowand</option><option value="fade">Verschwinden / Erscheinen</option><option value="scroll">Durchlaufen</option></select><label>Wechselzeit (Sekunden)</label><input id="pdur" type="number" min="2" value="5"></div><p class="small">Ordner-Einstellungen oben auswählen und ändern, anschließend unten speichern. Die Fotoübersicht zeigt nur Bilder und die Ordner-Löschfunktion.</p><h3>Gespeicherte Foto-Ordner</h3><div id="photoAdminList"></div><div class="card" style="margin-top:16px"><div id="firebasePhotosInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllPhotoChanges()">Speichern</button></div>';renderPhotoAdminList();updatePhotoAlbumForm();document.getElementById('pmonth').onchange=updatePhotoAlbumForm;
  }
 }
 async function getLocalPhotoDataUrl(item){
@@ -5981,7 +6012,7 @@ async function addPhotos(){
  const inp=document.getElementById('pfiles');if(inp)inp.value='';
  return {added,failed};
 }
-function renderPhotoAdminList(){const el=document.getElementById('photoAdminList');if(!el)return;el.innerHTML='';const months=[...new Set(pItems().map(p=>p.month))].sort().reverse();if(!months.length){el.innerHTML='<div class="small">Keine Fotos verfügbar. Falls die Bilder noch im alten Firebase-Projekt liegen, müssen sie vom Administrator in das neue Projekt übertragen werden.</div>';return}months.forEach(m=>{const a=pAlbums()[m]||{};const box=document.createElement('div');box.className='card';box.style.marginBottom='12px';const count=pItems().filter(p=>p.month===m).length;box.innerHTML='<b>'+esc(a.name||monthLabel(m))+'</b><div class="small">'+monthLabel(m)+' · '+count+' Foto(s)</div><div class="thumb-grid"></div><label>Ordnername</label><input id="albumName_'+m+'" type="text" value="'+esc(a.name||monthLabel(m))+'"><label>Darstellung</label><select id="albumMode_'+m+'"><option value="static" '+((a.mode||'static')==='static'?'selected':'')+'>Feststehend – Fotowand</option><option value="fade" '+(a.mode==='fade'?'selected':'')+'>Verschwinden / Erscheinen</option><option value="slideshow" '+(a.mode==='slideshow'?'selected':'')+'>Diashow</option><option value="scroll" '+(a.mode==='scroll'?'selected':'')+'>Durchlaufen</option></select><label>Wechselzeit (Sekunden)</label><input id="albumDur_'+m+'" type="number" min="2" value="'+(a.duration||5)+'"><div class="row" style="margin-top:8px"><button class="danger" onclick="deletePhotoAlbum('+jsArg(m)+')">Ordner löschen</button></div></div>';el.appendChild(box);
+function renderPhotoAdminList(){const el=document.getElementById('photoAdminList');if(!el)return;el.innerHTML='';const months=[...new Set(pItems().map(p=>p.month))].sort().reverse();if(!months.length){el.innerHTML='<div class="small">Keine Fotos verfügbar. Falls die Bilder noch im alten Firebase-Projekt liegen, müssen sie vom Administrator in das neue Projekt übertragen werden.</div>';return}months.forEach(m=>{const a=pAlbums()[m]||{};const box=document.createElement('div');box.className='card';box.style.marginBottom='12px';const count=pItems().filter(p=>p.month===m).length;box.innerHTML='<div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px"><div><b>'+esc(a.name||monthLabel(m))+'</b><div class="small">'+monthLabel(m)+' · '+count+' Foto(s)</div></div><div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" onclick="savePhotoAlbumSettings('+jsArg(m)+')">Ordner bearbeiten</button><button type="button" class="danger" onclick="deletePhotoAlbum('+jsArg(m)+')">Ordner löschen</button></div></div><div class="thumb-grid"></div>';el.appendChild(box);
   const grid=box.querySelector('.thumb-grid');
   if(grid)pItems().filter(p=>p&&p.month===m).forEach(p=>{
     const t=document.createElement('div');t.className='thumb';
@@ -6002,13 +6033,22 @@ function deletePhoto(p){
  renderPhotoAdminList();
  showToast('Foto gelöscht – bitte unten Speichern');
 }
-function savePhotoAlbumSettings(m){pAlbums()[m]={name:document.getElementById('albumName_'+m).value.trim()||monthLabel(m),mode:document.getElementById('albumMode_'+m).value,duration:Number(document.getElementById('albumDur_'+m).value)||5};renderPhotoAdminList();showToast('Ordneränderung übernommen – bitte unten Speichern')}
-function deletePhotoAlbum(m){if(!confirm('Den gesamten Foto-Ordner inklusive Fotos löschen?'))return;pItems().forEach(p=>{if(p&&p.month===m&&p.mediaId)pendingMediaDeletes.push(p.mediaId)});data[pCfg().items]=pItems().filter(p=>p.month!==m);delete pAlbums()[m];renderPhotoAdminList();showToast('Foto-Ordner gelöscht – bitte unten Speichern')}
+function savePhotoAlbumSettings(m){
+ // Ordner-Einstellungen werden ausschließlich im oberen Bearbeitungsformular gepflegt.
+ const select=document.getElementById('pmonth');if(select)select.value=m;
+ updatePhotoAlbumForm();
+ document.getElementById('palbum')?.focus();
+}
+function deletePhotoAlbum(m){if(!confirm('Den gesamten Foto-Ordner inklusive Fotos löschen?'))return;pItems().forEach(p=>{if(p&&p.month===m&&p.mediaId)pendingMediaDeletes.push(p.mediaId)});data[pCfg().items]=pItems().filter(p=>p.month!==m);delete pAlbums()[m];renderPhotoAdminList();if(document.getElementById('pmonth')?.value===m)updatePhotoAlbumForm();showToast('Foto-Ordner zum Löschen vorgemerkt – bitte unten Speichern')}
 function collectPhotoAlbumSettings(){
- (Object.keys(pAlbums())).forEach(m=>{
-  const name=document.getElementById('albumName_'+m),mode=document.getElementById('albumMode_'+m),dur=document.getElementById('albumDur_'+m);
-  if(name&&mode&&dur)pAlbums()[m]={name:name.value.trim()||monthLabel(m),mode:mode.value,duration:Number(dur.value)||5};
- });
+ // Das obere Formular gilt nur für den dort ausgewählten Ordner; keine doppelten Eingabefelder.
+ const m=document.getElementById('pmonth')?.value;
+ if(!m||!pItems().some(p=>p&&p.month===m))return;
+ pAlbums()[m]={
+  name:document.getElementById('palbum')?.value.trim()||monthLabel(m),
+  mode:document.getElementById('pmode')?.value||'slideshow',
+  duration:Math.max(2,Number(document.getElementById('pdur')?.value)||5)
+ };
 }
 async function saveAllPhotoChanges(){
  const info=document.getElementById('firebasePhotosInfo');
@@ -6267,9 +6307,37 @@ async function loadNewsFromFirebase(){
   }
 }
 
-function renderNewsAdminList(){const el=document.getElementById('newsAdminList');el.innerHTML='';if(!data.news.length){el.innerHTML='<div class="small">Noch keine Nachrichten vorhanden.</div>';return}data.news.forEach(n=>{const d=document.createElement('div');d.className='list-item';const dates=(n.startDate||n.endDate)?' · '+(n.startDate||'offen')+' bis '+(n.endDate||'offen'):'';d.innerHTML='<div><b>'+esc(n.title||'Ohne Überschrift')+'</b><div class="small">'+esc(n.text)+'</div><div class="small">'+({static:'Feststehend',fade:'Ein-/Ausblenden',ticker:'Lauftext'}[n.mode]||n.mode)+' · '+(n.duration||18)+' s · Pause '+(n.gap??2)+' s'+dates+'</div></div><div class="row"><button onclick="editNews('+jsArg(n.id)+')">Bearbeiten</button><button onclick="toggleNews('+jsArg(n.id)+')">'+(n.active?'Ausblenden':'Einblenden')+'</button><button class="danger" onclick="deleteNews('+jsArg(n.id)+')">Löschen</button></div>';el.appendChild(d)})}
+function renderNewsAdminList(){const el=document.getElementById('newsAdminList');el.innerHTML='';if(!data.news.length){el.innerHTML='<div class="small">Noch keine Nachrichten vorhanden.</div>';return}data.news.forEach(n=>{const d=document.createElement('div');d.className='list-item';const dates=(n.startDate||n.endDate)?' · '+(n.startDate||'offen')+' bis '+(n.endDate||'offen'):'';const expired=!!(n.endDate&&n.endDate<(new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0')));d.innerHTML='<div><b>'+esc(n.title||'Ohne Überschrift')+'</b><div class="small">'+esc(n.text)+'</div><div class="small">'+({static:'Feststehend',fade:'Ein-/Ausblenden',ticker:'Lauftext'}[n.mode]||n.mode)+' · '+(n.duration||18)+' s · Pause '+(n.gap??2)+' s'+dates+(expired?' · ABGELAUFEN (nicht mehr sichtbar)':'')+'</div></div><div class="row"><button onclick="editNews('+jsArg(n.id)+')">Bearbeiten</button><button onclick="toggleNews('+jsArg(n.id)+')">'+(n.active?'Ausblenden':'Einblenden')+'</button><button class="danger" onclick="deleteNews('+jsArg(n.id)+')">Löschen</button></div>';el.appendChild(d)})}
 function toggleNews(id){const n=data.news.find(x=>String(x.id)===String(id));if(!n)return;n.active=!n.active;renderNewsAdminList();showToast('Änderung übernommen – bitte unten Speichern')}
-function deleteNews(id){const target=String(id);const n=data.news.find(x=>String(x.id)===target);if(!n)return;if(!confirm('Nachricht wirklich löschen?'))return;data.news=data.news.filter(x=>String(x.id)!==target);if(editingNewsId!==null&&String(editingNewsId)===target)cancelNewsEdit();renderNewsAdminList();showToast('Nachricht gelöscht – bitte unten Speichern')}
+let newsDeleteBusy=false;
+async function deleteNews(id){
+ const target=String(id),n=data.news.find(x=>String(x.id)===target);
+ if(!n||newsDeleteBusy)return;
+ if(!confirm('Nachricht „'+String(n.title||'Ohne Überschrift')+'“ endgültig aus Firebase und der Vereinsverwaltung löschen?'))return;
+ if(!ecwRequireCentralSave('Vereinsnachricht löschen'))return;
+ newsDeleteBusy=true;
+ const info=document.getElementById('firebaseNewsInfo');
+ if(info)info.textContent='Nachricht wird aus Firebase gelöscht …';
+ try{
+   // Vor jeder destruktiven Änderung eine serverseitige Sicherheitskopie ablegen.
+   await ecwSafetyServerSnapshot('news','Einzelne Vereinsnachricht löschen: '+target);
+   const ref=firestoreDb.collection('news').doc(target);
+   await fbTimeout(ref.delete(),60000,'Firebase (Nachricht löschen)');
+   const check=await fbTimeout(ref.get({source:'server'}),45000,'Firebase (Löschen überprüfen)');
+   if(check.exists)throw new Error('Die Nachricht ist auf Firebase noch vorhanden.');
+   data.news=data.news.filter(x=>String(x.id)!==target);
+   if(editingNewsId!==null&&String(editingNewsId)===target)cancelNewsEdit();
+   save();renderNewsAdminList();
+   if(document.getElementById('news')?.classList.contains('active'))renderNews();
+   if(info)info.textContent='Nachricht wurde in Firebase gelöscht.';
+   showToast('Nachricht erfolgreich aus Firebase gelöscht');
+ }catch(e){
+   console.error('Vereinsnachricht löschen:',e);
+   const message=firebaseErrorText(e);
+   if(info)info.textContent='Löschen fehlgeschlagen: '+message;
+   showToast('Nicht gelöscht: '+message,8000);
+ }finally{newsDeleteBusy=false}
+}
 let newsToken=0,newsRaf=0;
 function stopNews(){
  newsToken++;                              // ältere Abläufe werden ungültig

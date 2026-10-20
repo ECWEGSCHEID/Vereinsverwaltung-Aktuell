@@ -695,3 +695,76 @@ body.tv-preview-open{overflow:hidden!important}
  #startseite.active #shTitle2{font-size:27px;margin:12px 0 20px}
  .bottom{right:12px;bottom:12px}
 }
+
+
+/* EC Wegscheid V2.9.6 TEST – Variante 1: Carbon Red Premium.
+   Bewusst nur #admin: Whiteboard/Startseite und Fachmodule bleiben unverändert. */
+#admin{--ecw-red:#ad1c2a;--ecw-red-bright:#d73344;--ecw-panel:#191c22;--ecw-panel-2:#252932;--ecw-edge:rgba(255,255,255,.12)}
+#admin>.header{
+  background:linear-gradient(105deg,#17191e 0%,#202127 70%,#331419 100%);
+  border:1px solid var(--ecw-edge);border-left:4px solid var(--ecw-red);
+  box-shadow:0 10px 26px rgba(0,0,0,.22);border-radius:12px;
+}
+#admin>.header .title{letter-spacing:.025em}
+#admin .admin-grid{grid-template-columns:minmax(275px,315px) minmax(0,1fr);gap:14px;margin-top:14px}
+#admin .admin-side,#admin .admin-main{
+  background:linear-gradient(165deg,rgba(33,36,43,.97),rgba(19,21,26,.98));
+  border:1px solid var(--ecw-edge);border-radius:14px;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+#admin .admin-side{padding:16px 13px;scrollbar-width:thin;scrollbar-color:#565963 #202127}
+#admin .admin-side h2{
+  font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:#c8cbd0;margin:0 0 15px;padding:0 8px 11px;
+  border-bottom:2px solid var(--ecw-red);
+}
+#admin .admin-side .row{gap:5px!important;flex-wrap:nowrap}
+#admin .admin-side button{
+  min-height:43px;line-height:1.2;font-size:13px;font-weight:650;
+  border-radius:9px;background:linear-gradient(165deg,#343840,#292c33);
+  border:1px solid rgba(255,255,255,.10);color:#f1f2f4;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  transition:background .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+#admin .admin-side button[data-menu-icon]{
+  display:flex;align-items:center;justify-content:flex-start;text-align:left;
+  gap:10px;padding:9px 11px;
+}
+#admin .admin-side button[data-menu-icon]::before{
+  content:attr(data-menu-icon);flex:0 0 23px;width:23px;height:23px;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#f4c5cb;background:rgba(173,28,42,.20);
+  border:1px solid rgba(215,51,68,.22);border-radius:7px;
+  font:700 15px/1 Arial,sans-serif;
+}
+#admin .admin-side .row button[title]{
+  background:#24272e;border:1px solid rgba(255,255,255,.09);
+  color:#cbd0d7;min-width:42px;min-height:43px;padding:8px 0!important;
+  font-size:17px;
+}
+#admin .admin-side button:hover{
+  background:linear-gradient(160deg,#4a343b,#38353c);
+  border-color:rgba(215,51,68,.55);
+}
+#admin .admin-side button:focus-visible{outline:2px solid #e85b6a;outline-offset:2px}
+#admin .admin-side button.ecw-menu-active{
+  background:linear-gradient(110deg,#79212b,#3c2930)!important;
+  border-color:#ca3645!important;
+  box-shadow:inset 3px 0 0 #f05262,0 2px 9px rgba(0,0,0,.18);
+  color:#fff;
+}
+#admin .admin-side button.ecw-menu-active::before{color:#fff;background:rgba(255,255,255,.12)}
+#admin .admin-side button[hidden],#admin .admin-side .row[hidden]{display:none!important}
+#admin .admin-side hr{border:0;border-top:1px solid var(--ecw-edge);margin:13px 4px}
+#admin .admin-side .small{color:#b4b9c1;line-height:1.5}
+#admin .admin-main{padding:20px}
+#admin .admin-main h2{color:#fff}
+#admin .admin-main .card{border-color:rgba(255,255,255,.14)}
+@media(max-width:900px){
+ #admin .admin-grid{grid-template-columns:minmax(0,1fr)}
+ #admin .admin-side{max-height:none;overflow:visible}
+ #admin .admin-main{min-height:60vh}
+}
+/* Full-width Mitgliederverwaltung remains exactly as before. */
+#admin.member-wide>.admin-grid{grid-template-columns:minmax(0,1fr);gap:0;margin-top:8px;overflow:hidden}
+#admin.member-wide .admin-main.mv-mode{padding:0}

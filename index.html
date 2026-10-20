@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vereins-Informationssystem – V2.5.4</title>
 <script src="js/ladefehler.js?v=2.5.2"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=2.5.3">
-<link rel="stylesheet" href="css/dokumente-drucken.css?v=2.5.4">
+<link rel="stylesheet" href="css/hauptprogramm.css?v=2.9.6-carbon-red">
+<link rel="stylesheet" href="css/dokumente-drucken.css?v=2.9.5-doc-preview">
 </head>
 <body data-ecw-build="V2.5.2-STABIL-20261013">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
@@ -49,7 +49,7 @@
 
 <section id="externalPage" class="view">
   <div id="ecwExternalHomeBar">
-    <button type="button" onclick="closeExternalPage()">Zurück zum Hauptmenü</button>
+    <button type="button" onclick="closeExternalPage()">Zurück zur vorherigen Ansicht</button>
     <strong id="ecwExternalHomeTitle">EC Wegscheid Vereinsverwaltung</strong>
   </div>
   <div class="external-toolbar">
@@ -59,7 +59,6 @@
   <p id="externalEmbedNote" class="external-note">Falls die Seite leer bleibt oder das Einbetten verhindert: „In neuem Tab öffnen“ verwenden.</p>
   <div class="bottom menu-return">
     <button id="externalPrevious" type="button" hidden onclick="backExternalPrevious()">Zurück zur letzten Ansicht</button>
-    <button type="button" onclick="closeExternalPage()">Zurück zum Hauptmenü</button>
   </div>
   <iframe id="externalFrame" title="Externe Webseite" src="about:blank" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"></iframe>
   <div class="external-bottom-space" aria-hidden="true"></div>
@@ -78,7 +77,7 @@
 <section id="druckdokumente" class="view ecw-doc-view">
   <div class="header"><div><div class="title">Dokumente öffnen &amp; drucken</div><div class="subtitle">EC Wegscheid · PDF-Dokumente</div></div></div>
   <div id="ecwDocPublic" class="ecw-doc-content" aria-live="polite">Dokumente werden geladen …</div>
-  <div class="bottom tournament-bottom"><button type="button" onclick="ecwDocsBack()">Zurück zur Startseite</button></div>
+  <div class="bottom tournament-bottom"><button id="ecwDocsBackButton" type="button" onclick="ecwDocsBack()">Zurück zur Startseite</button></div>
 </section>
 
 <section id="tournamentMonths" class="view">
@@ -164,26 +163,24 @@
   <div class="admin-grid">
     <div class="admin-side">
       <h2>Bereiche</h2>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tp" onclick="adminSection('tp')">Turnierplaner</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('tp')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="t" onclick="adminSection('t')">Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('t')">👁</button></div>
-      <div class="row" id="twAdminMenuRow" style="margin-bottom:8px;gap:6px;display:none"><button style="flex:1" data-app-perm="tw" onclick="adminSection('tw')">Turnierwirtschaftlichkeit</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="tv" onclick="adminSection('tv')">Turnierverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="tv" title="Vorschau öffnen" onclick="adminPreviewOpen('tv')">👁</button></div>
-      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="adminSection('ic')">Interne Cup</button><button style="flex:none;width:44px;padding:12px 0" title="Turnierauswertung öffnen" onclick="openInternalCupAdmin('home')">👁</button></div>
-      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="openInternalCupAdmin('doppelko')">Doppel KO System</button><button style="flex:none;width:44px;padding:12px 0" title="Doppel KO öffnen" onclick="openInternalCupAdmin('doppelko')">👁</button></div>
-      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button style="flex:1" onclick="adminSection('solo')">Solo Pyramide</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('solo')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="o" onclick="adminSection('o')">Eigene Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('o')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="n" onclick="adminSection('n')">Vereinsnachrichten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('n')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="p" onclick="adminSection('p')">Fotos für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('p')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="sp" onclick="adminSection('sp')">Fotos Sponsoren für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sp')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="t" onclick="adminSection('zr')">Zeitungsberichte EC Wegscheid</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="t" title="Vorschau öffnen" onclick="adminPreviewOpen('zr')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="mv" onclick="adminSection('mv')">Mitgliederverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="mv" title="Vorschau öffnen" onclick="adminPreviewOpen('mv')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="m" onclick="adminSection('m')">Mannschaften</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('m')">👁</button></div>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite bearbeiten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
-      <button style="width:100%;margin-bottom:8px" data-app-perm="sh" onclick="adminSection('docs')">📄 Dokumente &amp; Drucken verwalten</button>
-      <button style="width:100%;margin-bottom:8px" data-app-perm="lk" onclick="adminSection('lk')">Links für die Startseite</button>
-      <button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('sysconfig')">⚙ Systemeinstellungen</button>
-      <button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('wb')">Whiteboard-Freigaben</button>
-      <button style="width:100%;margin-bottom:8px" onclick="adminSection('s')">Speicher verwalten</button><button data-user-password hidden style="width:100%;margin-bottom:8px" onclick="openUserPassword()">Benutzerkennwort ändern</button><button data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('backup')">Datensicherung</button><button data-global-admin hidden style="width:100%" onclick="adminSection('u')">Benutzer &amp; Rechte</button>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="⌂" style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite bearbeiten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▦" style="flex:1" data-app-perm="tp" onclick="adminSection('tp')">Turnierplaner</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('tp')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="✉" style="flex:1" data-app-perm="t" onclick="adminSection('t')">Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('t')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="tv" onclick="adminSection('tv')">Turnierverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="tv" title="Vorschau öffnen" onclick="adminPreviewOpen('tv')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="✉" style="flex:1" data-app-perm="o" onclick="adminSection('o')">Eigene Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('o')">👁</button></div>
+      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◈" style="flex:1" onclick="adminSection('ic')">Interne Cup</button><button style="flex:none;width:44px;padding:12px 0" title="Turnierauswertung öffnen" onclick="openInternalCupAdmin('home')">👁</button></div>
+      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◈" style="flex:1" onclick="openInternalCupAdmin('doppelko')">Doppel KO System</button><button style="flex:none;width:44px;padding:12px 0" title="Doppel KO öffnen" onclick="openInternalCupAdmin('doppelko')">👁</button></div>
+      <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◇" style="flex:1" onclick="adminSection('solo')">Solo Pyramide</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('solo')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="≡" style="flex:1" data-app-perm="n" onclick="adminSection('n')">Vereinsnachrichten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('n')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▧" style="flex:1" data-app-perm="p" onclick="adminSection('p')">Fotos für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('p')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="t" onclick="adminSection('zr')">Zeitungsberichte EC Wegscheid</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="t" title="Vorschau öffnen" onclick="adminPreviewOpen('zr')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▧" style="flex:1" data-app-perm="sp" onclick="adminSection('sp')">Fotos Sponsoren für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sp')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="♙" style="flex:1" data-app-perm="mv" onclick="adminSection('mv')">Mitgliederverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="mv" title="Vorschau öffnen" onclick="adminPreviewOpen('mv')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="♙" style="flex:1" data-app-perm="m" onclick="adminSection('m')">Mannschaften</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('m')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="sh" onclick="adminSection('docs')">Dokumente und Drucken</button><button type="button" style="flex:none;width:44px;padding:12px 0" data-app-perm="sh" title="Anzeigemodus öffnen" aria-label="Dokumente und Drucken: Ansicht öffnen" onclick="adminPreviewOpen('docs')">👁</button></div>
+      <div class="row" id="twAdminMenuRow" style="margin-bottom:8px;gap:6px;display:none"><button data-menu-icon="▥" style="flex:1" data-app-perm="tw" onclick="adminSection('tw')">Turnierwirtschaftlichkeit und Helfer</button></div>
+      <button data-menu-icon="♙" data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('u')">Benutzer, Rechte und Datensicherung</button>
+      <button data-menu-icon="⚙" data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('sysconfig')">⚙ Systemeinstellungen</button>
       <hr><div class="small">Lokale Sicherung: Texte/Einstellungen in localStorage, Bilder/PDF-Seiten in IndexedDB.</div><div id="firebaseStatus" class="small" style="margin-top:10px"></div>
     </div>
     <div id="adminMain" class="admin-main"></div>
@@ -198,8 +195,8 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
 <script src="js/firebase-init.js?v=2.5.2"></script>
-<script src="js/hauptprogramm.js?v=2.9.1-solo-session-test"></script>
-<script src="js/dokumente-drucken.js?v=2.8.6-serverdiagnose"></script>
+<script src="js/hauptprogramm.js?v=2.9.11"></script>
+<script src="js/dokumente-drucken.js?v=2.9.7-docs-view-preview"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
 <div id="cropModal" class="crop-modal" hidden>
@@ -472,5 +469,6 @@
 </div>
 <script src="designvorlagen-daten.js?v=2.5.2"></script>
 <script src="systemeinstellungen.js?v=2.5.2"></script>
+<script src="js/admin-menu-design.js?v=2.9.6"></script>
 </body>
 </html>

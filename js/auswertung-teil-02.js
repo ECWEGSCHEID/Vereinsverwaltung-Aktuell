@@ -160,7 +160,7 @@ setDefaultTeamsTemplate();
       const backBtn = document.getElementById('globalStartMenuBtn');
       // Nur die Cup-Ebenen verwenden den eigenen Zurueck-Button.
       // Bei Einbettung wird der Hauptmenue-Button vom Hauptprogramm angezeigt.
-      const cupLevel = ['view-main','view-groups','view-table','view-match','view-ko','view-admin'].includes(id);
+      const cupLevel = ['view-main','view-groups','view-table','view-match','view-ko','view-admin'].includes(id) && !(window.ECW_EMBEDDED_ADMIN && (id==='view-main'||id==='view-admin'));
       document.documentElement.classList.toggle('cup-navigation-visible',cupLevel);
       if (backBtn) backBtn.style.display = cupLevel ? 'block' : 'none';
       if (backBtn) {
