@@ -768,3 +768,7 @@ body.tv-preview-open{overflow:hidden!important}
 /* Full-width Mitgliederverwaltung remains exactly as before. */
 #admin.member-wide>.admin-grid{grid-template-columns:minmax(0,1fr);gap:0;margin-top:8px;overflow:hidden}
 #admin.member-wide .admin-main.mv-mode{padding:0}
+
+/* V2.9.12: sichtbarer Admin-Rückweg nur aus der Verwaltungs-Vorschau */
+#startseite.active #shGear:not([hidden]){display:block;right:16px;bottom:16px;width:auto;min-width:180px;height:48px;padding:0 17px;border-radius:10px;background:rgba(90,7,16,.96);border:2px solid rgba(255,255,255,.7);box-shadow:0 4px 20px rgba(0,0,0,.65);font-size:15px;font-weight:700;opacity:1;z-index:100;}
+#shGear[hidden]{display:none!important}
