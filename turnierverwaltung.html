@@ -1573,7 +1573,7 @@ copy of the Program in return for a fee.
             <h2 id="tdName"></h2>
             <div class="meta" id="tdMeta"></div>
           </div>
-          <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp-Datei speichern (.skmr)</button><span id="ecwStockExportStatus" role="status" aria-live="polite" class="meta" style="display:block;margin-top:8px"></span></div>
+          <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="danger" type="button" id="tdDeleteBtn" title="Turnier mit allen Mannschaftsmeldungen löschen">🗑️ Turnier löschen</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp-Datei speichern (.skmr)</button><span id="ecwStockExportStatus" role="status" aria-live="polite" class="meta" style="display:block;margin-top:8px"></span></div>
         </div>
         <div id="ecwStockSaveStatus" role="status" aria-live="polite" class="meta" style="margin:10px 0"></div><div id="tdEditForm" class="hidden">
           <div class="form-grid"><div><label for="tdEditName">Turniername</label>
@@ -4504,7 +4504,7 @@ import {
 import {
   getFirestore,
   collection as modCollection, addDoc as modAddDoc, doc as modDoc,
-  deleteDoc as modDeleteDoc, updateDoc as modUpdateDoc,
+  deleteDoc as modDeleteDoc, getDocs as modGetDocs, updateDoc as modUpdateDoc,
   onSnapshot as modOnSnapshot, query as modQuery,
   where as modWhere, orderBy as modOrderBy,
   serverTimestamp as modServerTimestamp, getDoc as modGetDoc,
@@ -4577,6 +4577,9 @@ function setDoc(ref,data,opts){
 function getDoc(ref){
   if(!embeddedInMain)return modGetDoc(ref);
   return ref.get().then(s=>({id:s.id,exists:()=>s.exists,data:()=>s.data()}));
+}
+function getDocs(ref){
+  return embeddedInMain ? ref.get() : modGetDocs(ref);
 }
 function where(f,op,v){
   return embeddedInMain ? {__ecw:'where',f,op,v} : modWhere(f,op,v);
@@ -5482,6 +5485,46 @@ function openTurnier(id, data) {
   showTurnierDetail();
   listenMeldungen(id);
 }
+
+// V2.9.15: Turniere auch im eigenständigen Turnierverwaltungsmodus sicher löschen.
+// Löscht das Turnier und seine Meldungen in EINEM Firestore-Batch; bei einem
+// Berechtigungsfehler bleiben alle Datensätze erhalten.
+document.getElementById("tdDeleteBtn").addEventListener("click", async () => {
+  if (!aktuellesTurnier || busy) return;
+  const t = aktuellesTurnier;
+  const button = document.getElementById("tdDeleteBtn");
+  button.disabled = true;
+  try {
+    const matches = await getDocs(query(collection(db,"meldungen"),where("turnierId","==",t.id)));
+    const count = matches.size;
+    if (count > 450) {
+      notify("Dieses Turnier hat mehr als 450 Meldungen. Bitte vor dem Löschen den Administrator kontaktieren.",true);
+      return;
+    }
+    const question = 'Turnier „'+(t.name||'')+'“ endgültig löschen?'
+      +(count?'\n\nAuch alle '+count+' Mannschaftsmeldungen werden gelöscht.':'')
+      +'\n\nDiese Aktion kann nicht rückgängig gemacht werden.';
+    if (!confirm(question)) return;
+    // Nicht auf einem zwischenzeitlich gewechselten Turnier löschen.
+    if (!aktuellesTurnier || aktuellesTurnier.id!==t.id) return;
+    const batch = writeBatch(db);
+    matches.forEach(item => batch.delete(item.ref));
+    batch.delete(doc(db,"turniere",t.id));
+    await batch.commit();
+    if (meldungenUnsub) { meldungenUnsub(); meldungenUnsub=null; }
+    aktuellesTurnier=null;
+    meldungenCache=[];
+    meldungenGeladen=false;
+    history.replaceState(null,"",location.pathname+location.search+(mobileMode?'#mobil':'#verwalten'));
+    showTurniereListe();
+    notify('Turnier und '+count+' Meldung(en) gelöscht.');
+  } catch(err) {
+    console.error('Turnier löschen:',err);
+    dbError(err);
+  } finally {
+    button.disabled=false;
+  }
+});
 
 // ---------- Turnier bearbeiten ----------
 document.getElementById("tdEditBtn").addEventListener("click", () => {

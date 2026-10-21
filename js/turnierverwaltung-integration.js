@@ -252,39 +252,34 @@ tvById("tdEditSaveBtn").addEventListener("click", async () => {
   updateKapazitaetsAnzeige();
 });
 
-// ---------- Turnier löschen ----------
+// ---------- Turnier löschen (V2.9.15: atomar und mit Fehleranzeige) ----------
 tvById("tdDeleteBtn").addEventListener("click", async () => {
   if (!aktuellesTurnier) return;
   const t = aktuellesTurnier;
-  let snap;
+  const button = tvById("tdDeleteBtn");
+  if(button.disabled)return;
+  button.disabled=true;
   try {
-    snap = await db.collection("meldungen").where("turnierId", "==", t.id).get();
-  } catch (err) {
-    console.error(err);
-    alert("Das Turnier konnte nicht geprüft werden: " + ((err && err.message) || err));
-    return;
-  }
-  const n = snap.size;
-  const text = "Turnier „" + (t.name || "") + "“ wirklich endgültig löschen?"
-    + (n ? "\n\nDamit werden auch die " + n + " Meldungen (Startliste) dieses Turniers gelöscht." : "")
-    + "\n\nDas kann nicht rückgängig gemacht werden.";
-  if (!confirm(text)) return;
-  try {
-    if (meldungenUnsub) { meldungenUnsub(); meldungenUnsub = null; }
-    const batch = db.batch();
-    snap.forEach((d) => batch.delete(d.ref));
-    batch.delete(db.collection("turniere").doc(t.id));
+    const snap = await db.collection("meldungen").where("turnierId", "==", t.id).get();
+    if(snap.size>450){alert('Dieses Turnier hat mehr als 450 Meldungen. Bitte vor dem Löschen den Administrator kontaktieren.');return;}
+    const question = 'Turnier „'+(t.name||'')+'“ wirklich endgültig löschen?'
+      +(snap.size?'\n\nDabei werden auch alle '+snap.size+' Mannschaftsmeldungen gelöscht.':'')
+      +'\n\nDas kann nicht rückgängig gemacht werden.';
+    if(!confirm(question))return;
+    if(!aktuellesTurnier||aktuellesTurnier.id!==t.id)return;
+    const batch=db.batch();
+    snap.forEach(item=>batch.delete(item.ref));
+    batch.delete(db.collection('turniere').doc(t.id));
     await batch.commit();
-  } catch (err) {
-    console.error(err);
-    alert("Das Turnier konnte nicht gelöscht werden: " + ((err && err.message) || err));
-    listenMeldungen(t.id);
-    return;
-  }
-  aktuellesTurnier = null;
-  aktuelleMeldungenAnzahl = 0;
-  aktuelleMeldungenListe = [];
-  if (turnierAusArchiv) showVergangene(); else showTurniereListe();
+    if(meldungenUnsub){meldungenUnsub();meldungenUnsub=null;}
+    aktuellesTurnier=null;
+    aktuelleMeldungenAnzahl=0;
+    aktuelleMeldungenListe=[];
+    if(turnierAusArchiv)showVergangene();else showTurniereListe();
+  } catch(err) {
+    console.error('Turnier löschen:',err);
+    alert('Turnier nicht gelöscht: '+(err?.message||err)+'\nBitte die Berechtigungen der Turnierverwaltung prüfen.');
+  } finally {button.disabled=false;}
 });
 
 // ---------- Dialoge: Mannschaft entfernen / Kontaktdaten ----------
