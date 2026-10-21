@@ -32,18 +32,7 @@
 
 <section id="links" class="view">
   <div class="header"><div><div class="title">Links</div><div class="subtitle">Verbände, Regelwerk und Sonstiges</div></div></div>
-  <div class="links-grid">
-    <a class="linkbtn" href="https://kreis107.de/" target="_blank" rel="noopener noreferrer">Kreis 107</a>
-    <a class="linkbtn" href="https://www.kreis102.de/" target="_blank" rel="noopener noreferrer">Kreis 102</a>
-    <a class="linkbtn" href="https://www.bev-bezirk1.de/" target="_blank" rel="noopener noreferrer">Bezirk 1</a>
-    <a class="linkbtn" href="https://bev-eissport.de/eisstocksport/" target="_blank" rel="noopener noreferrer">BEV Bayern</a>
-    <a class="linkbtn" href="https://www.eisstock-verband.com/" target="_blank" rel="noopener noreferrer">DESV</a>
-    <a class="linkbtn" href="https://www.icestock.sport/" target="_blank" rel="noopener noreferrer">IFI-Eisstock</a>
-    <a class="linkbtn" href="https://www.ooe-stocksport.at/turniere/" target="_blank" rel="noopener noreferrer">Landesverband OÖ Turniere</a>
-    <a class="linkbtn" href="https://kreis107.de/onewebmedia/Belegungsplan%202026_2027%20einzel.pdf" target="_blank" rel="noopener noreferrer">Belegungsplan Eishalle Waldkirchen</a>
-    <a class="linkbtn" href="https://www.icestock.sport/wp-content/uploads/2025/01/IFI-Official-Rules-Book.pdf" target="_blank" rel="noopener noreferrer">IFI-Regelbuch 2022</a>
-    <a class="linkbtn" href="https://www.stocksportnews.at/html/videos.htm" target="_blank" rel="noopener noreferrer">Stocksportvideos</a>
-  </div>
+  <div class="links-grid" aria-label="Verbände, Regelwerk und Sonstiges"></div>
   <div class="bottom"><button onclick="returnToPowerPoint()">Zurück zur Startseite</button></div>
 </section>
 
@@ -163,7 +152,7 @@
   <div class="admin-grid">
     <div class="admin-side">
       <h2>Bereiche</h2>
-      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="⌂" style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite bearbeiten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="⌂" style="flex:1" data-app-perm="sh" onclick="adminSection('sh')">Startseite verwalten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('sh')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▦" style="flex:1" data-app-perm="tp" onclick="adminSection('tp')">Termin- und Turnierplaner</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('tp')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="✉" style="flex:1" data-app-perm="t" onclick="adminSection('t')">Turniereinladungen</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('t')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="tv" onclick="adminSection('tv')">Turnierverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="tv" title="Vorschau öffnen" onclick="adminPreviewOpen('tv')">👁</button></div>
@@ -195,7 +184,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
 <script src="js/firebase-init.js?v=2.5.2"></script>
-<script src="js/hauptprogramm.js?v=2.9.12"></script>
+<script src="js/hauptprogramm.js?v=2.9.14"></script>
 <script src="js/dokumente-drucken.js?v=2.9.7-docs-view-preview"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>

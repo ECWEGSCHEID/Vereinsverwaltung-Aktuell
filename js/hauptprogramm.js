@@ -1,5 +1,5 @@
 
-const APP_VERSION='2.9.12';
+const APP_VERSION='2.9.14';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -657,7 +657,7 @@ function centralApplyTournamentPlanner(snap){
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
       location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,
-      calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),updatedAt:String(x.updatedAt||'')
+      calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')
     });
   });
 
@@ -1242,6 +1242,7 @@ function openPublicSection(id){
     el.classList.add('active');
     if(id==='startseite'&&shOpen!==-1){shOpen=-1;try{shRender()}catch(e){}}
     if(['news','photos','sponsorPhotos'].includes(id)) enterPresentationFullscreen();
+    if(id==='links') { try{ shRenderExternalLinks(); }catch(e){ console.error('Linksanzeige:',e); } }
     if(id==='news') { try{ renderNews(); }catch(e){ console.error('Nachrichtenanzeige:',e); } }
     if(id==='photos'||id==='sponsorPhotos') { pCollection=(id==='sponsorPhotos')?'sponsorPhotos':'photos'; loadPhotoPresentation(pCollection).catch(e=>console.error('Fotoanzeige:',e)); }
   }catch(e){console.error('Navigation:',e);}
@@ -1262,7 +1263,41 @@ const SH_BG='assets/startseite-standard.jpg';
 const SH_KEY='ecw-startseite-v1';
 const SH_B='https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
 const SOLO_PYRAMIDE_PAGE=SH_B+'solo-pyramide.html?v=2.5.2';
-const SH_DEF={title:'Informationssystem',cols:3,bg:null,buttons:[
+// V2.9.13: Die Verbands-/Regelwerk-Links werden zusammen mit der Startseite
+// im bereits vorhandenen Firebase-Dokument appSettings/startseite gespeichert.
+// Damit bleiben bestehende Firebase-Regeln und Whiteboard-Leserechte unveraendert.
+const SH_DEFAULT_LINKS=[
+ {t:'Kreis 107',u:'https://kreis107.de/'},
+ {t:'Kreis 102',u:'https://www.kreis102.de/'},
+ {t:'Bezirk 1',u:'https://www.bev-bezirk1.de/'},
+ {t:'BEV Bayern',u:'https://bev-eissport.de/eisstocksport/'},
+ {t:'DESV',u:'https://www.eisstock-verband.com/'},
+ {t:'IFI-Eisstock',u:'https://www.icestock.sport/'},
+ {t:'Landesverband OÖ Turniere',u:'https://www.ooe-stocksport.at/turniere/'},
+ {t:'Belegungsplan Eishalle Waldkirchen',u:'https://kreis107.de/onewebmedia/Belegungsplan%202026_2027%20einzel.pdf'},
+ {t:'IFI-Regelbuch 2022',u:'https://www.icestock.sport/wp-content/uploads/2025/01/IFI-Official-Rules-Book.pdf'},
+ {t:'Stocksportvideos',u:'https://www.stocksportnews.at/html/videos.htm'}
+];
+function shValidExternalLink(u){
+ try{const x=new URL(String(u||'').trim());return /^https?:$/.test(x.protocol)&&!!x.hostname;}
+ catch(e){return false;}
+}
+function shRenderExternalLinks(){
+ const grid=document.querySelector('#links .links-grid');if(!grid)return;
+ grid.replaceChildren();
+ (SH.links||[]).forEach(item=>{
+   const title=String(item.t||'').trim(),url=String(item.u||'').trim();
+   if(!title||!shValidExternalLink(url))return;
+   const a=document.createElement('a');a.className='linkbtn';a.textContent=title;
+   a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+   grid.appendChild(a);
+ });
+ if(!grid.children.length){
+   const hint=document.createElement('p');hint.className='small';
+   hint.textContent='Zurzeit sind keine Links hinterlegt.';grid.appendChild(hint);
+ }
+}
+const SH_DEF={title:'Informationssystem',cols:3,bg:null,links:SH_DEFAULT_LINKS,buttons:[
 {t:'Turnier-\neinladungen',u:SH_B+'#turniere-monatsuebersicht'},{t:'Termin\nKalender',u:SH_B+'#turnierliste'},
 {t:'Bahn\nReservierung',u:'https://ecwegscheid.github.io/Reservierungssystem/'},{t:'Homepage',u:'https://www.ec-wegscheid.de/'},
 {t:'Mannschaften',u:SH_B+'#mannschaften'},{t:'Vereins\nVeranstaltungen',u:SH_B+'#nachrichten'},{t:'Google',u:'https://www.google.de/'},
@@ -1323,6 +1358,7 @@ function shEnsureSoloPyramide(d){
  return d;
 }
 function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
+ if(Array.isArray(j.links))d.links=j.links.filter(x=>x&&typeof x.t==='string'&&typeof x.u==='string').slice(0,100).map(x=>({t:x.t.slice(0,150),u:x.u.slice(0,2048)}));
  if(typeof j.title==='string')d.title=j.title;
  if([2,3,4].includes(+j.cols))d.cols=+j.cols;
  if(typeof j.bg==='string'&&j.bg.startsWith('data:image/'))d.bg=j.bg;
@@ -1388,6 +1424,8 @@ function shUpdateFirebaseStatus(message){
 
 async function shSaveToFirebase(){
  if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return false;}
+ const invalid=(SH.links||[]).find(x=>!String(x.t||'').trim()||!shValidExternalLink(x.u));
+ if(invalid){showToast('Bitte alle Links mit Bezeichnung und gültiger http(s)-Adresse ausfüllen oder unvollständige Links entfernen.',6500);return false;}
  if(!firebaseReady||!firestoreDb||!firebaseAuthUser){
    showToast('Firebase ist nicht verbunden oder kein Benutzer ist angemeldet.',5000);
    shUpdateFirebaseStatus('Speichern nicht möglich: Firebase/Anmeldung fehlt.');
@@ -1573,7 +1611,7 @@ function shRender(){
    const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
   }
  });
- g.replaceChildren(...els);shUpdateBack();updateWhiteboardScreenControls()}
+ g.replaceChildren(...els);shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
 function shNorm(u){return String(u).split('#')[0].split('?')[0].replace(/index\.html$/i,'')}
 function shInternalHash(u){let x;try{x=new URL(u,location.href)}catch(e){return ''}
  if(x.hostname==='ecwegscheid.github.io'&&/^\/Mitglieder(?:\/|$)/i.test(x.pathname))return '#mitglieder';
@@ -1588,12 +1626,51 @@ function shUpdateBack(){const g=document.getElementById('shGear');if(g){const vi
 function shFullscreen(){if(isWhiteboardUser()){enterPresentationFullscreen();return;}const d=document,e=d.documentElement;if(d.fullscreenElement||d.webkitFullscreenElement)(d.exitFullscreen||d.webkitExitFullscreen).call(d);else(e.requestFullscreen||e.webkitRequestFullscreen).call(e)}
 function shImg(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{const s=Math.min(1,1920/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85))};im.src=r.result};r.readAsDataURL(file)})}
 function shLink(){return getBaseUrl()+'#startseite'}
+function shExternalLinksAdminHtml(){
+ const rows=(SH.links||[]).map((item,i)=>
+   '<div class="sh-row"><div class="in"><label>Bezeichnung</label><input type="text" maxlength="150" value="'+esc(item.t)+'" oninput="shExternalLinkSet('+i+',\'t\',this.value)">'
+   +'<label>Internetadresse (https:// oder http://)</label><input type="url" maxlength="2048" value="'+esc(item.u)+'" oninput="shExternalLinkSet('+i+',\'u\',this.value)">'
+   +'</div><div class="acts"><button type="button" onclick="shExternalLinkMove('+i+',-1)" title="Nach oben">↑</button>'
+   +'<button type="button" onclick="shExternalLinkMove('+i+',1)" title="Nach unten">↓</button>'
+   +'<button type="button" class="danger" onclick="shExternalLinkDel('+i+')" title="Link entfernen">✕</button></div></div>'
+ ).join('');
+ return '<div class="card" id="shExternalLinksAdmin" style="margin-top:12px;border:1px solid rgba(255,255,255,.35)">'
+   +'<h3 style="margin-top:0">Verbände, Regelwerk und Sonstiges – Links verwalten</h3>'
+   +'<p class="small">Diese Links erscheinen unter „Links“ auf der öffentlichen Startseite. Bezeichnungen und Adressen bearbeiten, Reihenfolge ändern oder Links hinzufügen/entfernen. Änderungen werden zunächst lokal vorgemerkt. Anschließend oben auf <b>„Startseite speichern“</b> klicken, um sie zentral für das Whiteboard zu übernehmen.</p>'
+   +rows
+   +'<div class="row" style="margin-top:10px"><button type="button" class="primary" onclick="shExternalLinkAdd()">+ Link hinzufügen</button><button type="button" onclick="shSaveToFirebase()">Links und Startseite in Firebase speichern</button></div>'
+   +'</div>';
+}
+function shExternalLinkSet(i,k,value){
+ if(!hasAppPermission('sh')||!SH.links?.[i]||!['t','u'].includes(k))return;
+ SH.links[i][k]=String(value).slice(0,k==='t'?150:2048);
+ shSave();shRender();
+}
+function shExternalLinkAdd(){
+ if(!hasAppPermission('sh'))return;
+ if(!Array.isArray(SH.links))SH.links=[];
+ if(SH.links.length>=100){showToast('Maximal 100 Links möglich.');return;}
+ SH.links.push({t:'Neuer Link',u:'https://'});shSave();shRender();renderStartseiteAdmin();
+ const e=document.getElementById('shExternalLinksAdmin');if(e)e.scrollIntoView({block:'end',behavior:'instant'});
+}
+function shExternalLinkMove(i,dir){
+ if(!hasAppPermission('sh')||!SH.links?.[i])return;
+ const j=i+dir;if(j<0||j>=SH.links.length)return;
+ [SH.links[i],SH.links[j]]=[SH.links[j],SH.links[i]];
+ shSave();shRender();renderStartseiteAdmin();
+}
+function shExternalLinkDel(i){
+ if(!hasAppPermission('sh')||!SH.links?.[i])return;
+ if(!confirm('Link „'+SH.links[i].t+'“ entfernen?'))return;
+ SH.links.splice(i,1);shSave();shRender();renderStartseiteAdmin();
+}
 function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}
  const a=document.getElementById('adminMain'),st=a.scrollTop;
- a.innerHTML='<h2>Startseite bearbeiten</h2>'
+ a.innerHTML='<h2>Startseite verwalten</h2>'
  +'<div class="card"><label>Link zur Startseite</label><div class="row"><input type="text" readonly id="shLinkField" value="'+esc(shLink())+'" onclick="this.select()" style="flex:3"><button onclick="shCopy(this)">Kopieren</button><button onclick="window.open(shLink(),\'_blank\')">Öffnen</button></div>'
  +'<p class="small">Änderungen werden sofort angezeigt und zunächst lokal in diesem Browser zwischengespeichert.</p></div>'
  +'<div class="card" style="margin-top:12px;border:2px solid rgba(255,255,255,.28)"><h3 style="margin-top:0">Zentrale Startseite</h3><p class="small">Mit „Startseite speichern“ wird dieser Stand zentral in Firebase gespeichert. Beim nächsten Anmelden lädt PC/Whiteboard automatisch genau diesen Stand.</p><div class="row"><button id="shFirebaseSaveBtn" class="primary" onclick="shSaveToFirebase()">Startseite speichern</button><button id="shFirebaseLoadBtn" onclick="shLoadFromFirebase(true)">Aus Firebase laden</button></div><div id="shFirebaseStatus" class="small" style="margin-top:10px;font-weight:bold"></div></div>'
+ +shExternalLinksAdminHtml()
  +'<div class="card" style="margin-top:12px"><label>Text auf der Startseite</label><input type="text" value="'+esc(SH.title)+'" oninput="shSet(\'title\',this.value)">'
  +'<label>Buttons pro Reihe</label><select onchange="shSet(\'cols\',+this.value,true)">'+[2,3,4].map(n=>'<option'+(n===SH.cols?' selected':'')+'>'+n+'</option>').join('')+'</select>'
  +'<label>Hintergrundbild (16:9, wird automatisch verkleinert)</label><input type="file" accept="image/*" onchange="shBg(this)"><div style="margin-top:8px"><button onclick="shBgReset()">Originalbild wiederherstellen</button></div></div>'
@@ -1628,7 +1705,7 @@ function shDel(i){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten i
 function shAdd(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}SH.buttons.push({t:'Neuer Button',u:''});shSave();shRender();renderStartseiteAdmin();const a=document.getElementById('adminMain');a.scrollTop=a.scrollHeight}
 async function shBg(inp){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(!inp.files[0])return;try{SH.bg=await shImg(inp.files[0]);shSave();shRender();showToast('Hintergrundbild geändert')}catch(e){showToast('Bild konnte nicht geladen werden')}}
 function shBgReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}SH.bg=null;shSave();shRender()}
-function shReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(confirm('Alle Änderungen (Texte, Buttons, Hintergrundbild) verwerfen?')){SH=shSane({});shSave();shRender();renderStartseiteAdmin()}}
+function shReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(confirm('Alle Änderungen (Texte, Buttons, Links, Hintergrundbild) verwerfen?')){SH=shSane({});shSave();shRender();renderStartseiteAdmin()}}
 function shExport(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(SH,null,1)],{type:'application/json'}));a.download='startseite-konfiguration.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 async function shImport(inp){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(!inp.files[0])return;try{SH=shSane(JSON.parse(await inp.files[0].text()));shSave();shRender();renderStartseiteAdmin();showToast('Konfiguration importiert')}catch(e){showToast('Datei ungültig')}}
 async function shCopy(btn){const i=document.getElementById('shLinkField');try{await navigator.clipboard.writeText(i.value)}catch(e){i.select();try{document.execCommand('copy')}catch(x){}}const o=btn.textContent;btn.textContent='Kopiert ✓';setTimeout(()=>btn.textContent=o,1500)}
@@ -4219,7 +4296,7 @@ async function tpSyncEventToFirebase(item){
     await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(item.id)).set({
       id:String(item.id),name:String(item.name||''),date:String(item.date||''),time:String(item.time||''),
       reportedBy:String(item.reportedBy||''),players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
-      location:String(item.location||''),type:String(item.type||''),internal:!!item.internal,calendarExported:!!item.calendarExported,googleEventId:String(item.googleEventId||''),googleEventCalendarId:String(item.googleEventCalendarId||''),calendarExportedBeforeChange:!!item.calendarExportedBeforeChange,googleEventUpdated:String(item.googleEventUpdated||''),updatedAt:String(item.updatedAt||new Date().toISOString())
+      location:String(item.location||''),type:String(item.type||''),internal:!!item.internal,calendarExported:!!item.calendarExported,googleEventId:String(item.googleEventId||''),googleEventCalendarId:String(item.googleEventCalendarId||''),calendarExportedBeforeChange:!!item.calendarExportedBeforeChange,googleEventUpdated:String(item.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(item.googleSyncedFields),updatedAt:String(item.updatedAt||new Date().toISOString())
     },{merge:true}),20000,'Firebase');
     return true;
   }catch(e){
@@ -4321,7 +4398,7 @@ async function tpGoogleUpdate(x){
   const latest=await tpGoogleFetchLinked(x,tok);
   if(!latest||latest.status==='cancelled')throw new Error('Der verknüpfte Google-Termin existiert nicht mehr. Kein neuer Termin angelegt.');
   if(tpCalendarRemoteChanged(x,latest)){
-    throw new Error('Google-Termin wurde inzwischen verändert. Bitte zuerst die Änderungen aus Google übernehmen (Kalendereinstellungen → Mit Google verbinden). Keine Überschreibung durchgeführt.');
+    throw new Error('Google-Termin wurde inzwischen verändert. Bitte in Kalendereinstellungen → Jetzt abgleichen den Konflikt lösen (Google übernehmen / Programm übernehmen). Keine Überschreibung durchgeführt.');
   }
   const r=await fetch(url,{method:'PATCH',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify(tpGoogleEvent(x))});
   if(!r.ok){if(r.status===401)tpGToken=null;let m='';try{m=(await r.json()).error.message}catch(e){}throw new Error(m||('Fehler '+r.status))}
@@ -4333,6 +4410,38 @@ let tpGooglePullRunning=false;
 function tpGoogleRemoteFields(e){
   return {name:String(e.summary||''),date:tpCalendarGoogleDate(e),time:tpCalendarGoogleTime(e),location:String(e.location||'')};
 }
+// V2.9.14: Nur Kalenderfelder bestimmen einen Kalender-Konflikt.
+// updatedAt enthält auch reine Spieler-/Anmeldungsänderungen und darf dafür
+// nicht als Nachweis einer Terminänderung herangezogen werden.
+const TP_GOOGLE_FIELDS=['name','date','time','location'];
+function tpGoogleStoredFields(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return null;
+  const result={};
+  TP_GOOGLE_FIELDS.forEach(k=>result[k]=String(value[k]||''));
+  return result;
+}
+function tpGoogleCurrentFields(x){
+  const f={};TP_GOOGLE_FIELDS.forEach(k=>f[k]=String(x[k]||''));return f;
+}
+function tpGoogleEqualFields(a,b){
+  return !!a&&!!b&&TP_GOOGLE_FIELDS.every(k=>String(a[k]||'')===String(b[k]||''));
+}
+function tpGoogleLocalChangedSinceSync(x){
+  const synced=tpGoogleStoredFields(x.googleSyncedFields);
+  if(synced)return !tpGoogleEqualFields(tpGoogleCurrentFields(x),synced);
+  // Alte V2.9.13-Einträge besitzen noch keinen Kalender-Snapshot.
+  // Beim Google-Export lag der Google-Zeitstempel i.d.R. nach updatedAt.
+  // Falls danach im Programm gespeichert wurde, ist eine Bestätigung nötig.
+  const local=Date.parse(x.updatedAt||'')||0;
+  const baseline=Date.parse(x.googleEventUpdated||'')||0;
+  return !baseline||!local||local>baseline;
+}
+function tpGoogleMarkSynced(x,remoteUpdated){
+  x.googleEventUpdated=String(remoteUpdated||'');
+  x.googleSyncedFields=tpGoogleCurrentFields(x);
+  x.calendarExported=true;
+  x.calendarExportedBeforeChange=false;
+}
 function tpGoogleFieldsDiffer(x,e){
   const f=tpGoogleRemoteFields(e);
   return ['name','date','time','location'].some(k=>String(x[k]||'')!==f[k]);
@@ -4341,10 +4450,9 @@ function tpCalendarRemoteChanged(x,e){
   if(!tpGoogleFieldsDiffer(x,e))return false;
   const remote=Date.parse(e.updated||'')||0;
   const baseline=Date.parse(x.googleEventUpdated||'')||0;
-  const local=Date.parse(x.updatedAt||'')||0;
-  // Neuere Google-Änderungen dürfen nicht durch das Formular überschrieben werden.
-  // Ohne belastbaren Zeitstempel sicherheitshalber ebenfalls sperren.
-  return baseline ? remote>baseline : (!local || !remote || remote>local);
+  // Ein abweichender Google-Stand darf nie ohne Bestätigung überschrieben werden.
+  // Auch wenn der alte Zeitstempel unvollständig ist, bleibt der Schutz aktiv.
+  return !baseline||!remote||remote>baseline||!tpGoogleEqualFields(tpGoogleCurrentFields(x),tpGoogleRemoteFields(e));
 }
 async function tpGoogleFetchLinked(x,token){
   const cfg=tpCalendarSettings();
@@ -4359,6 +4467,101 @@ async function tpGoogleFetchLinked(x,token){
 function tpGooglePullStatus(msg){
   const el=document.getElementById('tpGooglePullStatus');if(el)el.textContent=msg;
 }
+// Konflikte werden bewusst NICHT automatisch aufgelöst.
+const tpGoogleConflicts=new Map();
+function tpGoogleConflictRender(){
+  const el=document.getElementById('tpGoogleConflictList');if(!el)return;
+  if(!tpGoogleConflicts.size){el.innerHTML='';return;}
+  let html='<div class="card" style="margin-top:10px;border:1px solid #d58d4b"><b>Kalender-Konflikte – bitte entscheiden</b>';
+  for(const [id,c] of tpGoogleConflicts){
+    const local=c.local,remote=c.remote;
+    const fmt=x=>esc((x.date||'')+' '+(x.time||'ganztägig')+' · '+(x.location||'ohne Ort'));
+    html+='<div style="padding:12px 0;border-bottom:1px solid #7775"><b>'+esc(local.name||id)+'</b>'+
+      '<div class="small">Programm: '+fmt(local)+'</div><div class="small">Google: '+fmt(remote)+'</div>'+
+      '<div class="row" style="margin-top:8px;flex-wrap:wrap">'+
+      '<button type="button" onclick="tpGoogleResolveConflict('+jsArg(id)+',&quot;google&quot;)">Google übernehmen</button>'+
+      '<button type="button" onclick="tpGoogleResolveConflict('+jsArg(id)+',&quot;program&quot;)">Programm übernehmen</button>'+
+      '<button type="button" onclick="tpGoogleResolveConflict('+jsArg(id)+',&quot;cancel&quot;)">Abbrechen</button></div></div>';
+  }
+  el.innerHTML=html+'</div>';
+}
+function tpGoogleConflictAdd(x,google){
+  tpGoogleConflicts.set(String(x.id),{
+    local:{...x,googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields)},
+    remote:tpGoogleRemoteFields(google),
+    remoteUpdated:String(google.updated||''),remoteEtag:String(google.etag||'')
+  });
+}
+async function tpGoogleResolveConflict(id,decision){
+  const key=String(id),c=tpGoogleConflicts.get(key);
+  if(!c)return;
+  if(decision==='cancel'){
+    tpGoogleConflicts.delete(key);tpGoogleConflictRender();
+    tpGooglePullStatus('Konflikt zurückgestellt. Beim nächsten Abgleich wird er erneut geprüft.');return;
+  }
+  if(decision!=='google'&&decision!=='program')return;
+  if(!firebaseReady||!firestoreDb||!firebaseAuthUser||!appPermissions.admin||isWhiteboardUser()||isPublicWhiteboardMode())return;
+  const label=decision==='google'?'Google übernehmen':'Programm übernehmen';
+  if(!confirm('Für „'+c.local.name+'“ wirklich „'+label+'“ ausführen?\nNur Name, Datum, Uhrzeit und Ort werden abgeglichen.'))return;
+  try{
+    const token=await tpGoogleToken();
+    const docRef=firestoreDb.collection('tournamentPlanner').doc(key);
+    const currentSnap=await docRef.get({source:'server'});
+    if(!currentSnap.exists)throw new Error('Termin wurde zwischenzeitlich gelöscht. Bitte neu abgleichen.');
+    const current=currentSnap.data()||{};
+    if(String(current.updatedAt||'')!==String(c.local.updatedAt||'')||
+       String(current.googleEventUpdated||'')!==String(c.local.googleEventUpdated||'')||
+       String(current.googleEventId||'')!==String(c.local.googleEventId||'')||
+       !tpGoogleEqualFields(tpGoogleCurrentFields(current),tpGoogleCurrentFields(c.local)))
+      throw new Error('Termin wurde inzwischen im Programm geändert. Bitte neu abgleichen.');
+    const latest=await tpGoogleFetchLinked(c.local,token);
+    if(!latest||latest.status==='cancelled')throw new Error('Google-Termin fehlt. Keine Daten geändert.');
+    if(String(latest.updated||'')!==c.remoteUpdated||
+       (c.remoteEtag&&String(latest.etag||'')!==c.remoteEtag))
+      throw new Error('Google-Termin wurde erneut geändert. Bitte neu abgleichen.');
+    if(decision==='google'){
+      const fields=tpGoogleRemoteFields(latest);
+      if(!fields.date)throw new Error('Ungültiges Google-Datum.');
+      await firestoreDb.runTransaction(async tx=>{
+        const snap=await tx.get(docRef);if(!snap.exists)throw new Error('Termin gelöscht');
+        const v=snap.data()||{};
+        if(String(v.updatedAt||'')!==String(c.local.updatedAt||'')||
+           String(v.googleEventUpdated||'')!==String(c.local.googleEventUpdated||'')||
+           !tpGoogleEqualFields(tpGoogleCurrentFields(v),tpGoogleCurrentFields(c.local)))
+          throw new Error('Zwischenzeitliche Änderung in Firebase – bitte neu abgleichen');
+        tx.set(docRef,{...fields,googleEventUpdated:String(latest.updated||''),googleSyncedFields:fields,calendarExported:true,calendarExportedBeforeChange:false},{merge:true});
+      });
+    }else{
+      const calId=c.local.googleEventCalendarId||tpCalendarSettings().calendarId;
+      const url='https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(calId)+'/events/'+encodeURIComponent(c.local.googleEventId);
+      const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+      if(latest.etag)headers['If-Match']=String(latest.etag);
+      const response=await fetch(url,{method:'PATCH',headers,body:JSON.stringify(tpGoogleEvent(current))});
+      if(!response.ok){if(response.status===401)tpGToken=null;throw new Error(response.status===412?'Google-Termin wurde während des Abgleichs geändert. Bitte erneut abgleichen.':'Google Kalender: Fehler '+response.status)}
+      const written=await response.json();
+      // Google wurde bestätigt. Das Firestore-Dokument darf bei einem Fehler
+      // keinesfalls stillschweigend als erfolgreich synchronisiert gelten.
+      await firestoreDb.runTransaction(async tx=>{
+        const snap=await tx.get(docRef);if(!snap.exists)throw new Error('Termin in Firebase gelöscht; Google bereits aktualisiert');
+        const v=snap.data()||{};
+        if(String(v.updatedAt||'')!==String(c.local.updatedAt||'')||
+           !tpGoogleEqualFields(tpGoogleCurrentFields(v),tpGoogleCurrentFields(c.local)))
+          throw new Error('Termin zwischenzeitlich in Firebase geändert; Google bereits aktualisiert');
+        tx.set(docRef,{googleEventUpdated:String(written.updated||''),googleSyncedFields:tpGoogleCurrentFields(v),calendarExported:true,calendarExportedBeforeChange:false},{merge:true});
+      });
+    }
+    tpGoogleConflicts.delete(key);tpGoogleConflictRender();
+    if(!await loadTournamentPlannerFromFirebase(true))throw new Error('Abgleich gespeichert, aber Firebase konnte nicht neu geladen werden. Bitte Seite neu laden.');
+    renderTournamentPlannerAdminList();
+    if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();
+    tpGooglePullStatus('Konflikt für „'+c.local.name+'“ gelöst: '+label+'.');
+    showToast('Google-Konflikt erfolgreich gelöst: '+label,7000);
+  }catch(e){
+    const message=e?.message||String(e);
+    tpGooglePullStatus('Konflikt nicht gelöst: '+message);
+    showToast('Konflikt nicht gelöst: '+message,12000);
+  }
+}
 async function tpGooglePullLinkedChanges(interactive=false){
   if(tpGooglePullRunning||isWhiteboardUser()||isPublicWhiteboardMode()||!firebaseAuthUser||!appPermissions.admin)return;
   if(!tpCalendarSettings().clientId||!firebaseReady||!firestoreDb)return;
@@ -4366,11 +4569,10 @@ async function tpGooglePullLinkedChanges(interactive=false){
     tpGooglePullStatus('Für den Google-Abgleich bitte einmal „Mit Google verbinden“ wählen.');return;
   }
   tpGooglePullRunning=true;
+  tpGoogleConflicts.clear();tpGoogleConflictRender();
   let updated=0,checked=0,conflicts=0,missing=0,errors=[];
   try{
     const token=interactive?await tpGoogleToken():tpGToken;
-    // Vorher stets aktuelle Firestore-Daten abrufen, damit ältere lokale Kopien
-    // nicht ungeprüft in die Cloud geschrieben werden.
     const snap=await firestoreDb.collection('tournamentPlanner').get({source:'server'});
     const linked=[];
     snap.forEach(doc=>{const x=doc.data()||{};if(x.googleEventId)linked.push({id:doc.id,...x})});
@@ -4379,46 +4581,50 @@ async function tpGooglePullLinkedChanges(interactive=false){
       checked++;
       try{
         const google=await tpGoogleFetchLinked(x,token);
-        if(!google||google.status==='cancelled'){missing++;continue;} // nie automatisch löschen
+        if(!google||google.status==='cancelled'){missing++;continue;}
         const fields=tpGoogleRemoteFields(google);
-        if(!fields.date){conflicts++;continue;}
-        const differs=tpGoogleFieldsDiffer(x,google);
+        if(!fields.date){conflicts++;tpGoogleConflictAdd(x,google);continue;}
+        const differs=!tpGoogleEqualFields(tpGoogleCurrentFields(x),fields);
         const remoteMs=Date.parse(google.updated||'')||0;
-        const localMs=Date.parse(x.updatedAt||'')||0;
         const baselineMs=Date.parse(x.googleEventUpdated||'')||0;
-        // Falls beide Seiten seit dem letzten Abgleich verändert wurden:
-        // keine automatische Überschreibung.
-        const changedGoogle=baselineMs ? remoteMs>baselineMs : (remoteMs>localMs);
-        const changedLocal=baselineMs ? localMs>baselineMs : false;
-        if(differs&&(!changedGoogle||changedLocal||!remoteMs||!localMs)){
-          conflicts++;continue;
+        const changedGoogle=!!remoteMs&&(!baselineMs||remoteMs>baselineMs);
+        const changedLocal=tpGoogleLocalChangedSinceSync(x);
+        if(differs&&(!changedGoogle||changedLocal||!remoteMs)){
+          // Nur echte Abweichungen als Konflikt zeigen; keine Daten verwerfen.
+          conflicts++;tpGoogleConflictAdd(x,google);continue;
         }
-        if(!differs&&String(x.googleEventUpdated||'')===String(google.updated||''))continue;
-        // Transaktion: niemals eine zwischenzeitlich bearbeitete Veranstaltung
-        // mit einer älteren Firebase-Version überschreiben.
+        if(!differs&&String(x.googleEventUpdated||'')===String(google.updated||'')&&
+           tpGoogleEqualFields(tpGoogleStoredFields(x.googleSyncedFields),fields))continue;
+        // Falls nur im Programm bearbeitet wurde, niemals durch unveränderte
+        // Google-Daten ersetzen. Das erledigt der normale Programm→Google-Weg.
+        if(differs&&!changedGoogle)continue;
         const docRef=firestoreDb.collection('tournamentPlanner').doc(String(x.id));
         await firestoreDb.runTransaction(async tx=>{
           const current=await tx.get(docRef);
           if(!current.exists)throw new Error('Veranstaltung inzwischen gelöscht');
           const v=current.data()||{};
-          if(String(v.updatedAt||'')!==String(x.updatedAt||'') || String(v.googleEventId||'')!==String(x.googleEventId||'') || String(v.googleEventUpdated||'')!==String(x.googleEventUpdated||''))throw new Error('Zwischenzeitliche Änderung – bitte erneut abgleichen');
-          const patch=differs?{...fields,googleEventUpdated:String(google.updated||'')}:{googleEventUpdated:String(google.updated||'')};
-          tx.set(docRef,patch,{merge:true});
+          if(String(v.updatedAt||'')!==String(x.updatedAt||'')||
+             String(v.googleEventId||'')!==String(x.googleEventId||'')||
+             String(v.googleEventUpdated||'')!==String(x.googleEventUpdated||'')||
+             !tpGoogleEqualFields(tpGoogleCurrentFields(v),tpGoogleCurrentFields(x)))
+            throw new Error('Zwischenzeitliche Änderung – bitte erneut abgleichen');
+          tx.set(docRef,{...(differs?fields:{}),googleEventUpdated:String(google.updated||''),
+            googleSyncedFields:fields,calendarExported:true,calendarExportedBeforeChange:false},{merge:true});
         });
-        // Nur die Felder aus Google übernehmen, andere Turnierdaten behalten.
         const local=tpFindEvent(x.id);
-        if(local){if(differs)Object.assign(local,fields);local.googleEventUpdated=String(google.updated||'');}
+        if(local){if(differs)Object.assign(local,fields);tpGoogleMarkSynced(local,google.updated||'');}
         if(differs)updated++;
       }catch(e){errors.push(String(x.name||x.id)+': '+(e?.message||e));}
     }
-    if(updated)save();
+    // Auch reine Metadaten-Aktualisierungen lokal behalten.
+    if(updated||checked)save();
     if(updated){renderTournamentPlannerAdminList();if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();}
     let msg='Google-Abgleich: '+checked+' verknüpfte Termine geprüft, '+updated+' Änderung(en) übernommen.';
-    if(conflicts)msg+=' '+conflicts+' mögliche Konflikte – nicht überschrieben.';
+    if(conflicts)msg+=' '+conflicts+' Konflikt(e) – bitte unten entscheiden.';
     if(missing)msg+=' '+missing+' fehlende/gelöschte Google-Termine – im Programm beibehalten.';
     if(linked.length>LIMIT)msg+=' '+(linked.length-LIMIT)+' weitere Termine noch nicht geprüft.';
     if(errors.length)msg+=' '+errors.length+' Fehler: '+errors.slice(0,2).join('; ');
-    tpGooglePullStatus(msg);
+    tpGooglePullStatus(msg);tpGoogleConflictRender();
     if(interactive||updated||conflicts||errors.length)showToast(msg,12000);
     return {checked,updated,conflicts,missing,errors};
   }catch(e){tpGooglePullStatus('Google-Abgleich nicht möglich: '+(e?.message||e));if(interactive)showToast('Google-Abgleich: '+(e?.message||e),8000);return {error:e?.message||String(e)};}
@@ -4577,7 +4783,7 @@ async function tpCalendarReviewLink(googleId){
   if(ctx.calendarId!==tpCalendarSettings().calendarId){alert('Kalender-ID wurde während der Prüfung geändert. Bitte erneut prüfen.');return;}
   if((data.tournamentPlanner||[]).some(y=>y&&String(y.id)!==String(x.id)&&String(y.googleEventId||'')===String(googleId))){alert('Dieser Google-Termin ist bereits einem anderen Turnier zugeordnet.');return;}
   if(!confirm('Vorhandenen Google-Termin mit diesem Turnier verknüpfen?\n\n'+tpCalendarEventLabel(e)+'\n\nDer Google-Termin wird dabei nicht verändert.'))return;
-  x.googleEventId=String(e.id);x.googleEventCalendarId=ctx.calendarId;x.googleEventUpdated=String(e.updated||'');
+  x.googleEventId=String(e.id);x.googleEventCalendarId=ctx.calendarId;tpGoogleMarkSynced(x,e.updated||'');
   x.calendarExported=true;x.calendarExportedBeforeChange=false;
   if(!save()){alert('Verknüpfung lokal nicht speicherbar. Bitte nicht erneut exportieren.');return;}
   const fb=await tpSyncEventToFirebase(x);
@@ -4615,7 +4821,7 @@ async function tpCalendarReviewCreate(){
   tpCalendarExportInFlight.add(sid);
   try{
     const created=await tpGoogleInsert(x);
-    x.googleEventId=created.id;x.googleEventCalendarId=created.calendarId;x.googleEventUpdated=created.updated;
+    x.googleEventId=created.id;x.googleEventCalendarId=created.calendarId;tpGoogleMarkSynced(x,created.updated);
     x.calendarExported=true;x.calendarExportedBeforeChange=false;
     if(!save())throw new Error('Google-Eintrag erstellt, aber lokale ID-Speicherung fehlgeschlagen. Bitte NICHT erneut exportieren.');
     const fb=await tpSyncEventToFirebase(x);
@@ -4653,13 +4859,13 @@ async function tpAddToCalendar(id){
     const isUpdate=!!x.googleEventId;
     try{
       if(isUpdate){
-        const result=await tpGoogleUpdate(x);x.googleEventUpdated=result.updated;
+        const result=await tpGoogleUpdate(x);tpGoogleMarkSynced(x,result.updated);
       }else{
         const created=await tpGoogleInsert(x);
         // Die von Google bestätigte ID sofort sichern; bei Firebase-Ausfall
         // keinesfalls einen zweiten Termin erzeugen.
         x.googleEventId=created.id;
-        x.googleEventCalendarId=created.calendarId;x.googleEventUpdated=created.updated;
+        x.googleEventCalendarId=created.calendarId;tpGoogleMarkSynced(x,created.updated);
       }
       x.calendarExported=true;
       x.calendarExportedBeforeChange=false;
@@ -4883,7 +5089,7 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
     let count=0;
     for(const x of (data.tournamentPlanner||[])){
       if(!x||!x.id)continue;
-      const payload={id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),updatedAt:String(x.updatedAt||new Date().toISOString())};
+      const payload={id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
       await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(x.id)).set(payload),60000,'Firebase');
       count++;
     }
@@ -4916,7 +5122,7 @@ async function loadTournamentPlannerFromFirebase(forceServer=false){
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
       location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,
-      calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),updatedAt:String(x.updatedAt||'')
+      calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')
     })});
     // Firebase ist für die Whiteboard-Ansicht die führende Quelle – auch eine leere Liste wird übernommen.
     data.tournamentPlanner=list;
@@ -4996,11 +5202,11 @@ async function tpCalendarAutoAfterSave(item,isNew,authPromise){
       // darf der Benutzer nicht versehentlich einen zweiten Termin erzeugen.
       item.googleEventId=created.id;
       item.googleEventCalendarId=created.calendarId;
-      item.googleEventUpdated=created.updated;
+      tpGoogleMarkSynced(item,created.updated);
     }else if(item.googleEventId){
       setInfo('✓ Firebase gespeichert. Google Kalender: bestehender Termin wird aktualisiert …');
       const googleResult=await tpGoogleUpdate(item);
-      item.googleEventUpdated=googleResult.updated;
+      tpGoogleMarkSynced(item,googleResult.updated);
     }else return {ok:false,reason:'no-google-id'};
     item.calendarExported=true;
     item.calendarExportedBeforeChange=false;
@@ -5711,7 +5917,7 @@ function adminSection(s){
     +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
-   +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings();tpGoogleConnect()">Mit Google verbinden und abgleichen</button><button type="button" onclick="tpGooglePullLinkedChanges(true)">Jetzt abgleichen</button></div><div id="tpGooglePullStatus" class="small" style="margin-top:8px">Google → Programm: Abgleich beim Öffnen, solange Google verbunden ist. Nach Ablauf der Google-Anmeldung bitte erneut verbinden.</div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Neue Termine werden beim Speichern automatisch in Google Kalender angelegt, sofern die Verbindung eingerichtet ist und keine mögliche Dublette gefunden wird. Bei einer Änderung eines bereits verknüpften Termins wird derselbe Kalendereintrag aktualisiert. Der automatische Rückabgleich berücksichtigt ausschließlich eindeutig mit Google verknüpfte Termine. Unverknüpfte ältere Exporte werden nicht automatisch geändert. Bei Konflikten oder gelöschten Google-Terminen werden keine Daten stillschweigend überschrieben oder gelöscht.</div></div></div>'
+   +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings();tpGoogleConnect()">Mit Google verbinden und abgleichen</button><button type="button" onclick="tpGooglePullLinkedChanges(true)">Jetzt abgleichen</button></div><div id="tpGooglePullStatus" class="small" style="margin-top:8px">Google → Programm: Abgleich beim Öffnen, solange Google verbunden ist. Nach Ablauf der Google-Anmeldung bitte erneut verbinden.</div><div id="tpGoogleConflictList"></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Neue Termine werden beim Speichern automatisch in Google Kalender angelegt, sofern die Verbindung eingerichtet ist und keine mögliche Dublette gefunden wird. Bei einer Änderung eines bereits verknüpften Termins wird derselbe Kalendereintrag aktualisiert. Der automatische Rückabgleich berücksichtigt ausschließlich eindeutig mit Google verknüpfte Termine. Unverknüpfte ältere Exporte werden nicht automatisch geändert. Bei Konflikten oder gelöschten Google-Terminen werden keine Daten stillschweigend überschrieben oder gelöscht.</div></div></div>'
    +'<div id="tpSub-players"><h3>Spielerliste (Auswahl für Turniere/Meisterschaften)</h3><div class="card"><div class="row"><input id="tpNewPlayer" type="text" placeholder="Name, z. B. Mustermann Max" style="flex:1" onkeydown="if(event.key===\'Enter\')tpAddPlayer()"><button type="button" onclick="tpAddPlayer()">Hinzufügen</button></div><div id="tpPlayersAdminList" style="margin-top:10px"></div></div></div>'
    +'<div id="tpSub-events"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar" style="margin:0 0 10px"><label style="margin:0">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div><div id="tpAdminList"></div></div>';
   renderTpPlayersAdminList();
@@ -6578,7 +6784,7 @@ async function autoLoadPublicFirebaseDataV1245(){
     try{
       const snap=await firestoreDb.collection('tournamentPlanner').get();
       const list=[];
-      snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),updatedAt:String(x.updatedAt||'')})});
+      snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')})});
       if(snap.size && currentUser!=='admin'){
         data.tournamentPlanner=list;
         save();
