@@ -673,7 +673,9 @@ dialog,.modal,.dialog,.dialog-card,.modal-card{
   border-color:#3a414b!important;
 }
 dialog::backdrop{background:rgba(0,0,0,.72)!important}
-#connectionStatus,#message{color:#fff!important}
+#connectionStatus{color:#fff!important}
+#message{color:#20242b!important;font-weight:600;line-height:1.45}
+#message.error{color:#8b1422!important;background:#fff3f3!important;border-left-color:#b32632!important}
 .error{color:#ff7c86!important}
 
 /* ===== Live Startliste ===== */
@@ -5616,7 +5618,7 @@ document.getElementById("tdAddMeldungBtn").addEventListener("click", () => saveA
   const angemeldetPer = document.getElementById("tdAngemeldetPer").value;
   const anmeldedatum = document.getElementById("tdAnmeldedatum").value;
   if (!auswahlId && !manuellName) { alert("Bitte einen Verein auswählen oder eine Mannschaft manuell eingeben."); return; }
-  if (!angemeldetPer) { notify("Bitte auswählen, wie die Mannschaft angemeldet wurde.",true); return; }
+  if (!angemeldetPer) { notify("Bitte zuerst „Angemeldet per“ auswählen (WhatsApp, Telefonisch, E-Mail oder Mündlich).",true); document.getElementById("tdAngemeldetPer").focus(); return; }
   if (!anmeldedatum) { alert("Bitte ein Anmeldedatum wählen."); return; }
   if (!editMeldungId && aktuellesTurnier.maxMannschaften && aktuelleMeldungenAnzahl >= aktuellesTurnier.maxMannschaften) {
     alert("Die maximale Anzahl an Mannschaften ist bereits erreicht.");
@@ -5644,8 +5646,17 @@ document.getElementById("tdAddMeldungBtn").addEventListener("click", () => saveA
   const duplicate = meldungenCache.find(m=>m.id!==editMeldungId && (m.vereinName||'').trim().toLowerCase()===vereinName.trim().toLowerCase() && (m.teamZusatz||'').trim().toLowerCase()===teamZusatz.toLowerCase());
   if(duplicate) {if(mobileMode)document.getElementById('quickOptional').open=true; notify('Diese Mannschaft ist bereits gemeldet. Für eine weitere Mannschaft bitte eine eigene Bezeichnung angeben, z. B. II.',true); return; }
   const payload={turnierId:aktuellesTurnier.id,vereinId,vereinName,teamZusatz,anmeldedatum,angemeldetPer};
-  if(editMeldungId) await updateDoc(doc(db,'meldungen',editMeldungId),payload);
-  else await addDoc(collection(db,'meldungen'),{...payload,erstelltAm:serverTimestamp()});
+  // Im eingebetteten Modus stammt die Firestore-Compat-Instanz aus dem Hauptfenster.
+  // Die Nutzdaten muessen deshalb als Plain Object im Hauptfenster erzeugt werden.
+  // Firestore-Sentinels erst nach der Konvertierung hinzufuegen.
+  const savePayload=embeddedInMain
+    ? window.parent.JSON.parse(window.parent.JSON.stringify(payload))
+    : payload;
+  if(editMeldungId) await updateDoc(doc(db,'meldungen',editMeldungId),savePayload);
+  else {
+    savePayload.erstelltAm=serverTimestamp();
+    await addDoc(collection(db,'meldungen'),savePayload);
+  }
   notify(editMeldungId?'Mannschaft gespeichert.':'Mannschaft hinzugefügt.');
   resetStartlisteEingabe();
   if(mobileMode){document.getElementById('tdAngemeldetPer').value=angemeldetPer;syncQuickChannel();document.getElementById('quickSaved').textContent=vereinName+(teamZusatz?' · '+teamZusatz:'')+' erfolgreich angemeldet.';document.getElementById('tdManuellName').focus();}
