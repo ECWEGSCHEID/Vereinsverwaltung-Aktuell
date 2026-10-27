@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EC Wegscheid Turnierauswertung – Version 2.9.27 · Vereinsverwaltung</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <script>if (window.self !== window.top) document.documentElement.classList.add("cup-in-verwaltung");</script>
+  <style>
+    :root {
+      --bg-overlay: rgba(25, 5, 7, 0.68);
+      --card-bg: rgba(24, 12, 14, 0.80);
+      --accent: #dc2626;
+      --accent-bright: #ef4444;
+      --text: #ffffff;
+      --text-muted: #cbd5e1;
+      --border: rgba(255, 255, 255, 0.2);
+      --border-silver: #94a3b8;
+      --success: #10b981;
+      --admin-purple: #7c3aed;
+      --danger: #b91c1c;
+      --gold: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; user-select: none; }
+    
+    html {
+      min-height: 100%;
+      background-image: url('assets/hintergrund-carbon-rot.png');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      background-attachment: fixed;
+      background-color: #3b0000;
+    }
+
+    body { 
+      background: transparent !important;
+      color: var(--text); 
+      padding: 4px; 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+    }
+
+    header { 
+      position: relative; 
+      width: 66.66%;
+      margin: 0 auto 4px auto;
+      text-align: center; 
+      padding: 4px 8px; 
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-bottom: 3px solid var(--accent); 
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+    }
+    h1 { font-size: 1.15rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+
+    .version-badge {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      background: rgba(25, 12, 15, 0.68);
+      border: 1px solid var(--border);
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    .btn-admin-corner { position: absolute; right: 8px; top: 4px; background: var(--admin-purple); color: white; border: 1px solid var(--border); padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+    .btn-admin-corner:active { transform: scale(0.95); }
+
+    .container { max-width: 1000px; margin: 0 auto; width: 100%; flex: 1; display: flex; flex-direction: column; }
+
+    .view { display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
+    .view.active { display: flex; flex-direction: column; }
+
+    label { display: block; font-size: 0.8rem; margin-bottom: 2px; font-weight: bold; }
+    select, input[type="text"], input[type="number"], textarea { width: 100%; padding: 6px 8px; font-size: 14px; background: rgba(26, 16, 18, 0.82); border: 1px solid var(--border-silver); color: var(--text); border-radius: 6px; margin-bottom: 6px; }
+    textarea { height: 70px; resize: vertical; }
+
+    .btn { display: inline-block; width: 100%; padding: 8px; font-size: 0.9rem; font-weight: bold; text-align: center; background: linear-gradient(135deg, var(--accent) 0%, #991b1b 100%); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; cursor: pointer; margin-bottom: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); touch-action: manipulation; }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background: linear-gradient(135deg, #475569 0%, #1e293b 100%); }
+    .btn-mainmenu { background: linear-gradient(135deg, #334155 0%, #0f172a 100%); border: 1px solid var(--border); }
+    .btn-success { background: linear-gradient(135deg, var(--success) 0%, #065f46 100%); }
+    .btn-danger { background: linear-gradient(135deg, var(--danger) 0%, #7f1d1d 100%); }
+    .btn-ko { background: linear-gradient(135deg, var(--gold) 0%, #b45309 100%); color: #fff; }
+    
+    .tournament-grid { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 10px; width: 100%; }
+    .btn-tournament { width: 100%; max-width: 450px; background: rgba(30, 41, 59, 0.85); color: white; padding: 10px 12px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--border-silver); text-align: center; cursor: pointer; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.4); backdrop-filter: blur(5px); }
+
+    .group-card { background: rgba(25, 12, 15, 0.78); border: 1px solid var(--border-silver); padding: 8px; border-radius: 6px; margin-bottom: 6px; }
+    .group-card h3 { margin-bottom: 4px; color: #38bdf8; text-align: center; font-size: 0.95rem; }
+
+    .game-row { display: grid; grid-template-columns: 50px 1fr 45px 1fr 40px; gap: 3px; align-items: center; background: rgba(26, 16, 18, 0.82); padding: 4px 2px; border-radius: 6px; margin-bottom: 4px; text-align: center; border: 1px solid var(--border); }
+    .game-title { font-weight: bold; color: var(--text-muted); text-align: left; font-size: 0.75rem; }
+    .stepper { display: flex; align-items: center; justify-content: center; gap: 2px; }
+    .btn-step { min-width: 30px; height: 30px; font-size: 1rem; font-weight: bold; line-height: 30px; padding: 0; background: #334155; border: 1px solid var(--border-silver); color: white; border-radius: 4px; cursor: pointer; touch-action: manipulation; }
+    .score-disp { font-size: 0.9rem; font-weight: bold; min-width: 18px; text-align: center; }
+    .pts-disp { font-size: 0.75rem; font-weight: bold; color: #38bdf8; }
+    .match-summary { background: rgba(2, 132, 199, 0.85); padding: 4px; border-radius: 6px; text-align: center; font-size: 0.85rem; font-weight: bold; margin: 4px 0; border: 1px solid rgba(255,255,255,0.3); }
+
+    .table-container { width: 100%; margin-top: 2px; overflow-x: auto; max-height: 50vh; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    th, td { padding: 4px 2px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { background: rgba(220, 38, 38, 0.7); color: var(--text); position: sticky; top: 0; font-size: 0.75rem; }
+    td:nth-child(2) { text-align: left; font-weight: bold; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+
+    tr.player-row { cursor: pointer; }
+    tr.player-row:hover { background-color: rgba(255, 255, 255, 0.08); }
+    tr.promotion-cutoff td { border-bottom: 3px solid var(--gold) !important; }
+
+    .status-badge { text-align: center; font-size: 0.8rem; font-weight: bold; margin-bottom: 2px; }
+
+    .nav-bar { margin-top: 4px; border-top: 1px solid var(--border); padding-top: 4px; display: flex; flex-direction: column; gap: 3px; }
+    /* Globaler Zurück-zum-Startmenü-Button: rechts unten, mit Abstand zum Bildschirmrand. */
+    .btn-startmenu-fixed { position: fixed; right: 18px; bottom: 18px; z-index: 9999; width: auto; min-width: 190px; padding: 9px 14px; margin: 0; background: linear-gradient(135deg, #334155 0%, #0f172a 100%); color: white; border: 2px solid rgba(255,255,255,.6); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.55); font-size: .9rem; font-weight: bold; cursor: pointer; }
+    .btn-startmenu-fixed:active { transform: scale(.98); }
+    @media (max-width: 600px) { .btn-startmenu-fixed { right: 10px; bottom: 10px; min-width: 165px; padding: 8px 10px; font-size: .82rem; } }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    
+    .admin-tab-bar { display: flex; gap: 3px; margin-bottom: 8px; border-bottom: 2px solid var(--border); padding-bottom: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .admin-tab { flex: 1; min-width: 70px; padding: 6px 2px; font-size: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); color: white; border-radius: 4px; cursor: pointer; text-align: center; font-weight: bold; white-space: nowrap; }
+    .admin-tab.active { background: var(--admin-purple); border-color: var(--admin-purple); }
+
+    .match-checkbox-list, .history-list { max-height: 180px; overflow-y: auto; background: rgba(26, 16, 18, 0.82); border: 1px solid var(--border-silver); border-radius: 6px; padding: 4px; margin-bottom: 8px; }
+    .match-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 4px; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
+    .corr-item, .history-item { background: rgba(26, 16, 18, 0.82); border: 1px solid var(--border); padding: 6px; border-radius: 4px; margin-bottom: 4px; font-size: 0.75rem; }
+    .history-item { display: flex; flex-direction: column; gap: 1px; }
+
+    @media (max-width: 650px) {
+      header { width: 100%; border-radius: 6px; flex-direction: column; gap: 4px; padding: 6px; }
+      .version-badge { position: static; transform: none; display: inline-block; margin-bottom: 2px; }
+      h1 { font-size: 1rem; }
+      .btn-admin-corner { position: static; width: 100%; margin-top: 2px; text-align: center; }
+      .view { padding: 6px; }
+    }
+
+
+    /* V2.5.2: Whiteboard-Tabelle und Gruppenauswahl in voller Breite */
+    #view-groups,#view-table {width:min(100%,1800px);align-self:center;padding:clamp(12px,1.3vw,24px);gap:clamp(10px,1.2vh,18px)}
+    #view-groups #groupsTitle,#view-table #tableTitle {font-size:clamp(1.5rem,2.4vw,2.5rem)!important;margin-bottom:8px!important}
+    #view-groups #groupsSub {font-size:clamp(1rem,1.2vw,1.3rem)!important;color:#e2e8f0!important}
+    #groupCardsContainer {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:clamp(12px,1.5vw,24px)}
+    #view-groups .group-card {padding:clamp(14px,1.6vw,28px);border-radius:12px;margin:0;background:rgba(24,9,12,.88)}
+    #view-groups .group-card h3 {font-size:clamp(1.3rem,1.8vw,2rem);color:#fff;margin-bottom:16px}
+    #view-groups .group-card .btn {padding:clamp(12px,1.2vw,20px)!important;font-size:clamp(1rem,1.2vw,1.3rem)!important;min-height:54px}
+    #view-table>p {font-size:clamp(.95rem,1.15vw,1.25rem)!important;color:#dbe2eb!important}
+    #view-table .table-container {max-height:calc(100dvh - 230px);overflow:auto;border:1px solid rgba(255,255,255,.2);border-radius:12px}
+    #view-table table {font-size:clamp(1rem,1.28vw,1.45rem);width:100%}
+    #view-table th,#view-table td {padding:clamp(10px,1.2vh,18px) clamp(7px,1vw,18px);line-height:1.25}
+    #view-table th {font-size:clamp(.95rem,1.15vw,1.25rem);background:rgba(112,20,28,.97)}
+    #view-table td:nth-child(2) {max-width:none;overflow:visible;text-overflow:clip;white-space:normal;min-width:200px}
+    #view-table .player-row {min-height:54px;touch-action:manipulation}
+    #view-table .player-row:active {background:rgba(185,45,55,.45)}
+    .cup-status-label {display:inline-block;font-weight:800;font-size:.82em;padding:3px 9px;border-radius:7px;margin-left:8px;background:#802f38;border:1px solid #ed8b94;color:#fff}
+    /* Detailansicht als großzügiger Dialog: Tabelle bleibt im Hintergrund. */
+    #playerMatchesContainer {position:fixed;inset:clamp(12px,4vh,50px) clamp(12px,5vw,100px);z-index:10010;background:linear-gradient(145deg,rgba(51,9,15,.98),rgba(18,19,23,.99));border:2px solid #a8a8ad;border-radius:18px;padding:clamp(14px,2vw,32px);box-shadow:0 0 0 100vmax rgba(0,0,0,.76),0 18px 60px #000;flex-direction:column;gap:clamp(10px,1.3vh,22px);overflow:hidden}
+    #playerMatchesContainer[style*="display: flex"] {display:flex!important}
+    #playerMatchesContainer>div:first-child {margin-bottom:0!important;gap:15px}
+    #playerMatchesContainer>div:first-child .btn {width:auto!important;min-height:46px;font-size:1rem!important;padding:10px 20px!important}
+    #playerMatchesList {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));grid-auto-rows:minmax(0,1fr);align-content:stretch;gap:clamp(8px,1.2vh,16px);flex:1;min-height:0;overflow:auto;font-size:clamp(1rem,1.15vw,1.35rem)}
+    #playerMatchesList .cup-player-match {display:flex;flex-direction:column;justify-content:center;gap:9px;padding:clamp(12px,1.2vw,22px);background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.22);border-radius:12px;min-height:0}
+    #playerMatchesList .cup-player-match .cup-opponent {font-size:1.08em;font-weight:700;overflow-wrap:anywhere}
+    #playerMatchesList .cup-player-match .cup-result {font-size:1.12em}
+    #playerMatchesList .cup-player-match .cup-status-label {margin-left:0}
+    @media(max-width:800px){#playerMatchesContainer{inset:10px;padding:12px}#playerMatchesList{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}#view-table td:nth-child(2){min-width:140px}#view-table .table-container{max-height:calc(100dvh - 160px)}}
+    @media(max-height:720px){#playerMatchesContainer{inset:8px}#playerMatchesList{gap:6px}#playerMatchesList .cup-player-match{padding:8px;gap:4px}#view-table th,#view-table td{padding-top:7px;padding-bottom:7px}}
+
+    
+/* V2.5.2 – Gruppen und Tabellen für 16:9, größenabhängig */
+#groupCardsContainer{grid-template-columns:repeat(var(--cup-group-cols,2),minmax(0,1fr))!important;gap:clamp(10px,1.2vw,20px)!important;align-content:center}
+#view-groups .group-card{padding:clamp(12px,1.2vw,22px)!important;margin:0!important}
+#view-groups .group-card h3{font-size:clamp(1.25rem,1.65vw,1.9rem)!important;margin-bottom:12px!important}
+#view-groups .group-card .btn{font-size:clamp(1rem,1.15vw,1.3rem)!important;min-height:48px!important}
+#view-table{--cup-row-font:1.2rem;--cup-row-pad:12px;--cup-table-available:65vh}
+#view-table .table-container{max-height:none!important;overflow:visible!important;flex:0 1 auto}
+#view-table table{font-size:var(--cup-row-font)!important;table-layout:auto}
+#view-table th,#view-table td{padding:var(--cup-row-pad) clamp(4px,.7vw,13px)!important;line-height:1.13!important}
+#view-table .player-row{min-height:0!important}
+#view-table td:nth-child(2){min-width:0!important}
+#playerMatchesContainer{inset:clamp(8px,2vh,26px) clamp(10px,5vw,90px)!important;gap:clamp(5px,.7vh,12px)!important}
+#playerMatchesList{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;gap:var(--cup-match-gap,7px)!important;overflow:hidden!important;font-size:var(--cup-match-font,1.15rem)!important}
+#playerMatchesList .cup-player-match{flex:1 1 0!important;min-height:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:12px!important;padding:var(--cup-match-pad,10px) clamp(10px,1.5vw,24px)!important}
+#playerMatchesList .cup-player-match .cup-opponent{font-size:1em!important}
+#playerMatchesList .cup-player-match .cup-result{font-size:1em!important;text-align:right}
+@media(max-width:700px){#groupCardsContainer{grid-template-columns:1fr!important}#playerMatchesList .cup-player-match{grid-template-columns:1fr;gap:1px!important}#playerMatchesList .cup-player-match .cup-result{text-align:left}}
+
+    /* --- DRUCKOPTIMIERUNG: 2 Wertungsblätter untereinander auf A4 Querformat --- */
+    #printArea { display: none; }
+
+    @media print {
+      body * { visibility: hidden; }
+      body { background: #fff !important; margin: 0; padding: 0; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100vw; color: #000; background: #fff; }
+
+      @page { size: A4 landscape; margin: 4mm; }
+
+      .print-page-wrapper {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-sizing: border-box;
+        page-break-after: always;
+      }
+
+      .protocol-container {
+        width: 100%;
+        height: 48.5%;
+        box-sizing: border-box;
+        padding: 2px 4px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: #fff;
+        font-family: Arial, sans-serif;
+        color: #000;
+        border: 1.5px solid #000;
+      }
+
+      .protocol-container table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7pt; }
+      .protocol-container th, .protocol-container td { border: 1px solid black; text-align: center; vertical-align: middle; padding: 1px 2px; overflow: hidden; }
+      
+      .protocol-container tbody tr:not(.sum-row):not(.footer-section) { height: var(--row-height, 28px); }
+      .protocol-container .sum-row { height: var(--row-height, 28px); }
+      .protocol-container .footer-section { height: 42px; }
+      .protocol-container .footer-section td { border-top: 1px solid black !important; }
+      
+      .protocol-container th:nth-child(10), .protocol-container td:nth-child(10) { border-right: 2.5px solid #000; }
+      .protocol-container .teams-row.home-team { border-right: 2.5px solid #000; }
+      
+      .print-header-row {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-weight: bold;
+      }
+      .print-tourney-title { 
+        font-size: 11pt; 
+        text-align: center; 
+        color: #000 !important; 
+        border: none !important;
+      }
+      .print-spielnummer {
+        font-size: 9pt;
+        text-align: left;
+        padding-left: 6px;
+        border: none !important;
+      }
+      .print-datum {
+        font-size: 8pt;
+        text-align: right;
+        padding-right: 6px;
+        border: none !important;
+      }
+
+      .teams-row { font-size: 8.5pt; font-weight: bold; text-align: left; padding-left: 4px; background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .subheader { font-size: 6.5pt; font-weight: bold; background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      
+      .durchgang-col { width: 4%; }
+      .anschuss-col { width: 5%; font-size: 6.5pt; background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .kehre-col { width: 4%; }
+      .stock-sum-col { width: 6%; background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; }
+      .spielpunkte-col { width: 6%; background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; }
+      
+      .sum-row { font-weight: bold; background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 6pt; }
+      .footer-section td { border: 1px solid black; font-size: 5.5pt; text-align: left; padding: 1px 3px; }
+    }
+  
+    /* Ebene 1: Turnierauswahl bleibt bewusst als dunkle Fläche erhalten. */
+    #view-main { background: var(--card-bg); }
+
+    /* Ebene 2: Der Turnierkopf erhält wieder sein dunkles Feld. Zwischen Kopf und Gruppen bleibt roter Hintergrund sichtbar. */
+    #view-groups { background: transparent; border: none; box-shadow: none; backdrop-filter: none; padding: 8px 0; }
+    #groupsInfo {
+      color: #000;
+      text-shadow: none;
+      text-align: center;
+      margin-bottom: 16px;
+      padding: 9px 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+      backdrop-filter: blur(8px);
+    }
+    #groupsInfo #groupsTitle { color: #fff; text-shadow: none; }
+    #groupsInfo #groupsSub { color: #fff !important; text-shadow: none; }
+
+    /* Die eigentlichen Gruppen bleiben als dunkle Karten erhalten. */
+    #view-groups .group-card { background: rgba(25, 12, 15, 0.78); border: 1px solid var(--border-silver); box-shadow: none; padding: 8px; margin-bottom: 6px; }
+    #view-groups .group-card h3 { text-shadow: none; }
+
+    /* Hauptmenü weiter nach unten: bewusst vom oberen Inhalt getrennt. */
+    #view-groups .nav-bar { margin-top: 28px; padding-top: 0; border-top: none; }
+    #view-groups .nav-bar .btn-mainmenu { margin-top: 8px; min-height: 44px; font-size: .95rem; border: 2px solid rgba(255,255,255,.55); box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+
+    /* ===== Startmenü "Turnierauswertung" (1. Ebene) ===== */
+    .home-grid { gap: 8px; margin-top: 6px; }
+    .btn-home { max-width: 520px; display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; }
+    .btn-home .hi { font-size: 1.7rem; line-height: 1; flex: 0 0 auto; }
+    .btn-home .ht { display: flex; flex-direction: column; gap: 2px; }
+    .btn-home .ht b { font-size: 1.02rem; }
+    .btn-home .ht small { font-size: .74rem; font-weight: normal; color: var(--text-muted); }
+    .btn-home.soon { opacity: .92; }
+    .btn-home.soon .ht small::after { content: " · in Vorbereitung"; color: var(--gold); }
+    /* StockDart-Auswertung (eingebettet) */
+    #view-stockdart { padding: 4px; gap: 4px; }
+    #view-stockdart .sd-bar .btn { width: auto; padding: 6px 12px; font-size: .85rem; }
+    #stockdartFrame { width: 100%; height: calc(100vh - 118px); height: calc(100dvh - 118px); min-height: 480px; border: 0; border-radius: 6px; background: transparent; }
+
+    #view-doppelko { padding: 3px; backdrop-filter: none; }
+    #doppelKoFrame { display:block; width:100%; height:calc(100dvh - 120px); min-height:540px; border:0; border-radius:8px; background:#180b0e; }
+    @media(max-width:750px){#doppelKoFrame{height:calc(100dvh - 165px);min-height:450px}}
+    /* V2.7: Doppel-KO-Whiteboard übernimmt die gesamte sichtbare Fläche.
+       Greift auch dann, wenn Samsung Internet die Fullscreen-API ablehnt. */
+    body.dko-whiteboard-active #view-doppelko {
+      position: fixed !important; inset: 0 !important;
+      width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+      max-width: none !important; min-height: 0 !important;
+      margin: 0 !important; padding: 0 !important; border: 0 !important;
+      border-radius: 0 !important; box-shadow: none !important;
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+      background: #130b0e !important; z-index: 2147483000 !important;
+      overflow: hidden !important;
+    }
+    body.dko-whiteboard-active #doppelKoFrame {
+      display: block !important; width: 100% !important; height: 100% !important;
+      min-height: 0 !important; border: 0 !important; border-radius: 0 !important;
+    }
+    body.dko-whiteboard-active #view-doppelko > button { display: none !important; }
+    #doppelKoFrame:fullscreen {
+      width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+      min-height: 0 !important; border-radius: 0 !important;
+    }
+    /* Turnierauslosung (eingebettete Live-Auslosung) */
+    /* backdrop-filter würde position:fixed im Rahmen auf die Ansicht begrenzen -> hier aus */
+    #view-auslosung { padding: 4px; gap: 4px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    #view-auslosung .sd-bar .btn { width: auto; padding: 6px 12px; font-size: .85rem; }
+    #auslosungFrame { width: 100%; height: calc(100vh - 118px); height: calc(100dvh - 118px); min-height: 480px; border: 0; border-radius: 6px; background: #3b0000; }
+    /* Während die Live-Auslosung läuft, füllt der Rahmen den ganzen Bildschirm (Beamer/Vollbild) */
+    #auslosungFrame.full { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100dvh; min-height: 0; border-radius: 0; z-index: 10000; }
+
+    /* ===== Optik EC Wegscheid: Hintergrund auf der Startseite sichtbar ===== */
+    #view-home {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      padding-top: 18px;
+    }
+    #view-home > h2 {
+      width: min(520px, 94%);
+      margin: 0 auto 14px auto !important;
+      padding: 10px 14px;
+      background: rgba(25, 12, 15, 0.70);
+      border: 1px solid rgba(255,255,255,.32);
+      border-bottom: 3px solid var(--accent);
+      border-radius: 9px;
+      box-shadow: 0 5px 16px rgba(0,0,0,.42);
+      backdrop-filter: blur(7px);
+    }
+    #view-home .home-grid {
+      width: min(560px, 96%);
+      margin: 0 auto;
+      gap: 10px;
+    }
+    #view-home .btn-home {
+      max-width: 520px;
+      min-height: 64px;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(42,19,23,.85), rgba(15,9,11,.80));
+      border: 1px solid rgba(255,255,255,.42);
+      border-left: 4px solid var(--accent);
+      box-shadow: 0 5px 14px rgba(0,0,0,.46);
+      backdrop-filter: blur(7px);
+    }
+    #view-home .btn-home:hover {
+      border-color: rgba(255,255,255,.72);
+      border-left-color: var(--accent-bright);
+      transform: translateY(-1px);
+    }
+    #view-home .btn-home .ht {
+      width: 100%;
+      align-items: center;
+    }
+
+
+    /* Startmenü-Button für StockDart, Live-Auslosung und Zielschießen */
+    .btn-section-start-fixed {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 12000;
+      width: auto !important;
+      min-width: 190px;
+      padding: 9px 14px !important;
+      margin: 0 !important;
+      background: linear-gradient(135deg, #334155 0%, #0f172a 100%) !important;
+      color: #fff !important;
+      border: 2px solid rgba(255,255,255,.60) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,.55) !important;
+      font-size: .9rem !important;
+      font-weight: bold;
+    }
+    @media (max-width:600px) {
+      .btn-section-start-fixed {
+        right: 10px;
+        bottom: 10px;
+        min-width: 165px;
+        padding: 8px 10px !important;
+        font-size: .82rem !important;
+      }
+    }
+
+
+    #view-stockdart .stockdart-bottom-back {
+      width: 100%;
+      padding: 14px 0 18px 8px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      background: transparent;
+    }
+    #view-stockdart .stockdart-bottom-back .btn {
+      width: auto;
+      margin-left: auto !important;
+      margin-right: 0 !important;
+      min-width: 190px;
+      margin: 0;
+      padding: 9px 14px;
+      border: 2px solid rgba(255,255,255,.60);
+      box-shadow: 0 4px 12px rgba(0,0,0,.55);
+    }
+    @media (max-width:600px) {
+      #view-stockdart .stockdart-bottom-back {
+        padding: 10px 6px 14px;
+      }
+      #view-stockdart .stockdart-bottom-back .btn {
+        min-width: 165px;
+        padding: 8px 10px;
+        font-size: .82rem;
+      }
+    }
+
+
+    /* Zielschießen Jahresmeisterschaft */
+    #view-jahresmeisterschaft { padding: 4px; gap: 4px; background: transparent; backdrop-filter: none; -webkit-backdrop-filter:none; }
+    #jahresmeisterschaftFrame { width:100%; height:calc(100vh - 118px); height:calc(100dvh - 118px); min-height:620px; border:0; border-radius:6px; background:transparent; }
+    @media(max-width:600px){
+      #view-jahresmeisterschaft .jahresmeisterschaft-bottom-back{padding:10px 6px 14px}
+      #view-jahresmeisterschaft .jahresmeisterschaft-bottom-back .btn{min-width:165px;padding:8px 10px;font-size:.82rem}
+    }
+
+
+    /* Breitere Arbeitsflächen: Zielschießen + StockDart */
+    #view-stockdart,
+    #view-jahresmeisterschaft {
+      width: calc(100vw - 12px) !important;
+      max-width: none !important;
+      margin-left: calc(50% - 50vw + 6px) !important;
+      margin-right: 0 !important;
+      padding-left: 4px !important;
+      padding-right: 4px !important;
+    }
+    #view-stockdart #stockdartFrame,
+    #view-jahresmeisterschaft #jahresmeisterschaftFrame {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    @media (max-width: 700px) {
+      #view-stockdart,
+      #view-jahresmeisterschaft {
+        width: calc(100vw - 4px) !important;
+        margin-left: calc(50% - 50vw + 2px) !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+      }
+    }
+
+
+    /* Turnierauslosung ebenfalls nahezu über die gesamte Bildschirmbreite */
+    #view-auslosung {
+      width: calc(100vw - 12px) !important;
+      max-width: none !important;
+      margin-left: calc(50% - 50vw + 6px) !important;
+      margin-right: 0 !important;
+      padding-left: 4px !important;
+      padding-right: 4px !important;
+    }
+    #view-auslosung #auslosungFrame {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    @media (max-width:700px) {
+      #view-auslosung {
+        width: calc(100vw - 4px) !important;
+        margin-left: calc(50% - 50vw + 2px) !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+      }
+    }
+
+
+    .auth-box{position:absolute;right:8px;top:30px;display:flex;gap:6px;align-items:center;z-index:30}
+    .auth-status{font-size:.72rem;background:rgba(0,0,0,.58);border:1px solid rgba(255,255,255,.3);padding:5px 8px;border-radius:6px;color:#fff}
+    .auth-btn{border:1px solid rgba(255,255,255,.45);background:#991b1b;color:#fff;border-radius:6px;padding:5px 9px;font-weight:700;cursor:pointer}
+    .auth-btn.logout{background:#374151}
+    .login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px}
+    .login-card{width:min(420px,96vw);background:#171b22;border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:18px;box-shadow:0 15px 45px rgba(0,0,0,.6)}
+    .login-card h2{text-align:center;margin:0 0 12px;color:#fff}
+    .login-card input{width:100%;margin:6px 0;padding:11px;border-radius:7px;border:1px solid #777;background:#fff;color:#111}
+    .login-card button{width:100%;margin-top:10px;padding:11px;border:0;border-radius:7px;background:#b91c1c;color:#fff;font-weight:800;cursor:pointer}
+    .login-error{color:#fecaca;min-height:20px;margin-top:8px;font-size:.82rem}
+    .role-denied{opacity:.45!important;filter:grayscale(.75);pointer-events:none!important}
+    @media(max-width:700px){.auth-box{position:static;justify-content:center;margin:4px auto 0;flex-wrap:wrap}}
+html.embedded-admin .auth-box{display:none!important}
+html.embedded-admin #globalStartMenuBtn{display:none!important} /* cup-navigation-visible overrides this */
+
+
+/* Embedded: eigener Startmenue-Button ueber dem Ruecksprung der Verwaltung. */
+html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!important;}
+@media(max-width:600px){html.embedded-admin .btn-section-start-fixed{right:10px!important;bottom:72px!important;}}
+
+    html:not(.cup-in-verwaltung) #globalStartMenuBtn {bottom:75px!important;}
+    @media(max-width:600px){html:not(.cup-in-verwaltung) #globalStartMenuBtn{bottom:70px!important;}}
+
+    /* EC Wegscheid – Cup: großzügige Ergebniseingabe für WM65B */
+    #view-match { width: min(100%, 1220px); max-width: none; align-self: center; padding: clamp(12px, 2vw, 26px); }
+    #view-match #matchGroupHeader { font-size: clamp(1.35rem, 2vw, 2rem) !important; margin-bottom: 14px !important; }
+    #view-match label { font-size: 1.05rem; margin-top: 6px; }
+    #view-match select { font-size: clamp(1rem, 1.35vw, 1.25rem); padding: 12px; min-height: 52px; }
+    #scoreArea { margin-top: 14px; }
+    .cup-entry-head, #view-match .game-row {
+      display: grid; grid-template-columns: 74px minmax(0,1fr) clamp(48px, 6vw, 100px) minmax(0,1fr);
+      gap: 10px; align-items: center;
+    }
+    .cup-entry-head { margin: 12px 0; font-weight: 800; font-size: clamp(1rem, 1.7vw, 1.5rem); text-align: center; }
+    .cup-entry-player { overflow-wrap: anywhere; color: #fff; padding: 10px 6px; }
+    .cup-entry-caption { font-size: 1rem; color: #d1d5db; }
+    .cup-entry-separator { height: 70%; width: 3px; justify-self: center; background: #d94b55; border-radius: 3px; }
+    #view-match .game-row { padding: 9px 10px; margin-bottom: 9px; border-radius: 12px; background: rgba(22,27,36,.94); }
+    #view-match .game-title { font-size: clamp(1rem, 1.35vw, 1.3rem); text-align: center; color: #f1f5f9; }
+    #view-match .stepper { display: flex; justify-content: space-between; gap: 8px; background: #303742; border-radius: 10px; padding: 6px; min-width: 0; }
+    #view-match .btn-step { min-width: clamp(42px, 4.5vw, 66px); height: clamp(48px, 5vw, 68px); line-height: normal; font-size: clamp(1.6rem, 2.5vw, 2.3rem); border-radius: 8px; background: #596473; }
+    #view-match .score-disp { font-size: clamp(1.6rem, 2.6vw, 2.5rem); min-width: 30px; color: #fff; }
+    #view-match .game-separator { height: 68%; width: 3px; background: #d94b55; border-radius: 4px; justify-self: center; }
+    .cup-total-panel { text-align: center; background: rgba(43,51,63,.96); padding: 15px; border: 1px solid rgba(255,255,255,.23); border-radius: 12px; margin: 14px 0; }
+    .cup-total-label { color: #d7dce4; font-weight: 800; letter-spacing: .06em; font-size: clamp(.95rem,1.3vw,1.2rem); }
+    .cup-total-number { color: #fff; font-weight: 900; font-variant-numeric: tabular-nums; font-size: clamp(2.5rem,5vw,4.6rem); line-height: 1.18; margin-top: 6px; }
+    .cup-match-points { background: rgba(88,29,36,.96); border-color: rgba(248,132,140,.6); }
+    .cup-confirm-button { padding: 19px 12px; font-size: clamp(1.05rem,1.8vw,1.5rem); min-height: 72px; line-height: 1.3; }
+    @media (max-width: 650px) {
+      .cup-entry-head, #view-match .game-row { grid-template-columns: 46px minmax(0,1fr) 24px minmax(0,1fr); gap: 4px; }
+      #view-match .game-row { padding: 6px 3px; }
+      #view-match .stepper { gap: 1px; padding: 3px; }
+      #view-match .btn-step { min-width: 30px; height: 46px; font-size: 1.4rem; }
+      #view-match .score-disp { min-width: 18px; font-size: 1.45rem; }
+      .cup-entry-head { font-size: .85rem; }
+      .cup-entry-player { padding: 4px 1px; }
+    }
+
+    /* V2.5.2 – Cup-Ergebniseingabe: 16:9 Whiteboard ohne Seitenscrollen */
+    @media screen and (min-width: 900px) and (min-height: 580px) {
+      body:has(#view-match.active) { height: 100dvh; min-height: 0; overflow: hidden; }
+      body:has(#view-match.active) > header { flex: 0 0 auto; margin-bottom: 3px; padding: 2px 8px; }
+      body:has(#view-match.active) > .container { flex: 1 1 auto; min-height: 0; max-width: none; width: 100%; }
+      #view-match.active { height: 100%; min-height: 0; width: 100%; max-width: none; overflow: hidden; padding: 8px 14px; }
+    }
+    #view-match #matchGroupHeader { font-size: clamp(1.05rem,1.55vw,1.5rem)!important; margin: 0 0 6px!important; flex: 0 0 auto; }
+    #view-match .cup-workspace { display: grid; grid-template-columns: minmax(250px, 26%) minmax(0, 1fr); gap: clamp(10px,1.5vw,24px); flex: 1 1 auto; min-height: 0; }
+    #view-match .cup-match-selector { background: rgba(22,26,34,.96); border: 1px solid rgba(255,255,255,.26); border-radius: 12px; padding: clamp(10px,1.1vw,18px); min-width: 0; }
+    #view-match .cup-match-selector h3 { font-size: clamp(1.05rem,1.5vw,1.4rem); color: #ffb6ba; margin-bottom: clamp(10px,2vh,20px); }
+    #view-match .cup-match-selector label { font-size: clamp(.9rem,1.15vw,1.12rem); margin: 0 0 7px; }
+    #view-match .cup-match-selector select { width: 100%; min-height: 48px; padding: 10px; font-size: clamp(.9rem,1.1vw,1.12rem); margin-bottom: clamp(12px,2.5vh,26px); }
+    #view-match .cup-selection-note { font-size: clamp(.82rem,1vw,1rem); line-height: 1.5; color: #b9c1cc; margin-top: 12px; }
+    #view-match .cup-empty-selection { display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: clamp(1rem,1.5vw,1.4rem); color: #cbd5e1; background: rgba(25,28,35,.75); border: 1px dashed rgba(255,255,255,.28); border-radius: 12px; }
+    #view-match .cup-score-area { min-width: 0; min-height: 0; flex-direction: column; gap: clamp(3px,.5vh,7px); margin: 0; }
+    #view-match .cup-entry-head, #view-match .game-row { display: grid; grid-template-columns: clamp(48px,5vw,76px) minmax(0,1fr) clamp(45px,5vw,90px) minmax(0,1fr); gap: clamp(4px,.6vw,10px); align-items: center; }
+    #view-match .cup-entry-head { flex: 0 0 auto; margin: 0; min-height: 32px; font-size: clamp(.95rem,1.3vw,1.4rem); }
+    #view-match .cup-entry-player { padding: 3px; line-height: 1.12; overflow-wrap: anywhere; }
+    #view-match .cup-entry-caption { font-size: clamp(.82rem,1vw,1.05rem); }
+    #view-match #gamesContainer { display: grid; grid-template-rows: repeat(var(--cup-set-count,5), minmax(0,1fr)); gap: clamp(2px,.45vh,6px); flex: 1 1 auto; min-height: 0; }
+    #view-match .game-row { margin: 0; padding: clamp(2px,.35vh,5px) clamp(4px,.5vw,9px); min-height: 0; border-radius: 8px; }
+    #view-match .game-title { font-size: clamp(.82rem,1.12vw,1.2rem); white-space: nowrap; }
+    #view-match .stepper { height: 100%; min-height: 0; padding: clamp(1px,.22vh,4px); gap: clamp(2px,.3vw,6px); }
+    #view-match .btn-step { min-width: clamp(30px,3.2vw,56px); height: 100%; min-height: 30px; max-height: 62px; line-height: 1; font-size: clamp(1.25rem,2vw,2rem); }
+    #view-match .score-disp { font-size: clamp(1.2rem,2vw,2rem); min-width: 22px; }
+    #view-match .cup-total-panel { flex: 0 0 auto; margin: 0; padding: clamp(3px,.5vh,8px) 8px; border-radius: 9px; }
+    #view-match .cup-total-label { font-size: clamp(.75rem,.95vw,1.03rem); line-height: 1.12; }
+    #view-match .cup-stock-points .cup-total-number { font-size: clamp(1.4rem,2.2vw,2.25rem); line-height: 1.08; margin-top: 1px; }
+    #view-match .cup-match-points .cup-total-number { font-size: clamp(2.1rem,3.7vw,3.8rem); line-height: 1.03; margin-top: 2px; }
+    #view-match .cup-confirm-button { flex: 0 0 auto; width: calc(100% - 225px); min-height: clamp(43px,5.5vh,60px); padding: 5px 10px; margin: 0; font-size: clamp(.9rem,1.25vw,1.2rem); line-height: 1.2; }
+    /* Dynamisch verkleinern, wenn ein Cup 8 bis 10 Sätze hat. */
+    #view-match .cup-score-area[data-density="compact"] .cup-entry-head { min-height: 27px; }
+    #view-match .cup-score-area[data-density="dense"] .cup-entry-head { min-height: 24px; font-size: 1rem; }
+    #view-match .cup-score-area[data-density="dense"] .game-row { padding-top: 1px; padding-bottom: 1px; }
+    #view-match .cup-score-area[data-density="dense"] .btn-step { min-height: 27px; }
+    #view-match .cup-score-area[data-density="dense"] .cup-total-panel { padding: 2px 7px; }
+    #view-match .cup-score-area[data-density="dense"] .cup-stock-points .cup-total-number { font-size: clamp(1.2rem,1.8vw,1.8rem); }
+    #view-match .cup-score-area[data-density="dense"] .cup-match-points .cup-total-number { font-size: clamp(1.8rem,2.7vw,2.8rem); }
+    @media screen and (min-width:900px) and (max-height:760px) {
+      #view-match .cup-selection-note { display:none; }
+      #view-match .cup-match-selector select { min-height: 40px; padding: 6px; margin-bottom: 9px; }
+      #view-match .cup-entry-head { min-height: 24px; }
+      #view-match .cup-total-panel { padding: 2px 7px; }
+      #view-match .cup-stock-points .cup-total-number { font-size: 1.45rem; }
+      #view-match .cup-match-points .cup-total-number { font-size: 2.1rem; }
+      #view-match .cup-confirm-button { min-height: 40px; }
+    }
+    /* Auf schmalen Displays ist Scrollen als sichere Rückfallebene erlaubt. */
+    @media screen and (max-width:899px), screen and (max-height:579px) {
+      #view-match { width:100%; max-width:none; padding: 10px; }
+      #view-match .cup-workspace { display:flex; flex-direction:column; gap:10px; }
+      #view-match .cup-match-selector { padding:10px; }
+      #view-match .cup-selection-note { display:none; }
+      #view-match .cup-score-area { gap:7px; }
+      #view-match #gamesContainer { display:flex; flex-direction:column; gap:5px; }
+      #view-match .game-row { min-height:52px; }
+      #view-match .btn-step { height:42px; }
+      #view-match .cup-confirm-button { width:100%; }
+    }
+    /* Die Navigation der Vereinsverwaltung rechts unten bleibt maßgeblich. */
+    /* Innerhalb der Vereinsverwaltung: nur die festen Navigationsbuttons rechts unten. */
+    html.cup-in-verwaltung #view-main > .nav-bar,
+    html.cup-in-verwaltung #view-groups > .nav-bar,
+    html.cup-in-verwaltung #view-table > .nav-bar,
+    html.cup-in-verwaltung #view-match > .nav-bar,
+    html.cup-in-verwaltung #view-ko > .nav-bar,
+    html.cup-in-verwaltung #view-admin > .nav-bar { display:none!important; }
+    html.cup-in-verwaltung #globalStartMenuBtn { display:none!important; right:25px; bottom:84px; }
+    html.cup-in-verwaltung.cup-navigation-visible #globalStartMenuBtn { display:block!important; }
+    @media (max-width:600px) { html.cup-in-verwaltung #globalStartMenuBtn {right:10px;bottom:70px;} }
+    #view-match > .nav-bar { display:none!important; }
+
+
+    /* V2.5.2: Die vier Auswertungen fuellen den eingebetteten 16:9-Bildschirm. */
+    html, body { height:100%; min-height:100%; }
+    body { height:100vh; height:100dvh; overflow:hidden; }
+    body > header { flex:0 0 auto; }
+    body > .container { flex:1 1 auto; min-height:0; height:auto; overflow:hidden; }
+    body > .container > .view.active { min-height:0; }
+    body > .container > #view-stockdart.active,
+    body > .container > #view-jahresmeisterschaft.active,
+    body > .container > #view-auslosung.active {
+      flex:1 1 auto; min-height:0; height:100%;
+      width:100% !important; max-width:none !important;
+      margin:0 !important; padding:2px !important;
+      border:0; border-radius:0; background:transparent;
+      box-shadow:none; backdrop-filter:none;
+      overflow:hidden;
+    }
+    #view-stockdart #stockdartFrame,
+    #view-jahresmeisterschaft #jahresmeisterschaftFrame,
+    #view-auslosung #auslosungFrame {
+      display:block; flex:1 1 auto; width:100% !important;
+      height:100% !important; min-height:0 !important;
+      max-height:100% !important; border:0; border-radius:0;
+      background:transparent;
+    }
+    html.cup-in-verwaltung #view-stockdart .stockdart-bottom-back,
+    html.cup-in-verwaltung #view-auslosung .btn-section-start-fixed {display:none !important;}
+    /* Keine ungenutzte Flaeche unter den vier Bereichen. */
+    html.cup-in-verwaltung #view-main.active,
+    html.cup-in-verwaltung #view-groups.active,
+    html.cup-in-verwaltung #view-table.active,
+    html.cup-in-verwaltung #view-match.active { max-height:100%; }
+
+/* V2.5.2: Cup-Auswahl zentriert und Whiteboard-gerecht */
+#view-main.active {align-items:center!important;justify-content:flex-start!important;padding-top:clamp(20px,6vh,85px)!important}
+#view-main > h2 {width:100%!important;font-size:clamp(1.45rem,2.1vw,2.25rem)!important;margin-bottom:clamp(18px,3vh,42px)!important}
+#view-main #tournamentButtons {width:min(90%,850px)!important;align-items:center!important;gap:clamp(16px,2.2vh,30px)!important;margin:0 auto!important}
+#view-main #tournamentButtons .btn-tournament {width:100%!important;max-width:780px!important;min-height:clamp(75px,10vh,125px)!important;font-size:clamp(1.35rem,2.1vw,2.3rem)!important;padding:clamp(16px,2vw,28px)!important;border-radius:14px!important}
+/* Gruppen wie die Überschrift: jeweils eine kompakte Karte über die volle Breite */
+#view-groups #groupsInfo,#view-groups #groupCardsContainer {width:100%!important;max-width:none!important;align-self:stretch!important}
+#view-groups #groupCardsContainer {display:flex!important;flex-direction:column!important;grid-template-columns:none!important;gap:clamp(8px,1.1vh,15px)!important;align-content:stretch!important}
+#view-groups #groupCardsContainer .group-card {width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:clamp(12px,2vw,32px)!important;padding:clamp(10px,1.1vh,16px) clamp(16px,2vw,28px)!important;min-height:clamp(70px,9vh,108px)!important}
+#view-groups #groupCardsContainer .group-card h3 {flex:1 1 auto!important;margin:0!important;font-size:clamp(1.2rem,1.7vw,1.85rem)!important}
+#view-groups #groupCardsContainer .group-card .cup-group-actions {display:flex!important;flex:0 1 55%!important;gap:clamp(8px,1vw,16px)!important}
+#view-groups #groupCardsContainer .group-card .cup-group-actions .btn {flex:1 1 0!important;min-height:44px!important;font-size:clamp(.95rem,1.15vw,1.3rem)!important;padding:9px 12px!important}
+@media(max-width:650px){#view-groups #groupCardsContainer .group-card{flex-direction:column!important;align-items:stretch!important}#view-groups #groupCardsContainer .group-card .cup-group-actions{flex-basis:auto!important;width:100%!important}}
+
+    /* V2.5.2: Zielschiessen nutzt dieselbe Arbeitsbreite wie die Ueberschrift. */
+    body > .container:has(#view-jahresmeisterschaft.active){width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+    body > .container > #view-jahresmeisterschaft.active{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;align-self:stretch!important}
+    body > .container > #view-jahresmeisterschaft.active > #jahresmeisterschaftFrame{width:100%!important;max-width:none!important;min-width:0!important;align-self:stretch!important}
+/* V2.9.22: Smartphone-Cup darf vertikal gescrollt werden. */
+@media (hover:none) and (pointer:coarse) and (max-width:800px){
+ html,body{height:auto!important;min-height:100dvh!important;overflow-y:auto!important;overscroll-behavior-y:auto!important;touch-action:pan-y!important}
+ body{height:auto!important;overflow-x:hidden!important}
+ body>.container{height:auto!important;min-height:calc(100dvh - 75px)!important;overflow-y:visible!important}
+ body>.container>.view.active{height:auto!important;max-height:none!important;overflow-y:visible!important;touch-action:pan-y!important}
+ #view-main.active,#view-groups.active,#view-table.active,#view-match.active,#view-admin.active{max-height:none!important;overflow-y:visible!important}
+ #playerMatchesContainer{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+ #playerMatchesList{overflow-y:auto!important;min-height:0!important;-webkit-overflow-scrolling:touch!important}
+}
+</style>
+
+  <script type="module" src="js/auswertung-teil-01.js?v=2.9.27"></script>
+</head>
+<body>
+  <div id="loginOverlay" class="login-overlay" style="display:none">
+    <div class="login-card">
+      <h2>EC Wegscheid Turnierauswertung</h2>
+      <input id="loginEmail" type="email" autocomplete="username" placeholder="E-Mail-Adresse">
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Passwort">
+      <button onclick="doLogin()">Anmelden</button>
+      <button id="loginCancelBtn" onclick="cancelSwitchUser()" style="display:none;margin-top:8px;background:#444;">Abbrechen</button>
+      <div id="loginError" class="login-error"></div>
+    </div>
+  </div>
+
+  <div id="legacyMigrationOverlay" class="login-overlay" style="display:none">
+    <div class="login-card" style="width:min(620px,96vw);max-height:90vh;overflow:auto">
+      <h2>Turnierauswertung übernehmen</h2>
+      <p style="color:#ddd;font-size:.9rem;line-height:1.45;margin-bottom:10px">
+        Einmalige Übernahme aus dem bisherigen Firebase-Projekt
+        <b>turnierauswertung-a36fe</b> in die zentrale Vereinsverwaltung.
+      </p>
+
+      <div id="legacyMigrationStatus"
+           style="display:block;color:#fff;background:rgba(255,255,255,.10);
+                  padding:12px;border-radius:8px;min-height:48px;margin:10px 0;
+                  border:1px solid rgba(255,255,255,.22);font-weight:700">
+        Bereit zur Datenübernahme.
+      </div>
+
+      <div id="legacyMigrationProgressWrap"
+           style="display:none;margin:10px 0 14px;padding:12px;border-radius:8px;
+                  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.18)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span id="legacyMigrationSpinner"
+                style="display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.25);
+                       border-top-color:#fff;border-radius:50%;animation:ecwMigSpin .8s linear infinite"></span>
+          <b id="legacyMigrationCurrentStep">Vorbereitung …</b>
+        </div>
+        <div style="height:9px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden">
+          <div id="legacyMigrationProgressBar"
+               style="height:100%;width:0%;background:#22c55e;transition:width .25s ease"></div>
+        </div>
+        <div id="legacyMigrationPercent" style="font-size:.78rem;color:#ddd;margin-top:5px">0 %</div>
+        <div id="legacyMigrationLog"
+             style="margin-top:10px;max-height:180px;overflow:auto;font-size:.78rem;
+                    line-height:1.45;color:#ddd;font-family:Consolas,monospace;
+                    background:rgba(0,0,0,.20);padding:8px;border-radius:6px"></div>
+      </div>
+
+      <input id="legacyMigrationEmail" type="email" autocomplete="username"
+             placeholder="E-Mail der bisherigen Turnierauswertung">
+      <input id="legacyMigrationPassword" type="password" autocomplete="current-password"
+             placeholder="Passwort der bisherigen Turnierauswertung">
+
+      <button id="legacyMigrationRunBtn" type="button">Daten jetzt übernehmen</button>
+      <button id="legacyMigrationCancelBtn" onclick="closeLegacyMigration()" style="background:#444">Abbrechen</button>
+    </div>
+  </div>
+
+  <style>
+    @keyframes ecwMigSpin{to{transform:rotate(360deg)}}
+  </style>
+
+  <a id="ecwStandaloneReturn" href="index.html#startseite" class="btn-startmenu-fixed" style="display:none;text-decoration:none;right:20px;bottom:20px;">⌂ Zurück zur Vereinsverwaltung</a>
+  <script>if(window.self===window.top)document.getElementById('ecwStandaloneReturn').style.display='block';</script>
+  <button id="globalStartMenuBtn" class="btn-startmenu-fixed" onclick="goBackToStartMenu()" style="display:none;">↩️ Zurück zum Startmenü</button>
+
+  <header>
+    <div class="version-badge">Version 2.9.27 · Vereinsverwaltung</div>
+    <h1 id="headerTitle">EC Wegscheid Turnierauswertung</h1>
+    <button id="adminCornerBtn" class="btn-admin-corner" onclick="checkAdminAccess()" style="display:none;">⚙️ Admin</button>
+    <div class="auth-box">
+      <span id="authStatus" class="auth-status">Nicht angemeldet</span>
+      <button id="loginBtn" class="auth-btn" onclick="showLogin()">Anmelden</button>
+      <button id="centralBackupBtn" class="auth-btn" onclick="openCentralBackup()" style="display:none">Datensicherung</button>
+      <button id="switchUserBtn" class="auth-btn" onclick="showSwitchUser()" style="display:none">Benutzer wechseln</button>
+      <button id="logoutBtn" class="auth-btn logout" onclick="doLogout()" style="display:none">Abmelden</button>
+      
+      
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- 1. EBENE: Turnierauswertung -->
+    <div id="view-home" class="view active">
+      <h2 style="margin-bottom: 6px; text-align: center; font-size: 1.05rem;">Bereich auswählen</h2>
+      <div class="tournament-grid home-grid">
+        <button id="homeCupBtn" class="btn-tournament btn-home" onclick="openCup()"><span class="ht"><b>Cupauswertung</b><small>Turniere, Gruppen, Tabellen, KO-Runden</small></span></button>
+        <button id="homeDoppelKoBtn" class="btn-tournament btn-home" onclick="openDoppelKo()"><span class="ht"><b>Doppel KO System</b><small>8 / 16 / 32 Spieler · 4 Bahnen · Wertungsblätter</small></span></button>
+        <button id="homeStockdartBtn" class="btn-tournament btn-home" onclick="openStockdart()"><span class="ht"><b>Stockdartauswertung</b><small>Stockschießen &amp; Darten, Urkunden, Ergebnisliste</small></span></button>
+        <button id="homeJmBtn" class="btn-tournament btn-home" onclick="openJahresmeisterschaft()"><span class="ht"><b>Zielschießen Jahresmeisterschaft</b><small>Jahreswertung</small></span></button>
+        <button id="homeDrawBtn" class="btn-tournament btn-home" onclick="window.openAuslosung()"><span class="ht"><b>Turnierauslosung</b><small>Live-Auslosung der Mannschaften, Liste drucken</small></span></button>
+      </div>
+    </div>
+
+    <!-- Doppel-KO: eigenständige Turnierverwaltung, vollständige Touch-Bedienung -->
+    <div id="view-doppelko" class="view"><iframe id="doppelKoFrame" title="Doppel KO System" allow="fullscreen" allowfullscreen></iframe><button class="btn btn-mainmenu" onclick="showHome()">← Zurück zur Turnierauswertung</button></div>
+
+    <!-- Stockdartauswertung (eigene Seite, eingebettet) -->
+    <div id="view-stockdart" class="view">
+      <iframe id="stockdartFrame" title="Stockdartauswertung"></iframe>
+      <div class="stockdart-bottom-back">
+        <button class="btn btn-mainmenu" onclick="showHome()">↩️ Zurück zum Startmenü</button>
+      </div>
+    </div>
+
+    <!-- Turnierauslosung (Live-Auslosung, eigene Seite, eingebettet) -->
+    <div id="view-auslosung" class="view">
+      <button class="btn btn-mainmenu btn-section-start-fixed" onclick="showHome()">↩️ Zurück zum Startmenü</button>
+      <iframe id="auslosungFrame" title="Turnierauslosung" allow="display-capture; fullscreen" allowfullscreen></iframe>
+    </div>
+
+    <!-- Zielschießen Jahresmeisterschaft (eingebettet) -->
+    <div id="view-jahresmeisterschaft" class="view">
+      <iframe id="jahresmeisterschaftFrame" title="Zielschießen Jahresmeisterschaft"></iframe>
+    </div>
+
+    <!-- Platzhalter für noch nicht umgesetzte Bereiche -->
+    <div id="view-soon" class="view">
+      <h2 id="soonTitle" style="text-align: center; margin-bottom: 6px; font-size: 1.05rem;"></h2>
+      <p style="text-align: center; color: var(--text-muted); margin-bottom: 10px;">Dieser Bereich ist in Vorbereitung.</p>
+      <button class="btn btn-mainmenu btn-section-start-fixed" onclick="showHome()">↩️ Zurück zum Startmenü</button>
+    </div>
+
+    <div id="view-main" class="view">
+      <h2 style="margin-bottom: 6px; text-align: center; font-size: 1.05rem;">Turnier auswählen</h2>
+      <div id="tournamentButtons" class="tournament-grid"></div>
+    </div>
+
+    <div id="view-groups" class="view">
+      <div id="groupsInfo">
+        <h2 id="groupsTitle" style="margin-bottom: 2px; text-align: center; font-size: 1.05rem;">Turnier Name</h2>
+        <p id="groupsSub" style="color: #000; margin-bottom: 6px; text-align: center; font-size: 0.75rem;"></p>
+      </div>
+
+      <div id="groupCardsContainer"></div>
+
+      <div id="dashKoContainer" class="group-card" style="display: none; border-color: var(--gold);">
+        <h3 style="color: var(--gold); font-size: 0.85rem;">🏆 KO-Runden / Finalspiele</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 4px; margin-top: 4px;">
+          <button class="btn btn-ko" style="padding: 6px; font-size: 0.8rem;" onclick="openKoInfo('Viertelfinale')">Viertelfinale</button>
+          <button class="btn btn-ko" style="padding: 6px; font-size: 0.8rem;" onclick="openKoInfo('Halbfinale')">Halbfinale</button>
+          <button class="btn btn-ko" style="padding: 6px; font-size: 0.8rem;" onclick="openKoInfo('Spiel um Platz 3')">Platz 3</button>
+          <button class="btn btn-ko" style="padding: 6px; font-size: 0.8rem;" onclick="openKoInfo('Finale')">Finale</button>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-mainmenu" onclick="goToMainMenu()">🏠 Hauptmenü</button>
+      </div>
+    </div>
+
+    <!-- TABELLE -->
+    <div id="view-table" class="view">
+      <h2 id="tableTitle" style="text-align: center; margin-bottom: 2px; font-size: 1.05rem;">Tabelle</h2>
+      <p style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-bottom: 4px;">Tippen Sie auf ein Team, um dessen Spiele & Ergebnisse anzuzeigen.</p>
+      <div id="tableStatus" class="status-badge"></div>
+      
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team</th>
+              <th>Sp.</th>
+              <th>Punkte</th>
+              <th>Stöcke</th>
+              <th>Quote</th>
+              <th>Satzpkt.</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- SPIELER-ERGEBNISSE DRILL-DOWN CONTAINER -->
+      <div id="playerMatchesContainer" role="dialog" aria-modal="true" aria-labelledby="playerMatchesTitle" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <h3 id="playerMatchesTitle" style="color: #ffffff; font-size: 1.35rem; margin: 0;">Spiele</h3>
+          <button class="btn btn-secondary" style="width: auto; padding: 2px 6px; font-size: 0.7rem; margin: 0;" onclick="closePlayerMatches()">✕ Schließen</button>
+        </div>
+        <div id="playerMatchesList"></div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" onclick="showView('view-groups')">⬅️ Zurück</button>
+        <button class="btn btn-mainmenu" onclick="goToMainMenu()">🏠 Hauptmenü</button>
+      </div>
+    </div>
+
+    <!-- ERGEBNIS EINTRAGEN: 16:9 Whiteboard, Spielauswahl links -->
+    <div id="view-match" class="view">
+      <h2 id="matchGroupHeader">Ergebnis eintragen</h2>
+      <div class="cup-workspace">
+        <aside class="cup-match-selector" aria-label="Spielauswahl">
+          <h3>Spielauswahl</h3>
+          <label for="selectTeamA">1. Mannschaft / Spieler wählen</label>
+          <select id="selectTeamA" onchange="onTeamASelected()">
+            <option value="">-- Mannschaft wählen --</option>
+          </select>
+          <label for="selectTeamB">2. Offenes Spiel wählen</label>
+          <select id="selectTeamB" onchange="onTeamBSelected()" disabled>
+            <option value="">-- Zuerst Mannschaft wählen --</option>
+          </select>
+          <div id="noOpenMatchesHint" style="display:none; margin:8px 0; color:var(--text-muted); font-size:.95rem;">
+            Für diese Mannschaft sind keine offenen Spiele mehr vorhanden.
+          </div>
+          <p class="cup-selection-note">Die Spielernamen und die Reihenfolge werden automatisch aus der Spielkarte übernommen.</p>
+        </aside>
+        <div id="scoreArea" class="cup-score-area" style="display:none;">
+          <div class="cup-entry-head">
+            <div class="cup-entry-caption">Satz</div>
+            <div id="teamAName" class="cup-entry-player">Spieler 1</div>
+            <div class="cup-entry-separator" aria-hidden="true"></div>
+            <div id="teamBName" class="cup-entry-player">Spieler 2</div>
+          </div>
+          <div id="gamesContainer"></div>
+          <div class="cup-total-panel cup-stock-points">
+            <div class="cup-total-label">GESAMTE STOCKPUNKTE</div>
+            <div id="matchStockTotal" class="cup-total-number" aria-live="polite">0 : 0</div>
+          </div>
+          <div class="cup-total-panel cup-match-points">
+            <div class="cup-total-label">SPIELERGEBNIS · SATZPUNKTE</div>
+            <div id="matchSummary" class="cup-total-number" aria-live="polite">0 : 0</div>
+          </div>
+          <button class="btn btn-success cup-confirm-button" onclick="saveMatchResult()">Ergebnis mit Gegner kontrollieren und bestätigen.</button>
+        </div>
+        <div id="cupEmptySelection" class="cup-empty-selection">Links Spieler und offene Begegnung auswählen, um die Satzeingabe zu öffnen.</div>
+      </div>
+      <!-- Navigation rechts unten über die festen Programmbuttons. -->
+    </div>
+
+    <!-- KO-PHASE -->
+    <div id="view-ko" class="view">
+      <h2 id="koTitle" style="color: var(--gold); font-size: 1.05rem; margin-bottom: 4px;">KO-Phase</h2>
+      <button class="btn btn-success" style="margin-bottom: 6px; padding: 6px;" onclick="autoGenerateKoPairings()">⚡ KO-Paarungen aus Tabelle laden</button>
+      <div id="koMatchList" style="max-height: 55vh; overflow-y: auto;"></div>
+      <div class="nav-bar">
+        <button class="btn btn-secondary" onclick="showView('view-groups')">⬅️ Zurück</button>
+        <button class="btn btn-mainmenu" onclick="goToMainMenu()">🏠 Hauptmenü</button>
+      </div>
+    </div>
+
+    <!-- ADMIN BEREICH -->
+    <div id="view-admin" class="view">
+      <h2 style="font-size: 1.05rem; margin-bottom: 4px;">⚙️ Admin-Bereich</h2>
+      
+      <div class="admin-tab-bar">
+        <div id="tabNew" class="admin-tab active" onclick="switchAdminTab('new')">Neu</div>
+        <div id="tabMatchEdit" class="admin-tab" onclick="switchAdminTab('matchEdit')">Erg.</div>
+        <div id="tabHistory" class="admin-tab" onclick="switchAdminTab('history')">Historie</div>
+        <div id="tabPrint" class="admin-tab" onclick="switchAdminTab('print')">Druck</div>
+        <div id="tabEdit" class="admin-tab" onclick="switchAdminTab('edit')">Verwaltung</div>
+        
+      </div>
+
+      <div id="adminSecNew">
+        <label>Turniername:</label>
+        <input type="text" id="adminName" placeholder="z.B. Wegscheider Cup 2026">
+        
+        <div class="form-row">
+          <div>
+            <label>Gruppen:</label>
+            <select id="adminGroupCount">
+              <option value="1">1 Gruppe</option>
+              <option value="2">2 Gruppen</option>
+              <option value="3">3 Gruppen</option>
+              <option value="4">4 Gruppen</option>
+              <option value="5">5 Gruppen</option>
+              <option value="6">6 Gruppen</option>
+              <option value="7">7 Gruppen</option>
+              <option value="8">8 Gruppen</option>
+            </select>
+          </div>
+          <div>
+            <label>Aufsteiger (pro Gr.):</label>
+            <select id="adminAdvancing">
+              <option value="1">1 Team</option>
+              <option value="2" selected>2 Teams</option>
+              <option value="3">3 Teams</option>
+              <option value="4">4 Teams</option>
+              <option value="5">5 Teams</option>
+              <option value="6">6 Teams</option>
+              <option value="7">7 Teams</option>
+              <option value="8">8 Teams</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label>Modus / Sätze:</label>
+            <select id="adminTotalSets">
+              <option value="1">1 Satz</option>
+              <option value="2">2 Sätze</option>
+              <option value="3">3 Sätze</option>
+              <option value="4">4 Sätze</option>
+              <option value="5" selected>5 Sätze</option>
+              <option value="6">6 Sätze</option>
+              <option value="7">7 Sätze</option>
+              <option value="8">8 Sätze</option>
+              <option value="9">9 Sätze</option>
+              <option value="10">10 Sätze</option>
+            </select>
+          </div>
+          <div>
+            <label>Zuteilung Modus:</label>
+            <select id="adminAllocationMode">
+              <option value="roundrobin">Automatisch (abwechselnd)</option>
+              <option value="block">Nach Startnummer (Blöcke)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 6px; padding-top: 2px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;">
+            <input type="checkbox" id="adminHasKo" style="width:auto; height:16px;">
+            KO-Runden
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;">
+            <input type="checkbox" id="adminHasReturnLeg" style="width:auto; height:16px;">
+            Mit Rückrunde
+          </label>
+        </div>
+        
+        <label>Mannschaften (Zeile für Zeile):</label>
+        <textarea id="adminTeams"></textarea>
+        
+        <button class="btn btn-success" onclick="createNewTournament()">Turnier anlegen</button>
+      </div>
+
+      <!-- ADMIN TAB: ERGEBNISSE KORRIGIEREN -->
+      <div id="adminSecMatchEdit" style="display: none;">
+        <label>Turnier auswählen:</label>
+        <select id="adminMatchEditSelectTournament" onchange="onAdminMatchEditTournamentChange()">
+          <option value="">-- Turnier wählen --</option>
+        </select>
+
+        <div id="adminMatchEditGroupWrapper" style="display: none;">
+          <label>Gruppe auswählen:</label>
+          <select id="adminMatchEditSelectGroup" onchange="loadCompletedMatchesForAdmin()">
+            <option value="">-- Gruppe wählen --</option>
+          </select>
+        </div>
+
+        <div id="adminCompletedMatchesList" style="margin-top: 4px; max-height: 160px; overflow-y: auto;"></div>
+
+        <div id="adminEditMatchForm" style="display: none; background: rgba(26, 16, 18, 0.82); padding: 6px; border-radius: 6px; border: 1px solid var(--border-silver); margin-top: 4px;">
+          <h3 id="adminEditMatchHeader" style="margin-bottom: 4px; color: #38bdf8; text-align: center; font-size:0.9rem;"></h3>
+          <div id="adminEditGamesContainer"></div>
+          <div class="match-summary" id="adminEditMatchSummary">Endstand: Satzpunkte 0 : 0</div>
+          
+          <div style="display: flex; gap: 4px; margin-top: 6px;">
+            <button class="btn btn-success" style="flex: 1; margin:0;" onclick="saveAdminMatchCorrection()">Korrektur Speichern</button>
+            <button class="btn btn-danger" style="flex: 1; margin:0;" onclick="resetAdminMatchToOpen()">🗑️ Spiel auf Offen zurücksetzen</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB: HISTORIE -->
+      <div id="adminSecHistory" style="display: none;">
+        <label>Turnier auswählen:</label>
+        <select id="adminHistorySelectTournament" onchange="loadTournamentHistory()">
+          <option value="">-- Turnier wählen --</option>
+        </select>
+        <div id="adminHistoryContainer" class="history-list" style="max-height: 180px;"></div>
+      </div>
+
+      <!-- ADMIN TAB: DRUCK -->
+      <div id="adminSecPrint" style="display: none;">
+        <label>Turnier auswählen:</label>
+        <select id="adminPrintSelectTournament" onchange="onPrintTournamentChanged();cupFinalLoad()">
+          <option value="">-- Turnier wählen --</option>
+        </select>
+
+        <div id="cupFinalSettings" style="display:none;margin:12px 0;padding:12px;border:1px solid #a44;border-radius:10px;background:rgba(40,15,20,.55)">
+          <h3 style="margin:0 0 8px">🏆 Finalrunde &amp; Siegerliste (nur Admin)</h3>
+          <label>Finalmodus</label><select id="cupFinalMode"><option value="A">A – Platzierungsspiele / KO</option><option value="B">B – Neue Finalgruppe (jeder gegen jeden)</option></select>
+          <label>Anzahl Finalteilnehmer (2–32)</label><input id="cupFinalCount" type="number" min="2" max="32" value="4" step="1">
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cupFinalThird" checked style="width:auto"> Spiel um Platz 3 (Modus A)</label>
+          <button class="btn btn-secondary" onclick="cupFinalSetup()">Finalrunde anlegen / neu einrichten</button>
+          <div id="cupFinalEditor"></div>
+          <button class="btn btn-success" onclick="cupPrintSiegerliste()">🖨️ Siegerliste / Zwischenergebnis drucken (PDF über Druckdialog)</button>
+        </div>
+        <div id="adminPrintContent" style="display: none;">
+          <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+            <button class="btn btn-secondary" style="padding: 4px;" onclick="toggleAllMatchesPrint(true)">Alle</button>
+            <button class="btn btn-secondary" style="padding: 4px;" onclick="toggleAllMatchesPrint(false)">Keine</button>
+          </div>
+          <div id="printMatchList" class="match-checkbox-list" style="max-height: 140px;"></div>
+          <button class="btn btn-success" onclick="triggerPrintSelected()">🖨️ Wertungsblätter drucken (2 pro A4-Seite, Querformat)</button>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB: VERWALTUNG / STATUS & MANNSCHAFTEN -->
+      <div id="adminSecEdit" style="display: none;">
+        <label>Turnier auswählen:</label>
+        <select id="adminSelectTournament" onchange="loadAdminTournamentData()">
+          <option value="">-- Turnier wählen --</option>
+        </select>
+
+        <div id="adminEditBody" style="display: none;">
+          <label>Turniername ändern:</label>
+          <input type="text" id="adminEditName">
+          
+          <div class="form-row" style="margin: 6px 0;">
+            <div>
+              <label>Gruppen:</label>
+              <select id="adminEditGroupCount">
+                <option value="1">1 Gruppe</option><option value="2">2 Gruppen</option><option value="3">3 Gruppen</option><option value="4">4 Gruppen</option>
+                <option value="5">5 Gruppen</option><option value="6">6 Gruppen</option><option value="7">7 Gruppen</option><option value="8">8 Gruppen</option>
+              </select>
+            </div>
+            <div>
+              <label>Aufsteiger (pro Gr.):</label>
+              <select id="adminEditAdvancing">
+                <option value="1">1 Team</option><option value="2">2 Teams</option><option value="3">3 Teams</option><option value="4">4 Teams</option>
+                <option value="5">5 Teams</option><option value="6">6 Teams</option><option value="7">7 Teams</option><option value="8">8 Teams</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; margin: 4px 0 6px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;">
+              <input type="checkbox" id="adminEditHasKo" style="width:auto; height:16px;"> KO-Runden
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:normal;">
+              <input type="checkbox" id="adminEditHasReturnLeg" style="width:auto; height:16px;">
+              Mit Rückrunde (Hin- und Rückspiel)
+            </label>
+          </div>
+
+          <div id="adminRegenerationNotice" style="display:none; background:rgba(120,53,15,.35); border:1px solid var(--gold); color:#fde68a; border-radius:6px; padding:7px; margin-bottom:6px; font-size:.78rem;">
+            <b>⚠️ Spielplan muss neu generiert werden.</b><br>
+            Mannschaften oder Gruppen wurden geändert. Die neue Struktur wird erst nach der Neugenerierung aktiv.
+            <button class="btn btn-ko" style="margin:6px 0 0; padding:6px;" onclick="regenerateTournamentFixtures()">🔄 Spielplan neu generieren (mit Admin-Passwort)</button>
+          </div>
+
+          <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+            <button class="btn btn-secondary" style="padding: 6px; flex: 1;" onclick="saveTournamentSettings()">Einstellungen Speichern</button>
+            <button class="btn btn-ko" style="padding: 6px; flex: 1;" onclick="regenerateTournamentFixtures()">🔄 Spielplan neu generieren</button>
+          </div>
+          
+          <hr style="margin: 8px 0; border: 0; border-top: 1px solid var(--border);">
+
+          <h3 style="color: #38bdf8; font-size: 0.9rem; margin-bottom: 4px;">👥 Mannschaften bearbeiten</h3>
+          <label>Gruppe wählen:</label>
+          <select id="adminTeamEditGroupSelect" onchange="loadAdminTeamsForGroup()">
+            <option value="">-- Gruppe wählen --</option>
+          </select>
+          
+          <div style="margin-bottom: 6px;">
+            <button class="btn btn-danger" style="padding: 6px;" onclick="resetAllMatchesForGroup()">🔄 Alle Spiele dieser Gruppe zurücksetzen</button>
+          </div>
+
+          <div id="adminTeamEditList" style="max-height: 140px; overflow-y: auto; background: rgba(25, 12, 15, 0.82); border: 1px solid var(--border-silver); border-radius: 6px; padding: 4px; margin-bottom: 6px;"></div>
+
+          <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+            <input type="text" id="adminNewTeamInput" placeholder="Neues Team hinzufügen" style="margin-bottom:0;">
+            <button class="btn btn-success" style="width: auto; padding: 6px 12px; margin:0;" onclick="addNewTeamToGroup()">+ Hinzufügen</button>
+          </div>
+          
+          <hr style="margin: 8px 0; border: 0; border-top: 1px solid var(--border);">
+          
+          <h3 style="color: var(--danger); font-size: 0.9rem; margin-bottom: 4px;">⚠️ Team Status (DQ / DNF)</h3>
+          <label>Gruppe wählen:</label>
+          <select id="adminDqGroupSelect" onchange="loadDqTeamsList()">
+            <option value="">-- Gruppe wählen --</option>
+          </select>
+          
+          <label>Mannschaft wählen:</label>
+          <select id="adminDqTeamSelect">
+            <option value="">-- Zuerst Gruppe wählen --</option>
+          </select>
+
+          <label>Status-Art:</label>
+          <select id="adminDqTypeSelect">
+            <option value="DQ">DQ (Disqualifiziert)</option>
+            <option value="DNF">DNF (Nicht beendet / Aufgegeben)</option>
+          </select>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+            <button class="btn btn-danger" style="padding: 6px;" onclick="disqualifyTeamAction()">🚫 Status setzen</button>
+            <button class="btn btn-success" style="padding: 6px;" onclick="removeDisqualificationAction()">✅ Status aufheben</button>
+          </div>
+
+          <br>
+          <button id="cupDeleteTournamentBtn" class="btn btn-danger" style="padding: 6px; margin-top: 4px;" onclick="deleteTournament()">🗑️ Turnier löschen</button>
+        </div>
+
+        <hr style="margin: 10px 0; border: 0; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 0.85rem; margin-bottom: 4px;">💾 Datensicherung (Export / Import)</h3>
+        <button class="btn btn-secondary" style="padding: 6px;" onclick="exportDataToFile()">📥 Daten als Datei sichern</button>
+        <label style="margin-top: 6px;">📤 Daten aus Datei wiederherstellen:</label>
+        <input type="file" id="importFileInput" accept=".json" onchange="importDataFromFile(event)">
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-mainmenu" onclick="goToMainMenu()">🏠 Hauptmenü</button>
+      </div>
+    
+      
+</div>
+
+  </div>
+
+  <div id="printArea"></div>
+
+  <script src="js/auswertung-teil-02.js?v=2.9.27"></script>
+
+  <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
+  <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
+  <script src="js/auswertung-teil-03.js?v=2.9.27"></script>
+  <script src="js/auswertung-teil-04.js?v=2.9.27"></script>
+  <script src="js/auswertung-teil-05.js?v=2.9.27"></script>
+  <script src="js/auswertung-teil-06.js?v=2.9.27"></script>
+  <script src="js/cup-finale-siegerliste.js?v=2.9.27"></script>
+
+<div id="centralBackupOverlay" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);padding:18px;overflow:auto;">
+    <div style="max-width:760px;margin:45px auto;background:rgba(25,29,35,.98);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+        <h2 style="margin:0">Datensicherung</h2>
+        <button class="btn" onclick="closeCentralBackup()">Schließen</button>
+      </div>
+      <p style="opacity:.85">Zentrale Sicherung der Turnierauswertung. Die Sicherungsdateien erhalten automatisch das aktuelle Datum.</p>
+      <div style="display:grid;gap:12px;margin-top:18px;">
+        <button class="btn" onclick="backupCupFirebase()">Cupauswertung sichern</button>
+        <button class="btn" onclick="centralBackupJM()">Jahresmeisterschaft sichern / Firebase aktualisieren</button>
+        <button class="btn" id="centralStockdartBackupBtn" onclick="centralBackupStockdart()">StockDart sichern / Firebase aktualisieren</button>
+      </div>
+      <p id="centralBackupInfo" style="margin-top:16px;opacity:.72;font-size:.9rem"></p>
+    </div>
+  </div>
+</body>
+</html>
+<!-- V2.5.2: Einheitliche Cup-Einstiege und roter Carbon-Hintergrund. -->

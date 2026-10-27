@@ -1,0 +1,315 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>EC Wegscheid · Doppel KO · V2.8 Integrationstest</title>
+<style>
+:root{color-scheme:dark;--bg:#130b0d;--card:#221b1d;--card2:#302327;--red:#d92e40;--red2:#831923;--gold:#f3cb72;--txt:#fff5f5;--muted:#b9a7aa;--line:#6d4046;--green:#6fe3a5}*{box-sizing:border-box}body{margin:0;font-family:Inter,'Segoe UI',Arial,sans-serif;color:var(--txt);background:linear-gradient(120deg,#100b0cdd,#230b0fe9),url('assets/hintergrund-carbon-rot.png') center/cover fixed}button,input,select,textarea{font:inherit}button{cursor:pointer;touch-action:manipulation}button:disabled{opacity:.4;cursor:default}.top{padding:15px 22px;border-bottom:1px solid #ffffff26;background:#13090ddd;display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:13px}.mark{width:53px;height:53px;border:2px solid #fa5562;border-radius:15px;background:linear-gradient(145deg,#b52738,#2b0d13);display:grid;place-items:center;font-weight:900;font-size:20px}.brand h1{font-size:clamp(22px,2vw,32px);margin:0;letter-spacing:.04em}.brand small{color:var(--muted)}.tag{border:1px solid #bd6770;background:#3c151b;border-radius:999px;padding:7px 11px;color:#ffe0e3;font-size:12px}.actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.btn{border:1px solid #af4c56;background:linear-gradient(180deg,#7b1b28,#491019);border-radius:11px;color:white;padding:12px 17px;font-weight:750;min-height:44px}.btn:hover{filter:brightness(1.18)}.btn.primary{background:linear-gradient(180deg,#e3384b,#aa1526);border-color:#ff7380}.btn.soft{background:#332428;border-color:#76535a}.btn.gold{background:#71511d;border-color:#c7a15c}.container{padding:20px clamp(12px,2.4vw,34px);max-width:2200px;margin:auto}.summary{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:12px}.metric{border:1px solid #70424b;background:linear-gradient(145deg,#3a2027e8,#171012e8);padding:15px 20px;border-radius:16px;min-height:94px}.metric .num{font-size:clamp(22px,2.5vw,34px);font-weight:850;color:var(--gold)}.metric .lbl{color:var(--muted);font-size:13px;margin-top:4px}.panel{border:1px solid #654049;background:#1c1217ee;border-radius:17px;padding:18px;margin-top:15px}.panel h2{margin:0 0 13px;font-size:20px}.setup-grid{display:grid;grid-template-columns:170px 1fr 1fr;gap:14px;align-items:end}.field{display:flex;flex-direction:column;gap:7px;color:#e5c7cc;font-size:13px;font-weight:700}.field input,.field select,.field textarea{background:#100d0f;color:white;border:1px solid #80545a;border-radius:9px;padding:12px;min-height:46px;outline:none}.field textarea{height:155px;resize:vertical;line-height:1.5}.hint{color:var(--muted);font-size:13px;margin-top:10px}.toolrow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:18px 0 13px}.tabs{display:flex;gap:7px;flex-wrap:wrap}.tab{background:#302125;border:1px solid #6d3a45;border-radius:11px;padding:12px 16px;color:#f4d7dc;font-weight:700}.tab.active{background:#a82032;border-color:#ff7888;color:white}.status{color:var(--gold);font-weight:650;font-size:14px}.scroll{overflow-x:auto;overscroll-behavior-x:contain;padding:5px 2px 25px;scrollbar-color:#9a3341 #2a1b1e}.bracket{display:flex;align-items:flex-start;gap:18px;min-width:max-content}.round{width:262px;flex:none}.round-head{position:sticky;top:0;z-index:2;background:#35191ff2;border:1px solid #7a3844;border-radius:10px;padding:12px 10px;margin-bottom:12px;text-align:center;font-weight:850}.round-head small{display:block;color:#e8a9b0;font-weight:500;margin-top:4px}.match{border:1px solid #71474f;background:linear-gradient(145deg,#3b272de8,#1b1418e8);border-radius:12px;margin-bottom:10px;min-height:105px;overflow:hidden;box-shadow:0 6px 14px #0004;position:relative}.match.ready{border-color:#e75967;box-shadow:0 0 0 1px #e7596755}.match.done{border-color:#4f8b6d}.match-head{display:flex;justify-content:space-between;gap:4px;font-size:11px;color:#bfa2a7;padding:7px 10px;background:#120d0f77}.team{padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;border-top:1px solid #ffffff14}.team span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.team.winner{background:#28513c80;color:#d8ffe8;font-weight:800}.team.empty{color:#8b777d}.score{font-weight:850;color:var(--gold);font-variant-numeric:tabular-nums}.match .edit{position:absolute;inset:0;border:0;background:transparent;color:transparent;width:100%;height:100%;padding:0}.match .edit:focus-visible{outline:3px solid #fff;outline-offset:-3px}.match .edit:disabled{cursor:default}.match-note{color:var(--muted);font-size:12px;margin:7px 0 15px}.ranking{max-width:900px;margin:auto}.rank-row{display:grid;grid-template-columns:95px 1fr 155px;gap:10px;padding:13px 16px;align-items:center;border-bottom:1px solid #6c3d46;background:#ffffff07}.rank-row:first-child{border-radius:10px 10px 0 0}.rank-row .pos{color:var(--gold);font-weight:850}.rank-row .detail{font-size:12px;color:var(--muted)}.modal-back{position:fixed;inset:0;background:#060405dd;display:grid;place-items:center;padding:18px;z-index:100}.modal{background:linear-gradient(150deg,#3d1a23,#171113);border:1px solid #a45561;border-radius:20px;padding:25px;width:min(520px,100%);box-shadow:0 25px 80px #000a}.modal h2{margin:0 0 7px}.modal .sub{color:var(--muted);margin:0 0 20px}.score-line{display:grid;grid-template-columns:1fr 120px;align-items:center;gap:12px;margin-bottom:12px}.score-line label{font-size:18px;font-weight:750;overflow-wrap:anywhere}.score-line input{width:100%;background:#120b0e;border:1px solid #bd6370;border-radius:12px;padding:14px;color:white;font-size:26px;font-weight:850;text-align:center}.modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:22px}.warning{color:#ffc4a8;font-size:13px}.empty-state{padding:70px 18px;text-align:center;color:#dec3c7}.empty-state strong{display:block;font-size:23px;color:white;margin-bottom:9px}.hidden{display:none!important}.footer{color:#a88e94;font-size:12px;text-align:center;padding:20px}.grand{display:grid;grid-template-columns:repeat(2,minmax(230px,350px));gap:20px;justify-content:center}.info{color:#d9b7bd;max-width:850px;line-height:1.6;margin:10px auto 20px;text-align:center}@media(max-width:850px){.summary{grid-template-columns:repeat(2,1fr)}.setup-grid{grid-template-columns:1fr}.top{padding:12px}.container{padding:12px}.round{width:244px}.grand{grid-template-columns:1fr}.rank-row{grid-template-columns:65px 1fr 100px}}@media(min-width:1700px){.round{width:290px}.match{min-height:117px}.team{min-height:40px}.btn,.tab{font-size:17px;padding:15px 20px}}
+
+/* Whiteboard display: interactive score entry, mirror-oriented brackets. */
+.wb-view{background-color:#130b0e;position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:linear-gradient(115deg,#100b0cdd,#270d13eb),url('assets/hintergrund-carbon-rot.png') center/cover fixed;color:#fff;overflow:hidden}
+.wb-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;background:linear-gradient(90deg,#2a1018,#641624,#2a1018);border-bottom:2px solid #bc3345;min-height:70px}
+.wb-title{font-size:clamp(20px,2vw,38px);font-weight:900;letter-spacing:.055em}
+.wb-sub{color:#e3b8c0;font-size:clamp(12px,1vw,17px);margin-top:4px}
+.wb-ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.wb-ctrl .btn{min-height:40px;padding:8px 13px;font-size:13px}
+.wb-body{display:grid;grid-template-columns:minmax(0,1fr) clamp(170px,12vw,260px) minmax(0,1fr);gap:8px;flex:1;min-height:0;padding:8px 10px}
+.wb-side{display:flex;flex-direction:column;min-width:0;min-height:0;border:1px solid #773441;border-radius:12px;background:linear-gradient(160deg,#2c1a20dd,#160f13ee);overflow:hidden}
+.wb-side-title{text-align:center;background:linear-gradient(90deg,#38151d,#8a2132,#38151d);border-bottom:1px solid #a84b58;padding:9px 4px;font-size:clamp(15px,1.3vw,25px);font-weight:900;letter-spacing:.05em}
+.wb-rounds-scroll{flex:1;min-height:0;overflow:auto;scrollbar-color:#ad3949 #28151b}
+.wb-rounds{display:grid;gap:5px;height:100%;min-height:650px;padding:6px;align-items:stretch}
+.wb-round{display:flex;flex-direction:column;min-width:0;min-height:0;gap:4px}
+.wb-round-label{text-align:center;border:1px solid #793a45;border-radius:7px;padding:6px 1px;background:#461d26;color:#ffd6db;font-size:clamp(10px,.83vw,15px);font-weight:800;white-space:nowrap}
+.wb-round-games{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:2px;min-height:0}
+.wb-match{position:relative;min-width:0;border:1px solid #6e3b44;border-radius:6px;background:#261b20;overflow:hidden;flex:none;box-shadow:0 2px 6px #0006}
+.wb-match.done{border-color:#4e9e77}.wb-match.ready{border-color:#e94c62}.wb-match.auto{opacity:.7}
+.wb-match-top{font-size:clamp(8px,.62vw,11px);line-height:1.2;color:#cfabb0;background:#130d10;padding:2px 5px;display:flex;justify-content:space-between;gap:2px}
+.wb-team{display:flex;align-items:center;justify-content:space-between;gap:2px;padding:3px 4px;font-size:clamp(9px,.8vw,15px);line-height:1.2;min-height:29px;border-top:1px solid #ffffff12}
+.wb-team strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}.wb-team b{color:#f6cf76;font-size:1.05em}
+.wb-team.win{background:#1e6242a8;color:#ecfff4}.wb-team.missing{color:#8f7d81}
+.wb-center{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;border:1px solid #7f3b44;border-radius:12px;background:linear-gradient(180deg,#491821,#231016)}
+.wb-center-label{font-weight:900;color:#f6cf76;font-size:clamp(13px,1.2vw,23px);overflow-wrap:anywhere}.wb-center-name{font-size:clamp(11px,.92vw,18px);font-weight:750;overflow-wrap:anywhere;max-width:95%}.wb-center-score{font-weight:900;color:#f6cf76;font-size:clamp(15px,1.5vw,28px)}.wb-center-small{color:#dbafb5;font-size:clamp(10px,.75vw,14px)}
+.wb-foot{padding:7px 15px;display:flex;justify-content:space-between;gap:15px;align-items:center;background:#1a0f13;border-top:1px solid #65323c;font-size:clamp(11px,.8vw,15px);color:#dec1c5}
+.wb-foot strong{color:#f6cf76}.wb-empty{display:grid;place-items:center;flex:1;color:#e7c7cc}
+@media(max-width:1050px){.wb-body{grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);gap:4px;padding:4px}.wb-top{padding:8px}.wb-ctrl .btn{padding:6px 8px}.wb-rounds{gap:3px;padding:3px}.wb-round-label{font-size:10px}.wb-match-top{font-size:8px}.wb-team{font-size:10px;padding:2px;min-height:17px}.wb-side-title{font-size:13px}}
+
+/* Inline score entry – Carbon Rot, touch friendly */
+.score-inline{flex:0 0 46px;width:46px;min-width:0;height:36px;border:1px solid #b85b65;border-radius:7px;background:#100b0e;color:#ffe2a0;text-align:center;font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;outline:none;padding:0 2px}
+.score-inline:focus{border-color:#ffe0a1;box-shadow:0 0 0 2px #d94b5588}
+.score-inline::-webkit-inner-spin-button,.score-inline::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.score-inline{-moz-appearance:textfield;appearance:textfield}
+.score-actions{display:flex;align-items:center;gap:3px}
+.score-action{border:1px solid #bd6873;border-radius:6px;background:linear-gradient(#a92337,#671725);color:#fff;min-width:32px;min-height:30px;font-size:18px;font-weight:900;padding:1px 5px;line-height:1}
+.score-action:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.score-action.save{background:linear-gradient(#b83344,#7a1526);border-color:#e86c78}
+.score-action.clear{background:#322125;color:#f4c5c8;border-color:#65454b}
+.wb-team .score-inline{width:35px;flex-basis:35px;height:29px;font-size:15px;padding:0 1px}
+.wb-team strong{flex:1;min-width:0}
+.wb-match-top .score-action{min-width:25px;min-height:24px;padding:0 4px;font-size:15px}
+.wb-match-top .score-actions{margin:-2px 0}
+.wb-match.ready{box-shadow:0 0 0 1px #e44a5b55,0 3px 8px #0009}
+.wb-final-game{width:calc(100% - 12px);padding:6px;border:1px solid #944451;border-radius:9px;background:#241319;display:flex;flex-direction:column;gap:4px}
+.wb-final-title{display:flex;justify-content:space-between;align-items:center;gap:4px;color:#f6cf76;font-weight:900;font-size:clamp(11px,.8vw,16px)}
+.wb-final-team{display:flex;align-items:center;gap:3px;border-top:1px solid #653b42;padding:4px 0;font-size:clamp(10px,.83vw,17px);min-width:0}
+.wb-final-team strong{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-final-team.win{color:#a8f2c6}
+.wb-final-team .score-inline{width:42px;flex-basis:42px;height:34px}
+.wb-center{gap:7px;padding:6px 0;overflow-y:auto}
+.wb-champion{width:calc(100% - 12px);border:1px solid #b88a48;border-radius:9px;padding:8px 4px;background:#49301b88}
+@media(min-width:1600px){.wb-team .score-inline{width:40px;flex-basis:40px;height:34px;font-size:17px}.wb-match-top .score-action{min-width:30px;min-height:27px}}
+
+/* V1.3 – optionale Freigabe für vier Bahnen */
+.fast-mode-option{display:flex;align-items:center;gap:12px;margin-top:14px;padding:13px 16px;border:1px solid #bd5260;border-radius:12px;background:linear-gradient(100deg,#4e1b28,#23141a);cursor:pointer;user-select:none}
+.fast-mode-option input{width:27px;height:27px;accent-color:#e84b60;flex:none;cursor:pointer}
+.fast-mode-option .fast-icon{font-size:27px;color:#f3cb72}
+.fast-mode-option strong{display:block;font-size:17px;color:#fff}
+.fast-mode-option small{display:block;color:#e8bfc5;line-height:1.4;margin-top:4px;font-size:13px}
+.fast-mode-option:has(input:checked){border-color:#f3cb72;background:linear-gradient(100deg,#642633,#2b181b)}
+/* V0.5 – touch counters and round-by-round match scheduling */
+.turn-banner{margin-top:15px;border:1px solid #ef6a7a;border-radius:15px;background:linear-gradient(100deg,#681d2d,#25131a);padding:13px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 4px 24px #0006}
+.turn-banner strong{font-size:clamp(16px,1.4vw,24px);color:#fff}
+.turn-stage{background:#c52b3e;color:white;border-radius:8px;padding:7px 10px;font-weight:850;font-size:12px}
+.turn-game{margin-left:auto;color:#f6cf76;font-size:clamp(13px,1vw,18px);font-weight:800}
+.turn-locked{opacity:.26!important;filter:grayscale(1);border-color:#55464b!important;box-shadow:none!important}
+.turn-finished{opacity:.73}
+.turn-active{opacity:1!important;filter:none!important;border:2px solid #ff6e7c!important;background:linear-gradient(145deg,#6c1d2d,#241319)!important;box-shadow:0 0 0 2px #ff8b9860,0 0 22px #f72e5966!important}
+.turn-active .match-head,.turn-active .wb-match-top,.turn-active .wb-final-title{color:#fff5d6;font-weight:850}
+.active-correction{border-color:#f6cf76!important;color:#f6cf76!important}
+.touch-score{display:flex;flex:none;align-items:center;gap:2px}
+.score-step{border:1px solid #d66777;border-radius:6px;background:linear-gradient(#9f2b3d,#541621);color:white;min-width:30px;height:36px;font-size:23px;font-weight:900;line-height:1;padding:0 2px;touch-action:manipulation}
+.score-step:active{background:#eb5265}
+.score-value{display:inline-grid;place-items:center;min-width:27px;height:36px;border-radius:5px;background:#110b0e;color:#ffe29c;font-weight:900;font-size:18px;font-variant-numeric:tabular-nums}
+.wb-rounds{min-height:690px}
+.wb-team{min-height:39px}
+.wb-team .score-step{min-width:30px;height:34px;font-size:20px;border-radius:4px}
+.wb-team .score-value{min-width:22px;height:34px;font-size:16px}
+.wb-team .touch-score{gap:1px}
+.wb-final-team .score-step{min-width:25px;height:32px;font-size:20px}
+.wb-final-team .score-value{min-width:22px;height:32px}
+.wb-match.turn-active{border-width:2px}
+.wb-foot{font-weight:700}
+@media(max-width:1400px){.wb-team .score-step{min-width:29px}.wb-team .score-value{min-width:20px}.wb-round-label{font-size:11px}}
+@media(min-width:1700px){.wb-team .score-step{min-width:32px;height:38px;font-size:23px}.wb-team .score-value{min-width:24px;height:38px;font-size:18px}}
+
+/* V0.5 – gesamte Whiteboardansicht ohne Scrollen, kompakter Titel */
+.wb-view{background:repeating-linear-gradient(130deg,#ffffff04 0px,#ffffff04 1px,transparent 1px,transparent 7px),linear-gradient(115deg,#100b0c,#270d13)}
+.wb-match.turn-locked{opacity:.50!important;filter:grayscale(.85)}
+.wb-match.turn-finished{opacity:.82}
+
+.wb-view{overflow:hidden}
+.wb-top{min-height:0;padding:5px 12px;gap:7px;flex-wrap:nowrap}
+.wb-title{font-size:clamp(15px,1.25vw,23px);line-height:1.1;letter-spacing:.02em}
+.wb-sub{font-size:clamp(10px,.68vw,13px);margin-top:2px}
+.wb-ctrl{flex-wrap:nowrap}
+.wb-ctrl .btn{padding:5px 9px;min-height:32px;font-size:12px}
+.wb-body{grid-template-columns:minmax(0,1fr) clamp(125px,9vw,175px) minmax(0,1fr);gap:5px;padding:4px 6px;overflow:hidden}
+.wb-side{border-radius:7px}
+.wb-side-title{padding:4px 2px;font-size:clamp(12px,.85vw,17px)}
+.wb-rounds-scroll{overflow:hidden;min-height:0;width:100%;height:100%}
+.wb-rounds{min-height:0!important;height:100%;width:100%;gap:2px;padding:3px;overflow:hidden}
+.wb-round{gap:2px;overflow:hidden}
+.wb-round-label{padding:2px 0;font-size:clamp(9px,.66vw,13px);line-height:1.1}
+.wb-round-games{min-height:0;overflow:hidden;gap:1px;justify-content:space-around}
+.wb-match{min-height:0;flex-shrink:1;border-radius:4px;box-shadow:none}
+.wb-match-top{font-size:clamp(8px,.56vw,10px);padding:1px 2px;line-height:1.05;min-height:12px}
+.wb-team{min-height:0!important;padding:2px 2px;line-height:1.1;font-size:clamp(9px,.64vw,13px);gap:1px}
+.wb-team strong{font-weight:750}
+.wb-team .score-step{min-width:20px;height:23px;font-size:16px;padding:0}
+.wb-team .score-value{min-width:16px;height:23px;font-size:12px}
+.wb-team .touch-score{gap:0}
+.wb-match-top .score-action{min-width:19px;min-height:17px;font-size:12px;padding:0 2px}
+.wb-center{overflow:hidden;gap:5px;padding:5px 2px}
+.wb-final-game{padding:3px;gap:2px}
+.wb-final-team{font-size:11px;padding:2px 0}
+.wb-final-team .score-step{min-width:20px;height:24px;font-size:15px}
+.wb-final-team .score-value{min-width:17px;height:24px;font-size:12px}
+.wb-center-label{font-size:clamp(12px,.85vw,16px)}
+.wb-foot{padding:4px 10px;font-size:clamp(10px,.68vw,13px)}
+.wb-team.bye-team,.team.bye-team{opacity:1!important;color:#ffe5a5!important;background:#604021a8!important;font-weight:850;border-top:1px solid #b38a4e}
+.wb-team.bye-team strong,.team.bye-team span{color:#ffe5a5;font-weight:900}
+.bye-indicator{display:inline-grid;place-items:center;border-radius:3px;border:1px solid #d8ac5e;background:#69421b;color:#ffe7b0;font-size:10px;min-width:15px;height:15px}
+.wb-match.auto{opacity:1!important;border-color:#a07739;background:#34251c}
+.wb-match.auto .wb-match-top{color:#ffdb91}
+/* 32er: 16 Paarungen in der ersten Sieger-Runde, 8 Verliererrunden nebeneinander */
+.wb-32 .wb-rounds{gap:1px;padding:2px}
+.wb-32 .wb-round{gap:1px}
+.wb-32 .wb-round-label{font-size:10px;padding:1px 0}
+.wb-32 .wb-match-top{min-height:10px;font-size:8px;padding:0 1px}
+.wb-32 .wb-team{padding:1px;font-size:clamp(8px,.53vw,11px);min-height:0;line-height:1.05}
+.wb-32 .wb-team .score-step{min-width:17px;height:19px;font-size:14px}
+.wb-32 .wb-team .score-value{min-width:14px;height:19px;font-size:11px}
+.wb-32 .wb-match-top .score-action{min-width:16px;min-height:15px;font-size:11px}
+.wb-32 .wb-match.turn-active{border-width:1px}
+@media(max-height:850px){
+ .wb-top{padding:3px 8px}.wb-title{font-size:16px}.wb-sub{font-size:10px}
+ .wb-side-title{padding:2px;font-size:12px}.wb-round-label{font-size:9px;padding:1px}
+ .wb-team{padding:1px;font-size:10px}.wb-team .score-step{min-width:18px;height:19px;font-size:14px}.wb-team .score-value{min-width:15px;height:19px;font-size:11px}
+ .wb-32 .wb-team .score-step{min-width:14px;height:15px;font-size:12px}.wb-32 .wb-team .score-value{min-width:12px;height:15px;font-size:10px}
+ .wb-32 .wb-match-top{font-size:7px;min-height:8px}
+ .wb-foot{padding:2px 7px;font-size:10px}
+}
+
+/* Spielerwahl: Carbon-Rot, Touch und Tastatur */
+.roster-panel{margin-top:15px;border:1px solid #a44c59;border-radius:15px;background:linear-gradient(135deg,#3d1a24ef,#170f14f5);overflow:hidden}
+.roster-heading{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px;color:#fff;border:0;background:linear-gradient(90deg,#8e1e2f,#4c1421);font-size:18px;font-weight:850;text-align:left}
+.roster-heading small{font-size:12px;color:#f6c6cd;font-weight:500}.roster-heading .chevron{font-size:24px}
+.roster-body{padding:15px}.roster-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px}
+.roster-tools .field{min-width:210px;flex:1}.roster-tools .field input{width:100%}
+.roster-tools .btn{min-height:45px}.roster-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;max-height:285px;overflow-y:auto;padding:6px;background:#110d11b8;border:1px solid #70424c;border-radius:10px}
+.roster-option{display:flex;align-items:center;gap:10px;min-height:47px;padding:8px 11px;border-radius:9px;background:#302126;border:1px solid #60414a;cursor:pointer;font-size:14px;touch-action:manipulation}
+.roster-option:has(input:checked){background:#682333;border-color:#f06a79}.roster-option.in-list{background:#22352e;border-color:#47795b;opacity:.7;cursor:default}
+.roster-option input{width:22px;height:22px;flex:none;accent-color:#f04c5f;cursor:pointer}.roster-option span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roster-bottom{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-top:12px}.roster-count{font-size:13px;color:#efc5cb}
+.guest-panel{display:flex;flex-wrap:wrap;align-items:end;gap:10px;padding:13px;margin-top:13px;background:#1c1619;border:1px solid #6d4046;border-radius:11px}
+.guest-panel .field{flex:1;min-width:190px}.guest-panel input{width:100%}.guest-panel .btn{min-height:46px}
+.roster-feedback{margin-top:10px;color:#f3cb72;font-weight:700;min-height:20px;font-size:13px}.roster-feedback.error{color:#ff9a9a}
+.roster-list-header{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:15px}
+.roster-list-header strong{font-size:16px}.roster-list-header span{color:#f3cb72;font-weight:800}
+.setup-step{margin:19px 0 10px;font-size:17px;color:#f3cb72;font-weight:850}.setup-step:first-of-type{margin-top:10px}#modeHint{margin-top:8px;color:#e8c7cc}#fieldSize:disabled{opacity:.65}#fieldSize option:disabled{color:#9b8b90}@media(max-width:1050px){.roster-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.roster-grid{grid-template-columns:1fr}.roster-heading{font-size:16px}.roster-body{padding:10px}}
+
+/* V1.3 – Whiteboard: den vorhandenen Platz statt großer Leerräume nutzen.
+   Je nach Turnierfeld unterschiedlich dimensioniert, ohne Scrollleisten. */
+.wb-body{grid-template-columns:minmax(0,1.32fr) 145px minmax(0,1fr);gap:4px;padding:3px 5px}
+.wb-side-title{font-size:16px;padding:5px 2px;line-height:1.12}
+.wb-rounds{gap:3px;padding:3px}
+.wb-round{gap:3px}
+.wb-round-label{font-size:13px;padding:4px 1px;line-height:1.1}
+.wb-round-games{justify-content:center;gap:9px}
+.wb-match{border-radius:7px;border-width:1px;box-shadow:0 2px 5px #0008}
+.wb-match-top{font-size:11px;min-height:20px;padding:2px 5px;align-items:center}
+.wb-team{font-size:clamp(12px,.83vw,17px);min-height:31px!important;padding:3px 4px;line-height:1.15;gap:3px}
+/* V1.4: Spielernamen in allen Bäumen IMMER einzeilig.
+   Breite dynamisch anpassen, bei extrem langen Namen als Rückfall „…“. */
+.wb-team strong{font-weight:750;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;max-height:none;line-height:1.15}
+.wb-team .touch-score{gap:2px}
+.wb-team .score-step{min-width:23px;height:27px;font-size:19px;border-radius:5px}
+.wb-team .score-value{min-width:18px;height:27px;font-size:14px}
+.wb-match-top .score-action{min-width:25px;min-height:22px;font-size:15px}
+.wb-match.turn-locked{opacity:.78!important;filter:saturate(.58)}
+.wb-match.turn-locked .wb-team.missing{color:#c6b0b5}
+.wb-match.turn-finished{opacity:.92}
+.wb-match.turn-active{box-shadow:0 0 0 1px #ff859060,0 0 12px #f72e5955!important}
+.wb-center{gap:9px;padding:6px 3px}
+.wb-center-label{font-size:16px}
+.wb-final-game{padding:5px;gap:3px}
+.wb-final-title{font-size:12px}
+.wb-final-team{font-size:12px}
+.wb-final-team .score-step{min-width:21px;height:27px;font-size:18px}
+.wb-final-team .score-value{min-width:17px;height:27px;font-size:13px}
+.wb-center-name{font-size:14px}
+/* 8er: wenig Begegnungen – entsprechend große Spielkarten und Schrift. */
+.wb-8 .wb-body{grid-template-columns:minmax(0,1.15fr) 175px minmax(0,1fr)}
+.wb-8 .wb-rounds{gap:7px;padding:7px}
+.wb-8 .wb-round-games{gap:17px}
+.wb-8 .wb-round-label{font-size:16px;padding:8px 2px}
+.wb-8 .wb-match-top{font-size:14px;min-height:30px;padding:4px 7px}
+.wb-8 .wb-team{font-size:clamp(13px,.86vw,17px);min-height:43px!important;padding:6px 6px}
+.wb-8 .wb-team .score-step{min-width:30px;height:35px;font-size:24px}
+.wb-8 .wb-team .score-value{min-width:23px;height:35px;font-size:19px}
+.wb-8 .wb-match-top .score-action{min-width:32px;min-height:27px;font-size:18px}
+.wb-8 .wb-center-label{font-size:20px}
+.wb-8 .wb-final-team{font-size:15px}
+/* 16er: acht Paarungen in der ersten Runde, noch gut lesbare Touchfelder. */
+.wb-16 .wb-body{grid-template-columns:minmax(0,1.37fr) 150px minmax(0,1fr)}
+.wb-16 .wb-round-games{gap:2px}
+.wb-16 .wb-team{font-size:clamp(10px,.69vw,14px);min-height:33px!important;padding:3px 4px}
+.wb-16 .wb-team .score-step{min-width:23px;height:28px;font-size:19px}
+.wb-16 .wb-team .score-value{min-width:19px;height:28px;font-size:15px}
+/* 32er: 16 Spiele in Runde 1; alle 32 Teilnehmer müssen auf eine Seite.
+   Breite proportional zur Zahl der Spalten, Abstand minimiert. */
+.wb-32 .wb-body{grid-template-columns:minmax(0,1.57fr) 132px minmax(0,1fr);gap:3px;padding:2px 3px}
+.wb-32 .wb-side-title{font-size:13px;padding:3px 1px}
+.wb-32 .wb-rounds{gap:2px;padding:2px}
+.wb-32 .wb-round-label{font-size:10px;padding:2px 0}
+.wb-32 .wb-round-games{gap:3px;justify-content:center}
+.wb-32 .wb-match-top{font-size:9px;min-height:13px;padding:1px 2px}
+.wb-32 .wb-team{font-size:clamp(8px,.50vw,10px);min-height:22px!important;padding:1px 2px;gap:1px}
+.wb-32 .wb-team strong{white-space:nowrap;display:block;max-height:none}
+.wb-32 .wb-team .touch-score{gap:0}
+.wb-32 .wb-team .score-step{min-width:17px;height:19px;font-size:14px}
+.wb-32 .wb-team .score-value{min-width:14px;height:19px;font-size:11px}
+.wb-32 .wb-match-top .score-action{min-width:17px;min-height:15px;font-size:12px}
+.wb-32 .wb-center{gap:4px;padding:2px}
+.wb-32 .wb-center-label{font-size:14px}
+.wb-32 .wb-final-team{font-size:10px}
+.wb-32 .wb-final-team .score-step{min-width:17px;height:20px;font-size:13px}
+.wb-32 .wb-final-team .score-value{min-width:14px;height:20px;font-size:11px}
+/* Kleinere Bildschirmhöhen: Layout priorisiert vollständige Sichtbarkeit. */
+@media(max-height:900px){
+ .wb-8 .wb-round-games{gap:10px}.wb-8 .wb-team{min-height:35px!important;padding:3px}
+ .wb-16 .wb-round-games{gap:4px}.wb-16 .wb-team{min-height:27px!important;padding:2px}
+ .wb-16 .wb-team .score-step{height:23px}.wb-16 .wb-team .score-value{height:23px}
+ .wb-32 .wb-round-games{gap:1px}.wb-32 .wb-team{min-height:17px!important;padding:0 1px}
+ .wb-32 .wb-team .score-step,.wb-32 .wb-team .score-value{height:15px}
+ .wb-32 .wb-match-top{min-height:10px}
+}
+
+
+/* V1.6 – 32er-Whiteboard: Beide Spieler jeder Begegnung müssen sichtbar bleiben.
+   16 Spiele in der ersten Siegerrunde, deshalb exakt kompakte Zeilen ohne übergroße Mindesthöhe. */
+.wb-32 .wb-rounds-scroll{overflow:visible}
+.wb-32 .wb-rounds{gap:2px;padding:2px;align-items:stretch}
+.wb-32 .wb-round{gap:1px;min-height:0}
+.wb-32 .wb-round-games{gap:1px;justify-content:space-evenly;min-height:0}
+.wb-32 .wb-match{flex:0 1 auto;min-height:0;overflow:visible;border-radius:3px}
+.wb-32 .wb-match-top{min-height:11px;padding:0 2px;font-size:8px;line-height:1.05}
+.wb-32 .wb-team{min-height:19px!important;height:19px;max-height:19px;padding:0 2px;line-height:1;overflow:hidden}
+.wb-32 .wb-team strong{font-size:9px;line-height:1.05;min-width:0}
+.wb-32 .wb-team .score-step{height:17px;min-width:16px;font-size:12px;line-height:1}
+.wb-32 .wb-team .score-value{height:17px;min-width:13px;font-size:11px;line-height:1}
+.wb-32 .wb-team .touch-score{height:18px;flex-shrink:0}
+.wb-32 .wb-match-top .score-action{height:13px;min-height:13px;font-size:10px}
+@media(max-height:950px){
+ .wb-32 .wb-team{height:16px;min-height:16px!important;max-height:16px}
+ .wb-32 .wb-team .score-step,.wb-32 .wb-team .score-value{height:15px}
+ .wb-32 .wb-team .touch-score{height:15px}
+ .wb-32 .wb-match-top{min-height:9px}
+}
+
+/* V1.3 – Teilnehmerverwaltung und Druckvorlage */
+.player-manager{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:7px;margin:9px 0 12px}
+.player-manager-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #714650;background:#332127;border-radius:9px;padding:5px 6px 5px 11px;min-width:0}
+.player-manager-row span{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-remove{border:1px solid #db7781;border-radius:7px;background:#771c2c;color:#fff;min-width:37px;min-height:36px;font-weight:900;font-size:17px}
+.player-remove:hover{background:#bf2c40}.withdrawn-note{font-size:12px;color:#f3cb72;line-height:1.4;margin:5px 0}
+.event-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media(max-width:850px){.event-grid{grid-template-columns:1fr}}
+.print-hint{color:#f3cb72;font-size:13px;margin-top:7px}
+
+/* V1.5: Entscheidungsfinale – separater großer Bestätigungshaken */
+.decider-confirm{display:flex;width:100%;justify-content:center;margin-top:5px;min-width:0}
+.decider-confirm-btn{display:block;width:100%;max-width:320px;min-height:43px;border:2px solid #ffd18a;border-radius:8px;background:linear-gradient(180deg,#ba3043,#751628);color:#fff;font-weight:900;font-size:16px;cursor:pointer;box-shadow:0 0 0 1px #5e1d2a,0 3px 10px #0008}
+.decider-confirm-btn:active{background:#d54352;transform:translateY(1px)}
+.wb-final-game .decider-confirm{margin-top:2px}
+.wb-final-game .decider-confirm-btn{min-height:34px;font-size:12px;padding:2px 3px;line-height:1.15;white-space:nowrap}
+.wb-32 .wb-final-game .decider-confirm-btn{min-height:27px;font-size:10px}
+.wb-final-title .score-action.save{flex-shrink:0;min-width:31px;min-height:29px;font-size:18px;background:#a91d30;border-color:#f6cf76}
+
+.score-sheet-config{margin-top:15px;border:1px solid #944650;border-radius:12px;padding:14px;background:linear-gradient(125deg,#28171c,#3a1a24)}
+.score-sheet-config h3{margin:0 0 4px;color:#f6cf76;font-size:17px}.score-sheet-config p{margin:4px 0 12px;color:#e6c9ce;font-size:13px}
+.score-sheet-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.score-sheet-grid input{max-width:150px;font-size:18px;font-weight:700;text-align:center}
+.score-sheet-auto{display:flex;gap:12px;align-items:flex-start;margin-top:13px;cursor:pointer;padding:10px;background:#1b1115;border:1px solid #76505a;border-radius:8px}
+.score-sheet-auto input{width:24px;height:24px;accent-color:#c42b40;flex-shrink:0}.score-sheet-auto strong{display:block;color:white}.score-sheet-auto small{display:block;color:#d4bfc4;line-height:1.35;margin-top:3px}
+@media(max-width:650px){.score-sheet-grid{grid-template-columns:1fr}}
+</style><style id="cloud-css">.cloud-toolbar{background:linear-gradient(110deg,#4d1b28,#1c1015);border-bottom:2px solid #c83d52;padding:10px 20px;color:#fff}.cloud-title{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.cloud-title strong{color:#f3cb72;font-size:17px}.cloud-title span{font-size:13px;color:#e4d0d2}.cloud-title span.error{color:#ff9d9d}.cloud-title span.ok{color:#8ff0b6}.cloud-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.cloud-controls select{flex:1;min-width:240px;max-width:540px;background:#201419;color:#fff;border:1px solid #a44e5b;padding:11px;border-radius:8px}.cloud-controls .btn{padding:9px 12px;font-size:13px}.cloud-toolbar small{color:#d6b7bc}.cloud-controls button:disabled{opacity:.5}@media(max-width:850px){.cloud-controls select{width:100%;max-width:none}.cloud-controls .btn{flex:1}}.cloud-login{margin-top:12px;padding:12px;border:1px solid #c86a78;border-radius:9px;display:flex;gap:10px;flex-wrap:wrap;align-items:end}.cloud-login.hidden{display:none}.cloud-login label{display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:190px}.cloud-login input{background:#160c11;border:1px solid #ad5964;border-radius:7px;color:white;padding:11px}</style></head><body>
+<header class="top"><div class="brand"><div class="mark">EC</div><div><h1>DOPPEL KO SYSTEM</h1><small>EC Wegscheid · Turnierauswertung · Carbon Rot</small></div><span class="tag">V2.8 · DRUCK BLEIBT IM WHITEBOARD</span></div><div class="actions"><button class="btn soft" id="back">← Zurück</button><button class="btn soft" id="export">Sicherung exportieren</button><button class="btn soft" id="import">Sicherung laden</button><input type="file" id="importFile" accept="application/json,.json" hidden><button class="btn primary" id="whiteboardMode">▣ Whiteboard-Ansicht</button><button class="btn gold" id="fullscreen">⛶ Vollbild</button></div></header>
+<div id="dko-js-health" role="status" style="background:#751b2c;color:#fff;text-align:center;padding:11px 12px;font-size:15px;font-weight:800;border-bottom:2px solid #d96776;white-space:normal;overflow-wrap:anywhere">⚠ V2.8: JavaScript noch nicht gestartet – prüfe, ob doppel-ko-app-v26.js im selben Ordner liegt.</div>
+<section class="cloud-toolbar" aria-label="Gespeicherte Doppel-KO-Turniere"><div class="cloud-title"><strong>☁ Doppel-KO-Turniere</strong><span id="cloudStatus" role="status" aria-live="polite">Firebase wird geprüft …</span></div><div class="cloud-controls"><select id="cloudSelect" aria-label="Gespeichertes Turnier auswählen"><option value="">– Turnier auswählen –</option></select><button class="btn soft" id="cloudOpen">Turnier öffnen</button><button class="btn gold" id="cloudLogin">Firebase anmelden</button><button class="btn primary" id="cloudNew">+ Neues Turnier</button><button class="btn soft" id="cloudSave">Jetzt speichern</button><button class="btn soft" id="cloudArchive">Abschließen / Archiv</button><button class="btn soft" id="cloudDelete">Löschen</button></div><small>Jedes bestätigte Ergebnis wird automatisch gespeichert. Beim Laden werden keine Wertungsblätter erneut gedruckt. Für Firebase ist eine freigegebene Anmeldung erforderlich.</small><div id="cloudLoginForm" class="cloud-login hidden"><label>E-Mail-Adresse<input id="cloudEmail" type="email" autocomplete="username" placeholder="Whiteboard-Benutzer"></label><label>Passwort<input id="cloudPassword" type="password" autocomplete="current-password"></label><button class="btn primary" id="cloudLoginSubmit">Anmelden</button><button class="btn soft" id="cloudLoginCancel">Abbrechen</button></div></section><main class="container"><section class="summary"><div class="metric"><div class="num" id="sumPlayers">0</div><div class="lbl">Teilnehmer</div></div><div class="metric"><div class="num" id="sumField">8</div><div class="lbl">Turnierfeld</div></div><div class="metric"><div class="num" id="sumGames">0 / 0</div><div class="lbl">Entschiedene / erforderliche Spiele</div></div><div class="metric"><div class="num" id="sumNext">–</div><div class="lbl">Nächstes Spiel</div></div></section>
+<section class="panel" id="setup"><h2>Turnier anlegen</h2><h3 class="setup-step">1. Spieler auswählen</h3><div class="roster-panel"><button type="button" class="roster-heading" id="rosterToggle" aria-expanded="true" aria-controls="rosterBody"><span>☑ Spielervorschläge auswählen <small>· Stammspieler aus der Turnierauslosung</small></span><span class="chevron" id="rosterChevron">⌃</span></button>
+<div class="roster-body" id="rosterBody"><div class="roster-tools"><label class="field">Spieler suchen<input id="rosterSearch" type="search" placeholder="Name suchen …" autocomplete="off"></label><button type="button" class="btn soft" id="rosterAll">Alle sichtbaren anhaken</button><button type="button" class="btn soft" id="rosterNone">Häkchen entfernen</button></div>
+<div class="roster-grid" id="rosterGrid" role="group" aria-label="Stammspieler auswählen"></div>
+<div class="roster-bottom"><span class="roster-count" id="rosterCount">0 ausgewählt</span><button type="button" class="btn primary" id="rosterAdd">✓ Ausgewählte Spieler hinzufügen</button></div>
+<div class="guest-panel"><label class="field">Zusätzlicher Spieler / Gastspieler<input id="guestName" type="text" maxlength="100" placeholder="Vorname Nachname eingeben"></label><button type="button" class="btn gold" id="guestAdd">+ Gastspieler hinzufügen</button></div>
+<div class="roster-feedback" id="rosterFeedback" role="status" aria-live="polite">69 Stammspieler aus der Turnierauslosung verfügbar.</div></div></div>
+<div class="roster-list-header"><strong>Turnierteilnehmer · Reihenfolge = Setzliste</strong><span id="rosterSlots">0 / 32 Spieler</span></div>
+<div id="playerManager" class="player-manager" aria-label="Teilnehmer einzeln entfernen"></div><div id="withdrawnNote" class="withdrawn-note"></div><div class="field" style="margin-top:8px"><textarea id="players" aria-label="Teilnehmerliste" placeholder="Spieler auswählen oder hier direkt Namen eintragen (eine Zeile pro Spieler)"></textarea></div><h3 class="setup-step">2. Turniergröße und Turnierdaten</h3><div class="setup-grid"><label class="field">Doppel-KO-Feld<select id="fieldSize" disabled><option value="8">8er-Doppel-KO</option><option value="16">16er-Doppel-KO</option><option value="32">32er-Doppel-KO</option></select></label><label class="field">Turniername<input id="tournamentName" value="EC Wegscheid – Doppel KO" maxlength="100"></label><label class="field">Datum<input id="tournamentDate" type="date"></label></div><div class="event-grid"><label class="field">Austragungsort<input id="venue" maxlength="120" value="Stocksporthalle EC Wegscheid"></label><label class="field">Veranstalter<input id="organizer" maxlength="120" value="EC Wegscheid"></label><label class="field">Durchführer<input id="director" maxlength="120" value="EC Wegscheid"></label></div><div class="hint" id="modeHint" aria-live="polite">Bitte zuerst mindestens 2 Spieler hinzufügen.</div>
+<label class="fast-mode-option"><input id="fastMode" type="checkbox"><span class="fast-icon">⚡</span><span><strong>Schnelles Spiel – 4 Bahnen</strong><small>Bis zu vier spielbereite Begegnungen gleichzeitig freigeben. Sobald ein Ergebnis eingetragen ist, wird eine weitere mögliche Paarung nachgeschoben – auch aus der nächsten Runde, wenn beide Spieler feststehen.</small></span></label>
+<div class="score-sheet-config"><h3>Wertungsblätter · Solo-Spiegel</h3><p>Für jede neu freigegebene Begegnung ein A4-Querformat-Wertungsblatt. Im Schnellmodus werden maximal vier Bahnen gleichzeitig zugewiesen.</p><div class="score-sheet-grid"><label class="field">1. Runde · Kehren<input type="number" id="turnsFirst" min="1" max="20" value="6"></label><label class="field">Ab 2. Runde · Kehren<input type="number" id="turnsLater" min="1" max="20" value="8"></label><label class="field">Finale · Kehren<input type="number" id="turnsFinal" min="1" max="20" value="10"></label></div><label class="score-sheet-auto"><input id="autoSheets" type="checkbox" checked><span><strong>Startkarten automatisch drucken: JA / NEIN (Häkchen = JA)</strong><small>Kein stiller Direktdruck: Der Browser verlangt eine Bestätigung. Je freigegebener Paarung genau ein automatischer Druckaufruf. Jedes Blatt einzeln auf A4 quer. Bei Browser-Sperre: „Wertungsblatt drucken“ in der kleinen Druckwarteschlange antippen.</small></span></label></div>
+<div class="actions" style="margin-top:12px"><button class="btn primary" id="create">Turnier erstellen / aktualisieren</button><button class="btn soft" id="example">Beispielspieler einfügen</button><button class="btn soft" id="clear">Neues Turnier</button><button class="btn soft" id="toggleSetup">Teilnehmer ausblenden</button></div><div class="hint">Erst Spieler auswählen, dann das gewünschte Turnierfeld bestimmen. Das kleinste passende Feld wird vorgeschlagen; größere Felder können bewusst ausgewählt werden und erhalten Freilose. Spieler über ✕ einzeln entfernen: Bei laufenden Turnieren bleiben bereits gespielte Ergebnisse erhalten; der Spieler wird für kommende Begegnungen abgemeldet. Andere Änderungen über „Turnier erstellen“ können Ergebnisse zurücksetzen.</div></section>
+<section class="turn-banner" id="turnBanner">Turnier vorbereiten</section><div class="toolrow"><div class="tabs"><button class="tab active" data-tab="winner">Siegerbaum</button><button class="tab" data-tab="loser">Verliererbaum</button><button class="tab" data-tab="final">Finale</button><button class="tab" data-tab="ranking">Endergebnis</button></div><div class="actions"><button class="btn soft" id="printSheets">▤ Wertungsblätter drucken</button><button class="btn gold" id="printResults">▤ Ergebnisliste / PDF</button><button class="btn soft" id="correction">✎ Ergebnisse korrigieren</button><span class="status" id="status">Turnier vorbereiten</span></div></div><section class="panel" id="content"><div class="empty-state"><strong>Turnier anlegen</strong>Teilnehmer eingeben und auf „Turnier erstellen“ tippen.</div></section>
+<div class="footer">EC Wegscheid · Integrationstest V2.8 · Firebase mit Anmeldung · Druckdialog nicht gleichbedeutend mit tatsächlichem Ausdruck · keine Firebase-Synchronisation</div></main>
+
+<section class="wb-view hidden" id="wbView" aria-label="Whiteboard-Turnieransicht">
+  <div class="wb-top"><div><div class="wb-title">EC WEGSCHEID · DOPPEL KO</div><div class="wb-sub" id="wbSubtitle">Turnierübersicht</div></div><div class="wb-ctrl"><button class="btn soft" id="wbCorrection">✎ Korrektur</button><button class="btn soft" id="wbPrintSheets">▤ Wertungsblätter</button><button class="btn soft" id="wbRefresh">↻ Aktualisieren</button><button class="btn primary" id="wbExit">← Zurück zur Eingabe</button></div></div>
+  <div class="wb-body"><section class="wb-side"><div class="wb-side-title">← VERLIERERBAUM</div><div class="wb-rounds-scroll" id="wbLoser"></div></section><section class="wb-center" id="wbFinal"></section><section class="wb-side"><div class="wb-side-title">SIEGERBAUM →</div><div class="wb-rounds-scroll" id="wbWinner"></div></section></div>
+  <div class="wb-foot"><span id="wbProgress">Spielstand</span><span id="wbModeLabel"><strong>WHITEBOARD</strong> · Rundenmodus · + / − und ✓ · Firebase</span></div>
+</section>
+<div class="modal-back hidden" id="modal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><h2 id="modalTitle">Ergebnis eingeben</h2><p class="sub" id="modalSub"></p><div class="score-line"><label id="leftName"></label><input id="scoreA" type="number" inputmode="numeric" min="0" max="999" placeholder="0"></div><div class="score-line"><label id="rightName"></label><input id="scoreB" type="number" inputmode="numeric" min="0" max="999" placeholder="0"></div><p class="warning" id="modalWarning">Bei Änderung eines früheren Ergebnisses werden davon abhängige Ergebnisse gegebenenfalls zurückgesetzt.</p><div class="modal-actions"><button class="btn soft" id="cancel">Abbrechen</button><button class="btn soft" id="removeScore">Ergebnis löschen</button><button class="btn primary" id="saveScore">Ergebnis speichern</button></div></div></div>
+<script src="doppel-ko-app-v26.js" defer></script></body></html>
