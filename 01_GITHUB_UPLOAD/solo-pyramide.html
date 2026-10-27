@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<script>if(window.self!==window.top)document.documentElement.classList.add("ecw-inside-frame");</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Solo Pyramide 2026 V2.5.2</title>
+
+<meta name="theme-color" content="#800000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+* { box-sizing: border-box; }
+html, body {
+  min-height: 100%;
+  margin: 0;
+  background: #800000 url('Hintergrund Rot ohne Logo.png') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  color: #fff;
+  -webkit-text-size-adjust: 100%;
+}
+
+.topRightLoginInfo {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  background: rgba(20, 20, 25, 0.85);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: clamp(11px, 1.2vw, 13px);
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  display: none;
+}
+
+.headerContainer {
+  text-align: center;
+  margin: 10px 0;
+  padding: 0 10px;
+}
+
+h1, .subtitle {
+  margin: 0;
+  font-size: clamp(20px, 5vw, 36px);
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.subtitle {
+  margin-top: 4px;
+  font-size: clamp(13px, 3vw, 18px);
+}
+
+.contentLayout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 10px 30px 10px;
+  gap: 20px;
+}
+
+.mainContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.infoBox {
+  display: none !important;
+  position: sticky;
+  top: 15px;
+  width: 280px;
+  min-width: 250px;
+  background: rgba(20, 20, 25, 0.9);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  z-index: 4;
+}
+
+.infoBox div {
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  padding-bottom: 6px;
+}
+
+.infoBox div:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+#pyramid {
+  width: 100%;
+  padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: clamp(3px, 1vw, 8px);
+  margin: clamp(3px, 0.6vh, 8px) 0;
+  width: 100%;
+}
+
+.card {
+  width: clamp(52px, 12vw, 120px);
+  height: clamp(60px, 11vh, 85px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  background: rgba(20, 20, 25, 0.8);
+  backdrop-filter: blur(5px);
+  padding: 2px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: clamp(8px, 1.2vw, 13px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+  background: rgba(35, 35, 45, 0.85);
+}
+
+.nameBox {
+  font-size: clamp(7px, 1.5vw, 11px);
+  line-height: 1.1;
+  word-break: break-word;
+  max-height: 2.4em;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 1px;
+}
+
+.place {
+  font-size: clamp(6.5px, 1vw, 9.5px);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ddd;
+  opacity: 0.85;
+}
+
+.locked {
+  background: rgba(120, 20, 20, 0.85);
+  color: #ffa39e;
+  border-color: #ff4d4f;
+}
+
+.vacation {
+  background: rgba(80, 80, 95, 0.9);
+  color: #ffffff;
+  border-color: #b0b0b0;
+}
+
+.selected {
+  background: rgba(255, 217, 102, 0.95) !important;
+  color: #000 !important;
+  border-color: #ffd966 !important;
+  transform: scale(1.05);
+}
+
+.selected .place { color: #333 !important; }
+
+.allowed {
+  background: rgba(30, 144, 255, 0.95) !important;
+  color: #fff !important;
+  border-color: #64b5f6 !important;
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 6px #1e90ff; }
+  100% { box-shadow: 0 0 16px #64b5f6; }
+}
+
+.free {
+  background: rgba(255, 255, 255, 0.15);
+  color: #bbb;
+  border-style: dashed;
+}
+
+.challengeFixed {
+  background: rgba(255, 230, 120, 0.95) !important;
+  color: #000 !important;
+  border: 2px solid #d48806 !important;
+}
+
+.challengeFixed .place { color: #444 !important; }
+
+.challengedBy {
+  font-size: clamp(6px, 1vw, 9px);
+  line-height: 1.05;
+  color: #8c6b00;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.timeBadge, .lockBadge, .vacationBadge {
+  font-size: clamp(6px, 0.9vw, 8.5px);
+  font-weight: bold;
+  white-space: nowrap;
+}
+.timeBadge { color: #a10000; }
+.lockBadge { color: #ffccc7; }
+.vacationBadge { color: #000000; text-shadow: none; font-weight: 800; }
+
+.sideContainer {
+  position: fixed;
+  top: 35%;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 5;
+}
+
+.sideBtn {
+  background: linear-gradient(135deg, #d6d6d6, #8a8a8a);
+  color: #111;
+  padding: 8px 10px;
+  font-size: clamp(11px, 1.3vw, 14px);
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  user-select: none;
+}
+
+.adminBtn {
+  background: linear-gradient(135deg, #ffd966, #d48806);
+  color: #000;
+}
+
+.infoSystemBtnBadge {
+  background: linear-gradient(135deg, #81c784, #388e3c);
+  color: #fff;
+}
+
+.infoBtn {
+  background: linear-gradient(135deg, #bdbdbd, #616161);
+  color: #fff;
+}
+
+.statBtn {
+  background: linear-gradient(135deg, #64b5f6, #1976d2);
+  color: #fff;
+}
+
+.logoutBtn {
+  background: linear-gradient(135deg, #ff7875, #a8071a);
+  color: #fff;
+}
+
+.bottomRightBtnContainer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5;
+}
+
+.menuExitBtn {
+  background: linear-gradient(135deg, #ff4d4f, #a8071a);
+  color: #fff;
+  padding: 10px 16px;
+  font-size: clamp(12px, 1.4vw, 15px);
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 3px 4px 12px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  user-select: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.menuExitBtn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #ff7875, #cf1322);
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.modal {
+  background: #1c1c24;
+  color: #fff;
+  max-width: 650px;
+  width: 100%;
+  margin: 10vh auto;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.adminTabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 6px;
+  overflow-x: auto;
+}
+
+.adminTabBtn {
+  background: #2a2a35;
+  color: #bbb;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.adminTabBtn.active {
+  background: #d48806;
+  color: #000;
+}
+
+.adminTabContent {
+  display: none;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.adminTabContent.active {
+  display: block;
+}
+
+.btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #d6d6d6, #8a8a8a);
+  color: #111;
+}
+
+.btnDanger {
+  background: linear-gradient(135deg, #ff4d4f, #a8071a);
+  color: #fff;
+}
+
+.adminInput, .adminSelect, .adminTextarea {
+  width: 100%;
+  background: #2a2a35;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.playerGridAdmin {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #444;
+  padding: 6px;
+  border-radius: 8px;
+  background: #141419;
+  margin-bottom: 10px;
+}
+
+.playerAdminRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 4px;
+}
+
+.playerAdminRow span {
+  width: 40px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+.playerAdminRow input[type="text"] {
+  flex: 1;
+  padding: 6px;
+  background: #2a2a35;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.scoreBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.scoreBox label {
+  font-weight: bold;
+  text-align: center;
+  max-width: 45%;
+  font-size: 13px;
+}
+
+.scoreBox select {
+  display: block;
+  margin: 6px auto 0;
+  width: 70px;
+  height: 44px;
+  font-size: 16px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #2a2a35;
+  color: #fff;
+}
+
+.scoreSep {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.hint {
+  color: #bbb;
+  text-align: center;
+  line-height: 1.4;
+  font-size: 13px;
+}
+
+/* V2.5.2: smartphone-friendly layout */
+@media (max-width: 700px) {
+  .headerContainer {
+    margin: 6px 48px 8px 48px;
+    padding: 0;
+  }
+  h1 { font-size: clamp(18px, 6vw, 28px); }
+  .subtitle { font-size: clamp(11px, 3.5vw, 16px); }
+
+  .contentLayout {
+    display: block;
+    padding: 0 3px 70px;
+  }
+  .mainContainer { width: 100%; }
+  #pyramid { width: 100%; padding: 0; }
+  .row {
+    gap: clamp(2px, 0.8vw, 5px);
+    margin: clamp(2px, 0.45vh, 5px) 0;
+  }
+  .card {
+    width: clamp(44px, 13.5vw, 74px);
+    height: clamp(54px, 9.5vh, 72px);
+    border-radius: 7px;
+  }
+  .sideContainer {
+    top: 22%;
+    gap: 5px;
+    z-index: 20;
+  }
+  .sideBtn {
+    min-width: 68px;
+    padding: 9px 7px;
+    font-size: 11px;
+    text-align: center;
+  }
+  .topRightLoginInfo { display: none !important; }
+
+  .bottomRightBtnContainer {
+    right: 8px;
+    bottom: 8px;
+  }
+  .menuExitBtn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .overlay {
+    z-index: 100;
+    padding: 8px;
+  }
+  .modal {
+    width: 100%;
+    max-width: none;
+    margin: 4vh auto;
+    padding: 14px;
+    border-radius: 12px;
+  }
+}
+@media (hover: none) {
+  .card:hover, .menuExitBtn:hover { transform: none; }
+}
+
+
+/* Eingebettet: nur die uebergeordnete Verwaltung zeigt die Hauptmenue-Navigation. */
+html.ecw-inside-frame .bottomRightBtnContainer {display:none!important;}
+</style>
+</head>
+<body>
+
+<div class="topRightLoginInfo" id="topRightLoginInfoBox"></div>
+
+<div class="sideContainer" id="sideNavContainer" style="display:none;">
+  <div class="sideBtn" onclick="showHistory()">Historie</div>
+  <div class="sideBtn infoBtn" onclick="showInfo()">Info</div>
+  <div class="sideBtn infoSystemBtnBadge" id="infoSystemNavBadge" style="display:none;">Infostand</div>
+  <div class="sideBtn adminBtn" id="adminNavBtn" onclick="openAdminMenu()" style="display:none;">Admin</div>
+  <div class="sideBtn statBtn" onclick="showStatistics()">Statistik</div>
+  <div class="sideBtn logoutBtn" id="logoutNavBtn" onclick="logoutUser()">Abmelden</div>
+</div>
+
+<div class="bottomRightBtnContainer">
+  <div class="menuExitBtn" onclick="returnToMainMenu()">Zurück zum Hauptmenü</div>
+</div>
+
+<div class="headerContainer">
+  <h1 id="headerTitle">Solo Pyramide 2026</h1>
+  <div class="subtitle" id="headerSubtitle">EC Wegscheid</div>
+</div>
+
+<div class="contentLayout">
+  <div class="mainContainer">
+    <div id="pyramid"></div>
+  </div>
+  <div class="infoBox" id="infoBoxContainer" aria-hidden="true"></div>
+</div>
+
+<div id="ov" class="overlay"><div class="modal"><div id="mc"></div></div></div>
+
+<script type="module" src="js/solo-pyramide.js?v=2.9.27"></script>
+</body>
+</html>
