@@ -18,6 +18,7 @@ const APP_URL_PARAMS = new URLSearchParams(window.location.search);
 const WHITEBOARD_REQUESTED = APP_URL_PARAMS.get('mode') === 'whiteboard' || APP_URL_PARAMS.get('whiteboard') === '1';
 const WHITEBOARD_MODE = WHITEBOARD_REQUESTED && hasCentralWhiteboardParent();
 const ADMIN_EMBED_MODE = APP_URL_PARAMS.get('mode') === 'admin-embedded';
+const INFO_EMBED_MODE = APP_URL_PARAMS.get('mode') === 'infosystem';
 const INTEGRATED_HOSTED_MODE = location.hostname === 'ecwegscheid.github.io' &&
   /^\/Vereinsverwaltung-Aktuell\/solo-pyramide\.html$/i.test(location.pathname);
 
@@ -125,6 +126,8 @@ if (WHITEBOARD_MODE) {
   currentSession = { type: 'whiteboard', name: null };
 } else if (hasCentralAdminParent()) {
   currentSession = { type: 'admin', name: null, embeddedCentralAdmin: true };
+} else if (INFO_EMBED_MODE && window.parent !== window) {
+  try { if(window.parent.location.origin===location.origin && window.parent.firebaseAuthUser) currentSession={type:'infosystem',name:null,embeddedCentralAdmin:true}; }catch(e){}
 }
 
 function persistSession() {
@@ -210,7 +213,7 @@ async function tryLegacyMigration(){
     applyData(data);
     localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(data));
     try{
-      if(useFirebase && dbRef) await centralWrite(buildPayload());
+      // Altdaten nur anzeigen; niemals ohne bestätigten Administrator-Import in Firestore überschreiben.
     }catch(e){
       console.warn('Altdaten konnten noch nicht in das zentrale Firebase geschrieben werden:', e);
     }
@@ -286,17 +289,15 @@ async function initCentralFirebase(){
     // Erst nach Wiederherstellung der bestehenden Firebase-Sitzung abonnieren.
     // Ohne Authentifizierung würde die Firestore-Abfrage bei geschützten Regeln
     // fehlschlagen und die Solo-Pyramide scheinbar leer bleiben.
-    onAuthStateChanged(getAuth(app), user => {
-      if(!user){
-        console.warn('Solo-Pyramide: Zentrale Firebase-Anmeldung noch nicht verfügbar.');
-        return;
-      }
-      onSnapshot(dbRef,
-        snap => handleCentralSnapshot(snap.exists(), snap.exists() ? snap.data() : null),
-        err => { console.error('Zentrales Firebase (Solo Pyramide):', err);
-          if(!centralStateSeen) tryLegacyMigration(); }
-      );
-    });
+    // Auch ohne angemeldeten Firebase-Benutzer lesen versuchen: die ältere
+    // Solo-Datenbank war öffentlich lesbar. Bei Regel-Fehlern keine Daten überschreiben.
+    onSnapshot(dbRef,
+      snap => handleCentralSnapshot(snap.exists(), snap.exists() ? snap.data() : null),
+      err => { console.error('Solo-Pyramide: Firestore-Zugriff nicht möglich:', err);
+        const el=document.getElementById('soloDataError');
+        if(el)el.textContent='Gespeicherte Pyramide nicht geladen. Bitte Administrator informieren. Nicht speichern.';
+        if(!centralStateSeen) tryLegacyMigration(); }
+    );
     return true;
   }catch(err){
     console.warn("Zentrales Firebase wurde blockiert/Netzwerkfehler. App läuft mit lokalem/Altdaten-Fallback.", err);
@@ -305,9 +306,11 @@ async function initCentralFirebase(){
     return false;
   }
 }
+const soloWarning=document.createElement('div');soloWarning.id='soloDataError';soloWarning.style.cssText='color:#ffb3b3;text-align:center;font-weight:bold';document.body.prepend(soloWarning);
 await initCentralFirebase();
 
 window.save = function(){
+  if(currentSession?.type==='infosystem')return;
   const payload = buildPayload();
   localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(payload));
 

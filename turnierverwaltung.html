@@ -798,6 +798,28 @@ html.ecw-inside-frame #viewTurnierDetail:not(.hidden) > #backToTurniere {bottom:
   .paper,.start-paper,.export-stage .paper {background:#fff!important;color:#111!important;}
 }
 
+
+/* V2.9.35: sechs Verwaltungsreiter vollständig sichtbar */
+nav.ecw-six-nav{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;overflow:visible!important;max-width:1300px!important;margin:10px auto!important;padding:8px!important}
+nav.ecw-six-nav button{min-width:0!important;min-height:62px!important;height:auto!important;white-space:normal!important;overflow:visible!important;line-height:1.25!important;padding:10px 8px!important;word-break:normal!important}
+@media(max-width:700px){nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* V2.9.38: tatsächliche Navigation mit acht Schaltflächen; keine abgeschnittenen Labels */
+nav.ecw-six-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;max-width:1500px!important;width:calc(100% - 28px)!important;box-sizing:border-box!important;overflow:visible!important;align-items:stretch!important}
+nav.ecw-six-nav button{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;min-height:76px!important;height:auto!important;padding:12px 9px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;word-break:normal!important;line-height:1.35!important;font-size:clamp(13px,1.15vw,17px)!important;text-align:center!important}
+nav.ecw-six-nav button .step{flex-shrink:0!important}
+@media(max-width:1050px){nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:480px){nav.ecw-six-nav{grid-template-columns:1fr!important}nav.ecw-six-nav button{min-height:55px!important}}
+/* Papieransicht der StockApp ist immer dunkel auf hell, auch unter globalen th/tr-Regeln */
+#archivSkmrViewer,#archivSkmrViewer *{color:#111!important;text-shadow:none!important;-webkit-text-fill-color:#111!important}
+#archivSkmrViewer{background:#fff!important;color:#111!important}
+#archivSkmrViewer table{background:#fff!important;color:#111!important;border-collapse:collapse!important}
+#archivSkmrViewer thead,#archivSkmrViewer thead tr,#archivSkmrViewer th{background:#ddd!important;color:#111!important}
+#archivSkmrViewer tbody tr:nth-child(odd){background:#fff!important}
+#archivSkmrViewer tbody tr:nth-child(even){background:#eee!important}
+#archivSkmrViewer td,#archivSkmrViewer th{color:#111!important;background:transparent!important;padding:8px!important;border-bottom:1px solid #ccc!important}
+#archivSkmrViewer tbody tr:hover{background:#ddd!important}
+body.ecw-archive-readonly #tdEditBtn,body.ecw-archive-readonly #tdDeleteBtn,body.ecw-archive-readonly #tdLinkBtn,body.ecw-archive-readonly #tdMobileLinkBtn,body.ecw-archive-readonly #ecwStockExportBtn,body.ecw-archive-readonly #registrationCard{display:none!important}
 </style>
 <style id="club-v2923-style">
 #vereinEditorCard.hidden{display:none!important}
@@ -809,7 +831,22 @@ html.ecw-inside-frame #viewTurnierDetail:not(.hidden) > #backToTurniere {bottom:
 #vereinEditorCard.club-edit-modal{position:fixed;z-index:999991;top:4vh;left:50%;transform:translateX(-50%);width:min(900px,94vw);height:92vh;overflow-y:auto;box-sizing:border-box;box-shadow:0 12px 55px #0009}
 #vereinEditorCard.club-edit-modal .form-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 </style>
-</head>
+<style id="ecw2939-navigation">
+nav.ecw-six-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-auto-rows:auto!important;align-items:stretch!important;gap:16px!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding:12px!important}
+nav.ecw-six-nav>button{position:relative!important;inset:auto!important;transform:none!important;float:none!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:100%!important;height:auto!important;min-height:84px!important;max-height:none!important;margin:0!important;padding:14px 10px!important;line-height:1.35!important;white-space:normal!important;overflow:visible!important}
+@media(max-width:1050px){nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:520px){nav.ecw-six-nav{grid-template-columns:1fr!important}}
+#archivSkmrViewer,#archivSkmrViewer *{color:#111!important;text-shadow:none!important}
+#archivSkmrViewer table{background:white!important}
+#archivSkmrViewer th{color:#111!important;background:#ddd!important}
+#archivSkmrViewer td{color:#111!important}
+</style><style id="ecw2940-nav-fix">
+body nav.ecw-six-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-template-rows:repeat(2,minmax(88px,auto))!important;grid-auto-rows:minmax(88px,auto)!important;align-content:start!important;align-items:stretch!important;column-gap:14px!important;row-gap:18px!important;height:auto!important;min-height:210px!important;max-height:none!important;overflow:visible!important;position:relative!important;box-sizing:border-box!important}
+body nav.ecw-six-nav>button{position:static!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;float:none!important;transform:none!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;grid-row:auto!important;grid-column:auto!important;height:100%!important;min-height:88px!important;max-height:none!important;line-height:1.4!important;padding:14px!important;margin:0!important;white-space:normal!important;overflow:visible!important;box-sizing:border-box!important}
+body nav.ecw-six-nav>button .step{position:static!important;flex-shrink:0!important;margin-right:8px!important}
+@media(max-width:950px){body nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:none!important;min-height:0!important}}
+@media(max-width:500px){body nav.ecw-six-nav{grid-template-columns:1fr!important}}
+</style><style id="ecw2941-archive-back">body.ecw-archive-readonly #ecwArchivBack2941{display:block!important}body.ecw-archive-readonly #backToTurniere{display:none!important}</style></head>
 <body>
 
 <!-- JSZip license
@@ -1482,11 +1519,11 @@ copy of the Program in return for a fee.
   <header>
     <div>
       <h1>EC Wegscheid – Turnierverwaltung</h1>
-      <div class="version">Version 2.9.27</div>
+      <div class="version">Version 2.9.38</div>
     <div id="userStatus"></div></div><div><button id="logoutBtn">Abmelden</button></div>
   </header>
 
-  <nav>
+  <nav class="ecw-six-nav">
     <button id="navAnlegen" class="active"><span class="step">01</span>Turnier anlegen</button>
     <button id="navTurniere"><span class="step">02</span>Turnier verwalten</button>
     <button id="navLiveStartliste"><span class="step">L</span>Live Startliste</button>
@@ -1571,6 +1608,16 @@ copy of the Program in return for a fee.
       <div class="card">
         <label for="archivSuche">Archiv durchsuchen</label>
         <input id="archivSuche" type="search" placeholder="Turniername oder Ort" />
+        <details style="margin:14px 0"><summary>Älteres Turnier nachtragen</summary>
+          <div class="form-grid"><label>Turniername <input id="archivAltName" placeholder="Turniername"></label>
+          <label>Datum <input id="archivAltDatum" type="date"></label>
+          <label>Veranstaltungsort <input id="archivAltOrt"></label><label>Veranstalter <input id="archivAltVeranstalter"></label>
+          <label>Turnierart <select id="archivAltKategorie"><option>Herren</option><option>Damen</option><option>Mixed</option><option>Brotzeit</option></select></label></div>
+          <label>SKMR-Datei (optional, Turnierdaten automatisch ausfüllen) <input id="archivAltSkmr" type="file" accept=".skmr,.xml"></label>
+           <div id="archivAltSkmrStatus" class="meta"></div>
+           <button type="button" id="archivAltSave" class="primary">Älteres Turnier im Archiv anlegen</button>
+          <p class="meta">Die SKMR-Ergebnisliste wird beim Anlegen direkt mitgespeichert und beim Öffnen automatisch angezeigt.</p>
+        </details>
         <div class="meta" id="archivAnzahl" style="margin-top:12px"></div>
         <div id="archivListe"><p class="meta">Archiv wird geladen …</p></div>
       </div>
@@ -1629,6 +1676,18 @@ copy of the Program in return for a fee.
         </div>
       </div>
 
+      <div class="card" id="archivResultCard" style="display:none">
+        <h3>Ergebnisliste</h3><p class="meta">Original-PDF wird unverändert angezeigt. Die darunterliegende Startliste bleibt erhalten.</p>
+        <label>Original-Ergebnisliste (PDF) <input type="file" id="archivPdfFile" accept="application/pdf,.pdf"></label>
+        <button type="button" id="archivPdfSave">Ergebnisliste zuordnen</button>
+        <button type="button" id="archivPdfRemove" class="secondary">Zuordnung entfernen</button>
+        <p id="archivPdfStatus" class="meta"></p>
+        <div id="archivPdfViewer"></div>
+        <hr><label>StockApp-Ergebnisliste (.skmr) <input type="file" id="archivSkmrFile" accept=".skmr,.xml"></label>
+        <button type="button" id="archivSkmrPreviewBtn">SKMR-Ergebnisliste anzeigen</button>
+        <button type="button" id="archivSkmrSaveBtn">Ergebnisliste in Firebase speichern</button>
+        <div id="archivSkmrStatus" class="meta"></div><div id="archivSkmrViewer"></div>
+      </div>
       <div class="card" id="registrationCard">
         <h3 id="meldungTitel">Mannschaft hinzufügen</h3>
         <div class="meta hidden" id="tdKapazitaet"></div>
@@ -1717,6 +1776,11 @@ copy of the Program in return for a fee.
       </details>
       <details class="card history-panel" id="historyComparePanel" open><summary>Gegenbesuche – Mannschaften pro Jahr</summary>
         <p class="meta">Bei uns: Mannschaften aus abgeschlossenen Heimturnieren. Wir dort: je erfasstem Turnier-/Terminplaner-Eintrag eine Mannschaft (nur vergangene externe Turniere). Meisterschaften und interne Turniere zählen nicht. Der Gegenbesuchsvergleich berücksichtigt alle Kategorien.</p>
+        <div class="form-grid" aria-label="Gegenbesuche filtern und sortieren">
+          <div><label for="historyCompareSearch">Verein suchen</label><input id="historyCompareSearch" type="search" placeholder="Vereinsname"></div>
+          <div><label for="historyCompareYear">Jahr</label><select id="historyCompareYear"><option value="all">Alle Jahre (ab 2021)</option></select></div>
+          <div><label for="historyCompareSort">Sortieren nach</label><select id="historyCompareSort"><option value="gesamt">Gesamtzahl Mannschaften</option><option value="home">Bei uns (absteigend)</option><option value="away">Wir dort (absteigend)</option><option value="difference">Differenz (absteigend)</option><option value="differenceAsc">Differenz (aufsteigend)</option><option value="name">Verein A–Z</option><option value="nameDesc">Verein Z–A</option></select></div>
+        </div>
         <div id="historyCompareSummary" class="meta" style="margin:10px 0"></div>
         <div style="overflow:auto"><table class="history-table"><thead><tr><th>Verein</th><th>Bei uns (Mannschaften)</th><th>Wir dort (Mannschaften)</th><th>Differenz</th></tr></thead><tbody id="historyCompareBody"></tbody></table></div>
         <div id="historyCompareDetail" class="meta" style="margin-top:12px">Verein in der Vergleichstabelle anklicken, um Einzeltermine anzuzeigen.</div>
@@ -4539,6 +4603,7 @@ const firebaseConfig = {
   appId: "1:558472054725:web:10145e2d8d6f168b056dac"
 };
 
+import {getStorage,ref as storageRef,uploadBytes,getBlob,deleteObject} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 const app = initializeApp(firebaseConfig);
 
 // Eingebettet in die Vereinsverwaltung:
@@ -4555,6 +4620,25 @@ const embeddedInMain = (() => {
 
 const auth = embeddedInMain ? window.parent.firebaseAuth : getAuth(app);
 const db = embeddedInMain ? window.parent.firestoreDb : getFirestore(app);
+const archiveStorage=getStorage(app);
+// In der eingebetteten Verwaltungsansicht ist parent.firestoreDb eine Compat-Instanz.
+// Modularer doc(db,...) verursacht dort FirebaseError: invalid-argument.
+function ecwArchiveDoc(id){
+ if(typeof id!=='string'||!id.trim())throw Error('Ungültige Turnier-ID.');
+ return embeddedInMain?db.collection('turniere').doc(id):modDoc(db,'turniere',id);
+}
+async function ecwArchiveGet(id){
+ const ref=ecwArchiveDoc(id);
+ return embeddedInMain?ref.get():modGetDoc(ref);
+}
+async function ecwArchiveUpdate(id,fields){
+ const ref=ecwArchiveDoc(id);
+ return embeddedInMain?ref.update(window.parent.JSON.parse(JSON.stringify(fields))):modUpdateDoc(ref,fields);
+}
+async function ecwArchiveAdd(fields){
+ return embeddedInMain?db.collection('turniere').add(window.parent.JSON.parse(JSON.stringify(fields))):addDoc(collection(db,'turniere'),fields);
+}
+
 
 function onAuthStateChanged(a,cb){
   return embeddedInMain ? a.onAuthStateChanged(cb) : modOnAuthStateChanged(a,cb);
@@ -4774,6 +4858,9 @@ document.getElementById('mobileSaveQrBtn').addEventListener('click',saveCurrentQ
 document.getElementById('mobileLinkDialog').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMobileLink();});
 document.getElementById('mobileLinkDialog').addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileLink();if(e.key==='Tab'){const items=[...e.currentTarget.querySelectorAll('button:not([disabled]),input')];const i=items.indexOf(document.activeElement);if(e.shiftKey&&i===0){e.preventDefault();items.at(-1).focus();}else if(!e.shiftKey&&i===items.length-1){e.preventDefault();items[0].focus();}}});
 document.getElementById('mobileCopyBtn').addEventListener('click',async()=>{const input=document.getElementById('mobileUrl');try{await navigator.clipboard.writeText(input.value);notify('Smartphone-Link kopiert.');}catch{input.focus();input.select();notify('Link markieren und kopieren.');}});
+document.getElementById('historyCompareSearch')?.addEventListener('input',historyRenderComparison);
+document.getElementById('historyCompareYear')?.addEventListener('change',historyRenderComparison);
+document.getElementById('historyCompareSort')?.addEventListener('change',historyRenderComparison);
 document.getElementById('historySearch')?.addEventListener('input',renderHistory);
 document.getElementById('historyCategory')?.addEventListener('change',renderHistory);
 document.getElementById('historySort')?.addEventListener('change',renderHistory);
@@ -4867,9 +4954,10 @@ function showView(viewId, navId) {
   else if(document.getElementById('dTurnierSelect').value && !dokumenteUnsub) loadDocumentMeldungen();
   if(viewId !== 'viewTurnierDetail' && meldungenUnsub) { meldungenUnsub(); meldungenUnsub=null; meldungenGeladen=false; }
 }
-function showTurniereListe() { showView('viewTurniereListe','navTurniere'); }
+function showTurniereListe() { document.body.classList.remove('ecw-archive-readonly');for(const id of ['tdEditBtn','tdDeleteBtn','tdEditForm','registrationCard']){const el=document.getElementById(id);if(el)el.style.removeProperty('display');}showView('viewTurniereListe','navTurniere'); }
 function showVereine() { showView('viewVereine','navVereine'); }
-function showArchiv(){showView('viewArchiv','navArchiv');renderArchiv();}
+document.getElementById('ecwArchivBack2941')?.addEventListener('click',()=>{document.body.classList.remove('ecw-archive-readonly');history.replaceState(null,'','#archiv');showArchiv();});
+function showArchiv(){document.body.classList.remove('ecw-archive-readonly');showView('viewArchiv','navArchiv');renderArchiv();}
 function showHistorie(){showView('viewHistorie','navHistorie');renderHistory();}
 function showTurnierDetail() { showView('viewTurnierDetail','navTurniere'); }
 function routeFromHash() {
@@ -4904,7 +4992,7 @@ navVereine.addEventListener('click',()=>navigate('#vereine'));
 document.getElementById('navHistorie').addEventListener('click',()=>navigate('#historie'));
 document.getElementById('navDokumente').addEventListener('click',()=>navigate('#dokumente'));
 document.getElementById('navSenden').addEventListener('click',()=>navigate('#senden'));
-document.getElementById('backToTurniere').addEventListener('click',()=>navigate(mobileMode?'#mobil':(aktuellesTurnier&&tournamentIsFinished(aktuellesTurnier)?'#archiv':'#verwalten')));
+document.getElementById('backToTurniere').addEventListener('click',()=>navigate(mobileMode?'#mobil':(document.body.classList.contains('ecw-archive-readonly')?'#archiv':'#verwalten')));
 document.getElementById('liveStartTurnierSelect').addEventListener('change',renderLiveStartliste);
 document.getElementById('turnierSuche').addEventListener('input',renderTurniere);
 document.getElementById('archivSuche').addEventListener('input',renderArchiv);
@@ -4997,6 +5085,9 @@ function historyFillYears(){
  const sorted=[...years].filter(y=>/^20\d\d$/.test(y)&&Number(y)>=2021).sort((a,b)=>b.localeCompare(a));
  sel.innerHTML='<option value="all">Alle Jahre (ab 2021)</option>'+sorted.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
  sel.value=sorted.includes(selected)?selected:'all';
+ const compare=document.getElementById('historyCompareYear');
+ if(compare){const previous=compare.value;compare.innerHTML=sel.innerHTML;compare.value=sorted.includes(previous)?previous:'all';}
+
 }
 // Auswertungskorrekturen sind bewusst getrennt von den Originalterminen.
 const HISTORY_CORRECTIONS_KEY='ecw_history_compare_corrections_v1';
@@ -5111,7 +5202,7 @@ function historyNormalizeCompareName(raw){
 }
 function historyRenderComparison(){
  const body=document.getElementById('historyCompareBody'),summary=document.getElementById('historyCompareSummary');if(!body||!summary)return;
- const year=historySelectedYear(),term=(document.getElementById('historySearch')?.value||'').toLowerCase();
+ const year=document.getElementById('historyCompareYear')?.value||'all',term=(document.getElementById('historyCompareSearch')?.value||'').toLocaleLowerCase('de');
  const inbound=historyAllRecords().filter(r=>year==='all'||String(r.iso||'').startsWith(year));
  const outbound=historyPlannerEntries().filter(r=>year==='all'||String(r.date||'').startsWith(year));
  const groups=new Map();
@@ -5122,7 +5213,16 @@ function historyRenderComparison(){
  };
  for(const r of inbound)add(r.verein,'home',Math.max(1,Number(r.mannschaften)||1),r);
  for(const r of outbound)add(r.club,'away',r.teams||1,r);
- const rows=[...groups.values()].filter(g=>!term||g.name.toLowerCase().includes(term)).sort((a,b)=>b.home+b.away-a.home-a.away||a.name.localeCompare(b.name,'de'));
+ const sort=document.getElementById('historyCompareSort')?.value||'gesamt';
+ const comparators={
+   gesamt:(a,b)=>(b.home+b.away)-(a.home+a.away),
+   home:(a,b)=>b.home-a.home,away:(a,b)=>b.away-a.away,
+   difference:(a,b)=>(b.home-b.away)-(a.home-a.away),
+   differenceAsc:(a,b)=>(a.home-a.away)-(b.home-b.away),
+   name:(a,b)=>a.name.localeCompare(b.name,'de'),
+   nameDesc:(a,b)=>b.name.localeCompare(a.name,'de')
+ };
+ const rows=[...groups.values()].filter(g=>!term||g.name.toLocaleLowerCase('de').includes(term)).sort((a,b)=>(comparators[sort]||comparators.gesamt)(a,b)||a.name.localeCompare(b.name,'de'));
  body.replaceChildren();
  for(const g of rows){
    const tr=document.createElement('tr'),delta=g.home-g.away;
@@ -5461,20 +5561,164 @@ function renderTurniere() {
   });
   renderArchiv();
 }
+
+// V2.9.34 – Archivnachtrag und originalgetreue PDF-Anzeige.
+// PDFs bleiben lokal im jeweiligen Browser (IndexedDB), nicht in Firestore.
+function ecwArchivePdfDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open('ecw-archiv-pdf-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('pdf');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+async function ecwArchivePdfGet(id){const db=await ecwArchivePdfDb();return new Promise((resolve,reject)=>{const tx=db.transaction('pdf','readonly'),r=tx.objectStore('pdf').get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+async function ecwArchivePdfPut(id,value){const db=await ecwArchivePdfDb();return new Promise((resolve,reject)=>{const tx=db.transaction('pdf','readwrite');tx.objectStore('pdf').put(value,id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+async function ecwArchivePdfDel(id){const db=await ecwArchivePdfDb();return new Promise((resolve,reject)=>{const tx=db.transaction('pdf','readwrite');tx.objectStore('pdf').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+let ecwArchivePdfUrl=null;
+async function ecwArchiveOpenResult(id,t){
+ const card=document.getElementById('archivResultCard'),viewer=document.getElementById('archivPdfViewer'),status=document.getElementById('archivPdfStatus');
+ if(!card)return;card.style.display=tournamentIsFinished(t)?'block':'none';viewer.replaceChildren();status.textContent='';
+ if(ecwArchivePdfUrl){URL.revokeObjectURL(ecwArchivePdfUrl);ecwArchivePdfUrl=null;}
+ if(!tournamentIsFinished(t))return;
+ ecwArchiveRenderSkmr(t?.archivSkmrRangliste||null);
+ try{
+   let pdf=null;
+   const snapshot=await ecwArchiveGet(id);
+   if(aktuellesTurnier?.id!==id)return;
+   const metadata=snapshot.exists()?snapshot.data()?.archivErgebnisPdf:null;
+   ecwArchiveSkmrDraft=null;
+   ecwArchiveRenderSkmr(snapshot.exists()?(snapshot.data()?.archivSkmrRangliste||t?.archivSkmrRangliste||null):(t?.archivSkmrRangliste||null));
+
+   if(metadata?.path){
+     try{pdf=await getBlob(storageRef(archiveStorage,metadata.path));status.textContent='Ergebnisliste aus Firebase Storage geladen.';}
+     catch(e){status.textContent='Firebase-Datei nicht abrufbar ('+e.code+'). Prüfe Storage-Regeln.';}
+   }
+   if(!pdf){pdf=await ecwArchivePdfGet(id);if(pdf)status.textContent='Nur lokale Altdatei vorhanden – bitte erneut hochladen, um sie mit Firebase zu synchronisieren.';}
+   if(aktuellesTurnier?.id!==id)return;
+   if(pdf){ecwArchivePdfUrl=URL.createObjectURL(pdf);const iframe=document.createElement('iframe');iframe.title='Original-Ergebnisliste';iframe.src=ecwArchivePdfUrl;iframe.style.cssText='width:100%;height:700px;border:1px solid #aaa';viewer.appendChild(iframe);}
+   else if(!metadata?.path&&!((snapshot.exists()?snapshot.data()?.archivSkmrRangliste:null)||t?.archivSkmrRangliste))status.textContent='Noch keine Ergebnisliste vorhanden.';
+ }catch(e){status.textContent='Ergebnisliste konnte nicht geladen werden: '+e.message;}
+}
+
+let ecwArchiveSkmrDraft=null;
+function ecwArchiveRenderSkmr(data){
+ const target=document.getElementById('archivSkmrViewer');if(!target)return;
+ if(!data){target.replaceChildren();return;}
+ const escS=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ target.style.cssText='background:#fff;color:#111;padding:18px;border-radius:8px;overflow-x:auto;';
+ target.innerHTML='<h3 style="color:#111">'+escS(data.title)+'</h3><p>ER G E B N I S – StockApp-Rangfolge</p><table style="width:100%;border-collapse:collapse"><thead><tr><th>Rang</th><th>Mannschaft</th><th>Punkte</th><th>Diff</th><th>StockPunkte</th></tr></thead><tbody>'+data.rows.map((x,i)=>'<tr style="background:'+(i%2?'#f2f2f2':'white')+'"><td>'+(i+1)+'</td><td>'+escS(x.name)+'</td><td style="color:#111;padding:8px">'+x.points+':'+x.minus+'</td><td style="color:#111;padding:8px">'+x.diff+'</td><td style="color:#111;padding:8px">'+x.for+':'+x.against+'</td></tr>').join('')+'</tbody></table>';
+}
+document.getElementById('archivSkmrPreviewBtn')?.addEventListener('click',async()=>{
+ const f=document.getElementById('archivSkmrFile')?.files?.[0],status=document.getElementById('archivSkmrStatus');
+ if(!f)return alert('SKMR-Datei auswählen.');
+ try{
+ const xml=new DOMParser().parseFromString(await f.text(),'application/xml');
+ if(xml.querySelector('parsererror')||xml.documentElement.tagName!=='Turnier')throw Error('Ungültige SKMR-Datei');
+ const val=(e,k)=>e?.getElementsByTagName(k)?.[0]?.textContent?.trim()||'';
+ const ts=[...xml.getElementsByTagName('Mannschaft')].map(e=>({id:val(e,'StartNumber'),name:val(e,'TeamName'),points:0,minus:0,for:0,against:0}));
+ const map=new Map(ts.map(t=>[t.id,t]));
+ for(const g of xml.getElementsByTagName('Spiel')){
+ const ia=val(g,'StartnummerA'),ib=val(g,'StartnummerB');if(ia===ib)continue;
+ const a=map.get(ia),b=map.get(ib);if(!a||!b)continue;
+ const score=g.getElementsByTagName('Spielstand')[0];const x=Number(val(score,'A')),y=Number(val(score,'B'));if(!Number.isFinite(x)||!Number.isFinite(y))continue;
+ a.for+=x;a.against+=y;b.for+=y;b.against+=x;
+ if(x>y){a.points+=2;b.minus+=2;}else if(y>x){b.points+=2;a.minus+=2;}else{a.points++;a.minus++;b.points++;b.minus++;}
+ }
+ ts.sort((a,b)=>b.points-a.points||((b.for-b.against)-(a.for-a.against))||b.for-a.for||a.name.localeCompare(b.name,'de'));
+ const rows=ts.map(x=>({name:x.name,points:x.points,minus:x.minus,for:x.for,against:x.against,diff:x.for-x.against}));
+ ecwArchiveSkmrDraft={title:val(xml,'TournamentName'),rows,filename:f.name,turnierId:aktuellesTurnier?.id};
+ ecwArchiveRenderSkmr(ecwArchiveSkmrDraft);status.textContent='Vorschau: '+rows.length+' Mannschaften. Mit StockApp-Originaldruck vergleichen, danach speichern.';
+ }catch(e){ecwArchiveSkmrDraft=null;status.textContent=e.message;}
+});
+document.getElementById('archivSkmrSaveBtn')?.addEventListener('click',async()=>{
+ if(!aktuellesTurnier?.id||!ecwArchiveSkmrDraft||ecwArchiveSkmrDraft.turnierId!==aktuellesTurnier.id)return alert('Archivturnier und SKMR-Vorschau auswählen.');
+ if(!confirm('StockApp-Rangfolge für dieses Archivturnier in Firebase speichern?'))return;
+ try{
+ const turnierId=aktuellesTurnier.id;
+ const rangliste=JSON.parse(JSON.stringify({...ecwArchiveSkmrDraft,uploadedAt:new Date().toISOString()}));
+ await ecwArchiveUpdate(turnierId,{archivSkmrRangliste:rangliste});
+ const cacheEntry=turniereCache.find(t=>t.id===turnierId);if(cacheEntry)cacheEntry.archivSkmrRangliste=rangliste;
+ if(aktuellesTurnier?.id===turnierId){aktuellesTurnier.archivSkmrRangliste=rangliste;ecwArchiveRenderSkmr(rangliste);}
+ document.getElementById('archivSkmrStatus').textContent='Rangliste in Firebase gespeichert.';
+ }catch(e){alert('Speichern fehlgeschlagen: '+(e.code||'')+' – '+e.message);}
+});
+document.getElementById('archivPdfSave')?.addEventListener('click',async()=>{
+ const file=document.getElementById('archivPdfFile')?.files?.[0];if(!aktuellesTurnier?.id||!file)return alert('Bitte ein Archivturnier und eine PDF-Datei wählen.');
+ if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf'))return alert('Nur PDF erlaubt.');
+ if(file.size>15*1024*1024)return alert('Die PDF darf maximal 15 MB groß sein.');
+ if(!confirm('Original-Ergebnisliste in Firebase speichern?'))return;
+ const id=aktuellesTurnier.id,path='turnierarchiv/'+id+'/ergebnisliste.pdf';
+ try{
+   await uploadBytes(storageRef(archiveStorage,path),file,{contentType:'application/pdf'});
+   await ecwArchiveUpdate(id,{archivErgebnisPdf:{path,name:file.name,size:file.size,uploadedAt:new Date().toISOString()}});
+   await ecwArchivePdfOpenRefresh();
+ }catch(e){alert('Firebase-Speicherung fehlgeschlagen ('+(e.code||e.message)+'). Prüfe Firebase Storage und die Zugriffsregeln.');}
+});
+async function ecwArchivePdfOpenRefresh(){await ecwArchiveOpenResult(aktuellesTurnier.id,aktuellesTurnier);}
+document.getElementById('archivPdfRemove')?.addEventListener('click',async()=>{
+ if(!aktuellesTurnier?.id||!confirm('Archiv-Ergebnisliste dauerhaft aus Firebase entfernen?'))return;
+ const id=aktuellesTurnier.id;
+ try{
+   const snapshot=await ecwArchiveGet(id),meta=snapshot.data()?.archivErgebnisPdf;
+   if(meta?.path)await deleteObject(storageRef(archiveStorage,meta.path));
+   await ecwArchiveUpdate(id,{archivErgebnisPdf:null});
+   await ecwArchivePdfDel(id);await ecwArchiveOpenResult(id,aktuellesTurnier);
+ }catch(e){alert('Entfernen fehlgeschlagen: '+(e.code||e.message));}
+});
+let ecwAltSkmrData=null;
+document.getElementById('archivAltSkmr')?.addEventListener('change',async e=>{
+ const file=e.target.files?.[0],status=document.getElementById('archivAltSkmrStatus');
+ ecwAltSkmrData=null;if(!file)return;
+ try{
+  const xml=new DOMParser().parseFromString(await file.text(),'application/xml');
+  if(xml.querySelector('parsererror')||xml.documentElement.tagName!=='Turnier')throw Error('Ungültige SKMR-Datei');
+  const val=(e,k)=>e?.getElementsByTagName(k)?.[0]?.textContent?.trim()||'';
+  const name=val(xml,'TournamentName')||file.name.replace(/\\.skmr$/i,'');
+  const rawDate=val(xml,'DateOfTournament')||val(xml,'TournamentDate')||val(xml,'Date')||val(xml,'Datum');
+  const dateMatch=rawDate.match(/(\d{4})-(\d{2})-(\d{2})|(\d{2})[.](\d{2})[.](\d{4})/);
+  const datum=dateMatch?(dateMatch[1]?`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`:`${dateMatch[6]}-${dateMatch[5]}-${dateMatch[4]}`):'';
+    document.getElementById('archivAltName').value=name;
+  if(datum)document.getElementById('archivAltDatum').value=datum;
+  document.getElementById('archivAltOrt').value=val(xml,'Venue')||val(xml,'Location')||val(xml,'TournamentLocation')||'';
+  document.getElementById('archivAltVeranstalter').value=val(xml,'Organizer')||'';
+  const teams=[...xml.getElementsByTagName('Mannschaft')].map(x=>({id:val(x,'StartNumber'),name:val(x,'TeamName'),points:0,minus:0,for:0,against:0}));
+  const byId=new Map(teams.map(x=>[x.id,x]));
+  for(const g of xml.getElementsByTagName('Spiel')){
+   const ai=val(g,'StartnummerA'),bi=val(g,'StartnummerB');if(ai===bi)continue;
+   const a=byId.get(ai),b=byId.get(bi),score=g.getElementsByTagName('Spielstand')[0];
+   if(!a||!b||!score)continue;
+   const x=Number(val(score,'A')),y=Number(val(score,'B'));if(!Number.isFinite(x)||!Number.isFinite(y))continue;
+   a.for+=x;a.against+=y;b.for+=y;b.against+=x;
+   if(x>y){a.points+=2;b.minus+=2;}else if(y>x){b.points+=2;a.minus+=2;}else{a.points++;a.minus++;b.points++;b.minus++;}
+  }
+  teams.sort((a,b)=>b.points-a.points||(b.for-b.against)-(a.for-a.against)||b.for-a.for||a.name.localeCompare(b.name,'de'));
+  ecwAltSkmrData={title:name,filename:file.name,rows:teams.map(x=>({name:x.name,points:x.points,minus:x.minus,for:x.for,against:x.against,diff:x.for-x.against})),uploadedAt:new Date().toISOString()};
+  status.textContent=`SKMR eingelesen: ${teams.length} Mannschaften. ${datum?'Datum übernommen.':'Bitte Datum ergänzen.'} Mit „Älteres Turnier anlegen“ speichern.`;
+ }catch(err){status.textContent='Import fehlgeschlagen: '+err.message;}
+});
+document.getElementById('archivAltSave')?.addEventListener('click',async()=>{
+ const name=document.getElementById('archivAltName').value.trim(),datum=document.getElementById('archivAltDatum').value;
+ if(!name||!datum)return alert('Name und Datum sind Pflicht.');
+ if(!confirm('Älteres Turnier im Archiv anlegen?'))return;
+ const payload={name,datum,ort:document.getElementById('archivAltOrt').value.trim(),veranstalter:document.getElementById('archivAltVeranstalter').value.trim(),kategorie:document.getElementById('archivAltKategorie').value,status:'abgeschlossen',abgeschlossen:true,archivNachtrag:true,...(ecwAltSkmrData?{archivSkmrRangliste:ecwAltSkmrData}:{})};
+ try{const created=await ecwArchiveAdd(payload);if(created?.id){turniereCache=turniereCache.filter(t=>t.id!==created.id);turniereCache.push({...payload,id:created.id});}document.getElementById('archivAltName').value='';ecwAltSkmrData=null;document.getElementById('archivAltSkmr').value='';document.getElementById('archivAltSkmrStatus').textContent='';renderArchiv();alert('Archivturnier angelegt. Die Ergebnisliste ist dem neuen Turnier zugeordnet.');}catch(e){alert('Anlegen fehlgeschlagen: '+e.message);}
+});
 function renderArchiv(){
   const area=document.getElementById('archivListe');if(!area)return;
   const term=(document.getElementById('archivSuche')?.value||'').trim().toLocaleLowerCase('de');
   const list=turniereCache
     .filter(t=>tournamentIsFinished(t))
     .filter(t=>`${t.name} ${t.ort||''}`.toLocaleLowerCase('de').includes(term))
-    .sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||(a.name||'').localeCompare(b.name||'','de'));
+    .sort((a,b)=>(a.datum||'9999-99-99').localeCompare(b.datum||'9999-99-99')||(a.name||'').localeCompare(b.name||'','de'));
   area.replaceChildren();
   document.getElementById('archivAnzahl').textContent=`${list.length} archivierte${list.length===1?'s Turnier':' Turniere'}`;
   if(!list.length){area.innerHTML='<p class="meta">'+(term?'Keine passenden archivierten Turniere gefunden.':'Noch keine abgeschlossenen Turniere im Archiv.')+'</p>';return}
   for(const t of list){
     const item=document.createElement('button');item.className='list-item';
     item.innerHTML=`<div><strong>${escapeHtml(t.name||'Turnier')}</strong><div class="meta">${escapeHtml([t.datum?formatDatum(t.datum):'',tournamentCategory(t),t.ort].filter(Boolean).join(' · '))}</div></div><span aria-hidden="true">›</span>`;
-    item.addEventListener('click',()=>openTurnier(t.id,t));area.appendChild(item);
+    item.addEventListener('click',()=>{
+      openTurnier(t.id,t);
+      document.body.classList.add('ecw-archive-readonly');
+      history.replaceState(null,'','#archiv');
+      document.getElementById('backToTurniere').textContent='← Zurück zum Archiv';
+      for(const id of ['tdEditBtn','tdDeleteBtn','tdEditForm','registrationCard']){
+        const el=document.getElementById(id);if(el)el.style.display='none';
+      }
+    });area.appendChild(item);
   }
 }
 function renderTurnierHeader() {
@@ -5484,6 +5728,10 @@ function renderTurnierHeader() {
 }
 
 function openTurnier(id, data) {
+  ecwArchiveSkmrDraft=null;
+  const previous=document.getElementById('archivSkmrViewer');if(previous)previous.replaceChildren();
+  const skmrInput=document.getElementById('archivSkmrFile');if(skmrInput)skmrInput.value='';
+  document.body.classList.remove('ecw-archive-readonly');
   aktuellesTurnier = { ...data, id };
   history.replaceState(null,"",(mobileMode?"#mobil=":"#turnier=")+encodeURIComponent(id));
   meldungenGeladen=false; aktuelleMeldungenAnzahl=0; meldungenCache=[];
@@ -5503,6 +5751,7 @@ function openTurnier(id, data) {
   fillVereinSelect();
   showTurnierDetail();
   listenMeldungen(id);
+  ecwArchiveOpenResult(id,data);
 }
 
 // V2.9.15: Turniere auch im eigenständigen Turnierverwaltungsmodus sicher löschen.

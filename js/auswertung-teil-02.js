@@ -450,18 +450,18 @@ switchAdminTab('new');
 
       if (g.matches) {
         Object.values(g.matches).forEach(m => {
-          if (!m.completed) return;
+          if (!m.completed && !(stats[m.teamA]?.dq||stats[m.teamA]?.dnf||stats[m.teamB]?.dq||stats[m.teamB]?.dnf)) return;
           const a = stats[m.teamA];
           const b = stats[m.teamB];
           if (!a || !b) return;
 
-          a.played++;
-          b.played++;
+          if(!(a.dq||a.dnf))a.played++;
+          if(!(b.dq||b.dnf))b.played++;
 
-          a.stocksFor += m.stocksA;
-          a.stocksAgainst += m.stocksB;
-          b.stocksFor += m.stocksB;
-          b.stocksAgainst += m.stocksA;
+          if(!(a.dq||a.dnf||b.dq||b.dnf)){
+            a.stocksFor += Number(m.stocksA)||0; a.stocksAgainst += Number(m.stocksB)||0;
+            b.stocksFor += Number(m.stocksB)||0; b.stocksAgainst += Number(m.stocksA)||0;
+          }
 
           let pA = 0;
           let pB = 0;
@@ -476,19 +476,18 @@ switchAdminTab('new');
             pB = m.pointsB || 0;
           }
 
-          if(a.dq||a.dnf){if(!(b.dq||b.dnf))b.points+=3;}
-          else if(b.dq||b.dnf){a.points+=3;}
+          if(a.dq||a.dnf){if(!(b.dq||b.dnf)){b.points+=3;b.setPoints+=2;} }
+          else if(b.dq||b.dnf){a.points+=3;a.setPoints+=2;}
           else if (pA > pB) {a.points += 3;}
           else if (pB > pA) {b.points += 3;}
           else {a.points += 1;b.points += 1;}
-          if(!(a.dq||a.dnf))a.setPoints += pA;
-          if(!(b.dq||b.dnf))b.setPoints += pB;
+          if(!(a.dq||a.dnf||b.dq||b.dnf)){a.setPoints += pA;b.setPoints += pB;}
         });
       }
 
       let arr = Object.values(stats);
       arr.forEach(item => {
-        if(item.dq||item.dnf){item.points=0;item.setPoints=0;item.stocksFor=0;item.stocksAgainst=0;}
+        if(item.dq||item.dnf){item.played=0;item.points=0;item.setPoints=0;item.stocksFor=0;item.stocksAgainst=0;}
         item.quota = item.stocksAgainst === 0 ? (item.stocksFor > 0 ? 999.0 : 1.0) : item.stocksFor / item.stocksAgainst;
       });
 

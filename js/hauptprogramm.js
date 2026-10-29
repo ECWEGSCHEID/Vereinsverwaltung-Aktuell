@@ -1175,7 +1175,7 @@ function adminPreviewOpen(kind){
   else if(kind==='p'){ openPublicSection('photos'); window.__adminPreviewMode=true; }
   else if(kind==='sp'){ openPublicSection('sponsorPhotos'); window.__adminPreviewMode=true; }
   else if(kind==='m'){ openTeams().then(()=>{window.__adminPreviewMode=true}); }
-  else if(kind==='sh'){ window.__ecwAdminHomeReturn=true; window.__adminPreviewMode=true; showView('startseite'); shUpdateBack(); }
+  else if(kind==='sh'){ window.__ecwAdminHomeReturn=true; window.__adminPreviewMode=true; shOpen=-1; showView('startseite'); shRender(); shUpdateBack(); }
   else if(kind==='docs'){ window.__adminPreviewMode=true; ecwDocsOpen(null,true); }
   else if(kind==='tv'){ window.__adminPreviewMode=true; showView('turnierverwaltung'); updateAdminPreviewBackButtons(); try{enterPresentationFullscreen()}catch(e){} }
   else if(kind==='mv'){ window.__adminPreviewMode=true; openMemberManagement(); }
@@ -2270,11 +2270,11 @@ function renderOverviewAdmin(){
 }
 function soloPyramideAdminUrl(){
  const base=getBaseUrl();
- return new URL('solo-pyramide.html?v=2.5.2&mode=admin-embedded',base).href;
+ return new URL('solo-pyramide.html?v=2.9.32&mode=admin-embedded',base).href;
 }
 function soloPyramidePreviewUrl(){
  const base=getBaseUrl();
- return new URL('solo-pyramide.html?v=2.5.2&mode=whiteboard',base).href;
+ return new URL('solo-pyramide.html?v=2.9.32&mode=whiteboard',base).href;
 }
 function soloPyramideSetAdminReturnButton(){
  const b=document.querySelector('#ecwExternalHomeBar button');
@@ -2718,6 +2718,7 @@ async function openExternalPage(value,title){
      const localSolo=new URL('solo-pyramide.html',location.href);
      localSolo.searchParams.set('v','2.9.29');
      if(new URL(url).searchParams.get('mode')==='admin-embedded')localSolo.searchParams.set('mode','admin-embedded');
+     else if(firebaseAuthUser && !isWhiteboardUser())localSolo.searchParams.set('mode',appPermissions.admin===true?'admin-embedded':'infosystem');
      frameUrl=localSolo.href;
    }catch(e){console.warn('Solo-Testpfad:',e);}
  }
@@ -2740,11 +2741,11 @@ async function openExternalPage(value,title){
    else wu.searchParams.set('whiteboard','1');
    frameUrl=wu.href;
   }catch(e){}
- }else if(isSoloPyramide && firebaseAuthUser && appPermissions.admin===true){
+ }else if(isSoloPyramide && firebaseAuthUser){
   // Admin erhaelt seine bereits authentifizierte zentrale Sitzung.
   try{
    const wu=new URL(frameUrl,location.href);
-   wu.searchParams.set('mode','admin-embedded');
+   wu.searchParams.set('mode',appPermissions.admin===true?'admin-embedded':'infosystem');
    frameUrl=wu.href;
   }catch(e){}
  }
@@ -4947,7 +4948,8 @@ function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spi
   return '<div class="card"><input id="tpEditId" type="hidden">'
     +'<label>Veranstaltungsname</label><input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">'
     +'<div class="row"><div style="flex:1"><label>Datum (Pflichtfeld)</label><input id="tpDate" type="date"></div><div style="flex:1"><label>Uhrzeit (optional)</label><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></div></div>'
-    +'<div class="row"><div style="flex:1"><label>Veranstaltungsart (Pflichtfeld)</label><select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState()">'+tpTypeOptionsHtml('')+'</select></div><div style="flex:none;display:flex;align-items:flex-end"><button type="button" onclick="tpAddNewType()">+ Neue Art</button></div></div>'
+    +'<div class="row"><div style="flex:1"><label>Veranstaltungsart (Pflichtfeld)</label><select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></div><div style="flex:none;display:flex;align-items:flex-end"><button type="button" onclick="tpAddNewType()">+ Neue Art</button></div></div>'
+    +'<div id="tpTwOption" style="display:none;margin:12px 0;padding:10px;border:1px solid #a94455;border-radius:8px"><label><input type="checkbox" id="tpAddToTw"> Zur Turnierwirtschaftlichkeit hinzufügen</label><small>Nur bei „Turnier als Ausrichter“. Vorhandene Finanzdaten bleiben erhalten.</small></div>'
     +'<label>Gemeldet von</label><select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select>'
     +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
     +'<label>Veranstaltungsort</label><input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>'
@@ -4957,6 +4959,7 @@ function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spi
     +'<div id="firebaseTpInfo" class="small" style="margin-top:10px"></div>'
     +'</div>';
 }
+function tpUpdateTwOption(){const option=document.getElementById('tpTwOption'),sel=document.getElementById('tpType');if(!option)return;const allowed=tpCanonicalType(sel?.value||'')==='Turnier als Ausrichter';option.style.display=allowed?'block':'none';if(!allowed&&document.getElementById('tpAddToTw'))document.getElementById('tpAddToTw').checked=false;}
 function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   const nameEl=document.getElementById('tpName');if(!nameEl)return;
   const name=(nameEl.value||'').trim();
@@ -4982,6 +4985,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const players=allowPeople?[0,1,2,3].map(i=>document.getElementById('tpPlayer'+i).value||''):['','','',''];
   const location=(document.getElementById('tpLocation').value||'').trim();
   const editId=document.getElementById('tpEditId').value;
+  const addToTw=type==='Turnier als Ausrichter'&&!!document.getElementById('tpAddToTw')?.checked;
   if(editId){
     const item=tpFindEvent(editId);
     if(item){
@@ -4993,10 +4997,10 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
         item.calendarExported=false;
       }
       if(changed)item.updatedAt=new Date().toISOString();
-      item.name=name;item.date=date;item.time=time;item.reportedBy=reportedBy;item.players=players;item.location=location;item.type=type;item.internal=(type==='Turnier intern');
+      item.name=name;item.date=date;item.time=time;item.reportedBy=reportedBy;item.players=players;item.location=location;item.type=type;item.internal=(type==='Turnier intern');item.addToTurnierWirtschaftlichkeit=addToTw;
     }
   }else{
-    data.tournamentPlanner.push({id:'tp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,date,time,reportedBy,players,location,type,internal:(type==='Turnier intern'),updatedAt:new Date().toISOString()});
+    data.tournamentPlanner.push({id:'tp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,date,time,reportedBy,players,location,type,internal:(type==='Turnier intern'),addToTurnierWirtschaftlichkeit:addToTw,updatedAt:new Date().toISOString()});
   }
   tpCancelEdit();
   renderTournamentPlannerAdminList();
@@ -5042,6 +5046,8 @@ function tpEditEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spiel
   }
   const cancelBtn=document.getElementById('tpCancelBtn');if(cancelBtn)cancelBtn.style.display='inline-block';
   tpUpdateFormPlayerState();
+  if(document.getElementById('tpAddToTw'))document.getElementById('tpAddToTw').checked=!!x.addToTurnierWirtschaftlichkeit;
+  tpUpdateTwOption();
   const info=document.getElementById('firebaseTpInfo');
   if(info)info.textContent='Bearbeitung: '+String(x.name||'')+' – Änderungen mit „Veranstaltung speichern" übernehmen.';
   if(nameEl.scrollIntoView)nameEl.scrollIntoView({block:'center'});
@@ -5266,6 +5272,30 @@ async function tpCalendarAutoAfterSave(item,isNew,authPromise){
   }
 }
 
+async function tpSyncTwEvent(item){
+ if(!firestoreDb||!firebaseReady||item.type!=='Turnier als Ausrichter'||!item.addToTurnierWirtschaftlichkeit)return;
+ const ref=firestoreDb.collection('turnierWirtschaftlichkeit').doc('state');
+ await firestoreDb.runTransaction(async tx=>{
+  const snap=await tx.get(ref);
+  if(!snap.exists)throw Error('Turnierwirtschaftlichkeit ist noch nicht zentral eingerichtet. Bitte zuerst dort die private Ersteinrichtung abschließen.');
+  const raw=snap.data()||{};
+  // Turnierwirtschaftlichkeit speichert unter data, nicht direkt unter events.
+  const state=raw.data;
+  if(!state||!state.events||!state.sponsors||!state.extra)throw Error('Unbekanntes Format der Turnierwirtschaftlichkeit – keine Änderung vorgenommen.');
+  const year=String(item.date||'').slice(0,4);if(!/^20\d{2}$/.test(year))throw Error('Ungültiges Turnierdatum');
+  const events=Object.fromEntries(Object.entries(state.events).map(([y,arr])=>[y,Array.isArray(arr)?arr.slice():[]]));
+  let previous=null;
+  for(const [y,arr] of Object.entries(events)){
+   const ix=arr.findIndex(e=>e&&String(e.calendarPlannerId)===String(item.id));
+   if(ix>=0){previous=arr.splice(ix,1)[0];break;}
+  }
+  const record={...(previous||{}),calendarPlannerId:item.id,title:item.name,date:item.date,type:'Turnier',expenses:previous?.expenses||[]};
+  events[year]=events[year]||[];events[year].push(record);
+  events[year].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  tx.update(ref,{data:{...state,events},revision:(Number(raw.revision)||0)+1,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:firebaseAuthUser?.uid||'calendar'});
+ });
+}
 async function saveAllTournamentPlannerChanges(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   if(!ecwRequireCentralSave('Turnierplaner speichern'))return {ok:false,error:'Firebase ist nicht verfügbar'};
   const editId=String(document.getElementById('tpEditId')?.value||'');
@@ -5301,6 +5331,7 @@ async function saveAllTournamentPlannerChanges(){if(isWhiteboardUser()){showToas
     }
     renderTournamentPlannerAdminList();
     if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();
+    if(fb&&fb.ok&&firebaseTarget?.addToTurnierWirtschaftlichkeit){try{await tpSyncTwEvent(firebaseTarget)}catch(e){console.error('Turnierwirtschaftlichkeit:',e);showToast('Termin gespeichert, Wirtschaftlichkeit nicht übernommen: '+(e?.message||e),12000)}}
     if(fb&&!fb.ok){if(info)info.textContent='⚠ Lokal gespeichert, aber Firebase-Speicherung fehlgeschlagen.';showToast('Lokal gespeichert - aber Firebase: '+(fb.error||fb.message),8000);return {ok:false,error:fb.error||fb.message}}
     if(calendarTarget){
       if(!tpCalendarSettings().clientId){

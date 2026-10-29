@@ -1,6 +1,6 @@
 {
-  "version": "2.9.29",
-  "release": "V2.9.29 – Sitzung interne Turniere, Solo-Pyramide-Daten, Finalspiel-Scrollen",
+  "version": "2.9.41",
+  "release": "V2.9.41 – Cup SKMR Finalgruppe B Übernahme/Löschen und Archiv zurück",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
@@ -15,7 +15,7 @@
     "turnierverwaltung": {
       "datei": "turnierverwaltung.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
-      "sha256": "9b5a64f08b85013c079416434c86fdbd7a2274d3da67f4f455e32b6a94e5718e"
+      "sha256": "62a7e608d0442daa4cbc83f8416a249d8285f34e03f2c47acd8d9051beb03198"
     },
     "turnierauswertung": {
       "datei": "turnierauswertung.html",
@@ -48,7 +48,11 @@
     "Turniereinladungen: Auswahl nur aktiver zukünftiger Turniere",
     "Interne Cups: Admin-Finalrunde A/B und Siegerliste mit Gruppenblatt",
     "Versionen: sichtbare Programm-Version und lokale Cache-Parameter vereinheitlicht",
-    "Cup-Finalrunde beim Öffnen des Druck-Menüs und bei Firebase-Aktualisierung anzeigen"
+    "Cup-Finalrunde beim Öffnen des Druck-Menüs und bei Firebase-Aktualisierung anzeigen",
+    "Archiv: Nachtrag alter Turniere, Sortierung älteste zuerst",
+    "Archiv: Original-PDF im jeweiligen Browser lokal hinterlegen (noch keine Firebase-Synchronisierung)",
+    "Finale: SKMR ohne offizielle Ergebnistabelle nicht mehr als offizielle Platzierung importieren",
+    "Finale: Vorschau und Dateiauswahl beim Löschen zurücksetzen"
   ],
   "hinweis": "Dokumente in Firestore appSettings/druckdokumente und druckpdf_*; Regeln FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules vor Nutzung veröffentlichen. Automatischer PDF-Druckdialog ist browserabhängig und muss auf dem Samsung WM65B geprüft werden. 1 Exemplar kann nicht erzwungen werden.",
   "doppelKo": {
