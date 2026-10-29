@@ -711,7 +711,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 }
 </style>
 
-  <script type="module" src="js/auswertung-teil-01.js?v=2.9.27"></script>
+  <script type="module" src="js/auswertung-teil-01.js?v=2.9.29"></script>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -1081,7 +1081,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       </div>
 
       <!-- ADMIN TAB: DRUCK -->
-      <div id="adminSecPrint" style="display: none;">
+      <div id="adminSecPrint" style="display:none;max-height:calc(100dvh - 185px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding-bottom:100px;">
         <label>Turnier auswählen:</label>
         <select id="adminPrintSelectTournament" onchange="onPrintTournamentChanged();cupFinalLoad()">
           <option value="">-- Turnier wählen --</option>
@@ -1090,10 +1090,10 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
         <div id="cupFinalSettings" style="display:none;margin:12px 0;padding:12px;border:1px solid #a44;border-radius:10px;background:rgba(40,15,20,.55)">
           <h3 style="margin:0 0 8px">🏆 Finalrunde &amp; Siegerliste (nur Admin)</h3>
           <label>Finalmodus</label><select id="cupFinalMode"><option value="A">A – Platzierungsspiele / KO</option><option value="B">B – Neue Finalgruppe (jeder gegen jeden)</option></select>
-          <label>Anzahl Finalteilnehmer (2–32)</label><input id="cupFinalCount" type="number" min="2" max="32" value="4" step="1">
+          <label>Aufsteiger je Vorrundengruppe</label><input id="cupAdvancePerGroup" type="number" min="1" max="32" value="3" step="1"><label>Anzahl Finalteilnehmer (2–32)</label><input id="cupFinalCount" type="number" min="2" max="32" value="6" step="1">
           <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cupFinalThird" checked style="width:auto"> Spiel um Platz 3 (Modus A)</label>
           <button class="btn btn-secondary" onclick="cupFinalSetup()">Finalrunde anlegen / neu einrichten</button>
-          <div id="cupFinalEditor"></div>
+          <div id="cupFinalEditor" style="max-height:60dvh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:6px 4px 18px;"></div>
           <button class="btn btn-success" onclick="cupPrintSiegerliste()">🖨️ Siegerliste / Zwischenergebnis drucken (PDF über Druckdialog)</button>
         </div>
         <div id="adminPrintContent" style="display: none;">
@@ -1219,15 +1219,15 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div id="printArea"></div>
 
-  <script src="js/auswertung-teil-02.js?v=2.9.27"></script>
+  <script src="js/auswertung-teil-02.js?v=2.9.29"></script>
 
   <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
   <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
-  <script src="js/auswertung-teil-03.js?v=2.9.27"></script>
-  <script src="js/auswertung-teil-04.js?v=2.9.27"></script>
-  <script src="js/auswertung-teil-05.js?v=2.9.27"></script>
-  <script src="js/auswertung-teil-06.js?v=2.9.27"></script>
-  <script src="js/cup-finale-siegerliste.js?v=2.9.27"></script>
+  <script src="js/auswertung-teil-03.js?v=2.9.29"></script>
+  <script src="js/auswertung-teil-04.js?v=2.9.29"></script>
+  <script src="js/auswertung-teil-05.js?v=2.9.29"></script>
+  <script src="js/auswertung-teil-06.js?v=2.9.29"></script>
+  <script src="js/cup-finale-siegerliste.js?v=2.9.29"></script>
 
 <div id="centralBackupOverlay" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);padding:18px;overflow:auto;">
     <div style="max-width:760px;margin:45px auto;background:rgba(25,29,35,.98);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);">

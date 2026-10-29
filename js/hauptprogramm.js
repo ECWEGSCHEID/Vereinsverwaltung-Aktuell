@@ -2703,7 +2703,7 @@ async function openExternalPage(value,title){
  if(isEcwTournament){
    try{
      const normalized=new URL('turnierauswertung.html',location.href);
-     normalized.searchParams.set('v','2.9.2-whiteboard-session-test');
+     normalized.searchParams.set('v','2.9.29');
      normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
@@ -2716,7 +2716,8 @@ async function openExternalPage(value,title){
  if(isSoloPyramide){
    try{
      const localSolo=new URL('solo-pyramide.html',location.href);
-     localSolo.searchParams.set('v','2.9.2-whiteboard-session-test');
+     localSolo.searchParams.set('v','2.9.29');
+     if(new URL(url).searchParams.get('mode')==='admin-embedded')localSolo.searchParams.set('mode','admin-embedded');
      frameUrl=localSolo.href;
    }catch(e){console.warn('Solo-Testpfad:',e);}
  }

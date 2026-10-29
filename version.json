@@ -1,11 +1,11 @@
 {
-  "version": "2.9.27",
-  "release": "EC Wegscheid V2.9.27 – Korrigiertes Testpaket",
+  "version": "2.9.29",
+  "release": "V2.9.29 – Sitzung interne Turniere, Solo-Pyramide-Daten, Finalspiel-Scrollen",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
-      "sha256": "bd1de0e08c8d59ef90c1bfca47e489121001032c04084a8ae97f241062efe0c7"
+      "sha256": "1339f50825bfccd850796d70065637b860c1535c52044ab86e37aad0368e4a3e"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
@@ -20,7 +20,7 @@
     "turnierauswertung": {
       "datei": "turnierauswertung.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
-      "sha256": "8e99f73c62aa1ca80ec372402b818c6f2f9729c0bff962c6045b5a284a2d816c"
+      "sha256": "d60e47a93c43d50fb1984edbd443107ed8c9f99d84ab310f78a95f9351c768c8"
     },
     "turnierwirtschaftlichkeit": {
       "datei": "turnierwirtschaftlichkeit.html",
@@ -30,7 +30,7 @@
     "solo-pyramide": {
       "datei": "solo-pyramide.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
-      "sha256": "4d4bdb200f068f015cbc67d58cdfd501dbbdd71b1f69360ebc6a36a8c266e46f"
+      "sha256": "89aff29dea6c0e1ca4b2b491488dc618c15cd22f3f0dca0e3fda4983c82f4d66"
     },
     "smartphone-zugang": {
       "datei": "mobile-zugang.html",

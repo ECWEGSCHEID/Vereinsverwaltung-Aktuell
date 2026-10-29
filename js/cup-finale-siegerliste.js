@@ -1,4 +1,4 @@
-/* EC Wegscheid V2.9.27: Admin-Finalrunde und Siegerliste; keine Änderung der Vorrunden-Daten. */
+/* EC Wegscheid V2.9.28: Admin-Finalrunde und Siegerliste; keine Änderung der Vorrunden-Daten. */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
@@ -9,10 +9,11 @@ const isAdmin=()=>((typeof window.getEffectiveRole==='function'?window.getEffect
 const requireAdmin=()=>{if(isAdmin())return true;alert('Nur Administratoren dürfen die Cup-Finalrunde bearbeiten oder drucken.');return false;};
 function groups(t){return cupSortedGroups(t.groups||{});}
 function standings(t){return groups(t).map(([id,g])=>({id,name:g.name||id,rows:calculateStandingsForTournamentGroup(t,id)}));}
+function advancePerGroup(t){const field=$('cupAdvancePerGroup');const saved=Number(t?.cupFinal?.advancePerGroup);const val=Number(field?.value||saved||3);return Math.max(1,Math.min(32,Number.isInteger(val)?val:3));}
+function qualified(t){const n=advancePerGroup(t);return standings(t).flatMap(g=>g.rows.filter(v=>!v.dq&&!v.dnf).slice(0,n).map((v,i)=>({id:String(v.id),group:g.id,groupName:g.name,name:v.name,points:v.points,quota:v.quota,groupPlace:i+1})));}
 function seed(t,n){
- const g=standings(t),out=[];let i=0;
- while(out.length<n && g.some(x=>x.rows[i])){for(const x of g){const v=x.rows[i];if(v&&!v.dq&&!v.dnf&&out.length<n)out.push({id:String(v.id),group:x.id,name:v.name,points:v.points,quota:v.quota});}i++;}
- return out;
+ const groupsList=standings(t).map(g=>g.rows.filter(v=>!v.dq&&!v.dnf).slice(0,advancePerGroup(t)).map(v=>({id:String(v.id),group:g.id,name:v.name,points:v.points,quota:v.quota})));
+ const out=[];let i=0;while(out.length<n&&groupsList.some(g=>g[i])){for(const g of groupsList){if(g[i]&&out.length<n)out.push(g[i]);}i++;}return out;
 }
 function cfg(t){return t.cupFinal||null;}
 function isDone(m){return m&&m.a!==''&&m.b!==''&&Number.isFinite(Number(m.a))&&Number.isFinite(Number(m.b))&&Number(m.a)!==Number(m.b);}
@@ -63,13 +64,14 @@ function ranking(t){
 }
 function printRows(arr,cols){return '<table><thead><tr>'+cols.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+arr.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
 window.cupFinalLoad=function(){const t=cup(),box=$('cupFinalSettings');if(!box)return;box.style.display=(t&&isAdmin())?'block':'none';if(!t)return;
- const f=cfg(t);$('cupFinalMode').value=f?.mode||'A';$('cupFinalCount').value=String(f?.count||Math.min(4,groups(t).reduce((n,[,g])=>n+(g.teams||[]).length,0)));
+ const f=cfg(t);$('cupFinalMode').value=f?.mode||'A';$('cupFinalCount').value=String(f?.count||Math.min(32,qualified(t).length));
  $('cupFinalThird').checked=f?.thirdPlace!==false;
+ if($('cupAdvancePerGroup'))$('cupAdvancePerGroup').value=String(f?.advancePerGroup||3);
  cupFinalRender();};
 window.cupFinalSetup=function(){if(!requireAdmin())return;const t=cup();if(!t)return;const mode=$('cupFinalMode').value,count=Number($('cupFinalCount').value);if(count<2||count>32||!Number.isInteger(count))return alert('Bitte 2 bis 32 Finalteilnehmer wählen.');if(mode==='A'&&!([2,4,8,16,32].includes(count)))return alert('Platzierungsspiele benötigen 2, 4, 8, 16 oder 32 Teilnehmer. Für andere Zahlen bitte Finalgruppe B wählen.');
  const chosen=seed(t,count);if(chosen.length<count)return alert('Es sind nur '+chosen.length+' qualifizierbare Teilnehmer vorhanden.');
  const existing=cfg(t);if(existing?.matches?.some(isDone)&&!confirm('Finale neu einrichten? Bereits eingegebene Finalergebnisse werden zurückgesetzt.'))return;
- t.cupFinal={mode,count,thirdPlace:$('cupFinalThird').checked,teams:chosen,matches:[]};saveData();cupFinalRender();};
+ t.cupFinal={mode,count,advancePerGroup:advancePerGroup(t),thirdPlace:$('cupFinalThird').checked,teams:chosen,matches:[]};saveData();cupFinalRender();};
 window.cupFinalChangeTeam=function(i,value){if(!requireAdmin())return;const t=cup(),f=cfg(t);if(!f)return;const [group,id]=value.split('::');const g=t.groups[group],tm=(g?.teams||[]).find(x=>String(x.id)===id);if(!tm)return;
  if(f.teams.some((x,j)=>j!==i&&x.group===group&&String(x.id)===id))return alert('Dieser Teilnehmer ist bereits ausgewählt.');
  if(f.matches?.some(isDone)&&!confirm('Teilnehmer ändern? Finalergebnisse werden zurückgesetzt.'))return;
@@ -89,15 +91,52 @@ window.cupFinalRender=function(){const t=cup(),area=$('cupFinalEditor');if(!area
  matches(f).forEach(m=>{html+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:5px 0;padding:6px;border:1px solid #555;border-radius:6px"><span style="min-width:220px">'+esc(m.key==='third'?'Spiel um Platz 3':m.key)+' · '+esc(m.na)+' – '+esc(m.nb)+'</span><input id="cfsA_'+esc(m.key)+'" type="number" min="0" step="1" value="'+esc(m.a)+'" style="width:65px"><b>:</b><input id="cfsB_'+esc(m.key)+'" type="number" min="0" step="1" value="'+esc(m.b)+'" style="width:65px"><button class="btn btn-success" onclick="cupFinalSaveScore(\''+esc(m.key)+'\')">Speichern</button><button class="btn btn-secondary" onclick="cupFinalClearScore(\''+esc(m.key)+'\')">Löschen</button></div>';});
  const r=ranking(t);html+='<p><b>'+ (r.complete?'Endergebnis vollständig':'Zwischenergebnis – Finale noch nicht abgeschlossen')+'</b></p>';
  area.innerHTML=html;};
-window.cupPrintSiegerliste=function(){if(!requireAdmin())return;const t=cup();if(!t)return alert('Bitte Cup auswählen.');const g=standings(t),f=cfg(t),r=ranking(t);const finalDone=r.complete;const title=finalDone?'Endergebnis':'Zwischenergebnis – vorläufige Platzierungen';
- const first=r.rows.map((name,i)=>{
-  let place=i+1;
-  if(f?.mode==='A'&&r.complete){
-    if(!f.thirdPlace&&i===3)place=3;
-    if(i>=4)place=2**Math.floor(Math.log2(i))+1;
-  }
-  return [String(place)+'.',name];
- });const groupHtml=g.map(x=>'<h3>'+esc(x.name)+'</h3>'+printRows(x.rows.map((v,i)=>[String(i+1)+'.',v.name,v.points,Number(v.quota||0).toLocaleString('de-DE',{minimumFractionDigits:3,maximumFractionDigits:3})]),['Platz','Mannschaft / Spieler','Punkte','Quote'])).join('');
- const two=g.length>1;const html='<!doctype html><html lang="de"><head><meta charset="utf-8"><title>'+esc(t.name||'Cup')+' – Ergebnisliste</title><style>@page{size:A4 portrait;margin:13mm 14mm}body{font:12px Arial,sans-serif;color:#111}h1,h2,h3{text-align:center}h1{font-size:21px}h2{font-size:16px}h3{font-size:14px;margin:15px 0 5px}table{width:100%;border-collapse:collapse}th,td{padding:5px 6px;border-bottom:1px solid #bbb;text-align:left}th{background:#eee}th:first-child,td:first-child{width:55px}header{display:flex;justify-content:space-between;align-items:center}section{page-break-inside:avoid}.page2{break-before:page;page-break-before:always}.note{text-align:center;margin-top:25px}.watermark{font-weight:bold;color:#777}@media screen{body{max-width:800px;margin:30px auto}.page2{margin-top:70px}}</style></head><body><section><header><b>EC Wegscheid</b><span>'+new Date().toLocaleDateString('de-DE')+'</span></header><h1>'+esc(title)+'</h1><h2>'+esc(t.name||'Interner Cup')+'</h2>'+printRows(first,['Platz','Mannschaft / Spieler'])+(finalDone?'<p class="note">Der EC Wegscheid bedankt sich für die Teilnahme und die faire Spielweise.</p>':'<p class="note watermark">Vorläufig – noch kein abgeschlossenes Finale</p>')+'</section>'+(two?'<section class="page2"><h2>Gruppenergebnisse der Vorrunde</h2>'+groupHtml+'</section>':'<section><h2>Gruppenergebnis der Vorrunde</h2>'+groupHtml+'</section>')+'</body></html>';
- const w=window.open('','_blank');if(!w)return alert('Bitte Pop-ups für die Druckvorschau erlauben.');w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);};
+window.cupPrintSiegerliste=function(){
+ if(!requireAdmin())return;
+ const t=cup();if(!t)return alert('Bitte Cup auswählen.');
+ const groupData=standings(t),f=cfg(t),r=ranking(t),done=!!f&&r.complete;
+ const advances=qualified(t),advanceSet=new Set(advances.map(x=>x.group+'::'+x.id));
+ // Vor dem Abschluss des Finales werden ausschließlich die Aufsteiger gezeigt.
+ // Nach dem Finale werden ausschließlich die tatsächlich qualifizierten Finalteilnehmer gelistet.
+ let rows=[];
+ if(done){
+  const finalists=new Set((f.teams||[]).map(x=>x.name));
+  rows=r.rows.filter(name=>finalists.has(name)).map((name,i)=>{
+   let place=i+1;
+   if(f.mode==='A'){if(!f.thirdPlace&&i===3)place=3;if(i>=4)place=2**Math.floor(Math.log2(i))+1;}
+   return {place,name};
+  });
+ }else{
+  rows=advances.map(x=>({place:x.groupPlace,name:x.name,group:x.groupName}));
+ }
+ const tableRows=rows.map(x=>'<tr><td class="place">'+esc(x.place)+'.</td><td class="name">'+esc(x.name)+'</td>'+(done?'':'<td class="group">'+esc(x.group)+'</td>')+'</tr>').join('');
+ const groupTables=groupData.map(x=>'<section class="groupblock"><h3>'+esc(x.name)+'</h3><table class="group-table"><thead><tr><th>Platz</th><th>Mannschaft</th><th>Punkte</th><th>Quote</th></tr></thead><tbody>'+x.rows.map((v,i)=>'<tr'+(advanceSet.has(x.id+'::'+v.id)?' class="qualified"':'')+'><td>'+(i+1)+'. Platz</td><td>'+esc(v.name)+'</td><td>'+esc(v.points)+'</td><td>'+Number(v.quota||0).toLocaleString('de-DE',{minimumFractionDigits:3,maximumFractionDigits:3})+'</td></tr>').join('')+'</tbody></table></section>').join('');
+ const two=groupData.length>1;
+ const heading=done?'Endergebnis':'Zwischenergebnis / Finalaufsteiger';
+ const date=new Date().toLocaleDateString('de-DE');
+ const logo=new URL('assets/ecw_ergebnis_logo-000.png',document.baseURI).href;
+ const html=`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${esc(t.name||'Cup')} – Ergebnisliste</title><style>
+ @page{size:A4 portrait;margin:10mm 14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:12px;margin:0}
+ .sheet{min-height:267mm;position:relative;padding:0 0 23mm}.head{height:32mm;position:relative;text-align:center}
+ .logo{position:absolute;left:0;top:0;width:23mm;height:22mm;object-fit:contain}.date{position:absolute;right:0;top:0;font-size:10px;font-weight:600}
+ h1{font-size:22px;font-style:italic;margin:7mm 0 1mm}h2{font-size:20px;font-style:italic;margin:0}
+ table{width:100%;border-collapse:collapse}th{font-size:10px;font-style:italic;text-decoration:underline}
+ .final-table{margin-top:8mm}.final-table th{text-align:left;border-bottom:1px solid #111;padding-bottom:3mm}
+ .final-table td{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;font-style:italic;padding:4mm 2mm}
+ .final-table .place{width:13mm;text-align:left}.final-table .name{text-align:center}.final-table .group{text-align:right;width:30mm;font:11px Arial,sans-serif}
+ .thanks{position:absolute;bottom:15mm;left:5mm;right:5mm;text-align:center;font-size:11px;font-style:italic;font-weight:700}
+ .provisional{text-align:center;margin-top:12mm;font-weight:700;color:#555}
+ .page2{break-before:page;page-break-before:always}.group-title{text-align:center;font-size:18px;font-style:italic;text-decoration:underline;margin:0 0 6mm}
+ .groupblock{break-inside:avoid;margin:0 0 9mm}.groupblock h3{text-align:center;font-size:16px;font-style:italic;text-decoration:underline;font-weight:400;margin:6mm 0 4mm}
+ .group-table th{padding:1mm 2mm;text-align:center}.group-table td{padding:3mm 2mm;font-family:Georgia,'Times New Roman',serif;font-size:12px;font-style:italic;font-weight:700;text-align:center}
+ .group-table td:first-child{text-align:left;width:20mm;font:11px Arial,sans-serif}.group-table td:nth-child(2){width:104mm}.group-table td:nth-child(3){width:20mm}
+ .group-table .qualified td{font-weight:800}.group-table td:last-child{text-decoration:underline}
+ @media screen{body{max-width:210mm;margin:15px auto}.sheet{border:1px solid #ddd;padding:10mm 14mm}.page2{margin-top:25px}}
+ </style></head><body><section class="sheet"><div class="head"><img class="logo" src="${esc(logo)}" alt="EC Wegscheid"><span class="date">Wegscheid, den ${date}</span><h1>${esc(heading)}</h1><h2>${esc(t.name||'Interner Cup')}</h2></div>
+ <table class="final-table"><thead><tr><th>Platz</th><th>Mannschaft / Spieler</th>${done?'':'<th>Gruppe</th>'}</tr></thead><tbody>${tableRows}</tbody></table>
+ ${done?'<div class="thanks">Der EC Wegscheid bedankt sich für die Teilnahme sowie die faire Spielweise recht herzlich.</div>':'<p class="provisional">Vorläufig – '+advancePerGroup(t)+' Aufsteiger je Gruppe; Finale noch nicht abgeschlossen</p>'}</section>
+ ${two?'<section class="sheet page2"><h2 class="group-title">Zwischenergebnisse nach der Vorrunde</h2>'+groupTables+'</section>':'<section class="sheet"><h2 class="group-title">Zwischenergebnisse nach der Vorrunde</h2>'+groupTables+'</section>'}
+ </body></html>`;
+ const w=window.open('','_blank');if(!w)return alert('Bitte Pop-ups für die Druckvorschau erlauben.');w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),600);
+};
 })();

@@ -245,9 +245,9 @@ async function handleCentralSnapshot(exists, data){
   // Solo-Pyramide-Firebase übernehmen. Falls dort nichts liegt, bleibt der
   // lokale/default Stand aktiv und wird beim nächsten Speichern zentral angelegt.
   const migrated = await tryLegacyMigration();
-  if(!migrated && hasCentralAdminParent()){
-    try{ await centralWrite(buildPayload()); }catch(e){ console.warn('Zentraler Erststand konnte nicht angelegt werden:', e); }
-  }
+  // Sicherheit: Ein leeres/zunächst nicht geladenes Dokument darf die bisherige
+  // Pyramide niemals automatisch durch Standardspieler ersetzen.
+  if(!migrated) console.warn('Solo-Pyramide: Kein zentraler Stand gefunden. Vorhandene Daten bleiben unangetastet.');
 }
 
 async function initCentralFirebase(){
@@ -276,20 +276,27 @@ async function initCentralFirebase(){
     // ohne zusätzliche Firebase-Anmeldung. Die Spieleranmeldung bleibt wie bisher.
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
     const { getFirestore, doc, onSnapshot, setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
     const app = initializeApp(CENTRAL_FIREBASE_CONFIG, 'soloPyramideCentral');
     const db = getFirestore(app);
     dbRef = doc(db, CENTRAL_COLLECTION, CENTRAL_DOCUMENT);
     centralSetDoc = (ref,payload)=>setDoc(ref,payload);
     centralBackend = 'module';
     useFirebase = true;
-    onSnapshot(
-      dbRef,
-      snap => handleCentralSnapshot(snap.exists(), snap.exists() ? snap.data() : null),
-      err => {
-        console.error('Zentrales Firebase (Solo Pyramide):', err);
-        if(!centralStateSeen) tryLegacyMigration();
+    // Erst nach Wiederherstellung der bestehenden Firebase-Sitzung abonnieren.
+    // Ohne Authentifizierung würde die Firestore-Abfrage bei geschützten Regeln
+    // fehlschlagen und die Solo-Pyramide scheinbar leer bleiben.
+    onAuthStateChanged(getAuth(app), user => {
+      if(!user){
+        console.warn('Solo-Pyramide: Zentrale Firebase-Anmeldung noch nicht verfügbar.');
+        return;
       }
-    );
+      onSnapshot(dbRef,
+        snap => handleCentralSnapshot(snap.exists(), snap.exists() ? snap.data() : null),
+        err => { console.error('Zentrales Firebase (Solo Pyramide):', err);
+          if(!centralStateSeen) tryLegacyMigration(); }
+      );
+    });
     return true;
   }catch(err){
     console.warn("Zentrales Firebase wurde blockiert/Netzwerkfehler. App läuft mit lokalem/Altdaten-Fallback.", err);
