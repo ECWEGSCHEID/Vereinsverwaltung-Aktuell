@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="de"><head><script src="ecw-site-base.js"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>EC Wegscheid – SKMR in OneDrive speichern</title>
+<style>
+[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;padding:24px;font:18px 'Segoe UI',Arial,sans-serif;color:#182031;background:#650000 url('assets/hintergrund-carbon-rot.png') center/cover fixed}main{max-width:850px;margin:auto;background:#fff;padding:26px;border-radius:14px}h1{font-size:28px;margin-top:0}h2{font-size:22px}label{display:block;margin:15px 0}input{width:100%;padding:12px;font:inherit;margin-top:6px;border:1px solid #8993a2;border-radius:6px}button,a.button{display:inline-block;padding:14px 18px;border:0;border-radius:7px;background:#075ba4;color:#fff;font:inherit;font-weight:600;cursor:pointer;margin:6px 6px 6px 0;text-decoration:none}button:disabled{opacity:.5;cursor:default}.secondary{background:#475569}#status{white-space:pre-wrap;padding:14px;background:#eef2f6;border-radius:7px}small{display:block;color:#475569;margin-top:10px}details{border:1px solid #cbd5e1;padding:14px;border-radius:8px}#filename{overflow-wrap:anywhere}a{color:#075ba4}
+</style>
+<script defer src="ecw-msal-browser-5.27.0.min.js"></script><script defer src="ecw-onedrive-store.js?v=onedrive-1"></script><script defer src="ecw-onedrive.js?v=onedrive-1"></script></head>
+<body><main><h1>SKMR direkt in OneDrive speichern</h1>
+<p>Die Datei wird in deinem OneDrive unter <strong>Apps → EC Wegscheid SKMR</strong> gespeichert, wenn die Microsoft-App so benannt wurde. Das Programm erhält nur Zugriff auf seinen eigenen App-Ordner.</p>
+<p><strong>Datei:</strong> <span id="filename">Wird geladen …</span></p>
+<details id="setup"><summary>Einmalige Microsoft-Einrichtung</summary>
+<p>Eine eigene Microsoft-App muss als Single-Page-Anwendung registriert sein. Hier wird nur ihre öffentliche Anwendungs-ID benötigt.</p>
+<label>Microsoft Anwendungs-ID (Client-ID)<input id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off"></label>
+<label>Diese Umleitungs-URI als Single-Page-Anwendung registrieren<input id="redirectUri" readonly></label>
+<p>Kontotyp: Microsoft-Konten und Organisationskonten. Delegierte Microsoft-Graph-Berechtigung: <strong>Files.ReadWrite.AppFolder</strong>. Kein geheimer Clientschlüssel.</p>
+<button id="saveSetup" type="button">Einrichtung speichern</button><p><a href="https://entra.microsoft.com/" target="_blank" rel="noopener noreferrer">Microsoft Entra öffnen</a></p>
+</details>
+<p id="account">Noch nicht mit Microsoft verbunden.</p>
+<button id="login" type="button" disabled>1. Mit Microsoft anmelden</button>
+<button id="upload" type="button" disabled>2. Jetzt in OneDrive speichern</button>
+<p id="status" role="status" aria-live="polite">Datei wird vorbereitet …</p>
+<a id="resultLink" class="button" hidden target="_blank" rel="noopener noreferrer">Gespeicherte Datei in OneDrive öffnen</a>
+<button id="cancel" class="secondary" type="button">Lokale Exportkopie entfernen / Schließen</button>
+<small>Die Anmeldung läuft in diesem eigenen Tab. Die Auslosung bleibt im ursprünglichen Tab erhalten. Der Dateiname erhält einen eindeutigen Zusatz, damit keine vorhandene Datei ersetzt wird.</small>
+</main></body></html>
