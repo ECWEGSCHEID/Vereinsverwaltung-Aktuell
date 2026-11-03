@@ -1764,6 +1764,7 @@ copy of the Program in return for a fee.
     <!-- HISTORIE -->
     <section id="viewHistorie" class="hidden">
       <div class="section-intro"><h2>Historie seit 2021</h2><p>Teilnahmen seit 2021 aus der Vereinsliste und neue Einträge aus der Turnierverwaltung.</p></div>
+      <div class="card"><button type="button" class="primary" id="historyBasisImportBtn">Teilnahmehistorie importieren</button><input type="file" id="historyBasisFile" accept=".json,application/json" hidden><p class="meta" id="historyBasisStatus" role="status">Teilnahmehistorie wird nach Anmeldung aus Firebase geladen.</p></div>
       <details class="card history-panel" id="historyOverviewPanel" open><summary>Teilnahmen bei uns – Jahresübersicht</summary>
         <div class="form-grid">
           <div><label for="historySearch">Verein suchen</label><input id="historySearch" type="search" placeholder="Vereinsname"></div>
@@ -4574,6 +4575,7 @@ var qrcode = function() {
     return qrcode;
 }));
 </script>
+<script src="js/turnier-historie-core.js?v=history-20261103-1"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -4587,7 +4589,7 @@ import {
 import {
   getFirestore,
   collection as modCollection, addDoc as modAddDoc, doc as modDoc,
-  deleteDoc as modDeleteDoc, getDocs as modGetDocs, updateDoc as modUpdateDoc,
+  deleteDoc as modDeleteDoc, getDocs as modGetDocs, updateDoc as modUpdateDoc, runTransaction as modRunTransaction,
   onSnapshot as modOnSnapshot, query as modQuery,
   where as modWhere, orderBy as modOrderBy,
   serverTimestamp as modServerTimestamp, getDoc as modGetDoc,
@@ -4737,8 +4739,10 @@ function dbError(err) {
   notify(msg,true);
 }
 function stopListeners() {
-  [turniereUnsub,vereineUnsub,meldungenUnsub,dokumenteUnsub,historyMeldungenUnsub,liveMeldungenUnsub].forEach(fn => fn?.());
+  [turniereUnsub,vereineUnsub,meldungenUnsub,dokumenteUnsub,historyMeldungenUnsub,liveMeldungenUnsub,historyBasisUnsub].forEach(fn => fn?.());
   turniereUnsub = vereineUnsub = meldungenUnsub = dokumenteUnsub = historyMeldungenUnsub = liveMeldungenUnsub = null;
+  historyBasisUnsub=null;historyBasisReady=false;HISTORY_BASE_CLUBS=[];HISTORY_BASE_RECORDS=[];HISTORY_ALIAS_MAP.clear();
+  document.getElementById('historyBody')?.replaceChildren();document.getElementById('historyCompareBody')?.replaceChildren();historyBasisStatus('Teilnahmehistorie wird nach Anmeldung aus Firebase geladen.');
   vereineGeladen=false; dokumenteGeladen=false; dokumenteMeldungen=[];
   documentDrafts.clear(); activeDocumentId="";
   turniereCache = []; vereineCache = []; meldungenCache = []; historyMeldungenCache=[]; liveMeldungenAll=[]; aktuellesTurnier = null;
@@ -5035,9 +5039,10 @@ buildMaxOptions(document.getElementById("tdEditMax"));
 let vereineCache = [];
 let aktuellesTurnier = null;
 
-const HISTORY_BASE_CLUBS=[];
-const HISTORY_BASE_RECORDS=[];
-const HISTORY_BASE_STAND='2026-10-01';
+let HISTORY_BASE_CLUBS=[];
+let HISTORY_BASE_RECORDS=[];
+let HISTORY_BASE_STAND='';
+let historyBasisUnsub=null,historyBasisReady=false;
 function isHistoryMetaRowName(name){
  const n=String(name||'').trim();
  return n==='Summe Vereine'||n.startsWith('Legende:');
@@ -5285,6 +5290,52 @@ function renderHistoryDetailFiltered(x,cat){
    +rec.map(r=>`<div class="list-item" style="cursor:default"><div><strong>${escapeHtml(r.turnierart||'Turnier')}</strong><div class="meta">${escapeHtml(r.kategorie)} · ${escapeHtml(r.iso?formatDatum(r.iso):r.datum)} · ${Number(r.mannschaften||1)} Mannschaft${Number(r.mannschaften||1)===1?'':'en'}</div></div></div>`).join('');
 }
 function renderHistoryDetail(x){renderHistoryDetailFiltered(x,document.getElementById('historyCategory')?.value||'Alle')}
+function historyBasisStatus(message){const el=document.getElementById('historyBasisStatus');if(el)el.textContent=message}
+function applyHistoryBasis(value){
+ HISTORY_BASE_RECORDS=value?.records||[];HISTORY_BASE_CLUBS=value?.clubs||[];HISTORY_BASE_STAND=value?.stand||'';
+ HISTORY_ALIAS_MAP.clear();for(const c of HISTORY_BASE_CLUBS){HISTORY_ALIAS_MAP.set(hNorm(c.name),c.name);for(const alias of c.aliases||[])HISTORY_ALIAS_MAP.set(hNorm(alias),c.name)}
+ renderHistory();renderRecipients();
+}
+function listenHistoryBasis(){
+ const uid=auth.currentUser?.uid;historyBasisReady=false;historyBasisStatus('Teilnahmehistorie wird aus Firebase geladen …');
+ historyBasisUnsub=onSnapshot(doc(db,'einstellungen','teilnahmeHistorieBasis'),snap=>{
+  if(auth.currentUser?.uid!==uid)return;
+  try{
+   const exists=typeof snap.exists==='function'?snap.exists():snap.exists;
+   const value=exists?window.ECWHistoryCore.normalize({format:'ecw-tournament-history',...snap.data()}):null;
+   applyHistoryBasis(value);historyBasisReady=true;
+   const count=HISTORY_BASE_RECORDS.filter(r=>isoFromGerman(r.datum)>='2021-01-01').length;
+   historyBasisStatus(value?count+' historische Einträge ab 2021 aus Firebase geladen.':'Noch keine historische Basis in Firebase. Die private Sicherungsdatei einmal über „Teilnahmehistorie importieren“ übernehmen.');
+  }catch(e){historyBasisReady=false;historyBasisStatus('Historie konnte nicht geladen werden: '+e.message);dbError(e)}
+ },error=>{historyBasisReady=false;historyBasisStatus('Historie nicht geladen. Firebase-Verbindung oder Berechtigung prüfen.');dbError(error)});
+}
+async function importHistoryBasis(file){
+ if(!file)return;if(file.size>2000000)throw Error('Importdatei ist zu groß.');
+ if(!auth.currentUser||!historyBasisReady)throw Error('Bitte zuerst den aktuellen Firebase-Stand der Historie laden lassen.');
+ const uid=auth.currentUser.uid,input=JSON.parse(await file.text()),validated=window.ECWHistoryCore.normalize(input);
+ if(!validated.records.length)throw Error('Die Datei enthält keine historischen Teilnahmen.');
+ if(!confirm(validated.records.length+' historische Einträge aus der privaten Sicherung nach Firebase übernehmen? Bereits vorhandene Historieneinträge werden beibehalten; gleiche Kennungen werden nicht doppelt angelegt. Aktuelle Turniere, Meldungen und Vereinskontakte bleiben erhalten.'))return;
+ const ref=doc(db,'einstellungen','teilnahmeHistorieBasis');
+ const transact=fn=>embeddedInMain?db.runTransaction(fn):modRunTransaction(db,fn);
+ const result=await transact(async tx=>{
+  if(auth.currentUser?.uid!==uid)throw Error('Die Anmeldung hat sich geändert.');
+  const snap=await tx.get(ref),exists=typeof snap.exists==='function'?snap.exists():snap.exists;
+  const merged=window.ECWHistoryCore.merge(exists?snap.data():null,input);
+  if(merged.changed){
+   let payload={...merged.value,updatedBy:uid};if(embeddedInMain)payload=window.parent.JSON.parse(JSON.stringify(payload));
+   payload.updatedAt=serverTimestamp();tx.set(ref,payload);
+  }return merged;
+ });
+ applyHistoryBasis(result.value);historyBasisReady=true;
+ historyBasisStatus('In Firebase bestätigt: '+result.added+' Einträge ergänzt; '+result.value.records.filter(r=>isoFromGerman(r.datum)>='2021-01-01').length+' historische Einträge ab 2021 vorhanden.');
+ notify(result.added?'Teilnahmehistorie in Firebase gespeichert.':'Diese Teilnahmehistorie ist bereits vollständig in Firebase vorhanden.');
+}
+document.getElementById('historyBasisImportBtn').addEventListener('click',()=>document.getElementById('historyBasisFile').click());
+document.getElementById('historyBasisFile').addEventListener('change',async event=>{
+ const input=event.target,file=input.files?.[0];if(!file)return;
+ await saveAction(document.getElementById('historyBasisImportBtn'),async()=>{await importHistoryBasis(file)});input.value='';
+});
+
 function listenHistoryMeldungen(){historyMeldungenUnsub=onSnapshot(query(collection(db,'meldungen')),snap=>{historyMeldungenCache=snap.docs.map(d=>({...d.data(),id:d.id}));renderHistory();renderRecipients()},dbError)}
 function seedClubPayload(c){
  const emails=(c.emails||[]).filter(Boolean),contacts=clubSplitValues(c.ansprechpartner||'','contact');
@@ -5322,6 +5373,7 @@ function startListeners() {
   listenTurniere();
   listenVereine();
   listenHistoryMeldungen();
+  listenHistoryBasis();
   listenLiveStartlistenSource();
 }
 
@@ -5970,7 +6022,7 @@ function updateVereineResetStatus() {
 function listenVereine() {
   vereineUnsub=onSnapshot(query(collection(db,'vereine')),snap=>{
     vereineCache=snap.docs.map(d=>({...d.data(),id:d.id})).filter(v=>!isHistoryMetaRowName(v.name)); vereineGeladen=true;
-    updateVereineResetStatus(); fillVereinSelect(); renderRecipients(); renderVereineAdmin(); updateMobileClubSuggestions(); ensureClubSeed(); renderHistory();
+    updateVereineResetStatus(); fillVereinSelect(); renderRecipients(); renderVereineAdmin(); updateMobileClubSuggestions(); renderHistory();
   },err=>{vereineGeladen=false;updateVereineResetStatus();renderRecipients();dbError(err);});
 }
 // ---------- Vereinsadressen: Verwaltung + Export ----------
