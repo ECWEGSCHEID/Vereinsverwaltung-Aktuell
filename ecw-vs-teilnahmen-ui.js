@@ -33,22 +33,24 @@ function refresh(){
  try{
   const raw=read();sourceSignature=signature(raw);snapshot=core.project(raw.events,raw.aliases,today());
   const prior=$('msParticipationYear').value,years=new Set(snapshot.records.map(x=>x.date.slice(0,4)));
-  const d=$('ms_meetingDate')?.value||today(),y=+d.slice(0,4),preferred=+d.slice(5,7)<=3?y-1:y;
+  const d=$('ms_meetingDate')?.value||today(),y=+d.slice(0,4);
+  const reportYear=Number(document.getElementById('yearSelect')?.value);
+  const preferred=target==='secretary'&&reportYear>=2001&&reportYear<=2200?reportYear-1:(+d.slice(5,7)<=3?y-1:y);
   years.add(String(preferred));years.add(today().slice(0,4));
   $('msParticipationYear').replaceChildren();[...years].sort((a,b)=>+b-+a).forEach(y=>$('msParticipationYear').add(new Option(y,y)));
   $('msParticipationYear').value=years.has(prior)?prior:String(preferred);renderEntries();
  }catch(e){snapshot=null;current=null;$('msParticipationApply').disabled=true;status(e.message);}
 }
-const panel=document.createElement('div');panel.className='panel no-print';panel.id='msParticipationPanel';panel.innerHTML=`<h3>Turnier- und Meisterschaftsteilnahmen übernehmen</h3>
+const panel=document.createElement('div');panel.className='panel no-print';panel.id=prefix+'Panel';panel.innerHTML=`<h3>Jahresabschluss übernehmen</h3>
 <p>Auswertung der vergangenen externen Turniere und Meisterschaften aus dem bereits geladenen Terminplaner. Zukünftige/heutige Termine, ausdrücklich abgesagte Einträge, interne Turniere und eigene Ausrichtungen werden nicht mitgezählt.</p>
 <button type="button" id="msParticipationLoad" class="btn">Aus Vereinsverwaltung laden / Vorschau</button>
 <label style="display:inline-block;margin:8px">Vereinsjahr <select id="msParticipationYear" aria-label="Vereinsjahr"></select></label>
 <p id="msParticipationStatus" class="small" role="status" aria-live="polite">Die Zahlen werden erst nach Laden, Prüfen und Bestätigen eingefügt.</p>
 <details><summary>Einträge prüfen und bei Bedarf abwählen</summary><p>Ein vergangener Termin ist kein automatischer Anwesenheitsnachweis. Bitte nur tatsächlich bestrittene Teilnahmen ausgewählt lassen. Ein Terminplanereintrag entspricht einer Mannschaftsteilnahme, nicht zwingend einem eigenen Turnier.</p><div id="msParticipationEntries" style="max-height:380px;overflow:auto"></div></details>
 <pre id="msParticipationWarnings" style="white-space:pre-wrap;font:inherit"></pre>
-<details open><summary>Textvorschau für die Mannschaftssitzung</summary><pre id="msParticipationText" style="white-space:pre-wrap;font:inherit"></pre></details>
+<details open><summary>Textvorschau</summary><pre id="msParticipationText" style="white-space:pre-wrap;font:inherit"></pre></details>
 <button type="button" id="msParticipationApply" class="btn red" disabled>Als Rückblick-Punkt übernehmen</button>
-<p class="small">Die Übernahme speichert im Browser. Für die geräteübergreifende Speicherung anschließend wie gewohnt „In Firebase speichern“ benutzen. Bereits archivierte Sitzungen werden nicht geändert.</p>`;
+<p class="small">Die Übernahme legt einen bearbeitbaren Punkt an. Die automatische Firebase-Speicherung sichert ihn nach dem Abgleich geräteübergreifend. Bitte die Speicherbestätigung im Versammlungsfenster abwarten.</p>`;
 panel.innerHTML=panel.innerHTML.replaceAll('msParticipation',prefix);host.prepend(panel);
 if(target==='secretary'){$('msParticipationApply').textContent='Unter Jahresbericht übernehmen';}
 $('msParticipationLoad').onclick=refresh;$('msParticipationYear').onchange=renderEntries;
@@ -59,10 +61,17 @@ $('msParticipationApply').onclick=()=>{
   if(!confirm(`${current.total} ausgewählte Mannschaftsteilnahmen für ${current.year} übernehmen?${state.existing?' Der bestehende automatisch übernommene Punkt einschließlich seiner Textänderungen wird ersetzt. Andere Sitzungspunkte bleiben erhalten.':''}`))return;
   const report=core.report(current);
   targetApi.importParticipation({year:current.year,...report,expected:state.expected,selection:current.records.map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,players:r.players})),});
-  state=targetApi.participationState(current.year);status('Als bearbeitbarer Rückblick-Punkt im Browser gespeichert. Für die Sicherung auf anderen Geräten bitte „In Firebase speichern“ wählen.');
+  state=targetApi.participationState(current.year);status(target==='secretary'?'Jahresabschluss unter Jahresbericht eingefügt. Automatische Firebase-Speicherung folgt.':'Jahresabschluss unter 02 · Sportlicher Rückblick eingefügt. Automatische Firebase-Speicherung folgt.');
  }catch(e){status(e.message);}
 };
+return {refresh};
 }
-const meeting=document.getElementById('ms_meeting');if(meeting)mount('team',meeting,'msParticipation');
-const dialog=document.createElement('dialog');dialog.style.cssText='width:min(1000px,96vw);max-height:92vh;overflow:auto;padding:18px';const close=document.createElement('button');close.textContent='Schließen';close.className='btn';close.onclick=()=>dialog.close();dialog.append(close);const host=document.createElement('div');dialog.append(host);document.body.append(dialog);mount('secretary',host,'secretaryParticipation');window.ecwOpenSecretaryParticipation=()=>dialog.showModal();
+function createDialog(target,prefix){
+ const dialog=document.createElement('dialog');dialog.id=prefix+'Dialog';dialog.setAttribute('aria-label','Jahresabschluss übernehmen');dialog.style.cssText='width:min(1000px,96vw);max-height:92vh;overflow:auto;padding:18px';
+ const close=document.createElement('button');close.type='button';close.textContent='Schließen';close.className='btn';close.onclick=()=>dialog.close();dialog.append(close);
+ const host=document.createElement('div');dialog.append(host);document.body.append(dialog);const controls=mount(target,host,prefix);
+ return ()=>{if(!controls){alert('Die Jahresabschluss-Auswertung konnte nicht gestartet werden. Bitte die Programmdateien vollständig laden.');return}controls.refresh();dialog.showModal()};
+}
+window.ecwOpenTeamParticipation=createDialog('team','msParticipation');
+window.ecwOpenSecretaryParticipation=createDialog('secretary','secretaryParticipation');
 })();

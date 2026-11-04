@@ -112,7 +112,7 @@ function importParticipation(input){
  const backup=JSON.parse(JSON.stringify(data));
  let item=previous.existing?data.items.find(x=>x.id===previous.existing.id):null;
  if(!item){item={id:Math.max(Date.now(),...data.items.map(x=>Number(x.id)||0))+1,section:'agenda',status:'Erledigt'};data.items.push(item);}
- Object.assign(item,{title:input.title,desc:input.desc,source:'ecw-participation-v1',sourceYear:input.year,participationSelection:input.selection,participationUpdatedAt:new Date().toISOString()});
+ Object.assign(item,{section:'agenda',title:input.title,desc:input.desc,source:'ecw-participation-v1',sourceYear:input.year,participationSelection:input.selection,participationUpdatedAt:new Date().toISOString()});
  try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){data=backup;throw Error('Speichern im Browser fehlgeschlagen: '+e.message);}
  render();return {id:item.id};
 }
