@@ -7343,7 +7343,7 @@ function renderVersammlungenAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  document.getElementById("admin").classList.add("meeting-wide");
  a.classList.add("meeting-mode");
- a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Versammlungen und Arbeitseinsätze</h2><button type="button" onclick="ecwReturnFromMeetings()">← Zurück zur Verwaltung</button></div><iframe id="vsAdminFrame" title="Versammlungen und Arbeitseinsätze" src="ecw-versammlungen-v2957.html?v=workspace-20261105" style="width:100%;height:100%;min-height:0;flex:1;border:1px solid #ffffff44;border-radius:12px;background:#16080b" loading="eager"></iframe>';
+ a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Versammlungen und Arbeitseinsätze</h2><button type="button" onclick="ecwReturnFromMeetings()">← Zurück zur Verwaltung</button></div><iframe id="vsAdminFrame" title="Versammlungen und Arbeitseinsätze" src="ecw-versammlungen-v2957.html?v=workspace-20261105-fix1" style="width:100%;height:100%;min-height:0;flex:1;border:1px solid #ffffff44;border-radius:12px;background:#16080b" loading="eager"></iframe>';
 }
 
 window.addEventListener('message',function(event){if(event.data?.type!=='ECW_MEETING_ACCESS_REQUEST')return;const frame=document.getElementById('vsAdminFrame');if(!frame||event.source!==frame.contentWindow)return;let allowed=false;try{allowed=window.ecwCanUseVersammlungen()===true}catch(e){}event.source.postMessage({type:'ECW_MEETING_ACCESS_RESPONSE',allowed},event.origin==='null'?'*':event.origin)});

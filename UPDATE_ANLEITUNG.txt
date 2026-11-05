@@ -1,0 +1,1 @@
+ZIP entpacken. Alle Programmdateien in das Hauptverzeichnis des bestehenden GitHub-Repositorys hochladen und vorhandene Dateien ersetzen. Danach Strg+Umschalt+R. Diese ZIP enthält nur die 18 Update-Dateien, keine privaten Sicherungsdaten.

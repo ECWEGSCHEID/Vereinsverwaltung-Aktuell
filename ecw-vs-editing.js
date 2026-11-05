@@ -38,14 +38,29 @@ function mount(container,api){
   const editor=document.createElement('div');editor.className='ecw-rich-editor';editor.contentEditable='true';editor.setAttribute('contenteditable','true');editor.setAttribute('role','textbox');editor.setAttribute('aria-multiline','true');editor.setAttribute('aria-label','Berichtstext');editor.innerHTML=item.richHTML?clean(item.html):item.listStyle==='bullet'||item.listStyle==='number'?'<'+(item.listStyle==='number'?'ol':'ul')+'>'+String(item.text||'').split(/\r?\n/).map(line=>'<li style="white-space:pre-wrap">'+(esc(line)||'<br>')+'</li>').join('')+'</'+(item.listStyle==='number'?'ol':'ul')+'>':'<p style="white-space:pre-wrap">'+esc(item.text||'').replace(/\r?\n/g,'<br>')+'</p>';
   let range=null;const remember=()=>{const s=getSelection();if(s.rangeCount&&editor.contains(s.anchorNode))range=s.getRangeAt(0).cloneRange()};
   const restore=()=>{editor.focus();if(range&&editor.contains(range.commonAncestorContainer)){const s=getSelection();s.removeAllRanges();s.addRange(range)}};
+  // A font choice without a text selection applies to the complete point.
+  function styleText(key,value){
+   restore();const selected=range&&!range.collapsed&&editor.contains(range.commonAncestorContainer);
+   if(selected){const span=document.createElement('span');span.style[key]=value;span.append(range.extractContents());span.querySelectorAll('*').forEach(n=>n.style.removeProperty(key==='fontFamily'?'font-family':'font-size'));range.insertNode(span);range.selectNodeContents(span);const selection=getSelection();selection.removeAllRanges();selection.addRange(range)}
+   else{editor.querySelectorAll('*').forEach(n=>{n.style.removeProperty(key==='fontFamily'?'font-family':'font-size');if(key==='fontFamily')n.removeAttribute('face');else n.removeAttribute('size')});for(const node of [...editor.childNodes]){if(node.nodeType===1)node.style[key]=value;else{const span=document.createElement('span');span.style[key]=value;node.replaceWith(span);span.append(node)}}range=null}
+  }
+  function listText(tag){
+   restore();let blocks=[...editor.children];const selected=range&&!range.collapsed&&editor.contains(range.commonAncestorContainer);
+   if(selected){const matched=blocks.filter(n=>range.intersectsNode(n));if(matched.length)blocks=matched}
+   if(!blocks.length){const p=document.createElement('p');while(editor.firstChild)p.append(editor.firstChild);if(!p.firstChild)p.append(document.createElement('br'));editor.append(p);blocks=[p]}
+   if(blocks.length===1&&blocks[0].tagName===tag.toUpperCase()){
+    const list=blocks[0];for(const li of [...list.children]){const p=document.createElement('p');while(li.firstChild)p.append(li.firstChild);list.before(p)}list.remove();
+   }else{const list=document.createElement(tag);blocks[0].before(list);for(const block of blocks){if(['UL','OL'].includes(block.tagName)){while(block.firstChild)list.append(block.firstChild);block.remove()}else{const li=document.createElement('li');if(block.tagName==='P'||block.tagName==='DIV'){while(block.firstChild)li.append(block.firstChild);block.remove()}else li.append(block);list.append(li)}}}
+   range=null;
+  }
   const save=()=>{remember();const html=clean(editor.innerHTML);api.rich(i,j,html,plain(html))};
-  function action(label,title,cmd){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=label;b.title=title;b.setAttribute('aria-label',title);b.onmousedown=e=>e.preventDefault();b.onclick=()=>{restore();document.execCommand(cmd,false,null);save()};toolbar.append(b)}
-  function select(label,values,apply){const box=document.createElement('label');box.textContent=label;const select=document.createElement('select');select.setAttribute('aria-label',label);values.forEach(([v,t])=>select.add(new Option(t,v)));select.onchange=()=>{restore();apply(select.value);save()};box.append(select);toolbar.append(box);return select}
-  const fontSelect=select('Schriftart',[['Times New Roman','Times New Roman'],['Arial','Arial']],v=>document.execCommand('fontName',false,v));
-  const size=select('Schriftgröße',[[10,'10 pt'],[12,'12 pt'],[14,'14 pt'],[16,'16 pt'],[18,'18 pt'],[20,'20 pt'],[24,'24 pt'],[28,'28 pt']],v=>{document.execCommand('fontSize',false,'7');editor.querySelectorAll('font[size="7"]').forEach(e=>{e.removeAttribute('size');e.style.fontSize=v+'pt'})});size.value='18';
-  action('F','Fett','bold');action('K','Kursiv','italic');action('U','Unterstrichen','underline');action('• Liste','Aufzählungszeichen','insertUnorderedList');action('1. Liste','Nummerierte Liste','insertOrderedList');action('⇥','Einzug vergrößern','indent');action('⇤','Einzug verkleinern','outdent');
+  function action(label,title,cmd,apply){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=label;b.title=title;b.setAttribute('aria-label',title);b.onmousedown=e=>e.preventDefault();b.onclick=()=>{restore();if(apply)apply();else document.execCommand(cmd,false,null);save()};toolbar.append(b)}
+  function select(label,values,apply){const box=document.createElement('label');box.textContent=label;const select=document.createElement('select');select.setAttribute('aria-label',label);values.forEach(([v,t])=>select.add(new Option(t,v)));select.onpointerdown=remember;select.onmousedown=remember;select.onchange=()=>{const value=select.value;restore();apply(value);save()};box.append(select);toolbar.append(box);return select}
+  const fontSelect=select('Schriftart',[['Times New Roman','Times New Roman'],['Arial','Arial']],v=>styleText('fontFamily',v));
+  const size=select('Schriftgröße',[[10,'10 pt'],[12,'12 pt'],[14,'14 pt'],[16,'16 pt'],[18,'18 pt'],[20,'20 pt'],[24,'24 pt'],[28,'28 pt']],v=>styleText('fontSize',v+'pt'));size.value='18';
+  action('F','Fett','bold');action('K','Kursiv','italic');action('U','Unterstrichen','underline');action('• Liste','Aufzählungszeichen',null,()=>listText('ul'));action('1. Liste','Nummerierte Liste',null,()=>listText('ol'));action('⇥','Einzug vergrößern','indent');action('⇤','Einzug verkleinern','outdent');
   select('Absatzabstand',[[0,'0 pt'],[6,'6 pt'],[12,'12 pt'],[18,'18 pt']],v=>{let nodes=[...editor.querySelectorAll('p,div,li')].filter(n=>range&&range.intersectsNode(n));if(!nodes.length){document.execCommand('formatBlock',false,'p');remember();nodes=[...editor.querySelectorAll('p,div,li')].filter(n=>range&&range.intersectsNode(n))}nodes.forEach(n=>n.style.marginBottom=v+'pt')});
-  editor.addEventListener('input',save);for(const event of ['mouseup','keyup','focusout'])editor.addEventListener(event,remember);
+  editor.addEventListener('input',save);for(const event of ['mouseup','keyup','touchend','focusout'])editor.addEventListener(event,remember);
   editor.addEventListener('paste',event=>{event.preventDefault();const source=event.clipboardData.getData('text/html'),text=event.clipboardData.getData('text/plain');document.execCommand('insertHTML',false,source?clean(source):esc(text).replace(/\r?\n/g,'<br>'));save()});
   wrap.append(toolbar,editor);area.replaceWith(wrap);
  });

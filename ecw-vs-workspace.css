@@ -6,3 +6,5 @@ main,.topin{max-width:1875px}#meetingWorkspace{display:grid;grid-template-column
 #utilityRailToggle{display:none;position:fixed;right:14px;bottom:14px;z-index:1100;box-shadow:0 4px 20px #0008}
 @media(max-width:1874px){#meetingWorkspace{display:block}#meetingUtilityRail{position:fixed;right:12px;top:80px;bottom:70px;width:min(360px,calc(100vw - 24px));max-height:none;z-index:1090;padding:10px;background:#0e1117;border:1px solid #737984;border-radius:12px;box-shadow:0 12px 45px #000b;transform:translateX(calc(100% + 30px));visibility:hidden}body.utility-rail-open #meetingUtilityRail{transform:none;visibility:visible}#utilityRailToggle{display:block}#meetingPrimary{width:100%}}
 @media print{#utilityRailToggle{display:none!important}}
+
+.ecw-rich-editor ul,.gv-paper .ecw-rich-output ul{list-style-type:disc;list-style-position:outside;padding-left:1.5em}.ecw-rich-editor ol,.gv-paper .ecw-rich-output ol{list-style-type:decimal;list-style-position:outside;padding-left:1.5em}.ecw-rich-editor li,.gv-paper .ecw-rich-output li{display:list-item;margin:0 0 4pt}
