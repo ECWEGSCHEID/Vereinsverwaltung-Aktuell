@@ -160,6 +160,7 @@
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◈" style="flex:1" onclick="adminSection('ic')">Interne Cup</button><button style="flex:none;width:44px;padding:12px 0" title="Turnierauswertung öffnen" onclick="openInternalCupAdmin('home')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◈" style="flex:1" onclick="openInternalCupAdmin('doppelko')">Doppel KO System</button><button style="flex:none;width:44px;padding:12px 0" title="Doppel KO öffnen" onclick="openInternalCupAdmin('doppelko')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◇" style="flex:1" onclick="adminSection('solo')">Solo Pyramide</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('solo')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="sh" onclick="adminSection('ergebnisse')">Ergebnisse</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="sh" title="Ergebnisse-Vorschau öffnen" onclick="adminPreviewOpen('ergebnisse')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="≡" style="flex:1" data-app-perm="n" onclick="adminSection('n')">Vereinsnachrichten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('n')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▧" style="flex:1" data-app-perm="p" onclick="adminSection('p')">Fotos für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('p')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="t" onclick="adminSection('zr')">Zeitungsberichte EC Wegscheid</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="t" title="Vorschau öffnen" onclick="adminPreviewOpen('zr')">👁</button></div>
@@ -188,7 +189,11 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
 <script src="js/firebase-init.js?v=2.9.49"></script>
-<script src="ecw-hauptprogramm-v2956.js?v=workspace-20261105-fix1"></script>
+<link rel="stylesheet" href="ecw-ergebnisse.css?v=20261105-6">
+<script src="ecw-ergebnisse-daten.js?v=20261105-2"></script>
+<script src="ecw-ergebnisse.js?v=20261105-6"></script>
+<script src="ecw-nuetzliches.js?v=20261105-2"></script>
+<script src="ecw-hauptprogramm-v2956.js?v=ergebnisse-20261105-7"></script>
 <script src="js/dokumente-drucken.js?v=2.9.29"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>

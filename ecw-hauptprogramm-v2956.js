@@ -1167,8 +1167,9 @@ function adminPreviewOpen(kind){
     openSoloPyramidePreview();
     return;
   }
-  const perm=(kind==='zr'?'t':kind==='docs'?'sh':kind);
+  const perm=(kind==='zr'?'t':kind==='docs'||kind==='ergebnisse'?'sh':kind);
   if(!canViewApp(perm)){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
+  if(kind==='ergebnisse'){ecwResults.preview();return;}
   if(kind==='t'){ openTournamentSection('tournaments'); window.__adminPreviewMode=true; }
   else if(kind==='o'){ openTournamentSection('ownTournaments'); window.__adminPreviewMode=true; }
   else if(kind==='tp'){ if(firebaseAuthUser||isPublicWhiteboardMode()){tpOpenTournamentPlannerView(true);window.__adminPreviewMode=true;}else{showToast('Bitte zuerst anmelden.');} }
@@ -1375,6 +1376,19 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
        {t:'Formulare',u:'#druckdokumente-formulare'}]});
    d.docMenuInitialized=true;
  }
+ if(window.ecwResults){
+  d.results=window.ecwResults.normalize(j.results);
+  if(j.resultsMenuInitialized!==true){
+   if(!d.buttons.some(b=>String(b.u||'').endsWith('#ecw-ergebnisse')))d.buttons.push({t:'Ergebnisse',u:'#ecw-ergebnisse'});
+  }
+  if(j.resultsPositionVersion!==2){
+   const at=d.buttons.findIndex(b=>String(b.u||'').endsWith('#ecw-ergebnisse'));
+   if(at>=0){const result=d.buttons.splice(at,1)[0];const news=d.buttons.findIndex(b=>/vereins\s*veranstaltungen/i.test(String(b.t||''))||String(b.u||'').endsWith('#nachrichten'));const google=d.buttons.findIndex(b=>/^google$/i.test(String(b.t||'').trim()));d.buttons.splice(news>=0?news+1:google>=0?google:d.buttons.length,0,result)}
+  }
+  d.resultsPositionVersion=2;
+  d.resultsMenuInitialized=true;
+ }
+ if(window.ecwUtility)window.ecwUtility.normalize(d,j);
  return shEnsureSoloPyramide(d)}
 let SH=(function(){try{return shSane(JSON.parse(localStorage.getItem(SH_KEY)))}catch(e){return shSane({})}})();
 
@@ -1424,6 +1438,7 @@ function shUpdateFirebaseStatus(message){
 }
 
 async function shSaveToFirebase(){
+ if(window.ecwResults && !(await window.ecwResults.prepareSave()))return false;
  if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return false;}
  const invalid=(SH.links||[]).find(x=>!String(x.t||'').trim()||!shValidExternalLink(x.u));
  if(invalid){showToast('Bitte alle Links mit Bezeichnung und gültiger http(s)-Adresse ausfüllen oder unvollständige Links entfernen.',6500);return false;}
@@ -1536,6 +1551,11 @@ function shMakeBtn(b,idx){
    a.title='Für diesen Benutzer nicht freigegeben';a.href='#';
    a.onclick=e=>e.preventDefault();return a;
   }
+  if(String(b.u||'').endsWith('#ecw-ergebnisse')){
+   a.href='#ecw-ergebnisse';a.classList.add('hassub');
+   a.onclick=e=>{e.preventDefault();if(window.ecwResults)window.ecwResults.open(false);else showToast('Ergebnisbereich fehlt. Bitte alle Update-Dateien hochladen.');};return a;
+  }
+  if(String(b.u||'').endsWith('#ecw-nuetzliches-links')){a.href='#ecw-nuetzliches-links';a.classList.add('hassub');a.onclick=e=>{e.preventDefault();window.ecwUtility.open()};return a;}
   if(idx>=0&&Array.isArray(b.sub)&&b.sub.length){
    a.classList.add('hassub');a.href='#';
    a.onclick=e=>{e.preventDefault();shOpen=idx;shRender();};
@@ -1672,6 +1692,8 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
  +'<p class="small">Änderungen werden sofort angezeigt und zunächst lokal in diesem Browser zwischengespeichert.</p></div>'
  +'<div class="card" style="margin-top:12px;border:2px solid rgba(255,255,255,.28)"><h3 style="margin-top:0">Zentrale Startseite</h3><p class="small">Mit „Startseite speichern“ wird dieser Stand zentral in Firebase gespeichert. Beim nächsten Anmelden lädt PC/Whiteboard automatisch genau diesen Stand.</p><div class="row"><button id="shFirebaseSaveBtn" class="primary" onclick="shSaveToFirebase()">Startseite speichern</button><button id="shFirebaseLoadBtn" onclick="shLoadFromFirebase(true)">Aus Firebase laden</button></div><div id="shFirebaseStatus" class="small" style="margin-top:10px;font-weight:bold"></div></div>'
  +shExternalLinksAdminHtml()
+ +(window.ecwUtility?window.ecwUtility.adminHtml():'')
+
  +'<div class="card" style="margin-top:12px"><label>Text auf der Startseite</label><input type="text" value="'+esc(SH.title)+'" oninput="shSet(\'title\',this.value)">'
  +'<label>Buttons pro Reihe</label><select onchange="shSet(\'cols\',+this.value,true)">'+[2,3,4].map(n=>'<option'+(n===SH.cols?' selected':'')+'>'+n+'</option>').join('')+'</select>'
  +'<label>Hintergrundbild (16:9, wird automatisch verkleinert)</label><input type="file" accept="image/*" onchange="shBg(this)"><div style="margin-top:8px"><button onclick="shBgReset()">Originalbild wiederherstellen</button></div></div>'
@@ -6109,7 +6131,7 @@ function renderTurnierWirtschaftlichkeitAdmin(){
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
- const permKey=(s==='zr'?'t':s==='docs'?'sh':s==='players'?'tp':s);
+ const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'?'sh':s==='players'?'tp':s);
  const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
@@ -6118,6 +6140,7 @@ function adminSection(s){
  if(s==='reservadmin'){ecwReservationAdmin();return}
  if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
  if(s==='docs'){ecwDocsAdmin();return}
+ if(s==='ergebnisse'){ecwResults.admin();return}
  if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}
  if(s==='u'){openUserRightsAdmin();return}
