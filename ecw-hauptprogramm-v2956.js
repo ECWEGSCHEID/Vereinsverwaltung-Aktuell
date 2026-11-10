@@ -1,5 +1,6 @@
 
 const APP_VERSION='2.9.57';
+const APP_RELEASE='ECW Startseite V5';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -7,11 +8,18 @@ const APP_VERSION_URL='version.json';
     .then(r=>r.ok?r.json():null)
     .then(v=>{
       const latest=String(v?.version||'').trim();
-      if(!latest||latest===APP_VERSION)return;
+      if(!latest)return;
       const u=new URL(location.href);
-      if(u.searchParams.get('v')===latest)return;
+      const current=u.searchParams.get('v');
+      if(current===latest)return;
+      if(latest===APP_RELEASE){
+        if(current===null)return;
+        u.searchParams.set('v',latest);
+        history.replaceState(history.state,'',u.href);
+        return;
+      }
       u.searchParams.set('v',latest);
-      location.replace(u.toString());
+      location.replace(u.href);
     }).catch(()=>{});
 })();
 
@@ -1193,6 +1201,7 @@ async function switchUserLogin(){
      const u=new URL(location.href);
      u.searchParams.delete('whiteboard');
      u.searchParams.set('login','1');
+     u.searchParams.set('v',APP_RELEASE);
      u.hash='';
      location.href=u.href;
      return;
