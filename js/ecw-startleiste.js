@@ -62,9 +62,13 @@
   let taps=[];
   window.ecwCornerLogin=function(event){
     const wb=(typeof isPublicWhiteboardMode==='function'&&isPublicWhiteboardMode())||(typeof isWhiteboardUser==='function'&&isWhiteboardUser());
-    if(!wb){if(typeof switchUserLogin==='function')switchUserLogin();return;}
-    // Whiteboard: erst nach 5 bewussten Berührungen innerhalb von 5 Sekunden öffnen.
-    // Dies ist nur ein Schutz vor Fehlbedienung, KEINE zusätzliche Authentifizierung.
+    const touch=event?.pointerType==='touch'||event?.sourceCapabilities?.firesTouchEvents===true;
+    if(!wb||!touch){
+      taps=[];
+      if(typeof switchUserLogin==='function')switchUserLogin();
+      return;
+    }
+    // Auf dem Whiteboard schützen fünf Touch-Tipps vor versehentlichem Öffnen.
     const now=Date.now();taps=taps.filter(t=>now-t<5000);taps.push(now);
     if(taps.length>=5){taps=[];if(typeof switchUserLogin==='function')switchUserLogin();}
     if(event)event.preventDefault();
