@@ -1,7 +1,1 @@
-{
-  "version": "3.3-neustart-1",
-  "date": "2026-11-03",
-  "release": "Vollständiges bereinigtes Paket, automatische Versammlungs-Speicherung und Geräteabgleich",
-  "entry": "index.html",
-  "firebaseLiveTest": "nach Veröffentlichung erforderlich"
-}
+{"version":"ECW 22 Test","entry":"index.html","release":"PDF-Anzeige für Turnierveröffentlichungen"}

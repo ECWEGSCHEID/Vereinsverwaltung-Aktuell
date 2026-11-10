@@ -540,6 +540,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
     html:not(.cup-in-verwaltung) #globalStartMenuBtn {bottom:75px!important;}
     @media(max-width:600px){html:not(.cup-in-verwaltung) #globalStartMenuBtn{bottom:70px!important;}}
 
+    #view-match #selectTeamA, #view-match #selectTeamB { display:block; min-width:0; max-width:100%; box-sizing:border-box; }
     /* EC Wegscheid – Cup: großzügige Ergebniseingabe für WM65B */
     #view-match { width: min(100%, 1220px); max-width: none; align-self: center; padding: clamp(12px, 2vw, 26px); }
     #view-match #matchGroupHeader { font-size: clamp(1.35rem, 2vw, 2rem) !important; margin-bottom: 14px !important; }
@@ -583,7 +584,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       #view-match.active { height: 100%; min-height: 0; width: 100%; max-width: none; overflow: hidden; padding: 8px 14px; }
     }
     #view-match #matchGroupHeader { font-size: clamp(1.05rem,1.55vw,1.5rem)!important; margin: 0 0 6px!important; flex: 0 0 auto; }
-    #view-match .cup-workspace { display: grid; grid-template-columns: minmax(250px, 26%) minmax(0, 1fr); gap: clamp(10px,1.5vw,24px); flex: 1 1 auto; min-height: 0; }
+    #view-match .cup-workspace { display: grid; grid-template-columns: minmax(250px, var(--cup-selector-width, 26%)) minmax(0, 1fr); gap: clamp(10px,1.5vw,24px); flex: 1 1 auto; min-height: 0; }
     #view-match .cup-match-selector { background: rgba(22,26,34,.96); border: 1px solid rgba(255,255,255,.26); border-radius: 12px; padding: clamp(10px,1.1vw,18px); min-width: 0; }
     #view-match .cup-match-selector h3 { font-size: clamp(1.05rem,1.5vw,1.4rem); color: #ffb6ba; margin-bottom: clamp(10px,2vh,20px); }
     #view-match .cup-match-selector label { font-size: clamp(.9rem,1.15vw,1.12rem); margin: 0 0 7px; }
@@ -1146,7 +1147,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
           <div id="adminRegenerationNotice" style="display:none; background:rgba(120,53,15,.35); border:1px solid var(--gold); color:#fde68a; border-radius:6px; padding:7px; margin-bottom:6px; font-size:.78rem;">
             <b>⚠️ Spielplan muss neu generiert werden.</b><br>
             Mannschaften oder Gruppen wurden geändert. Die neue Struktur wird erst nach der Neugenerierung aktiv.
-            <button class="btn btn-ko" style="margin:6px 0 0; padding:6px;" onclick="regenerateTournamentFixtures()">🔄 Spielplan neu generieren (mit Admin-Passwort)</button>
+            <button class="btn btn-ko" style="margin:6px 0 0; padding:6px;" onclick="regenerateTournamentFixtures()">🔄 Spielplan neu generieren (Administrator)</button>
           </div>
 
           <div style="display: flex; gap: 6px; margin-bottom: 6px;">

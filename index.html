@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vereins-Informationssystem – V2.5.4</title>
 <script src="js/ladefehler.js?v=2.9.29"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=2.9.52">
+<link rel="stylesheet" href="css/hauptprogramm.css?v=ecw19">
 <link rel="stylesheet" href="css/dokumente-drucken.css?v=2.9.29">
 </head>
-<body data-ecw-build="V2.9.27-TEST">
+<body data-ecw-build="ECW18-TEST">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
   Vereinsinformation wird geladen …
 </div>
@@ -55,7 +55,17 @@
 
 <section id="startseite" class="view">
   <div id="shStage"><div id="shArt"><h1 id="shTitle"></h1></div><h1 id="shTitle2"></h1><nav id="shGrid" aria-label="Hauptmenü"></nav></div>
-  <button id="shUserLogin" type="button" title="Neuen Benutzer anmelden" aria-label="Neuen Benutzer anmelden" onclick="switchUserLogin()">Neuen Benutzer anmelden</button>
+  <div id="ecwInfoRibbon" aria-label="Aktuelle Meldungen und Temperaturen">
+    <div class="ecw-ribbon-news" aria-label="Vereins-Laufschrift"><span id="ecwHomeTickerText">Willkommen beim EC Wegscheid</span></div>
+    <div id="ecwTemperatures" aria-label="Temperaturen Halle, Außen und Vereinsheim">
+      <div class="ecw-temp-cell"><span>Halle</span><strong id="ecwTempHalle">--,- °C</strong></div>
+      <div class="ecw-temp-cell"><span>Außen</span><strong id="ecwTempAussen">--,- °C</strong></div>
+      <div class="ecw-temp-cell"><span>Vereinsheim</span><strong id="ecwTempVereinsheim">--,- °C</strong></div>
+      <div class="ecw-ribbon-clock"><span id="ecwHomeDate">--.--.----</span><strong id="ecwHomeClock">--:--</strong></div>
+      <div id="ecwTempStatus" role="status" title="Temperaturstatus">Sensorwerte noch nicht verbunden</div>
+    </div>
+  </div>
+  <button id="shUserLogin" type="button" title="Benutzer anmelden" aria-label="Benutzer anmelden" onclick="ecwCornerLogin(event)">Benutzer anmelden</button>
   <div id="shSubReturn" class="bottom menu-return" hidden><button type="button" onclick="closeStartSubmenu()">Zurück zum Hauptmenü</button></div>
   <button id="shFs" title="Vollbild" aria-label="Vollbild umschalten" onclick="shFullscreen()">⛶</button>
   <button data-user-password hidden type="button" style="position:fixed;left:14px;bottom:14px;z-index:8" onclick="openUserPassword()">Benutzerkennwort ändern</button>
@@ -109,7 +119,7 @@
 </section>
 
 <section id="turnierverwaltung" class="view" style="padding:0">
-  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="about:blank" data-src="turnierverwaltung.html?v=2.9.29" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
+  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="about:blank" data-src="turnierverwaltung.html?v=ecw22" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
   <button id="tvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
 </section>
 
@@ -160,6 +170,7 @@
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◈" style="flex:1" onclick="adminSection('ic')">Interne Cup</button><button style="flex:none;width:44px;padding:12px 0" title="Turnierauswertung öffnen" onclick="openInternalCupAdmin('home')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◈" style="flex:1" onclick="openInternalCupAdmin('doppelko')">Doppel KO System</button><button style="flex:none;width:44px;padding:12px 0" title="Doppel KO öffnen" onclick="openInternalCupAdmin('doppelko')">👁</button></div>
       <div class="row" data-global-admin hidden style="margin-bottom:8px;gap:6px"><button data-menu-icon="◇" style="flex:1" onclick="adminSection('solo')">Solo Pyramide</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('solo')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="⌂" style="flex:1" data-app-perm="sh" onclick="adminSection('homepage')">Homepage</button><button type="button" style="flex:none;width:44px;padding:12px 0" data-app-perm="sh" title="Homepage-Vorschau öffnen" aria-label="Homepage-Vorschau öffnen" onclick="openHomepagePreview()">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="sh" onclick="adminSection('ergebnisse')">Ergebnisse</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="sh" title="Ergebnisse-Vorschau öffnen" onclick="adminPreviewOpen('ergebnisse')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="≡" style="flex:1" data-app-perm="n" onclick="adminSection('n')">Vereinsnachrichten</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('n')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▧" style="flex:1" data-app-perm="p" onclick="adminSection('p')">Fotos für Diashow</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('p')">👁</button></div>
@@ -191,9 +202,10 @@
 <script src="js/firebase-init.js?v=2.9.49"></script>
 <link rel="stylesheet" href="ecw-ergebnisse.css?v=20261105-6">
 <script src="ecw-ergebnisse-daten.js?v=20261105-2"></script>
-<script src="ecw-ergebnisse.js?v=20261105-6"></script>
+<script src="ecw-ergebnisse.js?v=20261109-testhomepage-2"></script>
 <script src="ecw-nuetzliches.js?v=20261105-2"></script>
-<script src="ecw-hauptprogramm-v2956.js?v=ergebnisse-20261105-7"></script>
+<script src="js/ecw-homepage-test.js?v=22"></script>
+<script src="ecw-hauptprogramm-v2956.js?v=20261110-ecw19"></script>
 <script src="js/dokumente-drucken.js?v=2.9.29"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
@@ -256,6 +268,18 @@
         <select id="tv_tMeldeUhrzeit"></select>
         <label>Maximale Anzahl Mannschaften</label>
         <select id="tv_tMax"></select>
+
+        <fieldset class="tv-homepage-options" id="tv_hpCreateOptions">
+          <legend>Homepage-Veröffentlichung (Vorbereitung)</legend>
+          <label class="tv-hp-check"><input type="checkbox" id="tv_tHpEnabled" /> Für Homepage-Veröffentlichung vormerken</label>
+          <div id="tv_tHpFields" hidden>
+            <label class="tv-hp-check"><input type="checkbox" id="tv_tHpInvite" /> Einladung / Ausschreibung</label>
+            <label class="tv-hp-check"><input type="checkbox" id="tv_tHpList" /> Live-Startliste</label>
+            <label for="tv_tHpFolder">Ziel-Unterordner unter Termine</label>
+            <input id="tv_tHpFolder" type="text" placeholder="Exakter vorhandener Unterordner" maxlength="120" />
+          </div>
+          <p class="meta">Speichert vorerst nur die Freigabe-Vormerkung im Turnier. Noch keine öffentliche Veröffentlichung: Die Homepage-Schnittstelle muss separat angebunden werden.</p>
+        </fieldset>
         <button class="primary" id="tv_tAddBtn">Turnier anlegen</button>
       </div>
 
@@ -303,6 +327,18 @@
           <select id="tv_tdEditMeldeUhrzeit"></select>
           <label>Maximale Anzahl Mannschaften</label>
           <select id="tv_tdEditMax"></select>
+
+        <fieldset class="tv-homepage-options" id="tv_hpEditOptions">
+          <legend>Homepage-Veröffentlichung (Vorbereitung)</legend>
+          <label class="tv-hp-check"><input type="checkbox" id="tv_tdEditHpEnabled" /> Für Homepage-Veröffentlichung vormerken</label>
+          <div id="tv_tdEditHpFields" hidden>
+            <label class="tv-hp-check"><input type="checkbox" id="tv_tdEditHpInvite" /> Einladung / Ausschreibung</label>
+            <label class="tv-hp-check"><input type="checkbox" id="tv_tdEditHpList" /> Live-Startliste</label>
+            <label for="tv_tdEditHpFolder">Ziel-Unterordner unter Termine</label>
+            <input id="tv_tdEditHpFolder" type="text" placeholder="Exakter vorhandener Unterordner" maxlength="120" />
+          </div>
+          <p class="meta">Speichert vorerst nur die Freigabe-Vormerkung im Turnier. Noch keine öffentliche Veröffentlichung: Die Homepage-Schnittstelle muss separat angebunden werden.</p>
+        </fieldset>
           <button class="primary" id="tv_tdEditSaveBtn">Speichern</button>
           <button class="secondary" id="tv_tdEditCancelBtn" style="margin-top:8px;width:100%;">Abbrechen</button>
         </div>
@@ -432,7 +468,7 @@
 </div>
 
 </div></div>
-<script src="js/turnierverwaltung-integration.js?v=2.9.29"></script>
+<script src="js/turnierverwaltung-integration.js?v=ecw18-veroeffentlichung-vorbereitung"></script>
 
 
 <div id="tpTournamentEvalModal" class="hidden" onclick="if(event.target===this)closeTpTournamentEvaluation()">
@@ -468,5 +504,5 @@
 <script src="designvorlagen-daten.js?v=2.9.29"></script>
 <script src="systemeinstellungen.js?v=2.9.29"></script>
 <script src="js/admin-menu-design.js?v=2.9.29"></script>
-<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script></body>
+<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=12"></script><script src="js/ecw-technik-bridge.js?v=12"></script><script src="js/ecw-temperaturen.js?v=12"></script><script src="js/ecw-startleiste.js?v=13"></script></body>
 </html>

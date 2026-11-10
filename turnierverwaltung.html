@@ -1503,6 +1503,13 @@ copy of the Program in return for a fee.
                      END OF TERMS AND CONDITIONS
 
 -->
+<p id="tvStartup" class="card" role="status">Turnierverwaltung wird gestartet …</p>
+<script>
+setTimeout(() => {
+  const status = document.getElementById("tvStartup");
+  if (!status.hidden) status.textContent = "Die Turnierverwaltung konnte noch nicht gestartet werden. Bitte Verbindung und Anmeldung prüfen und neu laden.";
+},12000);
+</script>
 <!-- LOGIN -->
 <div id="loginScreen" class="card hidden">
   <div class="login-brand">EC WEGSCHEID</div><h2>Turnierverwaltung</h2><p class="meta">Mit deinem bestehenden Zugang anmelden – am PC, Tablet oder Smartphone.</p>
@@ -1577,7 +1584,14 @@ copy of the Program in return for a fee.
 <div><label for="tStock_header">Briefkopf für StockApp</label><select id="tStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (gespeicherten Windows-Pfad verwenden)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (automatisch übernehmen)</option></select></div>
 <div><label for="tStock_headerPath">Bildpfad auf dem StockApp-Windows-PC (optional; beim Hallenbild einmal eintragen)</label><input id="tStock_headerPath" type="text" placeholder="C:\Bilder\Hallenbild.png"></div>
 <div><label><input type="checkbox" id="tStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
-</div></details><button class="primary" id="tAddBtn">Turnier anlegen</button>
+</div></details><details class="ecw-stockapp-options tv-homepage-options" data-homepage="t"><summary>Veröffentlichung auf der Test-Homepage</summary>
+ <button type="button" data-hp-connect>Test-Homepage verbinden</button>
+ <p data-hp-status role="status"></p>
+ <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>
+ <label><input type="checkbox" data-hp-invitation> Einladung</label>
+ <label><input type="checkbox" data-hp-start> Live-Startliste</label>
+ <label>Homepage-Unterordner <select data-hp-folder></select></label>
+</details><button class="primary" id="tAddBtn">Turnier anlegen</button>
       </div>
 
     </section>
@@ -1634,6 +1648,14 @@ copy of the Program in return for a fee.
           </div>
           <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="danger" type="button" id="tdDeleteBtn" title="Turnier mit allen Mannschaftsmeldungen löschen">🗑️ Turnier löschen</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp-Datei speichern (.skmr)</button><span id="ecwStockExportStatus" role="status" aria-live="polite" class="meta" style="display:block;margin-top:8px"></span></div>
         </div>
+        <details class="ecw-stockapp-options tv-homepage-options" data-homepage="tdEdit"><summary>Veröffentlichung auf der Test-Homepage</summary>
+ <button type="button" data-hp-connect>Test-Homepage verbinden</button>
+ <p data-hp-status role="status"></p>
+ <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>
+ <label><input type="checkbox" data-hp-invitation> Einladung</label>
+ <label><input type="checkbox" data-hp-start> Live-Startliste</label>
+ <label>Homepage-Unterordner <select data-hp-folder></select></label>
+<button type="button" class="primary" id="tdHomepageSave">Homepage-Einstellung speichern und übertragen</button></details>
         <div id="ecwStockSaveStatus" role="status" aria-live="polite" class="meta" style="margin:10px 0"></div><div id="tdEditForm" class="hidden">
           <div class="form-grid"><div><label for="tdEditName">Turniername</label>
           <input type="text" id="tdEditName" /></div>
@@ -4576,6 +4598,7 @@ var qrcode = function() {
 }));
 </script>
 <script src="js/turnier-historie-core.js?v=history-20261103-1"></script>
+<script src="js/ecw-homepage-test.js?v=22"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -4700,8 +4723,9 @@ function query(ref,...clauses){
     return q;
   },ref);
 }
-function onSnapshot(ref,next,error){
-  return embeddedInMain ? ref.onSnapshot(next,error) : modOnSnapshot(ref,next,error);
+function onSnapshot(ref,next,error,options){
+  const args = options ? [options,next,error] : [next,error];
+  return embeddedInMain ? ref.onSnapshot(...args) : modOnSnapshot(ref,...args);
 }
 function serverTimestamp(){
   return embeddedInMain
@@ -4882,7 +4906,13 @@ const appScreen = document.getElementById("app");
 let authCheckSeq=0;
 onAuthStateChanged(auth, async (user) => {
   const seq=++authCheckSeq;
-  stopListeners();
+  try { stopListeners(); } catch (error) {
+    console.error(error);
+    document.getElementById("tvStartup").textContent = "Turnierverwaltung konnte nicht gestartet werden.";
+    return;
+  }
+  const startup = document.getElementById("tvStartup");
+  startup.hidden = true;
   if(liveStartPublicMode){
     loginScreen.classList.add("hidden");appScreen.classList.remove("hidden");document.body.classList.add('live-start-public');startLiveStartlistenViewer();showLiveStartliste();return;
   }
@@ -4890,7 +4920,8 @@ onAuthStateChanged(auth, async (user) => {
     if(embeddedInMain){
       loginScreen.classList.add("hidden");
       appScreen.classList.add("hidden");
-      notify("Bitte zuerst in der Vereinsverwaltung als Administrator anmelden.",true);
+      startup.hidden = false;
+      startup.textContent = "Bitte zuerst in der Vereinsverwaltung als Administrator anmelden.";
       return;
     }
     loginScreen.classList.remove("hidden");
@@ -4901,7 +4932,9 @@ onAuthStateChanged(auth, async (user) => {
     const prof=await getDoc(doc(db,"users",user.uid));
     if(seq!==authCheckSeq)return;
     if(!prof.exists() || prof.data().admin!==true){
-      document.getElementById("loginError").textContent="Die Turnierverwaltung ist nur für Administratoren freigegeben.";
+      startup.hidden = false;
+      startup.textContent = "Die Turnierverwaltung ist nur für Administratoren freigegeben.";
+      document.getElementById("loginError").textContent=startup.textContent;
       await signOut(auth);
       return;
     }
@@ -4917,7 +4950,9 @@ onAuthStateChanged(auth, async (user) => {
     console.error(err);
     loginScreen.classList.remove("hidden");
     appScreen.classList.add("hidden");
-    document.getElementById("loginError").textContent="Administrator-Berechtigung konnte nicht geprüft werden.";
+    startup.hidden = false;
+    startup.textContent = "Administrator-Berechtigung konnte nicht geprüft werden.";
+    document.getElementById("loginError").textContent=startup.textContent;
   }
 });
 
@@ -5406,9 +5441,16 @@ async function publishLiveStartlisten(){
   });
   await Promise.all(jobs);
 }
+let homepageEntriesLoaded = false;
 function listenLiveStartlistenSource(){
+  homepageEntriesLoaded = false;
   if(liveMeldungenUnsub)liveMeldungenUnsub();
-  liveMeldungenUnsub=onSnapshot(query(collection(db,'meldungen')),snap=>{liveMeldungenAll=snap.docs.map(d=>({...d.data(),id:d.id}));scheduleLiveStartlistenPublish();},err=>console.warn('Live Startlisten Meldungen:',err));
+  liveMeldungenUnsub=onSnapshot(query(collection(db,'meldungen')),snap=>{
+    homepageEntriesLoaded = !snap.metadata?.fromCache && !snap.metadata?.hasPendingWrites;
+    liveMeldungenAll=snap.docs.map(d=>({...d.data(),id:d.id}));
+    scheduleLiveStartlistenPublish();
+    if (homepageEntriesLoaded) turniereCache.filter(t=>t.homepageFreigabe?.startList).forEach(t=>publishHomepageTournament(t));
+  },err=>console.warn('Live Startlisten Meldungen:',err),{includeMetadataChanges:true});
 }
 function liveStartlistRows(x){const entries=Array.isArray(x?.entries)?x.entries:[];const configured=Math.max(0,Number(x?.maxMannschaften)||0);const count=configured||entries.length;if(!count)return [];return Array.from({length:count},(_,i)=>entries[i]||{free:true});}
 function liveStartlistHtml(x){
@@ -5547,6 +5589,110 @@ async function ecwExportStockApp(){
 }
 document.getElementById('ecwStockExportBtn')?.addEventListener('click',()=>ecwExportStockApp().catch(e=>ecwStockStatus('StockApp-Export fehlgeschlagen: '+e.message,true)));
 
+const homepageForms = [...document.querySelectorAll("[data-homepage]")];
+const homepageForm = prefix => homepageForms.find(form => form.dataset.homepage === prefix);
+const homepageField = (form, name) => form.querySelector("[data-hp-" + name + "]");
+function fillHomepageTournament(prefix, config = {}) {
+  const form = homepageForm(prefix);
+  homepageField(form,"enabled").checked = !!config.enabled;
+  homepageField(form,"invitation").checked = !!config.invitation;
+  homepageField(form,"start").checked = !!config.startList;
+  window.ecwHomepageTest?.options(homepageField(form,"folder"),config.folder || "");
+  updateHomepageTournamentFields(form);
+}
+function updateHomepageTournamentFields(form) {
+  const disabled = !homepageField(form,"enabled").checked;
+  for (const key of ["invitation","start","folder"]) homepageField(form,key).disabled = disabled;
+}
+function readHomepageTournament(prefix, date) {
+  const form = homepageForm(prefix);
+  const enabled = homepageField(form,"enabled").checked;
+  if (!enabled) return {enabled:false};
+  const invitation = homepageField(form,"invitation").checked;
+  const startList = homepageField(form,"start").checked;
+  const folder = homepageField(form,"folder").value;
+  if (!date || !folder || !invitation && !startList) {
+    notify("Für die Homepage bitte Datum, Unterordner und Einladung oder Live-Startliste auswählen.",true);
+    return null;
+  }
+  return {enabled,invitation,startList,folder};
+}
+for (const form of homepageForms) {
+  homepageField(form,"connect").onclick = () => window.ecwHomepageTest?.connect();
+  homepageField(form,"enabled").onchange = () => updateHomepageTournamentFields(form);
+  fillHomepageTournament(form.dataset.homepage);
+}
+window.addEventListener("ecw-homepage-status", () => {
+  for (const form of homepageForms) {
+    const key = form.dataset.homepage === "tdEdit" && aktuellesTurnier?.id ? "turnier:" + aktuellesTurnier.id : undefined;
+    homepageField(form,"status").textContent = window.ecwHomepageTest?.status(key) || "";
+    window.ecwHomepageTest?.options(homepageField(form,"folder"));
+  }
+});
+const lastHomepageTournament = new Map();
+function homepageTournamentEntries(t) {
+  return liveMeldungenAll.filter(m=>m.turnierId===t.id)
+    .sort((a,b)=>(a.anmeldedatum||"").localeCompare(b.anmeldedatum||"") ||
+      ((a.erstelltAm?.seconds||0)-(b.erstelltAm?.seconds||0)) || String(a.id||"").localeCompare(String(b.id||"")))
+    .map(liveStartlistSafeEntry);
+}
+function publishHomepageTournament(t, force = false, reportedEntries) {
+  const key = "turnier:" + t.id;
+  const config = t.homepageFreigabe;
+  if (!config || !window.ecwHomepageTest) return;
+  const active = config.enabled && tournamentIsActive(t);
+  if (active && t.datum < localToday()) {
+    if (force) window.ecwHomepageTest.report(key,"Das Turnierdatum liegt in der Vergangenheit. Die Homepage blendet den Eintrag aus.");
+    return;
+  }
+  if (active && config.startList && !homepageEntriesLoaded && !reportedEntries) {
+    if (force) window.ecwHomepageTest.report(key,"Einstellung gespeichert. Warte auf die Mannschaftsmeldungen für die Live-Startliste.");
+    return;
+  }
+  const entries = active && config.startList ? (reportedEntries ?? homepageTournamentEntries(t)) : [];
+  const template = t.einladungVorlage || {};
+  const invitationText = [
+    template.einladungsTitel,
+    template.startgeld && "Startgeld: " + template.startgeld,
+    template.durchfuehrung,
+    template.siegerehrung,
+    template.abschluss,
+  ].filter(Boolean).join("\n");
+  const record = active ? {
+    key, folder:config.folder, title:t.name, date:t.datum, time:t.uhrzeit, location:t.ort,
+    invitation:config.invitation, startList:config.startList, invitationText, pdfMode:true,
+    teams:config.startList ? entries.map(entry => [entry.vereinName,entry.teamZusatz].filter(Boolean).join(" · ")) : [],
+  } : {key,remove:true};
+  const serialized = JSON.stringify([record,active ? [template,t.maxMannschaften,t.meldeUhrzeit,t.kategorie,entries] : null]);
+  const previous = lastHomepageTournament.get(key);
+  if (!force && previous === serialized) return;
+  lastHomepageTournament.set(key,serialized);
+  const makePdfs = active ? async () => {
+    const pdfs = {};
+    if (config.invitation) {
+      pdfs.invitation = pagesToPdf(await renderExportPages(invitationHtml(t,{...DOC_DEFAULTS,...template})));
+    }
+    if (config.startList) {
+      const source = {...t,entries,vorlage:liveStartlistTemplateFor(t)};
+      pdfs.startList = pagesToPdf(await renderExportPages(liveStartlistHtml(source)));
+    }
+    return pdfs;
+  } : undefined;
+  window.ecwHomepageTest.queue(record,force || Boolean(previous),makePdfs);
+}
+
+document.getElementById("tdHomepageSave").addEventListener("click", () => saveAction(document.getElementById("tdHomepageSave"), async () => {
+  const t = aktuellesTurnier;
+  if (!t || !tournamentIsActive(t)) return;
+  const homepageFreigabe = readHomepageTournament("tdEdit",t.datum);
+  if (!homepageFreigabe) return;
+  const payload = {homepageFreigabe};
+  await updateDoc(doc(db,"turniere",t.id),embeddedInMain ? window.parent.JSON.parse(JSON.stringify(payload)) : payload);
+  const updated = {...t,homepageFreigabe};
+  if (aktuellesTurnier?.id === t.id) aktuellesTurnier = {...aktuellesTurnier,homepageFreigabe};
+  publishHomepageTournament(updated,true,confirmedHomepageEntries ? meldungenCache.map(liveStartlistSafeEntry) : undefined);
+}));
+
 // ---------- Turniere ----------
 document.getElementById("tAddBtn").addEventListener("click", () => saveAction(document.getElementById("tAddBtn"), async () => {
   const name = document.getElementById("tName").value.trim();
@@ -5562,7 +5708,9 @@ document.getElementById("tAddBtn").addEventListener("click", () => saveAction(do
   // Die Compat-SDK-Pruefung akzeptiert keine einfachen Objekte aus dem iframe-Realm.
   // Daher Nutzdaten im Realm des Hauptfensters erzeugen und den Zeitstempel
   // anschliessend als echte Firestore-Sentinel hinzufuegen.
-  const turnierDaten = {name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften, stockApp:ecwStockRead("t")};
+  const homepageFreigabe = readHomepageTournament("t",datum);
+  if (!homepageFreigabe) return;
+  const turnierDaten = {...(homepageFreigabe.enabled ? {homepageFreigabe} : {}),name, datum, kategorie, uhrzeit, ort, meldeUhrzeit, maxMannschaften, stockApp:ecwStockRead("t")};
   const savePayload = embeddedInMain
     ? window.parent.JSON.parse(window.parent.JSON.stringify(turnierDaten))
     : turnierDaten;
@@ -5575,17 +5723,26 @@ document.getElementById("tAddBtn").addEventListener("click", () => saveAction(do
   document.getElementById("tOrt").value = "";
   document.getElementById("tMeldeUhrzeit").value = "";
   document.getElementById("tMax").value = ""; ecwStockFill("t");
+  fillHomepageTournament("t");
   notify("Turnier angelegt. Jetzt Mannschaften hinzufügen.");
-  openTurnier(created.id, {name,datum,kategorie,uhrzeit,ort,meldeUhrzeit,maxMannschaften,stockApp:turnierDaten.stockApp});
+  const tournament = {...turnierDaten,id:created.id};
+  openTurnier(created.id,tournament);
+  if (homepageFreigabe.enabled) {
+    homepageForm("tdEdit").open = true;
+    publishHomepageTournament(tournament,true);
+  }
 }));
 
 function listenTurniere() {
   turniereUnsub = onSnapshot(query(collection(db,'turniere')),snap => {
+    const removedCandidates=turniereCache.filter(t=>t.homepageFreigabe?.enabled);
     const oldIds=new Set(turniereCache.map(t=>t.id));
     turniereCache = snap.docs.map(d=>({ ...d.data(), id:d.id })).sort((a,b)=>(a.datum||'9999').localeCompare(b.datum||'9999') || (a.name||'').localeCompare(b.name||''));
     const newIds=new Set(turniereCache.map(t=>t.id));
+    if (!snap.metadata?.hasPendingWrites && !snap.metadata?.fromCache) removedCandidates.filter(t=>!newIds.has(t.id)).forEach(t=>window.ecwHomepageTest?.queue({key:'turnier:'+t.id,remove:true}));
     oldIds.forEach(id=>{if(!newIds.has(id))deleteDoc(doc(db,'liveStartlisten',id)).catch(e=>console.warn('Live Startliste löschen:',e));});
     scheduleLiveStartlistenPublish();
+    if (!snap.metadata?.hasPendingWrites && !snap.metadata?.fromCache) turniereCache.forEach(t=>publishHomepageTournament(t));
     renderTurniere();
     if (location.hash.startsWith('#turnier=') || location.hash.startsWith('#mobil=')) {
       const id = location.hash.startsWith('#mobil=')?mobileHashId():decodeURIComponent(location.hash.slice(9));
@@ -5595,7 +5752,7 @@ function listenTurniere() {
         else openTurnier(id,fresh);
       } else { history.replaceState(null,'',mobileMode?'#mobil':'#verwalten');showTurniereListe(); notify('Dieses Turnier ist nicht mehr vorhanden.',true); }
     }
-  },dbError);
+  },dbError,{includeMetadataChanges:true});
 }
 function renderTurniere() {
   updateDocumentOptions(); updateSendOptions();
@@ -5785,8 +5942,13 @@ function openTurnier(id, data) {
   const skmrInput=document.getElementById('archivSkmrFile');if(skmrInput)skmrInput.value='';
   document.body.classList.remove('ecw-archive-readonly');
   aktuellesTurnier = { ...data, id };
+  const publication = homepageForm("tdEdit");
+  publication.hidden = mobileMode || !tournamentIsActive(aktuellesTurnier);
+  publication.open = false;
+  fillHomepageTournament("tdEdit",aktuellesTurnier.homepageFreigabe);
+  homepageField(publication,"status").textContent = window.ecwHomepageTest?.status("turnier:"+id) || "";
   history.replaceState(null,"",(mobileMode?"#mobil=":"#turnier=")+encodeURIComponent(id));
-  meldungenGeladen=false; aktuelleMeldungenAnzahl=0; meldungenCache=[];
+  meldungenGeladen=false; confirmedHomepageEntries=false; aktuelleMeldungenAnzahl=0; meldungenCache=[];
   document.getElementById("startlisteBody").replaceChildren();
   document.getElementById("startlisteLeer").textContent="Mannschaftsmeldungen werden geladen …";
   document.getElementById("startlisteLeer").classList.remove("hidden");
@@ -5832,6 +5994,7 @@ document.getElementById("tdDeleteBtn").addEventListener("click", async () => {
     batch.delete(doc(db,"turniere",t.id));
     await batch.commit();
     if (meldungenUnsub) { meldungenUnsub(); meldungenUnsub=null; }
+    if (t.homepageFreigabe?.enabled) window.ecwHomepageTest?.queue({key:"turnier:"+t.id,remove:true});
     aktuellesTurnier=null;
     meldungenCache=[];
     meldungenGeladen=false;
@@ -5878,6 +6041,7 @@ document.getElementById("tdEditSaveBtn").addEventListener("click", () => saveAct
   const updatePayload=embeddedInMain?window.parent.JSON.parse(window.parent.JSON.stringify(updated)):updated;
   await updateDoc(doc(db, "turniere", aktuellesTurnier.id), updatePayload);
   aktuellesTurnier = { ...aktuellesTurnier, ...updated };
+  publishHomepageTournament(aktuellesTurnier);
   document.getElementById("tdName").textContent = name;
   document.getElementById("tdMeta").textContent =
     (datum ? formatDatum(datum) : "") +
@@ -5981,6 +6145,7 @@ document.getElementById("tdAddMeldungBtn").addEventListener("click", () => saveA
 }));
 
 let aktuelleMeldungenAnzahl = 0;
+let confirmedHomepageEntries = false;
 
 function listenMeldungen(turnierId) {
   if(meldungenUnsub) meldungenUnsub();
@@ -5988,6 +6153,10 @@ function listenMeldungen(turnierId) {
   meldungenUnsub=onSnapshot(query(collection(db,'meldungen'),where('turnierId','==',turnierId)),snap=>{
     meldungenGeladen=true;
     meldungenCache=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.anmeldedatum||'').localeCompare(b.anmeldedatum||'') || ((a.erstelltAm?.seconds||0)-(b.erstelltAm?.seconds||0)) || a.id.localeCompare(b.id));
+    confirmedHomepageEntries = !snap.metadata?.hasPendingWrites && !snap.metadata?.fromCache;
+    if (confirmedHomepageEntries && aktuellesTurnier?.id === turnierId && aktuellesTurnier.homepageFreigabe?.startList) {
+      publishHomepageTournament(aktuellesTurnier,false,meldungenCache.map(liveStartlistSafeEntry));
+    }
     aktuelleMeldungenAnzahl=meldungenCache.length;document.getElementById('quickListSummary').textContent='Gemeldete Mannschaften ('+aktuelleMeldungenAnzahl+') · bearbeiten / löschen';
     const body=document.getElementById('startlisteBody'); body.replaceChildren();
     const leer=document.getElementById('startlisteLeer'); leer.textContent='Noch keine Mannschaften gemeldet.'; leer.classList.toggle('hidden',meldungenCache.length>0);
@@ -6000,7 +6169,11 @@ function listenMeldungen(turnierId) {
       body.appendChild(tr);
     });
     updateKapazitaetsAnzeige();
-  },err=>{meldungenGeladen=false;updateKapazitaetsAnzeige();document.getElementById('startlisteLeer').textContent='Mannschaften konnten nicht geladen werden. Bitte Berechtigungen und Verbindung prüfen.';dbError(err);});
+  },err=>{meldungenGeladen=false;confirmedHomepageEntries=false;
+    if (aktuellesTurnier?.id === turnierId && aktuellesTurnier.homepageFreigabe?.startList) {
+      window.ecwHomepageTest?.report("turnier:"+turnierId,"Live-Startliste konnte nicht gelesen werden. Verbindung und Berechtigungen prüfen.");
+    }
+    updateKapazitaetsAnzeige();document.getElementById('startlisteLeer').textContent='Mannschaften konnten nicht geladen werden. Bitte Berechtigungen und Verbindung prüfen.';dbError(err);},{includeMetadataChanges:true});
 }
 
 function updateKapazitaetsAnzeige() {

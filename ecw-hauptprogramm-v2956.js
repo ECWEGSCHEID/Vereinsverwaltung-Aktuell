@@ -654,6 +654,7 @@ function centralApplyTournamentPlanner(snap){
   snap.forEach(doc=>{
     const x=doc.data()||{};
     list.push({
+      ...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
       location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,
@@ -1616,7 +1617,8 @@ function shRender(){
  if(shOpen>=SH.buttons.length||(shOpen>=0&&!(SH.buttons[shOpen].sub||[]).length))shOpen=-1;
  const grp=shOpen>=0?SH.buttons[shOpen]:null;
  const label=grp?grp.t.replace(/\n/g,' '):SH.title;
- art.style.backgroundImage='url("'+(SH.bg||SH_BG)+'")';
+ const background=SH.bg||SH_BG;
+ art.style.backgroundImage='url("'+(background===SH_BG?'assets/startseite-ecw19.svg':background)+'")';
  document.getElementById('shTitle').textContent=label;document.getElementById('shTitle2').textContent=label;
  document.getElementById('shSubReturn').hidden=!grp;
  document.getElementById('startseite').classList.toggle('sh-submenu',!!grp);
@@ -1967,7 +1969,7 @@ function renderTeamsAdmin(){
   teamsAdminEnsure();
   const a=document.getElementById('adminMain');
   let h='<h2>Mannschaften</h2><div class="card"><p class="small">Pro Mannschaft: Name, Liga, Spieler (ein Name pro Zeile) und Fotos. Nach dem Ändern auf „Speichern“ klicken. Mannschaften werden nur nach ausdrücklichem Löschen entfernt; vor jeder Firebase-Änderung wird der aktuelle Bestand gesichert.</p>'
-    +'<div class="row"><button class="primary" onclick="teamAdd()">+ Mannschaft hinzufügen</button><button class="primary" onclick="teamsSaveAll()">Speichern</button><button onclick="teamsReloadFromFirebase()">Aus Firebase laden</button></div>'
+    +'<div class="row"><button class="primary" onclick="teamAdd()">+ Mannschaft hinzufügen</button><button class="primary" onclick="teamsSaveAll()">Speichern</button><button onclick="teamsReloadFromFirebase()">Aus Firebase laden</button><button type="button" onclick="openHomepageEditor(\'Mannschaften\')">Für Website speichern …</button></div>'
     +'<div id="teamsInfo" class="small" style="margin-top:10px"></div></div>';
   teamsData.forEach((t,i)=>{
     h+='<div class="card" style="margin-top:12px"><div class="row" style="align-items:flex-end">'
@@ -2783,7 +2785,7 @@ async function openExternalPage(value,title){
 function setExternalReturnButton(){
  const b=document.querySelector('#ecwExternalHomeBar button');if(!b)return;
  const backToAdmin=externalPreviousView==='admin' && !!firebaseAuthUser && appPermissions.admin===true;
- b.textContent=document.getElementById('externalPage')?.classList.contains('ecw-reservation-embed')?'← Zurück zum Startmenü':(backToAdmin?'← Zurück zur Verwaltung':'← Zurück zur Startseite');
+ b.textContent=document.getElementById('externalPage')?.classList.contains('ecw-reservation-embed')?'← Zurück zum Startmenü':(backToAdmin?'← Zurück zur Verwaltung':'← Zurück zum Startmenü');
  b.onclick=document.getElementById('externalPage')?.classList.contains('ecw-reservation-embed')?function(){externalPreviousView='startseite';closeExternalPage();}:closeExternalPage;
 }
 function backExternalPrevious(){
@@ -4515,6 +4517,7 @@ async function tpSyncEventToFirebase(item){
 
   try{
     await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(item.id)).set({
+      ...(item.homepageFreigabe?{homepageFreigabe:item.homepageFreigabe}:{}),
       id:String(item.id),name:String(item.name||''),date:String(item.date||''),time:String(item.time||''),
       reportedBy:String(item.reportedBy||''),players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
       location:String(item.location||''),type:String(item.type||''),internal:!!item.internal,calendarExported:!!item.calendarExported,googleEventId:String(item.googleEventId||''),googleEventCalendarId:String(item.googleEventCalendarId||''),calendarExportedBeforeChange:!!item.calendarExportedBeforeChange,googleEventUpdated:String(item.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(item.googleSyncedFields),updatedAt:String(item.updatedAt||new Date().toISOString())
@@ -5150,6 +5153,28 @@ function tpResetCalendarExport(id){if(isWhiteboardUser()){showToast('Whiteboard:
   renderTournamentPlannerAdminList();
   showToast('Exportstatus zurückgesetzt – vor erneutem Export Google Kalender auf vorhandene Einträge prüfen');
 }
+function tpHomepageFormHtml(){
+  return '<fieldset class="ecw-tp-homepage"><legend>Test-Homepage</legend>'
+    +'<label><input id="tpHomepageEnabled" type="checkbox" onchange="tpHomepageFields()"> Auf Homepage veröffentlichen</label>'
+    +'<label>Homepage-Unterordner <select id="tpHomepageFolder" disabled></select></label>'
+    +'<button type="button" onclick="window.ecwHomepageTest.connect()">Test-Homepage verbinden</button>'
+    +'<p id="tpHomepageStatus" class="small" role="status"></p></fieldset>';
+}
+function tpHomepageFields(selected){
+  const select=document.getElementById('tpHomepageFolder');
+  if(!select)return;
+  window.ecwHomepageTest.options(select,selected);
+  select.disabled=!document.getElementById('tpHomepageEnabled').checked;
+  document.getElementById('tpHomepageStatus').textContent=window.ecwHomepageTest.status();
+}
+window.addEventListener('ecw-homepage-status',()=>tpHomepageFields());
+function tpHomepagePublish(item){
+  if(!item.homepageFreigabe)return;
+  const key='termin:'+item.id;
+  window.ecwHomepageTest.queue(item.homepageFreigabe.enabled ? {
+    key,folder:item.homepageFreigabe.folder,title:item.name,date:item.date,time:item.time,location:item.location
+  } : {key,remove:true});
+}
 function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   return '<div class="card"><input id="tpEditId" type="hidden">'
     +'<label>Veranstaltungsname</label><input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">'
@@ -5159,6 +5184,7 @@ function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spi
     +'<label>Gemeldet von</label><select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select>'
     +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
     +'<label>Veranstaltungsort</label><input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>'
+    +tpHomepageFormHtml()
     +'<div class="row" style="margin-top:14px"><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
     +'<div class="row" style="margin-top:10px"><button class="primary" style="width:100%" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">Veranstaltung speichern</button></div>'
     +'<div class="small" style="margin-top:8px">Neue Veranstaltungen werden beim Speichern automatisch mit Google Kalender synchronisiert (bei bestehender Google-Verbindung). Bereits vorhandene Termine werden vor dem Erstellen geprüft.</div>'
@@ -5191,6 +5217,10 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const players=allowPeople?[0,1,2,3].map(i=>document.getElementById('tpPlayer'+i).value||''):['','','',''];
   const location=(document.getElementById('tpLocation').value||'').trim();
   const editId=document.getElementById('tpEditId').value;
+  const homepageEnabled=!!document.getElementById('tpHomepageEnabled')?.checked;
+  const homepageFolder=document.getElementById('tpHomepageFolder')?.value||'';
+  if(homepageEnabled&&!homepageFolder){showToast('Bitte einen Homepage-Unterordner auswählen.');return false;}
+  const homepageFreigabe=homepageEnabled ? {enabled:true,folder:homepageFolder} : {enabled:false};
   const addToTw=type==='Turnier als Ausrichter'&&!!document.getElementById('tpAddToTw')?.checked;
   if(editId){
     const item=tpFindEvent(editId);
@@ -5204,9 +5234,10 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
       }
       if(changed)item.updatedAt=new Date().toISOString();
       item.name=name;item.date=date;item.time=time;item.reportedBy=reportedBy;item.players=players;item.location=location;item.type=type;item.internal=(type==='Turnier intern');item.addToTurnierWirtschaftlichkeit=addToTw;
+      if(homepageEnabled||item.homepageFreigabe)item.homepageFreigabe=homepageFreigabe;
     }
   }else{
-    data.tournamentPlanner.push({id:'tp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,date,time,reportedBy,players,location,type,internal:(type==='Turnier intern'),addToTurnierWirtschaftlichkeit:addToTw,updatedAt:new Date().toISOString()});
+    data.tournamentPlanner.push({...(homepageEnabled?{homepageFreigabe}:{}),id:'tp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,date,time,reportedBy,players,location,type,internal:(type==='Turnier intern'),addToTurnierWirtschaftlichkeit:addToTw,updatedAt:new Date().toISOString()});
   }
   tpCancelEdit();
   renderTournamentPlannerAdminList();
@@ -5235,6 +5266,8 @@ function tpEditEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spiel
   document.getElementById('tpEditId').value=x.id;
   nameEl.value=x.name||'';
   dateEl.value=x.date||'';
+  document.getElementById('tpHomepageEnabled').checked=!!x.homepageFreigabe?.enabled;
+  tpHomepageFields(x.homepageFreigabe?.folder||'');
   const timeSel=document.getElementById('tpTime');
   if(timeSel)timeSel.innerHTML=tpTimeOptionsHtml(x.time||'');
   const reportedEl=document.getElementById('tpReportedBy');
@@ -5263,6 +5296,8 @@ function tpCancelEdit(){
   document.getElementById('tpEditId').value='';
   document.getElementById('tpName').value='';
   document.getElementById('tpDate').value='';
+  document.getElementById('tpHomepageEnabled').checked=false;
+  tpHomepageFields('');
   const timeSelReset=document.getElementById('tpTime');if(timeSelReset)timeSelReset.innerHTML=tpTimeOptionsHtml('');
   document.getElementById('tpReportedBy').value='';
   [0,1,2,3].forEach(i=>{const el=document.getElementById('tpPlayer'+i);if(el)el.value=''});
@@ -5295,6 +5330,7 @@ async function tpDeleteEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: n
   if(firebaseReady&&firestoreDb){
     try{
       await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(sid).delete(),60000,'Firebase');
+      if(event.homepageFreigabe)window.ecwHomepageTest.queue({key:'termin:'+sid,remove:true});
       showToast(event.googleEventId?'Veranstaltung in Google Kalender und Turnierplaner gelöscht':'Veranstaltung gelöscht und gespeichert');
     }catch(e){
       console.error(e);
@@ -5332,7 +5368,7 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
     let count=0;
     for(const x of (data.tournamentPlanner||[])){
       if(!x||!x.id)continue;
-      const payload={id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
+      const payload={...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
       await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(x.id)).set(payload),60000,'Firebase');
       count++;
     }
@@ -5539,6 +5575,7 @@ async function saveAllTournamentPlannerChanges(){if(isWhiteboardUser()){showToas
     if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();
     if(fb&&fb.ok&&firebaseTarget?.addToTurnierWirtschaftlichkeit){try{await tpSyncTwEvent(firebaseTarget)}catch(e){console.error('Turnierwirtschaftlichkeit:',e);showToast('Termin gespeichert, Wirtschaftlichkeit nicht übernommen: '+(e?.message||e),12000)}}
     if(fb&&!fb.ok){if(info)info.textContent='⚠ Lokal gespeichert, aber Firebase-Speicherung fehlgeschlagen.';showToast('Lokal gespeichert - aber Firebase: '+(fb.error||fb.message),8000);return {ok:false,error:fb.error||fb.message}}
+    if(fb?.ok&&firebaseTarget)tpHomepagePublish(firebaseTarget);
     if(calendarTarget){
       if(!tpCalendarSettings().clientId){
         const message='Termin gespeichert, aber nicht in Google übertragen: Google Client-ID fehlt.';
@@ -6128,10 +6165,42 @@ function renderTurnierWirtschaftlichkeitAdmin(){
     +'loading="eager" referrerpolicy="same-origin"></iframe>';
 }
 
+const ECW_HOMEPAGE_EDITOR='https://ec-wegscheid-test-homepage.m-stadler1978.chatgpt.site/homepage-pflege';
+function openHomepageEditor(area=''){
+ const url=new URL(ECW_HOMEPAGE_EDITOR);
+ if(area)url.searchParams.set('bereich',area);
+ window.open(url.href,'_blank','noopener,noreferrer');
+}
+function openHomepagePreview(){
+ window.open(new URL('/Startseite/',ECW_HOMEPAGE_EDITOR).href,'_blank','noopener,noreferrer');
+}
+function ecwHomepageCalendarCount(){
+ try{return localStorage.getItem('ecw_homepage_calendar_count')||'10'}catch(e){return '10'}
+}
+function ecwSaveHomepageCalendarCount(value){
+ if(!['5','10','15','20','30','all'].includes(String(value)))return;
+ try{localStorage.setItem('ecw_homepage_calendar_count',String(value));showToast('Einstellung lokal gespeichert. Die externe Homepage ist noch nicht angebunden.');}
+ catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
+}
+function renderHomepageAdmin(){
+ const box=document.getElementById('adminMain');
+ if(!box)return;
+ const choices=[['5','5 Termine'],['10','10 Termine (Standard)'],['15','15 Termine'],['20','20 Termine'],['30','30 Termine'],['all','Alle kommenden Termine']];
+ box.innerHTML='<h2>Homepage</h2><div class="card">'
+  +'<p>Homepage-Pflege und Vorschau der privaten Test-Homepage.</p>'
+  +'<div class="row"><button type="button" onclick="openHomepagePreview()">👁 Homepage-Vorschau</button><button type="button" onclick="openHomepageEditor()">Homepage verwalten ↗</button></div>'
+  +'<div class="row"><button type="button" onclick="openHomepageEditor(\'Hintergrund\')">Hintergrund ↗</button><button type="button" onclick="openHomepageEditor(\'Fotos\')">Fotos und Videos ↗</button><button type="button" onclick="openHomepageEditor(\'Links\')">Links ↗</button><button type="button" onclick="openHomepageEditor(\'Kontakt\')">Kontakt ↗</button><button type="button" onclick="openHomepageEditor(\'Gästebuch\')">Gästebuch ↗</button><button type="button" onclick="openHomepageEditor(\'Vorstand\')">Vorstand bearbeiten ↗</button></div>'
+  +'<h3>Kalender – Anzahl der Termine</h3><label for="ecwHpCalendarCount">Anzahl anzeigen: </label>'
+  +'<select id="ecwHpCalendarCount" onchange="ecwSaveHomepageCalendarCount(this.value)">'
+  +choices.map(x=>'<option value="'+x[0]+'"'+(ecwHomepageCalendarCount()===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select>'
+  +'<p class="small">Die Einstellung wird vorerst nur lokal gespeichert. Die Synchronisierung mit dem Homepage-Kalender ist noch nicht angebunden.</p>'
+  +'<p class="small">Die Homepage-Pflege ist eine externe private Testseite. Scrollverhalten, separate Seitenkopfbilder, Kontaktformular und Gästebuch können erst nach Bereitstellung ihres Quellcodes zuverlässig angepasst und geprüft werden.</p></div>';
+}
+
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
- const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'?'sh':s==='players'?'tp':s);
+ const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'||s==='homepage'?'sh':s==='players'?'tp':s);
  const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
@@ -6140,6 +6209,7 @@ function adminSection(s){
  if(s==='reservadmin'){ecwReservationAdmin();return}
  if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
  if(s==='docs'){ecwDocsAdmin();return}
+ if(s==='homepage'){renderHomepageAdmin();return}
  if(s==='ergebnisse'){ecwResults.admin();return}
  if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}

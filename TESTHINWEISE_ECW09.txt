@@ -1,0 +1,5 @@
+ECW 09 TESTVERSION auf Basis ECW 08.
+Zielschießen: fehlende Ergebnisse werden als 0 in die Streichresultatberechnung aufgenommen.
+Versammlungen: Archivierung einzelner Speicherbereiche als lokale Schnappschüsse und JSON-Download. Neue Sitzung ist absichtlich noch nicht freigeschaltet, da bestehende Daten sonst gefährdet wären.
+Homepage-Bildverwaltung und Whiteboard-Logo-Kollisionsprüfung sind noch NICHT umgesetzt.
+Bestehende Homepagefunktionen unverändert. Vor Test ECW08 sichern.
