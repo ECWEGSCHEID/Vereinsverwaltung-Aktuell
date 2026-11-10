@@ -1,10 +1,10 @@
-/* ECW12: Zweites Firebase-Projekt für technische Messwerte.
-   Firebase Console > ECW Technik > Projekteinstellungen > Meine Apps > Web-App.
-   Trage nur die ÖFFENTLICHE Web-App-Konfiguration ein, NIEMALS einen privaten JSON-Schlüssel.
-   Bleibt die Konfiguration unvollständig, meldet die Anzeige dies ohne Fehler. */
+/* ECW14: öffentliche Firebase-Webkonfiguration für die Technik-Anzeige.
+   Dies ist KEIN privater Dienstkonto-Schlüssel. */
 window.ECW_TECHNIK_FIREBASE_CONFIG = {
-  apiKey: "HIER_WEB_API_KEY_EINTRAGEN",
+  apiKey: "AIzaSyCF2K9IhI2InNhosfuk8WdDpz7zVsuzjkA",
   authDomain: "ecw-technik.firebaseapp.com",
   projectId: "ecw-technik",
-  appId: "HIER_WEB_APP_ID_EINTRAGEN"
+  storageBucket: "ecw-technik.firebasestorage.app",
+  messagingSenderId: "132725844521",
+  appId: "1:132725844521:web:79ccbad59d12eef6730a38"
 };
