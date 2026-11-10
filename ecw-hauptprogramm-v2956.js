@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V6';
+const APP_RELEASE='ECW Startseite V7';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1547,11 +1547,20 @@ async function shLoadFromFirebase(showMessage=true){
 
 function shSafeUrl(u){u=(u||'').trim();if(!u||/^(javascript|data|vbscript):/i.test(u))return '';
  if(/^[a-z][a-z0-9+.-]*:/i.test(u)||/^[#/.?]/.test(u))return u;return 'https://'+u}
+function ecwRebaseLocalTournamentUrl(value){
+ try{
+  const u=new URL(value,location.href);
+  if(u.origin===location.origin||!['localhost','127.0.0.1','[::1]'].includes(u.hostname))return value;
+  const file=u.pathname.split('/').pop().toLowerCase();
+  if(!['turnierauswertung.html','solo-pyramide.html'].includes(file))return value;
+  return new URL(file+u.search+u.hash,location.href).href;
+ }catch(e){return value;}
+}
 var shOpen=-1;
 function shMakeBtn(b,idx){
  try{
   b=b||{};
-  const a=document.createElement('a'),u=shSafeUrl(b.u);
+  const a=document.createElement('a'),u=ecwRebaseLocalTournamentUrl(shSafeUrl(b.u));
   a.className='shbtn';a.textContent=String(b.t||'');
   const routePerm=(shInternalHash(u)||String(b.u||'')).replace(/^.*#/,'').split('?')[0];
   const routeMap={'turnierliste':'tp','turniere-monatsuebersicht':'t','eigene-turniere':'o','nachrichten':'n','fotos':'p','fotos-sponsoren':'sp','mitglieder':'mv','mannschaften':'m','links':'lk'};
@@ -2650,7 +2659,7 @@ function renderWhiteboardPermissionsAdmin(target){
   +'<div id="wbPermStatus" class="small" style="margin-top:10px"></div></div>'
   +'<div class="card" style="margin-top:12px"><b>Hinweis</b><div class="small" style="margin-top:6px">Diese Einstellung betrifft nur die internen Ergebnisbereiche. Die vollständige Turnierverwaltung, Mannschaftsmeldungen und Adminfunktionen bleiben geschützt.</div></div>';
 }
-function externalWebUrl(value){value=window.ecwLocalUrl(value);
+function externalWebUrl(value){value=window.ecwLocalUrl(ecwRebaseLocalTournamentUrl(value));
  try{const parsed=new URL(value,location.href);return ['http:','https:'].includes(parsed.protocol)?parsed.href:'';}catch(e){return '';}
 }
 function clearExternalPage(){
