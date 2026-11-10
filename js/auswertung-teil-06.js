@@ -385,7 +385,9 @@
       if(target==='doppelko' || target==='doppel-ko' || target==='doppelkosystem'){ openDoppelKo(); return true; }
 
       if(target==='cup' || target==='cupauswertung'){
-        openCup();
+        const editRequested=new URLSearchParams(location.search).get('bearbeiten')==='1';
+        if(editRequested && (r==='admin'||r==='turnierauswertung')) checkAdminAccess('edit');
+        else openCup();
         return true;
       }
 

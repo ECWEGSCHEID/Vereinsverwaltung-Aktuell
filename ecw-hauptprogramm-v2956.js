@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V5';
+const APP_RELEASE='ECW Startseite V6';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -2351,7 +2351,7 @@ function openInternalCupAdmin(mode='home'){
  window.__adminBack='menu';
  window.__adminPreviewMode=false;
  const labels={doppelko:'Doppel KO System',home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
- openExternalPage(internalCupUrl(mode),labels[mode]||'Interne Cup');
+ openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
  setInternalCupAdminReturnButton();
 }
 function openInternalCupMigration(){
@@ -2366,7 +2366,7 @@ function renderInternalCupAdmin(){
   +'<div><h2 style="margin:0">Interne Cup</h2><div class="small">Turnierauswertung zentral in der Vereinsverwaltung · keine zweite Anmeldung erforderlich.</div></div>'
   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
   +'<div class="card"><h3>Bereich auswählen</h3><div class="ovmenu">'
-  +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung</button>'
+  +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung bearbeiten</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'doppelko\')">Doppel KO System</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'stockdart\')">Stockdartauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
@@ -2739,10 +2739,14 @@ async function openExternalPage(value,title){
  if(isEcwTournament){
    try{
      const normalized=new URL('turnierauswertung.html',location.href);
-     normalized.searchParams.set('v','2.9.29');
-     normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
+     normalized.searchParams.set('v',APP_RELEASE);
+     const mode=ecwTournamentModeFromUrl(url);
+     normalized.searchParams.set('seite',mode);
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
+       if(mode==='cup' && new URL(url).searchParams.get('bearbeiten')==='1'){
+         normalized.searchParams.set('bearbeiten','1');
+       }
      }
      frameUrl=normalized.href;
    }catch(e){console.warn('Cup-Aufruf:',e);}

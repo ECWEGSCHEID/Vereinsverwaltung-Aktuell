@@ -16,6 +16,12 @@
         tournaments = snapshot.val() || {};
         if(document.getElementById('adminSecPrint')?.style.display==='block' && typeof window.cupFinalLoad==='function') window.cupFinalLoad();
         renderMainButtons();
+        if (document.getElementById('view-admin').classList.contains('active')) {
+          refreshAdminTournamentLists();
+          if (!document.getElementById('adminSelectTournament').value) {
+            document.getElementById('adminEditBody').style.display = 'none';
+          }
+        }
         if (activeId && tournaments[activeId]) {
           if (document.getElementById('view-groups').classList.contains('active')) openGroupSelection(activeId);
           else if (document.getElementById('view-table').classList.contains('active') && activeGroup) openGroupTable(activeGroup);
@@ -197,29 +203,35 @@ setDefaultTeamsTemplate();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function checkAdminAccess() {
+    function checkAdminAccess(tab='new') {
       const r = window.getEffectiveRole ? window.getEffectiveRole() : (window.currentRole || 'guest');
       if (r !== 'admin' && r !== 'turnierauswertung') {
         alert("Dieser Bereich ist nur für ADMIN bzw. TURNIERAUSWERTUNG freigegeben.");
         return;
       }
+      refreshAdminTournamentLists();
+      switchAdminTab(tab);
+      showView('view-admin');
+    }
+
+    function refreshAdminTournamentLists() {
       populateAdminTournamentList();
       populateAdminPrintList();
       populateAdminMatchEditTournaments();
       populateAdminHistoryTournaments();
-switchAdminTab('new');
-      showView('view-admin');
     }
 
     function fillTournamentSelect(id, includeBlank=true) {
       const select = document.getElementById(id);
       if (!select) return;
+      const previous = select.value;
       select.innerHTML = includeBlank ? '<option value="">-- Turnier wählen --</option>' : '';
       Object.entries(tournaments).forEach(([key,t]) => {
         const o = document.createElement('option');
         o.value = key; o.textContent = t.name || key;
         select.appendChild(o);
       });
+      if (previous && Object.prototype.hasOwnProperty.call(tournaments,previous)) select.value = previous;
     }
     function populateAdminTournamentList(){ fillTournamentSelect('adminSelectTournament'); }
     function populateAdminPrintList(){ fillTournamentSelect('adminPrintSelectTournament'); }
