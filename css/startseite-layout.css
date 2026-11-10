@@ -1,0 +1,103 @@
+/* Startseite der Vereinsverwaltung. Die 16:9-Hintergrundgrafik bleibt unverändert. */
+#startseite {
+  --ribbon-height: clamp(48px, 5.8vh, 65px);
+}
+
+#startseite:not(.sh-submenu) #shGrid,
+#startseite.sh-submenu #shGrid {
+  /* Eine Größen-Containment-Box ohne feste Höhe fällt auf ihr Padding zusammen. */
+  container-type: normal;
+  top: clamp(28px, 9vh, 98px);
+  bottom: calc(var(--ribbon-height) + 16px) !important;
+  max-height: none;
+  grid-auto-rows: minmax(clamp(42px, 6.4vh, 64px), auto);
+  gap: clamp(6px, 1vh, 12px);
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#startseite.sh-submenu #shGrid {
+  bottom: calc(var(--ribbon-height) + 68px) !important;
+}
+
+#startseite #shSubReturn {
+  bottom: calc(var(--ribbon-height) + 12px) !important;
+}
+
+#startseite.active #shGrid .shbtn {
+  min-height: 42px;
+  padding: 5px 10px;
+  overflow-wrap: anywhere;
+}
+
+#startseite #shUserLogin {
+  right: 16px !important;
+  bottom: calc(var(--ribbon-height) + 12px) !important;
+  height: 36px;
+  width: max-content;
+  min-width: 134px;
+  padding: 4px 10px;
+  opacity: .75;
+  transform: none !important;
+}
+
+#startseite #shUserLogin:hover,
+#startseite #shUserLogin:focus-visible {
+  opacity: 1;
+}
+
+@media (min-width: 1200px) and (min-aspect-ratio: 5/3) {
+  #startseite #shUserLogin {
+    /* Mittellinie der Schräge: am Bildrand etwa y=580 von 864, Steigung 1,17. */
+    --art-top: calc((100vh - var(--ah)) * .6);
+    --art-overhang: calc((var(--aw) - 100vw) * .7);
+    --stripe-at-right: calc(var(--art-top) + var(--ah) * .6713 + var(--art-overhang) * 1.17);
+    --stripe-half-visible: calc((100vh - var(--ribbon-height) - var(--stripe-at-right)) / 2);
+    right: calc(var(--stripe-half-visible) / 1.17) !important;
+    bottom: calc(var(--ribbon-height) + var(--stripe-half-visible)) !important;
+    height: 30px;
+    font-size: clamp(10px, .78vw, 13px);
+    opacity: .224;
+    transform: translate(50%, 50%) rotate(-49.5deg) !important;
+  }
+
+  #startseite #shUserLogin:hover,
+  #startseite #shUserLogin:focus-visible {
+    opacity: .55;
+  }
+}
+
+@media (max-width: 1199px), (pointer: coarse) and (max-width: 1366px) {
+  #startseite.active #shStage {
+    padding-bottom: calc(var(--ribbon-height) + 64px);
+  }
+
+  #startseite:not(.sh-submenu) #shGrid,
+  #startseite.sh-submenu #shGrid {
+    inset: auto !important;
+    margin: 0 auto;
+    max-height: none;
+    overflow: visible;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(50px, auto);
+  }
+
+  #startseite.active #shGrid .shbtn {
+    font-size: clamp(14px, 2.2vw, 19px) !important;
+  }
+
+  #startseite #shUserLogin {
+    right: 16px !important;
+    bottom: calc(var(--ribbon-height) + 12px) !important;
+    height: 36px;
+    opacity: .75;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 800px) {
+  #startseite {
+    --ribbon-height: 62px;
+  }
+}
