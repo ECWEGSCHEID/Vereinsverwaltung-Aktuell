@@ -1967,7 +1967,7 @@ function renderTeamsAdmin(){
   teamsAdminEnsure();
   const a=document.getElementById('adminMain');
   let h='<h2>Mannschaften</h2><div class="card"><p class="small">Pro Mannschaft: Name, Liga, Spieler (ein Name pro Zeile) und Fotos. Nach dem Ändern auf „Speichern“ klicken. Mannschaften werden nur nach ausdrücklichem Löschen entfernt; vor jeder Firebase-Änderung wird der aktuelle Bestand gesichert.</p>'
-    +'<div class="row"><button class="primary" onclick="teamAdd()">+ Mannschaft hinzufügen</button><button class="primary" onclick="teamsSaveAll()">Speichern</button><button onclick="teamsReloadFromFirebase()">Aus Firebase laden</button></div>'
+    +'<div class="row"><button class="primary" onclick="teamAdd()">+ Mannschaft hinzufügen</button><button class="primary" onclick="teamsSaveAll()">Speichern</button><button onclick="teamsReloadFromFirebase()">Aus Firebase laden</button><button type="button" onclick="openHomepageEditor(\'Mannschaften\')">Für Website speichern …</button></div>'
     +'<div id="teamsInfo" class="small" style="margin-top:10px"></div></div>';
   teamsData.forEach((t,i)=>{
     h+='<div class="card" style="margin-top:12px"><div class="row" style="align-items:flex-end">'
@@ -2783,7 +2783,7 @@ async function openExternalPage(value,title){
 function setExternalReturnButton(){
  const b=document.querySelector('#ecwExternalHomeBar button');if(!b)return;
  const backToAdmin=externalPreviousView==='admin' && !!firebaseAuthUser && appPermissions.admin===true;
- b.textContent=document.getElementById('externalPage')?.classList.contains('ecw-reservation-embed')?'← Zurück zum Startmenü':(backToAdmin?'← Zurück zur Verwaltung':'← Zurück zur Startseite');
+ b.textContent=document.getElementById('externalPage')?.classList.contains('ecw-reservation-embed')?'← Zurück zum Startmenü':(backToAdmin?'← Zurück zur Verwaltung':'← Zurück zum Startmenü');
  b.onclick=document.getElementById('externalPage')?.classList.contains('ecw-reservation-embed')?function(){externalPreviousView='startseite';closeExternalPage();}:closeExternalPage;
 }
 function backExternalPrevious(){
@@ -6128,10 +6128,42 @@ function renderTurnierWirtschaftlichkeitAdmin(){
     +'loading="eager" referrerpolicy="same-origin"></iframe>';
 }
 
+const ECW_HOMEPAGE_EDITOR='https://ec-wegscheid-test-homepage.m-stadler1978.chatgpt.site/homepage-pflege';
+function openHomepageEditor(area=''){
+ const url=new URL(ECW_HOMEPAGE_EDITOR);
+ if(area)url.searchParams.set('bereich',area);
+ window.open(url.href,'_blank','noopener,noreferrer');
+}
+function openHomepagePreview(){
+ window.open(new URL('/Startseite/',ECW_HOMEPAGE_EDITOR).href,'_blank','noopener,noreferrer');
+}
+function ecwHomepageCalendarCount(){
+ try{return localStorage.getItem('ecw_homepage_calendar_count')||'10'}catch(e){return '10'}
+}
+function ecwSaveHomepageCalendarCount(value){
+ if(!['5','10','15','20','30','all'].includes(String(value)))return;
+ try{localStorage.setItem('ecw_homepage_calendar_count',String(value));showToast('Einstellung lokal gespeichert. Die externe Homepage ist noch nicht angebunden.');}
+ catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
+}
+function renderHomepageAdmin(){
+ const box=document.getElementById('adminMain');
+ if(!box)return;
+ const choices=[['5','5 Termine'],['10','10 Termine (Standard)'],['15','15 Termine'],['20','20 Termine'],['30','30 Termine'],['all','Alle kommenden Termine']];
+ box.innerHTML='<h2>Homepage</h2><div class="card">'
+  +'<p>Homepage-Pflege und Vorschau der privaten Test-Homepage.</p>'
+  +'<div class="row"><button type="button" onclick="openHomepagePreview()">👁 Homepage-Vorschau</button><button type="button" onclick="openHomepageEditor()">Homepage verwalten ↗</button></div>'
+  +'<div class="row"><button type="button" onclick="openHomepageEditor(\'Hintergrund\')">Hintergrund ↗</button><button type="button" onclick="openHomepageEditor(\'Fotos\')">Fotos und Videos ↗</button><button type="button" onclick="openHomepageEditor(\'Links\')">Links ↗</button><button type="button" onclick="openHomepageEditor(\'Kontakt\')">Kontakt ↗</button><button type="button" onclick="openHomepageEditor(\'Gästebuch\')">Gästebuch ↗</button></div>'
+  +'<h3>Kalender – Anzahl der Termine</h3><label for="ecwHpCalendarCount">Anzahl anzeigen: </label>'
+  +'<select id="ecwHpCalendarCount" onchange="ecwSaveHomepageCalendarCount(this.value)">'
+  +choices.map(x=>'<option value="'+x[0]+'"'+(ecwHomepageCalendarCount()===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select>'
+  +'<p class="small">Die Einstellung wird vorerst nur lokal gespeichert. Die Synchronisierung mit dem Homepage-Kalender ist noch nicht angebunden.</p>'
+  +'<p class="small">Die Homepage-Pflege ist eine externe private Testseite. Scrollverhalten, separate Seitenkopfbilder, Kontaktformular und Gästebuch können erst nach Bereitstellung ihres Quellcodes zuverlässig angepasst und geprüft werden.</p></div>';
+}
+
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
- const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'?'sh':s==='players'?'tp':s);
+ const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'||s==='homepage'?'sh':s==='players'?'tp':s);
  const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
@@ -6140,6 +6172,7 @@ function adminSection(s){
  if(s==='reservadmin'){ecwReservationAdmin();return}
  if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
  if(s==='docs'){ecwDocsAdmin();return}
+ if(s==='homepage'){renderHomepageAdmin();return}
  if(s==='ergebnisse'){ecwResults.admin();return}
  if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}

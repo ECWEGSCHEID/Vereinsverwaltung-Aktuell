@@ -73,6 +73,18 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   .wrap{padding:24px}
   .tile{min-height:170px}
 }
+#technikView .technik-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#technikView .technik-card{background:rgba(0,0,0,.26);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere}
+#technikView .technik-card h3{margin:0 0 6px;font-size:1rem}
+#technikView .technik-wert{display:block;font-size:clamp(1.15rem,4vw,1.8rem);font-weight:800}
+#technikView .technik-liste{margin:8px 0 0;padding-left:1.25rem}
+#technikView .technik-liste li+li{margin-top:5px}
+#technikView .technik-breit{grid-column:1/-1}
+#technikView .technik-tasten{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#technikView button:disabled{opacity:.45;cursor:default}
+#technikView .status:empty,#technikView .technik-liste:empty{display:none}
+@media(max-width:420px){#technikView .technik-grid{gap:6px}#technikView .technik-card{padding:8px}#technikView .technik-card h3{font-size:.85rem}}
+@media(max-width:360px){#technikView .technik-grid{grid-template-columns:1fr}#technikView .technik-card:not(.technik-breit){display:grid;grid-template-columns:1fr auto;align-items:center}#technikView .technik-card:not(.technik-breit) h3{margin:0}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
@@ -116,9 +128,33 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
         <button class="tile" id="tileTv" type="button"><span class="ico">🏆</span><span><h2>Turnierverwaltung</h2><p>Mannschaften anmelden, bearbeiten und löschen.</p></span></button>
         <button class="tile" id="tileNews" type="button"><span class="ico">📢</span><span><h2>Vereinsnachrichten</h2><p>Neue Nachricht schnell in Firebase speichern.</p></span></button>
         <button class="tile" id="tilePlanner" type="button"><span class="ico">📅</span><span><h2>Turnier / Termin anlegen</h2><p>Neuen Eintrag für den Termin-/Turnierplaner erfassen.</p></span></button>
+        <button class="tile hidden" id="tileTechnik" type="button" disabled><span class="ico" aria-hidden="true">⚙️</span><span><h2>Technik</h2><p>Temperaturen, StockTV und Druckaufträge.</p></span></button>
         <button class="tile" id="tileJm" type="button"><span class="ico">🎯</span><span><h2>Ziel Jahresmeisterschaft</h2><p>Ergebnis für Spieler und Wertungsblatt eingeben.</p></span></button>
       </div>
       <div id="homeStatus" class="status"></div>
+    </div>
+  </section>
+
+  <section id="technikView" class="panel hidden" aria-labelledby="technikHeading">
+    <div class="section-head"><h2 id="technikHeading" tabindex="-1">Technik</h2><button class="secondary back" data-home type="button">← Übersicht</button></div>
+    <div class="technik-grid">
+      <div class="technik-card"><h3>Halle</h3><span class="technik-wert" id="technik-halle">— °C</span><div class="small" id="technik-halle-zeit"></div></div>
+      <div class="technik-card"><h3>Außen</h3><span class="technik-wert" id="technik-aussen">— °C</span><div class="small" id="technik-aussen-zeit"></div></div>
+      <div class="technik-card"><h3>Vereinsheim</h3><span class="technik-wert" id="technik-vereinsheim">— °C</span><div class="small" id="technik-vereinsheim-zeit"></div></div>
+      <div class="small technik-breit" id="technikTemperaturStatus" role="status"></div>
+      <div class="technik-card technik-breit">
+        <h3>StockTV</h3>
+        <div class="technik-tasten"><button class="primary" id="technikStockTvAn" type="button" disabled>StockTV an</button><button class="secondary" id="technikStockTvAus" type="button" disabled>StockTV aus</button></div>
+        <p class="small" id="technikStockTvStatus" role="status"></p>
+        <ul class="technik-liste" id="technikStockTvGeraete"><li>Anzeige 1</li><li>Anzeige 2</li><li>Anzeige 3</li><li>Anzeige 4</li></ul>
+        <div class="status" id="technikStockTvMeldung" role="status"></div>
+      </div>
+      <div class="technik-card technik-breit">
+        <h3>Druckaufträge</h3><div class="small" id="technikDruckStatus" role="status"></div><ul class="technik-liste" id="technikDruckListe"></ul>
+      </div>
+      <div class="technik-card technik-breit">
+        <h3>Offene Druckaufträge</h3><div class="small" id="technikDruckOffenStatus" role="status"></div><ul class="technik-liste" id="technikDruckOffenListe"></ul>
+      </div>
     </div>
   </section>
 
@@ -2495,8 +2531,10 @@ function setStatus(id,text,type=''){
   const el=$(id);if(!el)return;el.textContent=text||'';el.className='status'+(type?' '+type:'');
 }
 function show(id){
-  ['qrView','loginView','homeView','newsView','plannerView','jmView','moreView','mobilePointView'].forEach(x=>$(x)?.classList.add('hidden'));
+  ['qrView','loginView','homeView','newsView','plannerView','jmView','moreView','mobilePointView','technikView'].forEach(x=>$(x)?.classList.add('hidden'));
   $(id)?.classList.remove('hidden');
+  window.ecwTechnik?.setVisible(id==='technikView');
+  if(id==='technikView')$('technikHeading').focus();
 }
 function can(k){return !!(profile&&(profile.admin===true||profile[k]===true))}
 function nowIso(){return new Date().toISOString()}
@@ -2537,8 +2575,10 @@ function applyTiles(){
     b.classList.toggle('locked',!ok);
     b.disabled=!ok;
   });
+  $('tileTechnik').classList.toggle('hidden',!can('admin'));
+  $('tileTechnik').disabled=!can('admin');
   $('userLine').textContent=(currentUser?.email||'')+(profile?.admin?' · Administrator':'');
-  const count=map.filter(x=>can(x[1])).length;
+  const count=map.filter(x=>can(x[1])).length+Number(can('admin'));
   setStatus('homeStatus',count?count+' mobile Funktion(en) freigegeben.':'Für dieses Konto ist noch keine mobile Funktion freigegeben.');
 }
 async function login(){
@@ -2705,5 +2745,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   initApp();
 });
 </script>
-<script src="ecw-mobile-navigation.js?v=auto-2"></script></body>
+<script src="ecw-mobile-navigation.js?v=auto-2"></script>
+<script src="js/ecw-technik-config.js?v=12"></script><script src="js/ecw-technik-bridge.js?v=12"></script><script src="js/ecw-technik.js?v=12"></script></body>
 </html>

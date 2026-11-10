@@ -926,7 +926,8 @@ function updateWhiteboardKioskUI(){
  const loginBtn=document.getElementById('shUserLogin');
  if(loginBtn){
    loginBtn.hidden=false;
-   loginBtn.textContent=publicWb?'Benutzer anmelden':'Neuen Benutzer anmelden';
+   loginBtn.textContent='Benutzer anmelden';
+   loginBtn.title=publicWb?'Anmeldung: 5-mal kurz berühren':'Benutzer anmelden';
  }
 }
 function isWhiteboardUser(){
