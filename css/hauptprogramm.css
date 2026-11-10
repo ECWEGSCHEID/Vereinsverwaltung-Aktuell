@@ -209,13 +209,20 @@ body:has(#mitglieder.active) #appVersion{display:none}
 @media(max-width:900px){.team-photos{grid-template-columns:repeat(2,minmax(0,1fr))}.team-photos img,.team-photos.count-1 img,.team-photos.count-2 img,.team-photos.count-3 img,.team-photos.count-4 img,.team-photos.count-5 img,.team-photos.count-6 img{grid-column:auto;height:240px}.team-photos.count-5 img:nth-child(4),.team-photos.count-5 img:nth-child(5){grid-column:auto}}
 .bottom.tournament-bottom button{min-width:160px;width:160px}
 @media(max-width:900px){.team-body{flex-direction:column;margin-right:0;margin-bottom:150px}.team-info{flex:none}}
-#startseite{--u:min(1vw,1.7778vh);--aw:max(100vw,177.78vh);--ah:max(56.25vw,100vh)}
+#startseite{--sh-ribbon-height:clamp(48px,5.8vh,65px);--u:min(1vw,1.7778vh);--aw:max(100vw,177.78vh);--ah:max(56.25vw,100vh)}
 #shStage{position:fixed;inset:0;overflow:hidden;background:#120507}
 #shArt{position:absolute;width:var(--aw);height:var(--ah);left:calc((100vw - var(--aw))*.3);top:calc((100vh - var(--ah))*.6);container-type:inline-size;background:center/cover no-repeat}
 #shTitle{position:absolute;left:11.26%;top:23.07%;margin:0;font-weight:400;font-size:3.125cqw;letter-spacing:.02em;white-space:nowrap;transform:translate(-50%,-50%) rotate(-52deg);text-shadow:0 2px 6px rgba(0,0,0,.35)}
 #shTitle2{display:none;position:absolute;left:5vw;right:5vw;top:0;height:16%;margin:0;align-items:center;justify-content:center;text-align:center;font-weight:400;font-size:clamp(22px,8vw,44px);text-shadow:0 2px 8px rgba(0,0,0,.5)}
-#shGrid{position:absolute;left:45%;right:11%;top:4%;bottom:4%;container-type:size;display:grid;--cols:var(--cd);--rows:var(--rd);grid-template-columns:repeat(var(--cols),1fr);grid-template-rows:repeat(var(--rows),minmax(0,1fr));gap:calc(var(--u)*1.1)}
-.shbtn{display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(var(--u)*.6) calc(var(--u)*.8);border-radius:calc(var(--u)*1.3);color:#fff;text-decoration:none;font-size:max(11px,min(calc(9.6cqw/var(--cols)),calc(22cqh/var(--rows))));font-weight:500;line-height:1.25;white-space:pre-line;overflow-wrap:break-word;hyphens:auto;cursor:pointer;min-width:0;
+#shGrid{
+  position:absolute;left:44%;right:5.5%;top:clamp(28px,9vh,98px);
+  bottom:calc(var(--sh-ribbon-height) + 16px);
+  display:grid;grid-template-columns:repeat(var(--cd,3),minmax(0,1fr));
+  grid-auto-rows:minmax(clamp(126px,19.2vh,192px),auto);
+  align-content:start;gap:clamp(6px,1vh,12px);
+  padding:4px 6px;overflow:auto;
+}
+.shbtn{display:flex;align-items:center;justify-content:center;text-align:center;padding:5px 10px;border-radius:11px;color:#fff;text-decoration:none;font-size:clamp(13px,1.03vw,19px);font-weight:650;line-height:1.25;white-space:pre-line;overflow-wrap:anywhere;hyphens:auto;cursor:pointer;min-width:0;
 background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 45%,rgba(120,0,10,.35));border:1px solid rgba(255,255,255,.28);
 box-shadow:0 calc(var(--u)*.6) calc(var(--u)*1.6) rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35);-webkit-backdrop-filter:blur(8px) saturate(1.3);backdrop-filter:blur(8px) saturate(1.3);
 transition:transform .18s,box-shadow .18s,background .18s}
@@ -225,15 +232,13 @@ transition:transform .18s,box-shadow .18s,background .18s}
 .shbtn.nolink{cursor:default}.shbtn.hassub::after{content:" \203A";opacity:.75}.shbtn.shback{opacity:1}
 #shGear,#shFs{position:fixed;right:14px;bottom:14px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.35);color:#fff;font-size:20px;cursor:pointer;opacity:.35;transition:opacity .2s;z-index:10}
 #shFs{right:62px;font-size:18px}
-#shUserLogin{position:fixed;right:110px;bottom:14px;height:40px;padding:0 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.35);color:#fff;font-size:12px;opacity:.35;z-index:8}
-#shUserLogin:hover,#shUserLogin:focus-visible{opacity:1}
 #shGear:hover,#shGear:focus-visible,#shFs:hover,#shFs:focus-visible{opacity:1}
 @media(min-aspect-ratio:19/10){#shTitle{font-size:2.3cqw;left:10.4%;top:27.5%}}
 @media(min-aspect-ratio:101/100) and (max-aspect-ratio:3/2){#shGrid{left:47%;right:5%}}
 @media(max-aspect-ratio:1/1){
 #shTitle{display:none}#shTitle2{display:flex}
 #shArt{left:calc((100vw - var(--aw))*.25)}
-#shGrid{left:5vw;right:5vw;top:17%;bottom:5vh;--cols:2;--rows:var(--rp)}
+#shGrid{left:5vw;right:5vw;top:17%;grid-template-columns:repeat(2,minmax(0,1fr))}
 .shbtn{border-radius:calc(var(--u)*4)}}
 #startseite{padding:0;background:#120507}#shStage{z-index:1}#shGear,#shFs{z-index:5}
 .thumb button.rot{top:auto;bottom:4px;right:auto;left:4px}.thumb button.rot2{top:auto;bottom:4px;right:4px}.thumb button.rot3{top:auto;bottom:4px;right:36px}body:has(#startseite.active) #appVersion{display:none}
@@ -434,8 +439,8 @@ transition:transform .18s,box-shadow .18s,background .18s}
 .menu-return[hidden],.menu-return button[hidden]{display:none!important}
 .menu-return button{min-width:210px;box-shadow:0 3px 12px rgba(0,0,0,.35)}
 .external-bottom-space{height:120px;flex:none;background:#170607}
-#startseite.sh-submenu #shFs,#startseite.sh-submenu #shUserLogin{bottom:85px}
-#startseite.sh-submenu #shGrid{bottom:100px}
+#startseite.sh-submenu #shFs{bottom:85px}
+#startseite.sh-submenu #shGrid{bottom:calc(var(--sh-ribbon-height) + 76px)}
 #externalFrame{display:block;width:100%;flex:1;min-height:0;border:0;background:#fff}
 
 #startseite.sh-submenu #shUserLogin{display:none!important}
@@ -683,15 +688,13 @@ body.tv-preview-open{overflow:hidden!important}
  #startseite.active #shArt{position:absolute;inset:0;width:100%;height:100%;background-size:cover;background-position:center;container-type:normal;opacity:.78}
  #startseite.active #shTitle{display:none}
  #startseite.active #shTitle2{display:block;position:relative;left:auto;right:auto;top:auto;height:auto;margin:8px 0 22px;padding:0 12px;font-size:clamp(24px,4.5vw,40px);text-align:center}
- #startseite.active #shGrid{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:grid;width:min(100%,920px);margin:0 auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(80px,auto);gap:14px;container-type:normal;--cols:2;--rows:1}
- #startseite.active .shbtn{min-height:80px;font-size:clamp(16px,2.4vw,23px);padding:15px 12px;border-radius:12px;overflow-wrap:anywhere;touch-action:manipulation}
- #startseite.active #shGear,#startseite.active #shFs,#startseite.active #shUserLogin{position:fixed;bottom:12px}
+ #startseite.active #shGrid,#startseite.active.sh-submenu #shGrid{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:grid;width:min(100%,920px);margin:0 auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(168px,auto);gap:10px;overflow:visible}
+ #startseite.active .shbtn{min-height:168px;font-size:clamp(14px,2.2vw,20px);padding:7px 10px;border-radius:12px;overflow-wrap:anywhere;touch-action:manipulation}
+ #startseite.active #shGear,#startseite.active #shFs{position:fixed;bottom:12px}
  .view.active:not(#startseite){min-height:100dvh;height:auto;overflow-y:auto}
 }
 @media(max-width:600px){
- #startseite.active #shStage{padding:18px 12px 100px}
- #startseite.active #shGrid{grid-template-columns:minmax(0,1fr);gap:10px;grid-auto-rows:minmax(65px,auto)}
- #startseite.active .shbtn{min-height:65px;font-size:18px;padding:12px 14px}
+ #startseite.active #shStage{padding-inline:12px}
  #startseite.active #shTitle2{font-size:27px;margin:12px 0 20px}
  .bottom{right:12px;bottom:12px}
 }
@@ -846,97 +849,54 @@ body.tv-preview-open{overflow:hidden!important}
 
 /* ECW13: Flache Informationsleiste am unteren Rand, zwei Drittel Laufschrift.
    Unabhängig vom Hintergrundmotiv; bestehendes EC-Wegscheid-Logo bleibt im Bild. */
-#startseite #ecwInfoRibbon{position:fixed;z-index:6;left:0;right:0;bottom:0;height:clamp(48px,5.8vh,65px);box-sizing:border-box;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0;color:#fff;background:linear-gradient(180deg,rgba(31,35,41,.9),rgba(10,13,18,.94));border-top:1px solid rgba(245,246,250,.55);box-shadow:0 -3px 15px rgba(0,0,0,.38);backdrop-filter:blur(9px);overflow:hidden}
+#startseite #ecwInfoRibbon{position:fixed;z-index:6;left:0;right:0;bottom:0;height:var(--sh-ribbon-height);box-sizing:border-box;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0;color:#fff;background:linear-gradient(180deg,rgba(31,35,41,.9),rgba(10,13,18,.94));border-top:1px solid rgba(245,246,250,.55);box-shadow:0 -3px 15px rgba(0,0,0,.38);backdrop-filter:blur(9px);overflow:hidden}
 #startseite .ecw-ribbon-news{position:relative;overflow:hidden;min-width:0;display:flex;align-items:center;border-right:1px solid rgba(255,255,255,.26)}
-#startseite #ecwHomeTickerText{display:inline-block;white-space:nowrap;position:absolute;left:100%;font-size:clamp(12px,1.25vw,20px);font-weight:650;letter-spacing:.015em;animation:ecw-home-ticker 22s linear infinite;will-change:transform}
-@keyframes ecw-home-ticker{from{transform:translateX(0)}to{transform:translateX(calc(-100% - 100vw))}}
+#startseite #ecwHomeTickerText{display:inline-block;white-space:nowrap;position:absolute;left:12px;font-size:clamp(12px,1.25vw,20px);font-weight:650;letter-spacing:.015em}
+#startseite #ecwHomeTickerText.is-running{animation:ecw-home-ticker var(--ecw-ticker-duration,18s) linear both}
+@keyframes ecw-home-ticker{from{left:100%;transform:translateX(0)}to{left:0;transform:translateX(-100%)}}
 #startseite #ecwTemperatures{position:relative!important;inset:auto!important;left:auto!important;bottom:auto!important;z-index:auto!important;width:auto!important;max-width:none!important;height:100%;min-width:0;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(75px,1.05fr);align-items:stretch;gap:2px;margin:0!important;padding:4px!important;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;box-sizing:border-box}
 #startseite .ecw-temp-cell,#startseite .ecw-ribbon-clock{min-width:0;text-align:center;padding:2px 1px;border-radius:5px;background:linear-gradient(160deg,rgba(110,20,31,.8),rgba(25,30,37,.9));display:flex;flex-direction:column;align-items:center;justify-content:center}
 #startseite .ecw-temp-cell span,#startseite .ecw-ribbon-clock span{font-size:clamp(8px,.67vw,11px);white-space:nowrap;color:#dce4eb}
 #startseite .ecw-temp-cell strong,#startseite .ecw-ribbon-clock strong{font-size:clamp(11px,1.08vw,18px);white-space:nowrap;line-height:1.2;font-variant-numeric:tabular-nums;color:#fff}
 #startseite #ecwTempStatus{position:absolute;right:0;bottom:100%;display:none}
-/* Silberne Eckleiste: transparenter, schräg ausgerichteter Zugang oberhalb der Infoleiste. */
-#startseite #shUserLogin{position:fixed;z-index:8;right:8px;bottom:clamp(84px,10vw,135px);width:clamp(110px,10vw,165px);height:28px;padding:2px 7px;border-radius:5px;border:1px solid rgba(243,247,250,.36);background:linear-gradient(155deg,rgba(189,198,208,.42),rgba(55,59,68,.22));color:#fff;box-shadow:0 2px 7px #0005;font-size:clamp(9px,.78vw,12px);opacity:.28;transform:rotate(-52deg);transform-origin:center;white-space:nowrap;transition:opacity .2s}
-#startseite #shUserLogin:hover,#startseite #shUserLogin:focus-visible{opacity:.55}
-#startseite #shGrid{bottom:max(75px,8vh)}
-#startseite.sh-submenu #shUserLogin{display:none!important}
 @media(max-width:800px){
- #startseite #ecwInfoRibbon{height:62px;grid-template-columns:minmax(0,1fr);grid-template-rows:23px 39px}
+ #startseite{--sh-ribbon-height:62px}
+ #startseite #ecwInfoRibbon{grid-template-columns:minmax(0,1fr);grid-template-rows:23px 39px}
  #startseite .ecw-ribbon-news{border-right:none;border-bottom:1px solid rgba(255,255,255,.25)}
  #startseite #ecwHomeTickerText{font-size:13px}
  #startseite #ecwTemperatures{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(76px,1fr);padding:2px!important}
  #startseite .ecw-temp-cell span,#startseite .ecw-ribbon-clock span{font-size:9px}
  #startseite .ecw-temp-cell strong,#startseite .ecw-ribbon-clock strong{font-size:12px}
- #startseite #shUserLogin{right:0;bottom:93px;width:112px;opacity:.28;font-size:9px}
- #startseite.active #shStage{padding-bottom:115px}
- #startseite.active #shGrid{bottom:auto;margin-bottom:75px}
 }
-@media(prefers-reduced-motion:reduce){#startseite #ecwHomeTickerText{animation-duration:45s}}
+@media(prefers-reduced-motion:reduce){#startseite #ecwHomeTickerText.is-running{animation-duration:max(45s,var(--ecw-ticker-duration,18s))}}
 
-/* ECW16: Bildflaeche wieder exakt vollflaechig (16:9), ohne Artwork-Skalierung.
-   Logo und silberne Eckschraege bleiben so in der Originalgrafik verankert.
-   Die Kompaktleiste veraendert NICHT die Groesse oder Position des Hintergrunds. */
-#startseite #shArt{transform:none!important;transform-origin:center center;background-size:cover!important}
 #startseite #shUserLogin{
-  transform:rotate(-52deg)!important;
-  right:clamp(42px,8vw,160px)!important;
-  bottom:clamp(105px,15vh,220px)!important;
+  position:fixed;z-index:8;right:16px;bottom:calc(var(--sh-ribbon-height) + 12px);
+  min-height:34px;width:max-content;padding:4px 10px;border-radius:5px;
+  background:rgba(24,20,23,.62);font-size:clamp(11px,.78vw,13px);font-weight:600;
+  opacity:.7;white-space:nowrap;
 }
-#startseite #shGrid{bottom:max(80px,calc(clamp(48px,5.8vh,65px) + 16px))}
-@media(max-width:800px){
-  #startseite.active #shArt{transform:none!important;height:100%!important;background-size:cover!important;background-position:center!important}
-  #startseite.active #shGrid{bottom:auto}
-  #startseite #shUserLogin{right:clamp(20px,7vw,60px)!important;bottom:clamp(100px,15vh,165px)!important}
-}
-/* Der angemeldete Startseitenbereich und die Menue-Buttons bleiben bedienbar. */
-#startseite #shGrid{bottom:max(80px,calc(var(--ecw-ribbon-clearance) + 16px))}
-#startseite #shUserLogin{transform:rotate(-52deg)!important}
-@media(max-width:800px){
- #startseite{--ecw-ribbon-clearance:62px}
- #startseite.active #shArt{transform:none;height:calc(100% - 62px);background-size:contain;background-position:center top}
- #startseite.active #shGrid{bottom:auto}
+#startseite #shUserLogin:hover,#startseite #shUserLogin:focus-visible{opacity:1}
+#startseite #shSubReturn{bottom:calc(var(--sh-ribbon-height) + 12px)!important}
+
+/* Mittelpunkt des sichtbaren Teils der silbernen Schräge im Originalmotiv. */
+@media (min-width:1367px) and (min-aspect-ratio:5/3),
+       (min-width:1200px) and (min-aspect-ratio:5/3) and (pointer:fine){
+  #startseite #shUserLogin{
+    --art-top:calc((100vh - var(--ah)) * .6);
+    --art-right-overhang:calc((var(--aw) - 100vw) * .7);
+    --stripe-at-right:calc(var(--art-top) + var(--ah) * .650 + var(--art-right-overhang) * 1.17);
+    --stripe-half:calc((100vh - var(--sh-ribbon-height) - var(--stripe-at-right)) / 2);
+    right:calc(var(--stripe-half) / 1.17);
+    bottom:calc(var(--sh-ribbon-height) + var(--stripe-half));
+    transform:translate(50%,50%) rotate(-49.5deg);
+    opacity:.42;
+  }
+  #startseite #shUserLogin:hover,#startseite #shUserLogin:focus-visible{opacity:.85}
 }
 
-
-/* ECW18: Startmenue als lesbare, luftige Schaltflaechen statt zusammengedruecktem Raster.
-   Das 16:9-Hintergrundmotiv wird NICHT skaliert oder verschoben. */
-#startseite:not(.sh-submenu) #shGrid{
-  left:44%;right:5.5%;top:10%;bottom:auto!important;
-  display:grid;grid-template-columns:repeat(var(--cd,3),minmax(0,1fr));
-  grid-template-rows:none!important;grid-auto-rows:minmax(54px,auto);
-  gap:clamp(9px,1.2vh,16px);align-content:start;
-  max-height:calc(100dvh - 150px);overflow-y:auto;
-  padding:3px 6px 12px;box-sizing:border-box;
-}
-#startseite:not(.sh-submenu) #shGrid .shbtn{
-  min-height:54px;box-sizing:border-box;padding:9px 12px;
-  font-size:clamp(13px,1.03vw,19px)!important;line-height:1.3;
-  border-radius:11px;font-weight:650;
-}
-#startseite.sh-submenu #shGrid{
-  top:16%;bottom:auto!important;max-height:calc(100dvh - 160px);
-  overflow:auto;grid-template-rows:none!important;grid-auto-rows:minmax(50px,auto);
-  gap:12px;align-content:start;
-}
-#startseite.sh-submenu #shGrid .shbtn{min-height:50px;font-size:clamp(13px,1.02vw,19px)!important;}
-/* An der unteren rechten silbernen Schräge, parallel zum Original. */
-#startseite #shUserLogin{
-  right:clamp(69px,8.7vw,170px)!important;
-  bottom:clamp(99px,13.1vh,155px)!important;
-  transform:rotate(-52deg)!important;
-  opacity:.28;
-}
-@media(max-width:950px){
- #startseite:not(.sh-submenu) #shGrid{left:40%;right:3%;top:9%;grid-auto-rows:minmax(48px,auto);gap:8px}
- #startseite:not(.sh-submenu) #shGrid .shbtn{min-height:48px;font-size:clamp(12px,1.5vw,17px)!important}
-}
-@media(max-width:760px){
- #startseite:not(.sh-submenu) #shGrid,#startseite.sh-submenu #shGrid{
-  left:4%;right:4%;top:17%;bottom:auto!important;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  max-height:calc(100dvh - 250px);gap:9px;
- }
- #startseite #shUserLogin{right:clamp(26px,7vw,55px)!important;bottom:clamp(94px,13vh,135px)!important}
+@media (max-width:1199px), (pointer:coarse) and (max-width:1366px){
+  #startseite.active #shStage{padding-bottom:calc(var(--sh-ribbon-height) + 72px)}
 }
 
 #tvRoot .tv-homepage-options{margin:18px 0 12px;border:1px solid #b4b9c3;border-radius:10px;padding:12px;background:#f5f6f8;color:#222}
@@ -945,13 +905,6 @@ body.tv-preview-open{overflow:hidden!important}
 #tvRoot .tv-homepage-options input[type=checkbox]{width:19px;height:19px;flex:none}
 #tvRoot .tv-homepage-options .meta{font-size:12px;line-height:1.5;margin-top:10px}
 
-/* ECW 19 – Testlayout mit fester Unterkante oberhalb der Informationsleiste. */
-#startseite:not(.sh-submenu) #shGrid{max-height:calc(90dvh - var(--ecw-ribbon-clearance,65px) - 18px)}
-#startseite.sh-submenu #shGrid{max-height:calc(84dvh - var(--ecw-ribbon-clearance,65px) - 18px)}
-#startseite #shUserLogin{opacity:.224}
-#startseite #shUserLogin:hover,#startseite #shUserLogin:focus-visible{opacity:.55}
 .ecw-tp-homepage{margin:1rem 0;padding:.65rem 1rem;border:1px solid #a94455;border-radius:8px}
 .ecw-tp-homepage input[type=checkbox]{width:auto}
-@media(max-width:760px){
- #startseite:not(.sh-submenu) #shGrid,#startseite.sh-submenu #shGrid{max-height:calc(80dvh - var(--ecw-ribbon-clearance,62px) - 22px)}
-}
+

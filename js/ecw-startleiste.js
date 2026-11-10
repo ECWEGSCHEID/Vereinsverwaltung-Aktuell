@@ -9,19 +9,55 @@
     if(dateEl)dateEl.textContent=d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
     if(timeEl)timeEl.textContent=d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   }
-  function updateTicker(){
-    if(!ticker)return;
-    let items=[];
-    try{
-      if(typeof data!=='undefined'&&Array.isArray(data.news))items=data.news.filter(n=>n&&n.active!==false&&n.mode==='ticker'&&(typeof newsDateActive!=='function'||newsDateActive(n))&&String(n.text||'').trim());
-    }catch(e){}
-    const msg=items.length?items.map(n=>String((n.showTitle&&n.title?n.title+' – ':'')+n.text).trim()).join('     •     '):'Willkommen beim EC Wegscheid';
-    if(ticker.dataset.message!==msg){
-      ticker.dataset.message=msg;ticker.textContent=msg;
-      ticker.style.animation='none';void ticker.offsetWidth;ticker.style.animation='';
-      const sec=Math.max(17,Math.ceil(msg.length/11));
-      ticker.style.animationDuration=sec+'s';
+  if(ticker){
+    const home=document.getElementById('startseite');
+    const gapMs=4000;
+    const fallback='Willkommen beim EC Wegscheid';
+    let nextTimer;
+    let lastNews;
+    let homeVisible=false;
+
+    function playNext(){
+      const news=typeof data!=='undefined'&&Array.isArray(data.news)?data.news:[];
+      const items=news.filter(item=>item&&item.active!==false&&newsDateActive(item)&&String(item.text||'').trim());
+      if(!items.length){
+        lastNews=undefined;
+        ticker.textContent=fallback;
+        nextTimer=setTimeout(playNext,2000);
+        return;
+      }
+
+      const previous=items.findIndex(item=>item===lastNews||(lastNews?.id!=null&&item.id===lastNews.id));
+      const item=items[(previous+1)%items.length];
+      lastNews=item;
+      const heading=item.showTitle&&item.title?item.title+' – ':'';
+      ticker.textContent=(heading+item.text).replace(/\s+/g,' ').trim();
+      const distance=ticker.parentElement.clientWidth+ticker.offsetWidth;
+      ticker.style.setProperty('--ecw-ticker-duration',Math.max(10,distance/85)+'s');
+      ticker.classList.add('is-running');
     }
+
+    ticker.addEventListener('animationend',event=>{
+      if(event.animationName!=='ecw-home-ticker'||!homeVisible)return;
+      ticker.classList.remove('is-running');
+      ticker.textContent='';
+      nextTimer=setTimeout(playNext,gapMs);
+    });
+
+    function syncTickerVisibility(){
+      const visible=home.classList.contains('active');
+      if(visible===homeVisible)return;
+      homeVisible=visible;
+      if(visible){
+        playNext();
+      }else{
+        clearTimeout(nextTimer);
+        ticker.classList.remove('is-running');
+        lastNews=undefined;
+      }
+    }
+    new MutationObserver(syncTickerVisibility).observe(home,{attributes:true,attributeFilter:['class']});
+    syncTickerVisibility();
   }
   let taps=[];
   window.ecwCornerLogin=function(event){
@@ -33,7 +69,6 @@
     if(taps.length>=5){taps=[];if(typeof switchUserLogin==='function')switchUserLogin();}
     if(event)event.preventDefault();
   };
-  tickClock();updateTicker();
+  tickClock();
   setInterval(tickClock,15000);
-  setInterval(updateTicker,8000);
 })();
