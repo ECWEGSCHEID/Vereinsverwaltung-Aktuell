@@ -119,6 +119,32 @@ function buildMaxOptions(selectEl) {
 buildMaxOptions(tvById("tMax"));
 buildMaxOptions(tvById("tdEditMax"));
 
+// ECW18: Homepage-Publikationsmetadaten. Keine öffentliche Synchronisierung ohne gesicherte Homepage-API.
+function tvHpForm(prefix){
+  const enabled=!!tvById(prefix+'HpEnabled')?.checked;
+  const invite=enabled&&!!tvById(prefix+'HpInvite')?.checked;
+  const liveList=enabled&&!!tvById(prefix+'HpList')?.checked;
+  const folder=enabled?String(tvById(prefix+'HpFolder')?.value||'').trim():'';
+  if(enabled && (!folder || (!invite&&!liveList))){
+    alert('Bitte einen vorhandenen Homepage-Unterordner und mindestens eine Veröffentlichungsart angeben.');
+    return null;
+  }
+  // Freigabe ist explizit ein Entwurf bis zur Verbindung mit dem Homepage-Backend.
+  return {gewuenscht:enabled,einladung:invite,startliste:liveList,zielordner:folder,live:false};
+}
+function tvHpFill(prefix,value){
+ const x=value||{};
+ for(const [suffix,v] of [['HpEnabled',!!x.gewuenscht],['HpInvite',!!x.einladung],['HpList',!!x.startliste]]){
+  const el=tvById(prefix+suffix);if(el)el.checked=v;
+ }
+ const folder=tvById(prefix+'HpFolder');if(folder)folder.value=x.zielordner||'';
+ const group=tvById(prefix+'HpFields');if(group)group.hidden=!x.gewuenscht;
+}
+for(const p of ['t','tdEdit']){
+ const chk=tvById(p+'HpEnabled');
+ if(chk)chk.addEventListener('change',()=>{const group=tvById(p+'HpFields');if(group)group.hidden=!chk.checked;});
+}
+
 // ---------- Daten-Caches ----------
 let vereineCache = [];
 let aktuellesTurnier = null;
@@ -141,8 +167,9 @@ tvById("tAddBtn").addEventListener("click", async () => {
   const maxMannschaftenRaw = tvById("tMax").value;
   const maxMannschaften = maxMannschaftenRaw ? parseInt(maxMannschaftenRaw, 10) : null;
   if (!name) { alert("Bitte einen Turniernamen eingeben."); return; }
+  const hp=tvHpForm("t"); if(!hp)return;
   await addDoc(collection(db, "turniere"), {
-    name, datum, uhrzeit, ort, meldeUhrzeit, maxMannschaften, erstelltAm: serverTimestamp()
+    name, datum, uhrzeit, ort, meldeUhrzeit, maxMannschaften, homepageFreigabe:hp, erstelltAm: serverTimestamp()
   });
   tvById("tName").value = "";
   tvById("tDatum").value = "";
@@ -150,6 +177,7 @@ tvById("tAddBtn").addEventListener("click", async () => {
   tvById("tOrt").value = "";
   tvById("tMeldeUhrzeit").value = "";
   tvById("tMax").value = "";
+  tvHpFill("t",{});
 });
 
 function turnierListItem(id, t, ausArchiv) {
@@ -223,6 +251,7 @@ tvById("tdEditBtn").addEventListener("click", () => {
   tvById("tdEditOrt").value = aktuellesTurnier.ort || "";
   tvById("tdEditMeldeUhrzeit").value = aktuellesTurnier.meldeUhrzeit || "";
   tvById("tdEditMax").value = aktuellesTurnier.maxMannschaften ? String(aktuellesTurnier.maxMannschaften) : "";
+  tvHpFill("tdEdit",aktuellesTurnier.homepageFreigabe);
   tvById("tdEditForm").classList.remove("hidden");
 });
 tvById("tdEditCancelBtn").addEventListener("click", () => {
@@ -238,7 +267,8 @@ tvById("tdEditSaveBtn").addEventListener("click", async () => {
   const maxMannschaftenRaw = tvById("tdEditMax").value;
   const maxMannschaften = maxMannschaftenRaw ? parseInt(maxMannschaftenRaw, 10) : null;
   if (!name) { alert("Bitte einen Turniernamen eingeben."); return; }
-  const updated = { name, datum, uhrzeit, ort, meldeUhrzeit, maxMannschaften };
+  const hp=tvHpForm("tdEdit");if(!hp)return;
+  const updated = { name, datum, uhrzeit, ort, meldeUhrzeit, maxMannschaften, homepageFreigabe:hp };
   await updateDoc(doc(db, "turniere", aktuellesTurnier.id), updated);
   aktuellesTurnier = { ...aktuellesTurnier, ...updated };
   tvById("tdName").textContent = name;
