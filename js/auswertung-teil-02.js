@@ -502,6 +502,23 @@ switchAdminTab('new');
       return arr;
     }
 
+    // Auswahlfeld auf die längste aktuell angebotene Bezeichnung abstimmen.
+    function ecwFitCupTeamSelect(select) {
+      if (!select) return;
+      const options = Array.from(select.options || []);
+      const canvas = ecwFitCupTeamSelect.canvas || (ecwFitCupTeamSelect.canvas = document.createElement('canvas'));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const css = getComputedStyle(select);
+      ctx.font = css.font || `${css.fontSize} ${css.fontFamily}`;
+      const widest = options.reduce((max, option) => Math.max(max, ctx.measureText(option.textContent || '').width), 0);
+      const extras = parseFloat(css.paddingLeft || 0) + parseFloat(css.paddingRight || 0) + 42;
+      const width = Math.ceil(widest + extras);
+      select.closest('.cup-workspace')?.style.setProperty('--cup-selector-width', `${Math.min(width + 34, Math.floor(window.innerWidth * .58))}px`);
+      select.style.width = `min(100%, ${width}px)`;
+      select.style.maxWidth = '100%';
+    }
+
     function openMatchSelection(gKey) {
       activeGroup = gKey;
       const t = tournaments[activeId];
@@ -529,6 +546,8 @@ switchAdminTab('new');
 
       selB.innerHTML = '<option value="">-- Zuerst Mannschaft wählen --</option>';
       selB.disabled = true;
+      ecwFitCupTeamSelect(selA);
+      ecwFitCupTeamSelect(selB);
       document.getElementById('scoreArea').style.display = 'none';
       const emptyHint = document.getElementById('cupEmptySelection');
       if (emptyHint) emptyHint.style.display = 'flex';
@@ -570,6 +589,7 @@ switchAdminTab('new');
         selB.appendChild(o);
       });
 
+      ecwFitCupTeamSelect(selB);
       selB.disabled = openMatches.length === 0;
       hint.style.display = openMatches.length === 0 ? 'block' : 'none';
       document.getElementById('scoreArea').style.display = 'none';
@@ -1245,9 +1265,12 @@ switchAdminTab('new');
       if (!tId || !tournaments[tId]) return;
       const t = tournaments[tId];
 
-      const pass = prompt('Bitte Admin-Passwort eingeben, um den Spielplan neu zu generieren:');
-      if (pass === null) return;
-      if (pass !== ADMIN_PASS) { alert('Falsches Admin-Passwort!'); return; }
+      // Die zentrale Firebase-Administratorrolle ersetzt das alte, nicht mehr gesetzte Passwort.
+      // Auch im eingebetteten Modus wird die Rolle im zentralen Elternfenster geprüft.
+      if ((window.getEffectiveRole?.() || window.currentRole || 'guest') !== 'admin') {
+        alert('Diese Funktion ist nur für angemeldete Administratoren freigegeben.');
+        return;
+      }
 
       const keepPlayed = confirm('Bereits gespielte Spiele behalten?\n\nOK = Ergebnisse behalten\nAbbrechen = Gespielte Spiele löschen');
       const oldResults = keepPlayed ? collectCompletedMatchResults(t) : new Map();
