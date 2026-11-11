@@ -45,6 +45,12 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .module-nav button{min-height:52px}
 .module-nav a{display:grid;place-items:center;color:#fff;padding-inline:10px;font-size:14px}
 #results button{text-align:left}
+#planner-list{display:grid;gap:8px}
+.planner-event{padding:10px 12px;background:#2c292d;border:1px solid #4c4248;border-radius:10px;overflow-wrap:anywhere}
+.planner-event h2{font-size:16px;margin:3px 0 7px}
+.planner-event time,.planner-event dt{color:#e9d7db;font-size:12px}
+.planner-event dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin:0}
+.planner-event dd{margin:0;font-size:14px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -66,6 +72,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <h1 id="menu-title" tabindex="-1">Hauptmenü</h1>
 <nav aria-label="Hauptmenü">
 <button type="button">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button">Terminplaner<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button">Halle<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button">Spiele<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
@@ -80,6 +87,10 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <button type="button" data-result="cup" data-cup="frauen">Frauencup</button>
 <button type="button" data-result="jahresmeisterschaft">Ziel Jahresmeisterschaft</button>
 </nav>
+<div id="planner-panel" hidden>
+<p id="planner-status" class="hint" role="status"></p>
+<div id="planner-list"></div>
+</div>
 <div id="hall-panel" hidden>
 <div class="hall-status"><span>Hallenstatus</span><strong>Unbekannt</strong></div>
 <h2 class="temperature-title">Temperaturanzeige</h2>
@@ -111,7 +122,9 @@ const firebaseConfig={
   messagingSenderId:"558472054725",
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
-const auth = getAuth(initializeApp(firebaseConfig));
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const authReady = setPersistence(auth, browserLocalPersistence);
 
 const login = document.getElementById('login');
@@ -121,6 +134,84 @@ const password = document.getElementById('password');
 const error = document.getElementById('error');
 const detailTitle = document.getElementById('detail-title');
 const hallPanel = document.getElementById('hall-panel');
+const plannerPanel = document.getElementById('planner-panel');
+const plannerStatus = document.getElementById('planner-status');
+const plannerList = document.getElementById('planner-list');
+let plannerRequest;
+const plannerClock = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+});
+
+function plannerDate(value) {
+  const raw = String(value || '').trim();
+  const iso = raw.match(/^\d{4}-\d{2}-\d{2}/);
+  if (iso) return iso[0];
+  const parts = raw.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+  return parts ? parts[3] + '-' + parts[2].padStart(2, '0') + '-' + parts[1].padStart(2, '0') : '';
+}
+
+function upcomingEvents(events, now = new Date()) {
+  const parts = Object.fromEntries(plannerClock.formatToParts(now).map(({type, value}) => [type, value]));
+  const today = parts.year + '-' + parts.month + '-' + parts.day;
+  const currentTime = parts.hour + ':' + parts.minute;
+  return events.map(event => {
+    const time = String(event.time || '').trim().match(/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
+    return {
+      ...event,
+      date: plannerDate(event.date),
+      time: time ? time[1].padStart(2, '0') + ':' + time[2] : ''
+    };
+  }).filter(event => event.date > today || (event.date === today && event.time > currentTime))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'de'));
+}
+
+function plannerEventCard(event) {
+  const card = document.createElement('article');
+  card.className = 'planner-event';
+  const date = document.createElement('time');
+  date.dateTime = event.date;
+  date.textContent = event.date.split('-').reverse().join('.') + (event.time ? ' · ' + event.time + ' Uhr' : '');
+  const title = document.createElement('h2');
+  title.textContent = event.name || 'Termin ohne Bezeichnung';
+  const fields = document.createElement('dl');
+  const values = [
+    ['Ort', event.location],
+    ['Gemeldet von', event.reportedBy],
+    ...Array.from({length: 4}, (_, index) => ['Spieler ' + (index + 1), event.players?.[index]])
+  ];
+  for (const [label, value] of values) {
+    const row = document.createElement('div');
+    const term = document.createElement('dt');
+    const description = document.createElement('dd');
+    term.textContent = label;
+    description.textContent = String(value || '').trim() || '–';
+    row.append(term, description);
+    fields.append(row);
+  }
+  card.append(date, title, fields);
+  return card;
+}
+
+async function loadPlanner(signal) {
+  plannerList.replaceChildren();
+  plannerStatus.textContent = 'Termine werden geladen …';
+  try {
+    const {getFirestore, collection, getDocs} = await import(firestoreSdkUrl);
+    if (signal.aborted || !auth.currentUser) return;
+    const snapshot = await getDocs(collection(getFirestore(app), 'tournamentPlanner'));
+    if (signal.aborted) return;
+    const events = upcomingEvents(snapshot.docs.map(doc => doc.data()));
+    plannerStatus.textContent = events.length ? '' : 'Keine zukünftigen Termine.';
+    plannerList.replaceChildren(...events.map(plannerEventCard));
+  } catch (error) {
+    if (signal.aborted) return;
+    plannerStatus.textContent = error.code === 'permission-denied'
+      ? 'Der Terminplaner ist für dieses Konto nicht freigegeben.'
+      : 'Termine konnten nicht geladen werden.';
+  }
+}
 const temperatureStatus = document.getElementById('temperature-status');
 const temperatureFields = ['aussen', 'halle', 'vereinsheim'];
 const temperatureUrl = 'https://firestore.googleapis.com/v1/projects/ecw-technik/databases/(default)/documents/temperaturen/aktuell';
@@ -207,6 +298,8 @@ onAuthStateChanged(auth, user => {
     return;
   }
   hallRequest?.abort();
+  plannerRequest?.abort();
+  plannerList.replaceChildren();
   modulePanel.hidden = true;
   moduleFrame.removeAttribute('src');
   detail.hidden = true;
@@ -244,6 +337,11 @@ menu.querySelectorAll('nav button').forEach(button => {
       return;
     }
     hallPanel.hidden = title !== 'Halle';
+    plannerPanel.hidden = title !== 'Terminplaner';
+    if (title === 'Terminplaner') {
+      plannerRequest = new AbortController();
+      void loadPlanner(plannerRequest.signal);
+    }
     results.hidden = title !== 'Tabellen';
     if (title === 'Tabellen') detailTitle.textContent = 'Ergebnisse Turniere Intern';
     if (title === 'Halle') {
@@ -258,6 +356,8 @@ menu.querySelectorAll('nav button').forEach(button => {
 
 document.getElementById('back').addEventListener('click', () => {
   hallRequest?.abort();
+  plannerRequest?.abort();
+  plannerList.replaceChildren();
   detail.hidden = true;
   menu.hidden = false;
   selectedButton.focus();
