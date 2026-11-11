@@ -6,6 +6,9 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 }
 </script>
 <style>
+.smartphone-login-status{display:none}
+.ecw-smartphone-view #login > :not(.smartphone-login-status){display:none!important}
+.ecw-smartphone-view #login .smartphone-login-status{display:block;padding:20px;text-align:center}
 .ecw-smartphone-view #startseite,
 .ecw-smartphone-view #routeDiagHome,
 .ecw-smartphone-view button[onclick^="returnToPowerPoint("] { display:none!important; }
@@ -144,6 +147,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 </section>
 
 <section id="login" class="view">
+  <p class="smartphone-login-status" role="status">Diese Ansicht ist mit der aktuellen Smartphone-Sitzung nicht verfügbar.</p>
   <div class="header"><div><div class="title" id="loginTitle">Verwaltung</div><div class="subtitle" id="loginSubtitle">Administrator-Anmeldung</div></div></div>
   <div class="content" style="max-width:500px;margin:30px auto;width:100%;flex:none">
     <h2 style="margin-top:0" id="loginHeading">Administrator anmelden</h2>
