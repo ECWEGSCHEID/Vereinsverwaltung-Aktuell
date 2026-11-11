@@ -86,6 +86,13 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 @media(max-width:420px){#technikView .technik-grid{gap:6px}#technikView .technik-card{padding:8px}#technikView .technik-card h3{font-size:.85rem}}
 @media(max-width:360px){#technikView .technik-grid{grid-template-columns:1fr}#technikView .technik-card:not(.technik-breit){display:grid;grid-template-columns:1fr auto;align-items:center}#technikView .technik-card:not(.technik-breit) h3{margin:0}}
 [hidden]{display:none!important}
+.qr-compact{margin:0!important;background:transparent!important}
+.qr-compact body{margin:0!important;padding:0!important;background:transparent!important}
+.qr-compact :is(header,footer){display:none!important}
+.qr-compact #qrView{display:grid!important;place-items:center;background:transparent;border:0;box-shadow:none;margin:0;padding:0}
+.qr-compact #qrView > :not(#qrBox){display:none!important}
+.qr-compact #qrBox{width:198px;height:198px;margin:0;padding:8px;box-sizing:border-box;background:white}
+.qr-compact #qrBox svg{display:block;width:100%;height:100%}
 </style>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
@@ -2544,6 +2551,7 @@ function todayIso(){const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 
 function renderQrMode(){
   show('qrView');
+  if (qs.get('kompakt') === '1') document.documentElement.classList.add('qr-compact');
   const u=new URL(location.href);
   u.search='';
   u.hash='';
