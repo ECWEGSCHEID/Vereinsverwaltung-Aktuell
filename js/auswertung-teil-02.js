@@ -3,6 +3,27 @@
 
     let tournaments = {};
     let activeId = null;
+    const directCup = new URLSearchParams(window.location.search).get('cup');
+    const directCupNames = { duo: /duocup/, frauen: /frauencup|damencup/ };
+    let directCupOpened = false;
+
+    function openDirectCupTable() {
+      if (directCupOpened || !Object.hasOwn(directCupNames, directCup)) return;
+      if (!document.getElementById('view-main').classList.contains('active')) return;
+
+      const matches = Object.entries(tournaments).filter(([, tournament]) => {
+        const name = String(tournament?.name || '').toLowerCase().replace(/[^a-z]/g, '');
+        return directCupNames[directCup].test(name) && cupSortedGroups(tournament.groups).length > 0;
+      });
+      matches.sort(([idA], [idB]) => idB.localeCompare(idA, 'de', { numeric: true }));
+      if (!matches.length) return;
+
+      const [id, tournament] = matches[0];
+      const [[group]] = cupSortedGroups(tournament.groups);
+      directCupOpened = true;
+      openGroupSelection(id);
+      openGroupTable(group);
+    }
     let activeGroup = null;
     let activeKoStage = null;
     let selectedMatchRef = null;
@@ -16,6 +37,7 @@
         tournaments = snapshot.val() || {};
         if(document.getElementById('adminSecPrint')?.style.display==='block' && typeof window.cupFinalLoad==='function') window.cupFinalLoad();
         renderMainButtons();
+        openDirectCupTable();
         if (document.getElementById('view-admin').classList.contains('active')) {
           refreshAdminTournamentLists();
           if (!document.getElementById('adminSelectTournament').value) {
@@ -196,6 +218,7 @@ setDefaultTeamsTemplate();
     function goToMainMenu() {
       renderMainButtons();
       showView('view-main');
+      openDirectCupTable();
     }
 
     function goBackToStartMenu() {
