@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EC Wegscheid · Testreservierung</title>
+<style>body{color:#fff;background:#17171a;font:16px system-ui;margin:0;padding:24px}main{max-width:440px;margin:auto}label{display:block;margin:12px 0}input,button{box-sizing:border-box;min-height:46px;font:inherit;padding:8px;width:100%}button{margin-top:10px;background:#a91d2b;color:white;border:0;border-radius:8px}button:disabled{opacity:.55}[hidden]{display:none!important}</style></head>
+<body><main><h1>Testreservierung</h1><p id="status" role="status">Anmeldung wird geprüft …</p>
+<form id="login" hidden><label>E-Mail<input id="email" type="email" autocomplete="username" required></label><label>Passwort<input id="password" type="password" autocomplete="current-password" required></label><button>Anmelden</button></form>
+<section id="booking" hidden><button id="reserve" type="button">Testbuchung speichern</button><button id="release" type="button">Testbuchung zurücksetzen</button></section>
+<button id="logout" type="button" hidden>Abmelden</button></main>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import {getFirestore,doc,getDocFromServer,setDoc} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+const firebaseConfig={
+  apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
+  authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
+  projectId:"ec-wegscheid-verwaltung-neu",
+  storageBucket:"ec-wegscheid-verwaltung-neu.firebasestorage.app",
+  messagingSenderId:"558472054725",
+  appId:"1:558472054725:web:10145e2d8d6f168b056dac"
+};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const ref=doc(getFirestore(app),'reservierungPilot','testbuchung');
+const byId=id=>document.getElementById(id);
+const status=byId('status'), login=byId('login'), booking=byId('booking'), logout=byId('logout');
+const reserve=byId('reserve'), release=byId('release');
+async function refresh(user){
+  login.hidden=!!user;
+  logout.hidden=!user;
+  booking.hidden=true;
+  if(!user){status.textContent='Melde dich mit deinem Testkonto an.';return;}
+  try{
+    const snapshot=await getDocFromServer(ref);
+    if(auth.currentUser?.uid!==user.uid)return;
+    const booked=snapshot.data()?.gebucht===true;
+    booking.hidden=false;
+    reserve.disabled=booked;
+    release.disabled=!booked;
+    status.textContent=booked?'Testbuchung ist gespeichert.':'Die Testbuchung ist frei.';
+  }catch{
+    if(auth.currentUser?.uid===user.uid)status.textContent='Der Testzugriff ist für diese Sitzung nicht verfügbar.';
+  }
+}
+onAuthStateChanged(auth,refresh);
+login.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const button=login.querySelector('button');
+  button.disabled=true;
+  try{await signInWithEmailAndPassword(auth,byId('email').value.trim(),byId('password').value);}
+  catch{status.textContent='Anmeldung fehlgeschlagen.';}
+  finally{byId('password').value='';button.disabled=false;}
+});
+async function write(gebucht){
+  const user=auth.currentUser;
+  if(!user)return;
+  reserve.disabled=true;release.disabled=true;
+  try{await setDoc(ref,{gebucht});await refresh(user);}
+  catch{if(auth.currentUser?.uid===user.uid){status.textContent='Die Änderung konnte nicht gespeichert werden.';reserve.disabled=gebucht===false;release.disabled=gebucht===true;}}
+}
+reserve.addEventListener('click',()=>write(true));
+release.addEventListener('click',()=>write(false));
+logout.addEventListener('click',()=>signOut(auth));
+</script></body></html>
