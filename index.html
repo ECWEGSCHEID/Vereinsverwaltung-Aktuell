@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="de">
-<head><script src="ecw-site-base.js"></script>
+<head><script>
+if (window.self !== window.top && new URLSearchParams(location.search).get('smartphoneAnsicht') === '1') {
+  document.documentElement.classList.add('ecw-smartphone-view');
+}
+</script>
+<style>
+.ecw-smartphone-view #startseite,
+.ecw-smartphone-view #routeDiagHome,
+.ecw-smartphone-view button[onclick^="returnToPowerPoint("] { display:none!important; }
+</style>
+<script src="ecw-site-base.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vereins-Informationssystem – V2.5.4</title>
@@ -505,6 +515,6 @@
 <script src="designvorlagen-daten.js?v=2.9.29"></script>
 <script src="systemeinstellungen.js?v=2.9.29"></script>
 <script src="js/admin-menu-design.js?v=2.9.29"></script>
-<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=12"></script><script src="js/ecw-technik-bridge.js?v=12"></script><script src="js/ecw-temperaturen.js?v=12"></script><script src="js/ecw-startleiste.js?v=20261110-startseite5"></script><script src="ecw-smartphone-einstellungen.js?v=3"></script>
+<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=12"></script><script src="js/ecw-technik-bridge.js?v=12"></script><script src="js/ecw-temperaturen.js?v=12"></script><script src="js/ecw-startleiste.js?v=20261110-startseite5"></script><script src="ecw-smartphone-einstellungen.js?v=4"></script>
 </body>
 </html>
