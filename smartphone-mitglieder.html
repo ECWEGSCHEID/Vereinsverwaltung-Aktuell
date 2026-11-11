@@ -38,7 +38,9 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .readings div{background:#2c292d;border:1px solid #4c4248;border-radius:10px;padding:10px 5px;text-align:center}
 .readings dt{font-size:clamp(11px,3vw,14px);color:#e9d7db}
 .readings dd{margin:6px 0 0;font-size:clamp(14px,4vw,20px);font-weight:750;white-space:nowrap}
-#back{min-height:54px}
+#detail{margin-bottom:calc(74px + env(safe-area-inset-bottom, 0px))}
+.detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
+#back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
 #module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
 #module iframe{width:100%;height:100%;border:0;background:#202023}
 .module-nav{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px max(8px,env(safe-area-inset-bottom));background:#202023;border-top:1px solid #51434b}
@@ -101,7 +103,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </dl>
 <p class="hint" id="temperature-status" role="status"></p>
 </div>
-<button type="button" class="secondary" id="back">← Zurück zum Hauptmenü</button>
+<div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
 </section>
 <section id="module" aria-label="Vereinsmodul" hidden>
 <iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
