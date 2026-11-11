@@ -176,11 +176,14 @@ function plannerEventCard(event) {
   const title = document.createElement('h2');
   title.textContent = event.name || 'Termin ohne Bezeichnung';
   const fields = document.createElement('dl');
-  const values = [
-    ['Ort', event.location],
-    ['Gemeldet von', event.reportedBy],
-    ...Array.from({length: 4}, (_, index) => ['Spieler ' + (index + 1), event.players?.[index]])
-  ];
+  const values = [['Ort', event.location]];
+  const type = String(event.type || '').trim().toLowerCase();
+  if (type === 'turnier' || type === 'meisterschaft') {
+    values.push(['Gemeldet von', event.reportedBy]);
+    for (let index = 0; index < 4; index++) {
+      values.push(['Spieler ' + (index + 1), event.players?.[index]]);
+    }
+  }
   for (const [label, value] of values) {
     const row = document.createElement('div');
     const term = document.createElement('dt');
