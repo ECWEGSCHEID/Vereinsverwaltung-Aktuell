@@ -73,12 +73,12 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <section id="menu" aria-labelledby="menu-title" hidden>
 <h1 id="menu-title" tabindex="-1">Hauptmenü</h1>
 <nav aria-label="Hauptmenü">
-<button type="button">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button">Terminplaner<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button">Halle<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button">Spiele<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button">Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="reservation">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="planner">Terminplaner<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="hall">Halle<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="games">Spiele<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="tables">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="solo">Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
 </nav>
 <button type="button" class="secondary" id="logout">Abmelden</button>
 </section>
@@ -113,6 +113,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </div>
 </section>
 </main>
+<script src="ecw-smartphone-einstellungen.js?v=1"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -197,6 +198,16 @@ function plannerEventCard(event) {
   }
   card.append(date, title, fields);
   return card;
+}
+
+async function readSmartphoneSettings() {
+  try {
+    const {getFirestore, doc, getDoc} = await import(firestoreSdkUrl);
+    const snapshot = await getDoc(doc(getFirestore(app), 'appSettings', ECWSmartphoneNavigation.documentName));
+    return snapshot.data();
+  } catch {
+    return undefined;
+  }
 }
 
 async function loadPlanner(signal) {
@@ -296,8 +307,11 @@ function loginError(message) {
   error.hidden = false;
 }
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (user) {
+    const settings = await readSmartphoneSettings();
+    if (auth.currentUser?.uid !== user.uid) return;
+    ECWSmartphoneNavigation.applyMembers(settings);
     login.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
     return;
