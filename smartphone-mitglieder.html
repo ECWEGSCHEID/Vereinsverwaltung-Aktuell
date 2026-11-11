@@ -45,6 +45,15 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 #module iframe{width:100%;height:100%;border:0;background:#202023}
 .module-nav{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px max(8px,env(safe-area-inset-bottom));background:#202023;border-top:1px solid #51434b}
 .module-nav button{min-height:52px}
+#module.is-results .module-nav{grid-template-columns:minmax(0,1fr)}
+#result-reader{min-width:0;overflow-y:auto;padding:12px max(8px,env(safe-area-inset-right,0px)) 16px max(8px,env(safe-area-inset-left,0px))}
+#result-reader h1{font-size:clamp(18px,5vw,26px);margin:0 0 12px}
+#result-reader table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(11px,3.1vw,15px)}
+#result-reader th,#result-reader td{padding:6px 2px;border-bottom:1px solid #4c4248;text-align:center;overflow-wrap:anywhere;vertical-align:top}
+#result-reader th{background:#63202a}
+#result-reader :is(th,td):nth-child(2){width:32%;text-align:left}
+#result-reader :is(th,td):first-child{width:9%}
+#result-reader :is(th,td):nth-child(2){padding-left:4px}
 .module-nav a{display:grid;place-items:center;color:#fff;padding-inline:10px;font-size:14px}
 #results button{text-align:left}
 #planner-list{display:grid;gap:8px}
@@ -107,6 +116,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </section>
 <section id="module" aria-label="Vereinsmodul" hidden>
 <iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+<div id="result-reader" hidden><h1 id="result-heading"></h1><p id="result-status" role="status"></p><div id="result-table"></div></div>
 <div class="module-nav">
 <button type="button" id="module-back">← Zurück zum Hauptmenü</button>
 <a id="module-external" target="_blank" rel="noopener">Separat öffnen ↗</a>
@@ -244,17 +254,107 @@ const gamesUrl = new URL('?ansicht=tag', reservationUrl);
 const administrationUrl = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
 const soloUrl = new URL('solo-pyramide.html?v=2.5.2', administrationUrl);
 
-function showModule(title, url) {
+const moduleExternal = document.getElementById('module-external');
+const resultReader = document.getElementById('result-reader');
+const resultHeading = document.getElementById('result-heading');
+const resultStatus = document.getElementById('result-status');
+const resultTable = document.getElementById('result-table');
+let resultRequest;
+
+function resultTableCopy(source, championship) {
+  const table = document.createElement('table');
+  table.setAttribute('aria-labelledby', 'result-heading');
+  for (const [name, sourceSection] of [['thead', source.tHead], ['tbody', source.tBodies[0]]]) {
+    if (!sourceSection) continue;
+    const destination = name === 'thead' ? table.createTHead() : table.createTBody();
+    for (const row of sourceSection.rows) {
+      const cells = Array.from(row.cells);
+      const selected = championship && cells.length > 5 ? [...cells.slice(0, 2), ...cells.slice(-3)] : cells;
+      const newRow = destination.insertRow();
+      for (const cell of selected) {
+        const entry = document.createElement(name === 'thead' ? 'th' : 'td');
+        if (name === 'thead') entry.scope = 'col';
+        entry.textContent = cell.textContent.trim().replace(/\s+/g, ' ');
+        newRow.append(entry);
+      }
+    }
+  }
+  return table;
+}
+
+async function readResults(signal, championship) {
+  let championshipLoaded = false;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 350));
+    if (signal.aborted) return;
+    const source = moduleFrame.contentDocument;
+    if (!source) continue;
+    let table;
+    if (championship) {
+      const child = source.querySelector('#view-jahresmeisterschaft.active #jahresmeisterschaftFrame');
+      const importState = child?.contentWindow?.ECW_JM_IMPORT_STATE;
+      const loadState = moduleFrame.contentWindow?.firebaseLoadJahresmeisterschaft;
+      if (!championshipLoaded && importState && loadState) {
+        const pack = await loadState();
+        if (signal.aborted) return;
+        if (!pack?.state) throw new Error('Keine Daten');
+        importState(pack.state);
+        championshipLoaded = true;
+      }
+      if (championshipLoaded) table = child?.contentDocument?.querySelector('#rang .tablebox table');
+    } else {
+      table = source.querySelector('#view-table.active .table-container table');
+    }
+    if (table?.tHead?.rows.length && (championshipLoaded || table.tBodies[0]?.rows.length)) {
+      resultTable.replaceChildren(resultTableCopy(table, championship));
+      resultStatus.textContent = '';
+      return;
+    }
+  }
+  throw new Error('Tabelle nicht verfügbar');
+}
+
+function closeResults() {
+  resultRequest?.abort();
+  resultTable.replaceChildren();
+}
+
+function showModule(title, url, readOnly = false) {
   menu.hidden = true;
   detail.hidden = true;
+  closeResults();
+  modulePanel.classList.toggle('is-results', readOnly);
+  moduleFrame.hidden = readOnly;
+  moduleExternal.hidden = readOnly;
+  resultReader.hidden = !readOnly;
   moduleFrame.title = title;
+  if (readOnly) {
+    resultHeading.textContent = title;
+    resultStatus.textContent = 'Tabelle wird geladen …';
+    resultReader.scrollTop = 0;
+    moduleFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+  } else {
+    moduleFrame.removeAttribute('sandbox');
+    moduleExternal.href = url;
+  }
   moduleFrame.src = url;
-  document.getElementById('module-external').href = url;
   modulePanel.hidden = false;
   moduleBack.focus();
+  if (readOnly) {
+    resultRequest = new AbortController();
+    const {signal} = resultRequest;
+    readResults(signal, url.searchParams.get('seite') === 'jahresmeisterschaft')
+      .catch(() => {
+        if (!signal.aborted) resultStatus.textContent = 'Die Tabelle konnte nicht geladen werden oder ist für dieses Konto nicht freigegeben.';
+      })
+      .finally(() => {
+        if (!signal.aborted) moduleFrame.removeAttribute('src');
+      });
+  }
 }
 
 moduleBack.addEventListener('click', () => {
+  closeResults();
   modulePanel.hidden = true;
   moduleFrame.removeAttribute('src');
   menu.hidden = false;
@@ -266,7 +366,7 @@ results.querySelectorAll('button').forEach(button => {
     const result = button.dataset.result;
     const url = new URL('turnierauswertung.html?v=2.5.2&seite=' + result, administrationUrl);
     if (button.dataset.cup) url.searchParams.set("cup", button.dataset.cup);
-    showModule(button.textContent, url);
+    showModule(button.textContent, url, true);
   });
 });
 
@@ -319,6 +419,7 @@ onAuthStateChanged(auth, async user => {
   hallRequest?.abort();
   plannerRequest?.abort();
   plannerList.replaceChildren();
+  closeResults();
   modulePanel.hidden = true;
   moduleFrame.removeAttribute('src');
   detail.hidden = true;
