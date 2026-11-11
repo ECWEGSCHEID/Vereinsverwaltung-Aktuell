@@ -123,7 +123,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=2"></script>
+<script src="ecw-smartphone-einstellungen.js?v=4"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -319,13 +319,13 @@ function closeResults() {
   resultTable.replaceChildren();
 }
 
-function showModule(title, url, readOnly = false) {
+function showModule(title, url, readOnly = false, embeddedPage = false) {
   menu.hidden = true;
   detail.hidden = true;
   closeResults();
-  modulePanel.classList.toggle('is-results', readOnly);
+  modulePanel.classList.toggle('is-results', readOnly || embeddedPage);
   moduleFrame.hidden = readOnly;
-  moduleExternal.hidden = readOnly;
+  moduleExternal.hidden = readOnly || embeddedPage;
   resultReader.hidden = !readOnly;
   moduleFrame.title = title;
   if (readOnly) {
@@ -411,7 +411,10 @@ onAuthStateChanged(auth, async user => {
   if (user) {
     const settings = await readSmartphoneSettings();
     if (auth.currentUser?.uid !== user.uid) return;
-    ECWSmartphoneNavigation.applyMembers(settings);
+    ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
+      selectedButton = button;
+      showModule(title, url, false, true);
+    });
     login.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
     return;
