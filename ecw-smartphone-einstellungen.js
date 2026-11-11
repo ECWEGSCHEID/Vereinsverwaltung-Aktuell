@@ -43,20 +43,73 @@
     return Array.isArray(links) ? links : [];
   }
 
-  function renderLinks(host, settings, group, className) {
+  function internalStartPage(url) {
+    const target = new URL(url);
+    const base = new URL('index.html', location.href);
+    const routes = new Set(['turniere-monatsuebersicht','turniere','turnierliste','turnierplaner','eigene-turniere','nachrichten','fotos','fotos-sponsoren','mannschaften','links','mitglieder','zeitungsberichte','druckdokumente']);
+    if (target.origin !== base.origin || ![base.pathname, base.pathname.replace(/index\.html$/, '')].includes(target.pathname)) return null;
+    if (!routes.has(target.hash.slice(1).toLowerCase())) return null;
+    target.searchParams.set('smartphoneAnsicht','1');
+    return target;
+  }
+
+  function openAdminPage(title, url) {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('aria-label', title);
+    dialog.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#202023;color:white';
+    const layout = document.createElement('div');
+    layout.style.cssText = 'height:100%;display:grid;grid-template-rows:minmax(0,1fr) auto';
+    const frame = document.createElement('iframe');
+    frame.title = title;
+    frame.src = url;
+    frame.style.cssText = 'width:100%;height:100%;border:0';
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.textContent = '← Zurück zum Hauptmenü';
+    back.style.cssText = 'min-height:54px;margin:8px 12px calc(8px + env(safe-area-inset-bottom,0px))';
+    back.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => dialog.remove(), {once:true});
+    layout.append(frame, back);
+    dialog.append(layout);
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
+  function renderLinks(host, settings, group, openPage) {
     if (!host) return;
     host.querySelectorAll('[data-smartphone-custom]').forEach(link => link.remove());
     for (const item of readLinks(settings, group)) {
       const url = linkUrl(item?.url);
       if (!url || !item.title || item.visible === false) continue;
-      const link = document.createElement('a');
+      const link = document.createElement('button');
+      link.type = 'button';
       link.dataset.smartphoneCustom = '';
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.className = className;
-      link.textContent = item.title;
-      if (item.requiresLogin) link.append(' · Anmeldung auf Zielseite');
+      if (group === 'admin') {
+        link.className = 'tile';
+        const content = document.createElement('span');
+        const title = document.createElement('h2');
+        title.textContent = item.title;
+        content.append(title);
+        if (item.requiresLogin) {
+          const hint = document.createElement('p');
+          hint.textContent = 'Anmeldung auf Zielseite';
+          content.append(hint);
+        }
+        link.append(content);
+      } else {
+        link.textContent = item.title;
+        if (item.requiresLogin) link.title = 'Anmeldung auf Zielseite';
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.setAttribute('aria-hidden','true');
+        arrow.textContent = '›';
+        link.append(arrow);
+      }
+      link.addEventListener('click', () => {
+        const target = internalStartPage(url);
+        if (target && openPage) openPage(item.title, target, link);
+        else window.open(url, '_blank', 'noopener,noreferrer');
+      });
       host.append(link);
     }
   }
@@ -77,9 +130,14 @@
   }
 
   function addLinkEditor(container, item = {}, pages = []) {
+    const details = document.createElement('details');
+    details.dataset.linkEditor = '';
+    details.open = !item.title;
+    details.style.margin = '8px 0';
+    const summary = document.createElement('summary');
+    summary.textContent = item.title || 'Neuer Menüpunkt';
     const row = document.createElement('fieldset');
-    row.dataset.linkEditor = '';
-    row.style.cssText = 'display:grid;gap:6px;margin:8px 0;min-width:0';
+    row.style.cssText = 'display:grid;gap:6px;margin:6px 0;min-width:0';
     row.innerHTML = '<label>Name des Menüpunkts <input name="title" maxlength="100" required></label><label>Link <input name="url" type="url" placeholder="https://" maxlength="2048" required></label><label><input name="visible" type="checkbox"> Anzeigen</label><label><input name="requiresLogin" type="checkbox"> Zielseite verlangt Anmeldung</label><button type="button">Entfernen</button>';
     const field = name => row.querySelector('[name="' + name + '"]');
     field('title').value = item.title || '';
@@ -100,16 +158,17 @@
     });
     label.append('Seite der Vereinsstartseite ', select);
     row.prepend(label);
-    row.querySelector('button').addEventListener('click', () => row.remove());
-    container.append(row);
+    row.querySelector('button').addEventListener('click', () => details.remove());
+    details.append(summary, row);
+    container.append(details);
     return field('title');
   }
 
-  function applyMembers(settings) {
+  function applyMembers(settings, openPage) {
     document.querySelectorAll('#menu [data-mobile-feature]').forEach(button => {
       button.hidden = !visible(settings, 'members', button.dataset.mobileFeature);
     });
-    renderLinks(document.querySelector('#menu nav'), settings, 'members', 'reservation-link');
+    renderLinks(document.querySelector('#menu nav'), settings, 'members', openPage);
   }
 
   function applyAdmin(settings) {
@@ -117,7 +176,7 @@
       const tile = document.getElementById(id);
       if (tile) tile.hidden = !visible(settings, 'admin', id);
     }
-    renderLinks(document.getElementById('tileTv')?.parentElement, settings, 'admin', 'tile');
+    renderLinks(document.getElementById('tileTv')?.parentElement, settings, 'admin', openAdminPage);
     const more = document.getElementById('tileMore');
     if (more) more.hidden = ['tileNews', 'tileJm', 'tileCup'].every(id => !visible(settings, 'admin', id));
   }
@@ -230,6 +289,12 @@
             }
           }
           await ref.set(settings, {merge:true});
+          for (const editor of Object.values(editors)) {
+            for (const row of editor.querySelectorAll('[data-link-editor]')) {
+              row.querySelector('summary').textContent = row.querySelector('[name="title"]').value.trim();
+              row.open = false;
+            }
+          }
           status.textContent = 'Gespeichert. Die Smartphonezugänge übernehmen die Auswahl beim nächsten Öffnen.';
         } catch {
           status.textContent = 'Die Einstellungen konnten nicht gespeichert werden.';
