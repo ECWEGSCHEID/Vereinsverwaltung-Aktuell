@@ -30,7 +30,9 @@
 
   function linkUrl(value) {
     try {
-      const url = new URL(String(value || '').trim(), location.href);
+      const address = String(value || '').trim();
+      if (!address) return '';
+      const url = new URL(address, location.href);
       if (url.protocol === 'https:' && !url.username && !url.password) return url.href;
     } catch {}
     return '';
@@ -59,7 +61,22 @@
     }
   }
 
-  function addLinkEditor(container, item = {}) {
+  function startPageLinks(buttons, parent = '') {
+    const pages = [];
+    for (const button of buttons || []) {
+      const title = String(button.t || '').replace(/\s+/g, ' ').trim();
+      const label = parent ? parent + ' › ' + title : title;
+      if (Array.isArray(button.sub) && button.sub.length) {
+        pages.push(...startPageLinks(button.sub, label));
+        continue;
+      }
+      const href = linkUrl(ecwRebaseLocalTournamentUrl(shSafeUrl(button.u)));
+      if (title && href && !/#(?:ecw-ergebnisse|ecw-nuetzliches-links)$/.test(href)) pages.push({title, label, href});
+    }
+    return pages;
+  }
+
+  function addLinkEditor(container, item = {}, pages = []) {
     const row = document.createElement('fieldset');
     row.dataset.linkEditor = '';
     row.style.cssText = 'display:grid;gap:6px;margin:8px 0;min-width:0';
@@ -69,6 +86,20 @@
     field('url').value = item.url || '';
     field('visible').checked = item.visible !== false;
     field('requiresLogin').checked = item.requiresLogin === true;
+    const label = document.createElement('label');
+    const select = document.createElement('select');
+    select.append(new Option('Eigener Link', ''));
+    pages.forEach((page, index) => select.append(new Option(page.label, String(index))));
+    const selected = pages.findIndex(page => page.href === item.url);
+    if (selected >= 0) select.value = String(selected);
+    select.addEventListener('change', () => {
+      if (!select.value) return;
+      const page = pages[Number(select.value)];
+      field('title').value = page.title;
+      field('url').value = page.href;
+    });
+    label.append('Seite der Vereinsstartseite ', select);
+    row.prepend(label);
     row.querySelector('button').addEventListener('click', () => row.remove());
     container.append(row);
     return field('title');
@@ -106,6 +137,25 @@
     window.__adminBack = null;
     host.classList.remove('mv-mode');
     host.innerHTML = '<h2>Smartphonezugänge</h2><form id="smartphone-settings-form"><p>Funktionen einblenden oder eigene Links hinzufügen. Die Option „Zielseite verlangt Anmeldung“ zeigt einen Hinweis im Menü. Das Passwort prüft die Zielseite.</p><div id="smartphone-settings-groups" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px"></div><p><button type="submit" disabled>Speichern</button></p><p id="smartphone-settings-status" role="status">Einstellungen werden geladen …</p></form>';
+    const qrSection = document.createElement('section');
+    const qrHeading = document.createElement('h3');
+    qrHeading.textContent = 'QR-Codes zur Anmeldung';
+    const qrGrid = document.createElement('div');
+    qrGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px';
+    for (const group of Object.values(groups)) {
+      const card = document.createElement('div');
+      const label = document.createElement('h4');
+      label.textContent = group.title;
+      const frame = document.createElement('iframe');
+      frame.title = 'QR-Code · ' + group.title;
+      frame.src = 'mobile-zugang.html?qr=1&kompakt=1&zugang=' + group.qr;
+      frame.loading = 'lazy';
+      frame.style.cssText = 'display:block;border:0;width:100%;height:214px';
+      card.append(label, frame);
+      qrGrid.append(card);
+    }
+    qrSection.append(qrHeading, qrGrid);
+    host.append(qrSection);
     const form = host.querySelector('form');
     const status = form.querySelector('[role="status"]');
     const save = form.querySelector('button');
@@ -116,6 +166,7 @@
       const settings = snapshot.data();
       const controls = {};
       const editors = {};
+      const pages = startPageLinks(typeof SH !== 'undefined' ? SH.buttons : []);
       for (const [key, group] of Object.entries(groups)) {
         const box = document.createElement('fieldset');
         const legend = document.createElement('legend');
@@ -128,12 +179,6 @@
         entry.rel = 'noopener';
         entry.style.cssText = 'display:block;overflow-wrap:anywhere;margin:6px 0';
         box.append(entry);
-        const qr = document.createElement('a');
-        qr.href = 'mobile-zugang.html?qr=1&zugang=' + group.qr;
-        qr.target = '_blank';
-        qr.rel = 'noopener';
-        qr.textContent = 'QR-Code zur Anmeldung öffnen';
-        box.append(qr);
         controls[key] = {};
         for (const [id, title] of Object.entries(group.items)) {
           const label = document.createElement('label');
@@ -150,8 +195,8 @@
         const add = document.createElement('button');
         add.type = 'button';
         add.textContent = '+ Menüpunkt hinzufügen';
-        add.addEventListener('click', () => addLinkEditor(links).focus());
-        for (const link of readLinks(settings, key)) addLinkEditor(links, link);
+        add.addEventListener('click', () => addLinkEditor(links, {}, pages).focus());
+        for (const link of readLinks(settings, key)) addLinkEditor(links, link, pages);
         editors[key] = links;
         box.append(links, add);
         form.querySelector('#smartphone-settings-groups').append(box);
