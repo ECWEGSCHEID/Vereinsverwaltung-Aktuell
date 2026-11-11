@@ -68,7 +68,8 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <body>
 <main>
 <header><span class="mark" aria-hidden="true">EC</span><div><strong>EC Wegscheid</strong><small>Mitgliederbereich</small></div></header>
-<section id="login" aria-labelledby="login-title">
+<p id="session-check" class="hint" role="status">Anmeldung wird geprüft …</p>
+<section id="login" aria-labelledby="login-title" hidden>
 <h1 id="login-title">Anmelden</h1>
 <form id="form">
 <label for="email">E-Mail</label>
@@ -141,6 +142,7 @@ const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-fire
 const authReady = setPersistence(auth, browserLocalPersistence);
 
 const login = document.getElementById('login');
+const sessionCheck = document.getElementById('session-check');
 const menu = document.getElementById('menu');
 const detail = document.getElementById('detail');
 const password = document.getElementById('password');
@@ -416,6 +418,7 @@ onAuthStateChanged(auth, async user => {
       showModule(title, url, false, true);
     });
     login.hidden = true;
+    sessionCheck.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
     return;
   }
@@ -427,6 +430,7 @@ onAuthStateChanged(auth, async user => {
   moduleFrame.removeAttribute('src');
   detail.hidden = true;
   menu.hidden = true;
+  sessionCheck.hidden = true;
   login.hidden = false;
 });
 
