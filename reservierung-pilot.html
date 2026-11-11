@@ -29,6 +29,10 @@ async function refresh(user){
   logout.hidden=!user;
   booking.hidden=true;
   if(!user){status.textContent='Melde dich mit deinem Testkonto an.';return;}
+  if(user.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2'){
+    status.textContent='Ein anderes Konto ist angemeldet (' + (user.email || 'ohne E-Mail') + '). Melde dich ab und mit dem Testkonto an.';
+    return;
+  }
   try{
     const snapshot=await getDocFromServer(ref);
     if(auth.currentUser?.uid!==user.uid)return;
@@ -37,8 +41,11 @@ async function refresh(user){
     reserve.disabled=booked;
     release.disabled=!booked;
     status.textContent=booked?'Testbuchung ist gespeichert.':'Die Testbuchung ist frei.';
-  }catch{
-    if(auth.currentUser?.uid===user.uid)status.textContent='Der Testzugriff ist für diese Sitzung nicht verfügbar.';
+  }catch(error){
+    if(auth.currentUser?.uid!==user.uid)return;
+    status.textContent=error.code==='permission-denied'
+      ? 'Testkonto erkannt. Firestore verweigert den Zugriff. Prüfe die veröffentlichte Testregel in der Vereinsverwaltung.'
+      : 'Testkonto erkannt. Firestore-Abruf fehlgeschlagen (' + (error.code || 'unbekannter Fehler') + ').';
   }
 }
 onAuthStateChanged(auth,refresh);
