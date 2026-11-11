@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#141416">
+<title>EC Wegscheid · Mitgliederbereich</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;color:#fff;font:16px system-ui,sans-serif;background:radial-gradient(ellipse at top,#4b171b,transparent 57%),repeating-linear-gradient(135deg,#151517 0 3px,#19191c 3px 6px)}
+main{max-width:490px;margin:auto;padding:clamp(28px,8vh,80px) 20px 40px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:38px}
+.mark{display:grid;place-items:center;background:#b91f2e;border-radius:12px;width:48px;height:48px;font-weight:850}
+header strong{font-size:21px}
+header small{display:block;color:#e4bec1;margin-top:3px}
+section{background:#202023;border:1px solid #454045;border-radius:20px;padding:clamp(18px,5vw,28px);box-shadow:0 18px 50px #0005}
+h1{font-size:clamp(24px,6vw,32px);margin:0 0 20px;line-height:1.15}
+label{display:block;margin-bottom:8px;font-weight:650}
+input,button{font:inherit;border-radius:10px;min-height:48px;width:100%}
+input{background:#151517;border:1px solid #77717a;padding:12px;color:white}
+button{cursor:pointer;color:white;background:#b91f2e;border:1px solid transparent;padding:12px;font-weight:700}
+button:focus-visible,input:focus-visible{outline:3px solid #ffb9bf;outline-offset:3px}
+form button,.password-label{margin-top:14px}
+p{line-height:1.5;color:#ddd5d8}
+.hint{font-size:14px;margin:14px 0 0}
+#error{color:#ffb9bf}
+nav{display:grid;gap:10px}
+nav button,.reservation-link{display:flex;justify-content:space-between;align-items:center;background:#2c292d;border-color:#4c4248;text-align:left;min-height:58px;padding-inline:16px}
+.reservation-link{border:1px solid #4c4248;border-radius:10px;color:white;font-weight:700;text-decoration:none}
+.reservation-link:focus-visible{outline:3px solid #ffb9bf;outline-offset:3px}
+nav button:hover,.reservation-link:hover{background:#42282e}
+.arrow{color:#ffaeb6;font-size:24px;line-height:1}
+.secondary{background:transparent;border-color:#6f626b;margin-top:18px}
+.hall-status{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid #665047;border-radius:10px;background:#302725}
+.hall-status strong{color:#ffd2a9}
+.temperature-title{font-size:18px;margin:20px 0 8px}
+.readings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0}
+.readings div{background:#2c292d;border:1px solid #4c4248;border-radius:10px;padding:10px 5px;text-align:center}
+.readings dt{font-size:clamp(11px,3vw,14px);color:#e9d7db}
+.readings dd{margin:6px 0 0;font-size:clamp(14px,4vw,20px);font-weight:750;white-space:nowrap}
+#back{min-height:54px}
+#module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
+#module iframe{width:100%;height:100%;border:0;background:#202023}
+.module-nav{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px max(8px,env(safe-area-inset-bottom));background:#202023;border-top:1px solid #51434b}
+.module-nav button{min-height:52px}
+.module-nav a{display:grid;place-items:center;color:#fff;padding-inline:10px;font-size:14px}
+#results button{text-align:left}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<header><span class="mark" aria-hidden="true">EC</span><div><strong>EC Wegscheid</strong><small>Mitgliederbereich</small></div></header>
+<section id="login" aria-labelledby="login-title">
+<h1 id="login-title">Anmelden</h1>
+<form id="form">
+<label for="email">E-Mail</label>
+<input id="email" type="email" autocomplete="username" required>
+<label class="password-label" for="password">Passwort</label>
+<input id="password" type="password" autocomplete="current-password" aria-describedby="error" required>
+<button>Anmelden</button>
+<p class="hint" id="error" role="alert" hidden></p>
+</form>
+</section>
+<section id="menu" aria-labelledby="menu-title" hidden>
+<h1 id="menu-title" tabindex="-1">Hauptmenü</h1>
+<nav aria-label="Hauptmenü">
+<button type="button">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button">Halle<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button">Spiele<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button">Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
+</nav>
+<button type="button" class="secondary" id="logout">Abmelden</button>
+</section>
+<section id="detail" aria-labelledby="detail-title" hidden>
+<h1 id="detail-title" tabindex="-1"></h1>
+<nav id="results" aria-label="Tabellen" hidden>
+<button type="button" data-result="cup" data-cup="duo">Duo Cup</button>
+<button type="button" data-result="cup" data-cup="frauen">Frauencup</button>
+<button type="button" data-result="jahresmeisterschaft">Ziel Jahresmeisterschaft</button>
+</nav>
+<div id="hall-panel" hidden>
+<div class="hall-status"><span>Hallenstatus</span><strong>Unbekannt</strong></div>
+<h2 class="temperature-title">Temperaturanzeige</h2>
+<dl class="readings">
+<div><dt>Außen</dt><dd id="aussen">–</dd></div>
+<div><dt>Halle</dt><dd id="halle">–</dd></div>
+<div><dt>Vereinsheim</dt><dd id="vereinsheim">–</dd></div>
+</dl>
+<p class="hint" id="temperature-status" role="status"></p>
+</div>
+<button type="button" class="secondary" id="back">← Zurück zum Hauptmenü</button>
+</section>
+<section id="module" aria-label="Vereinsmodul" hidden>
+<iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+<div class="module-nav">
+<button type="button" id="module-back">← Zurück zum Hauptmenü</button>
+<a id="module-external" target="_blank" rel="noopener">Separat öffnen ↗</a>
+</div>
+</section>
+</main>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+const firebaseConfig={
+  apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
+  authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
+  projectId:"ec-wegscheid-verwaltung-neu",
+  storageBucket:"ec-wegscheid-verwaltung-neu.firebasestorage.app",
+  messagingSenderId:"558472054725",
+  appId:"1:558472054725:web:10145e2d8d6f168b056dac"
+};
+const auth = getAuth(initializeApp(firebaseConfig));
+const authReady = setPersistence(auth, browserLocalPersistence);
+
+const login = document.getElementById('login');
+const menu = document.getElementById('menu');
+const detail = document.getElementById('detail');
+const password = document.getElementById('password');
+const error = document.getElementById('error');
+const detailTitle = document.getElementById('detail-title');
+const hallPanel = document.getElementById('hall-panel');
+const temperatureStatus = document.getElementById('temperature-status');
+const temperatureFields = ['aussen', 'halle', 'vereinsheim'];
+const temperatureUrl = 'https://firestore.googleapis.com/v1/projects/ecw-technik/databases/(default)/documents/temperaturen/aktuell';
+const temperatureFormat = new Intl.NumberFormat('de-DE', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+const dateFormat = new Intl.DateTimeFormat('de-DE', {dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin'});
+let selectedButton;
+let hallRequest;
+const results = document.getElementById('results');
+const modulePanel = document.getElementById('module');
+const moduleFrame = document.getElementById('module-frame');
+const moduleBack = document.getElementById('module-back');
+const reservationUrl = 'https://ecwegscheid.github.io/Reservierungssystem/';
+const gamesUrl = new URL('?ansicht=tag', reservationUrl);
+const administrationUrl = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
+const soloUrl = new URL('solo-pyramide.html?v=2.5.2', administrationUrl);
+
+function showModule(title, url) {
+  menu.hidden = true;
+  detail.hidden = true;
+  moduleFrame.title = title;
+  moduleFrame.src = url;
+  document.getElementById('module-external').href = url;
+  modulePanel.hidden = false;
+  moduleBack.focus();
+}
+
+moduleBack.addEventListener('click', () => {
+  modulePanel.hidden = true;
+  moduleFrame.removeAttribute('src');
+  menu.hidden = false;
+  selectedButton.focus();
+});
+
+results.querySelectorAll('button').forEach(button => {
+  button.addEventListener('click', () => {
+    const result = button.dataset.result;
+    const url = new URL('turnierauswertung.html?v=2.5.2&seite=' + result, administrationUrl);
+    if (button.dataset.cup) url.searchParams.set("cup", button.dataset.cup);
+    showModule(button.textContent, url);
+  });
+});
+
+async function loadTemperatures(signal) {
+  temperatureStatus.textContent = 'Temperaturen werden geladen …';
+  temperatureFields.forEach(field => { document.getElementById(field).textContent = '–'; });
+  try {
+    const response = await fetch(temperatureUrl, {signal, cache: 'no-store'});
+    if (!response.ok) throw new Error('Temperaturquelle nicht erreichbar');
+    const {fields} = await response.json();
+    if (signal.aborted) return;
+    const updated = new Date(fields?.aktualisiert?.timestampValue);
+    if (!Number.isFinite(updated.getTime())) throw new Error('Messzeit fehlt');
+    const age = Date.now() - updated.getTime();
+    if (age > 15 * 60 * 1000 || age < -60 * 1000) {
+      temperatureStatus.textContent = 'Keine aktuellen Messwerte. Letzter Stand: ' + dateFormat.format(updated) + ' Uhr.';
+      return;
+    }
+    for (const field of temperatureFields) {
+      const reading = fields[field];
+      const value = reading?.doubleValue ?? Number(reading?.integerValue);
+      if (Number.isFinite(value)) {
+        document.getElementById(field).textContent = temperatureFormat.format(value) + ' °C';
+      }
+    }
+    temperatureStatus.textContent = 'Stand: ' + dateFormat.format(updated) + ' Uhr.';
+  } catch {
+    if (!signal.aborted) temperatureStatus.textContent = 'Temperaturen derzeit nicht verfügbar.';
+  }
+}
+
+const form = document.getElementById('form');
+const email = document.getElementById('email');
+const submit = form.querySelector('button');
+
+function loginError(message) {
+  error.textContent = message;
+  error.hidden = false;
+}
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    login.hidden = true;
+    if (detail.hidden && modulePanel.hidden) menu.hidden = false;
+    return;
+  }
+  hallRequest?.abort();
+  modulePanel.hidden = true;
+  moduleFrame.removeAttribute('src');
+  detail.hidden = true;
+  menu.hidden = true;
+  login.hidden = false;
+});
+
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  error.hidden = true;
+  submit.disabled = true;
+  try {
+    await authReady;
+    await signInWithEmailAndPassword(auth, email.value.trim(), password.value);
+    document.getElementById('menu-title').focus();
+  } catch {
+    loginError('Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.');
+  } finally {
+    password.value = '';
+    submit.disabled = false;
+  }
+});
+
+menu.querySelectorAll('nav button').forEach(button => {
+  button.addEventListener('click', () => {
+    selectedButton = button;
+    detailTitle.textContent = button.firstChild.textContent.trim();
+    const title = detailTitle.textContent;
+    if (title === 'Reservierungssystem' || title === 'Spiele') {
+      showModule(title, title === 'Spiele' ? gamesUrl : reservationUrl);
+      return;
+    }
+    if (title === 'Solo Pyramide') {
+      showModule(title, soloUrl);
+      return;
+    }
+    hallPanel.hidden = title !== 'Halle';
+    results.hidden = title !== 'Tabellen';
+    if (title === 'Tabellen') detailTitle.textContent = 'Ergebnisse Turniere Intern';
+    if (title === 'Halle') {
+      hallRequest = new AbortController();
+      void loadTemperatures(hallRequest.signal);
+    }
+    menu.hidden = true;
+    detail.hidden = false;
+    detailTitle.focus();
+  });
+});
+
+document.getElementById('back').addEventListener('click', () => {
+  hallRequest?.abort();
+  detail.hidden = true;
+  menu.hidden = false;
+  selectedButton.focus();
+});
+
+document.getElementById('logout').addEventListener('click', async () => {
+  try {
+    await signOut(auth);
+    email.focus();
+  } catch {
+    window.alert('Abmeldung fehlgeschlagen. Bitte erneut versuchen.');
+  }
+});
+</script>
+</body>
+</html>
