@@ -251,7 +251,9 @@ const results = document.getElementById('results');
 const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
-const reservationUrl = 'https://ecwegscheid.github.io/Reservierungssystem/';
+const reservationUrl = new URLSearchParams(location.search).get('reservierungTest') === '1'
+  ? new URL('reservierung-smartphone-test.html', location.href).href
+  : 'https://ecwegscheid.github.io/Reservierungssystem/';
 const gamesUrl = new URL('?ansicht=tag', reservationUrl);
 const administrationUrl = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
 const soloUrl = new URL('solo-pyramide.html?v=2.5.2', administrationUrl);
