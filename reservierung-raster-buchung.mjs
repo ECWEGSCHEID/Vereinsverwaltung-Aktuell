@@ -6,8 +6,8 @@ const clock = new Intl.DateTimeFormat('sv-SE', {
 });
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
-export function createRasterBooking(app, auth, {games, whiteboard, status, showRows}) {
-  const call = httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
+export function createRasterBooking(app, auth, {games, whiteboard, status, showRows, bookingCall}) {
+  const call = bookingCall ?? httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
   let imported = [], dates = [], dateKey = '', loaded = false, sequence = 0;
   let writable = new Set(), busy = false, options, formAccount, pending, session = 0;
   const uid = () => auth.currentUser?.uid;
@@ -42,13 +42,13 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       const extra = [];
       results.forEach((result, index) => {
         if (result.status !== 'fulfilled') return;
-        if (result.value.data.canBook === true && !games) writable.add(days[index]);
+        if (result.value.data.canBook === true && !games && !whiteboard) writable.add(days[index]);
         for (const booking of result.value.data.bookings || []) {
           if ((!whiteboard && !/^[a-f0-9]{64}$/.test(booking.id)) || booking.date !== days[index] ||
               !resourcePattern.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
               !(timePattern.test(booking.timeTo) || booking.timeTo === '24:00')) continue;
           extra.push({
-            id: 1000000 + extra.length, liveId: booking.id, own: !games && booking.own === true,
+            id: 1000000 + extra.length, liveId: booking.id, own: !games && !whiteboard && booking.own === true,
             date: booking.date, resource: booking.resource, timeFrom: booking.timeFrom, timeTo: booking.timeTo,
             bookedBy: typeof booking.bookedBy === 'string' ? booking.bookedBy : '',
             mode: booking.mode || 'Reserviert',
@@ -57,7 +57,10 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
           });
         }
       });
-      status.textContent = results.some(result => result.status === 'rejected')
+      const denied = whiteboard && results.some(result =>
+        result.status === 'rejected' && result.reason?.code === 'functions/permission-denied');
+      status.textContent = denied ? 'Dieses Konto hat keine Whiteboard-Lesefreigabe.'
+        : results.some(result => result.status === 'rejected')
         ? 'Aktuelle Buchungen konnten nicht vollständig geladen werden.'
         : writable.size ? 'Freies Feld antippen, um eine Bahn oder das Vereinsheim zu reservieren.'
           : games || whiteboard ? 'Reservierungen · Leseansicht' : 'Für dieses Konto ist nur Lesen freigegeben.';

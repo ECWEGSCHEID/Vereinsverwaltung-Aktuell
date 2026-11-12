@@ -2705,6 +2705,15 @@ function isWhiteboardReservationLink(value){
 async function openExternalPage(value,title){
  const checkUrl=externalWebUrl(value);
  const resultApp=isEcwTournamentAppUrl(checkUrl)||isSoloPyramideUrl(checkUrl);
+ if(checkUrl && isWhiteboardReservationLink(checkUrl)){
+  await window.__ecwPersistenceReady;
+  if(!window.firebaseAuth?.currentUser){
+   window.__ecwPendingInternalResult={url:value,title, reservation:true};
+   loginPurpose='internalResult';
+   showView('login');
+   return;
+  }
+ }
  if(resultApp && (isPublicWhiteboardMode()||isWhiteboardUser()||isWhiteboardKioskAccount())){
   // Ohne echte Firebase-Sitzung darf der Browser die App nicht als Whiteboard starten.
   if(!firebaseAuthUser){
@@ -2755,7 +2764,7 @@ async function openExternalPage(value,title){
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
  if (isWhiteboardReservationLink(url)) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=11&ansicht=whiteboard', location.href).href;
+   frameUrl = new URL('reservierung-smartphone-test.html?v=12&ansicht=whiteboard', location.href).href;
    page?.classList.add('ecw-reservation-embed');
  }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
@@ -2973,7 +2982,7 @@ async function loginFirebaseAdmin(){
  if(window.__ecwPendingInternalResult){
   const pending=window.__ecwPendingInternalResult;
   window.__ecwPendingInternalResult=null;
-  setStatus('Anmeldung erfolgreich. Ergebnisprogramm wird geoeffnet ...');
+  setStatus(pending.reservation?'Anmeldung erfolgreich. Reservierungskalender wird geöffnet …':'Anmeldung erfolgreich. Ergebnisprogramm wird geöffnet …');
   await openExternalPage(pending.url,pending.title);
   return;
  }

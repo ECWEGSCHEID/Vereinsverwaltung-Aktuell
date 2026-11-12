@@ -20,24 +20,40 @@ const firebaseConfig={
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
 const app=initializeApp(firebaseConfig);
-// Match the parent portal so Firebase does not move the shared session to IndexedDB.
-const auth=initializeAuth(app,{persistence:browserLocalPersistence});
-import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=3';
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=4';
 const db=getFirestore(app);
 const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
 const params=new URLSearchParams(location.search);
 const games=params.get('ansicht')==='tag';
 const whiteboard=params.get('ansicht')==='whiteboard';
-const raster=createRasterBooking(app,auth,{games,whiteboard,status,showRows:rows=>window.ecwShowReservationSnapshot(rows)});
+// Das Whiteboard nutzt die Auth-Sitzung der Vereinsverwaltung im selben Origin.
+let parentAuth, bookingCall;
+if (whiteboard && window.parent !== window) {
+  try {
+    const host = window.parent;
+    if (host.location.origin === location.origin && host.firebaseAuth && host.firebase?.app) {
+      const functions = host.firebase.app().functions('europe-west3');
+      bookingCall = functions.httpsCallable('ecwBahnreservierung');
+      parentAuth = host.firebaseAuth;
+    }
+  } catch (error) {
+    console.warn('Whiteboard-Sitzung konnte nicht übernommen werden.', error);
+  }
+}
+const auth = parentAuth ?? initializeAuth(app,{persistence:browserLocalPersistence});
+const raster=createRasterBooking(app,auth,{games,whiteboard,status,bookingCall,showRows:rows=>window.ecwShowReservationSnapshot(rows)});
 window.ecwRasterBuchung=raster;
 let version=0;
-onAuthStateChanged(auth,async user=>{
+const observeAuth = parentAuth ? callback => parentAuth.onAuthStateChanged(callback) : callback => onAuthStateChanged(auth,callback);
+const stopObserving = observeAuth(async user=>{
   const request=++version;
   raster.reset();
   window.ecwShowReservationSnapshot([]);
   if(!user){
-    status.textContent='Keine freigegebene Anmeldung aktiv.';
+    status.textContent=whiteboard
+      ? 'Bitte in der Vereinsverwaltung als Informationssystem anmelden und Bahn Reservierung erneut öffnen.'
+      : 'Keine freigegebene Anmeldung aktiv.';
     return;
   }
   status.textContent='Buchungen werden geladen …';
@@ -85,6 +101,7 @@ onAuthStateChanged(auth,async user=>{
       : 'Buchungen konnten mit dieser Anmeldung nicht geladen werden.';
   }
 });
+window.addEventListener('pagehide', event => { if (!event.persisted) stopObserving(); });
 </script>
 
     <style>
