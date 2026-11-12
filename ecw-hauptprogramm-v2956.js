@@ -4281,13 +4281,54 @@ async function tpLoadCentralPlayerList(){
     }
   }catch(e){console.warn('Zentrale Spielerliste nicht geladen:',e);}
 }
+function canEditTpSmartphoneAccess(){
+  return !!(firebaseAuthUser&&firestoreDb&&appPermissions.admin===true&&!isWhiteboardUser());
+}
+
+async function tpEditSmartphoneAccess(button,player){
+  if(!canEditTpSmartphoneAccess()||!tpPlayers().includes(player))return;
+  const adminUid=firebaseAuthUser.uid;
+  button.disabled=true;
+  try{
+    const directory=await firestoreDb.doc('smartphoneAnmeldung/mitglieder').get({source:'server'});
+    const members=directory.data()?.members;
+    const matches=Array.isArray(members)?members.filter(entry=>entry?.name===player):[];
+    if(matches.length!==1||typeof matches[0].alias!=='string'||!/^[a-f0-9]{32}$/.test(matches[0].alias)){
+      showToast('Für diesen Spieler ist kein eindeutiges Smartphonekonto eingerichtet.',6500);
+      return;
+    }
+    // The initial pilot was created before the batch provisioning UID convention.
+    const initialPilot=player==='Stadler Martin';
+    const memberUid=initialPilot
+      ? 'n9MpiKXZNLap8wsbRcP4fVjrT4D2'
+      : 'ecw-mobile-'+matches[0].alias;
+    const access=firestoreDb.collection('smartphoneFreigaben').doc(memberUid);
+    const hasReadAccess=snapshot=>snapshot.exists?snapshot.data()?.reservierungenLesen===true:initialPilot;
+    const current=hasReadAccess(await access.get({source:'server'}));
+    if(!canEditTpSmartphoneAccess()||firebaseAuthUser.uid!==adminUid||!button.isConnected)return;
+    const action=current?'Lesefreigabe entziehen':'Lesefreigabe erteilen';
+    if(!confirm(player+'\nReservierungssystem: '+(current?'Lesen freigegeben':'Lesen gesperrt')+'\n\n'+action+'?'))return;
+    await firestoreDb.runTransaction(async transaction=>{
+      const snapshot=await transaction.get(access);
+      if(!canEditTpSmartphoneAccess()||firebaseAuthUser.uid!==adminUid)throw Error('Adminsitzung geändert');
+      if(hasReadAccess(snapshot)!==current)throw Error('Freigabe wurde zwischenzeitlich geändert');
+      transaction.set(access,{reservierungenLesen:!current});
+    });
+    showToast(current?'Lesefreigabe entzogen':'Lesefreigabe erteilt');
+  }catch(error){
+    showToast('Freigabe konnte nicht gespeichert werden: '+error.message,8000);
+  }finally{
+    button.disabled=false;
+  }
+}
+
 function renderTpPlayersAdminList(){
   const el=document.getElementById('tpPlayersAdminList');if(!el)return;
   const players=tpPlayers().filter(p=>p!=='X');
   const aliases=tpPlayerAliases();
   el.innerHTML=players.length?players.map(p=>{
     const old=Object.keys(aliases).filter(a=>tpResolvePlayerName(a)===p);
-    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button></div></div>';
+    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'')+'</div></div>';
   }).join(''):'<div class="small">Keine Spieler vorhanden.</div>';
 }
 async function tpAddPlayer(){
