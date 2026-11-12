@@ -127,7 +127,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <script src="ecw-smartphone-einstellungen.js?v=4"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getAuth, initializeAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
   authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
@@ -137,9 +137,10 @@ const firebaseConfig={
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const reservationTest = new URLSearchParams(location.search).get('reservierungTest') === '1';
+const auth = reservationTest ? initializeAuth(app, {persistence: browserLocalPersistence}) : getAuth(app);
 const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-const authReady = setPersistence(auth, browserLocalPersistence);
+const authReady = reservationTest ? auth.authStateReady() : setPersistence(auth, browserLocalPersistence);
 
 const login = document.getElementById('login');
 const sessionCheck = document.getElementById('session-check');
@@ -251,11 +252,11 @@ const results = document.getElementById('results');
 const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
-const reservationTest = new URLSearchParams(location.search).get('reservierungTest') === '1';
 const reservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=2', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
-const gamesUrl = new URL('?ansicht=tag', reservationUrl);
+const gamesUrl = new URL(reservationUrl);
+gamesUrl.searchParams.set('ansicht', 'tag');
 const administrationUrl = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
 const soloUrl = new URL('solo-pyramide.html?v=2.5.2', administrationUrl);
 
