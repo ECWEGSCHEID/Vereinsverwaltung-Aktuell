@@ -342,5 +342,101 @@
     }
   }
 
+  async function tpSmartphoneMemberUid(player, directory){
+    const members=directory.data()?.members;
+    const matches=Array.isArray(members)?members.filter(entry=>entry?.name===player):[];
+    if(matches.length>1||matches.some(entry=>typeof entry.alias!=='string'||!/^[a-f0-9]{32}$/.test(entry.alias))){
+      throw Error('Smartphonekonto konnte nicht eindeutig zugeordnet werden.');
+    }
+    if(player==='Stadler Martin')return 'n9MpiKXZNLap8wsbRcP4fVjrT4D2';
+    if(matches.length)return 'ecw-mobile-'+matches[0].alias;
+    // Use the same UID convention as account provisioning for players without an account.
+    const normalized=player.trim().replace(/\s+/g,' ').toLowerCase();
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('ecw-mobile-v1:'+normalized));
+    const alias=Array.from(new Uint8Array(digest).slice(0,16),byte=>byte.toString(16).padStart(2,'0')).join('');
+    return 'ecw-mobile-'+alias;
+  }
+
+  async function tpEditSmartphoneAccess(button,player){
+    if(!canEditTpSmartphoneAccess()||!tpPlayers().includes(player))return;
+    const adminUid=firebaseAuthUser.uid;
+    const currentAdmin=()=>canEditTpSmartphoneAccess()&&firebaseAuthUser.uid===adminUid&&button.isConnected;
+    button.disabled=true;
+    let dialog;
+    try{
+      const [directory,settings]=await Promise.all([
+        firestoreDb.doc('smartphoneAnmeldung/mitglieder').get({source:'server'}),
+        ECWSmartphoneNavigation.settingsRef(firestoreDb).get({source:'server'})
+      ]);
+      const memberUid=await tpSmartphoneMemberUid(player,directory);
+      const access=firestoreDb.collection('smartphoneFreigaben').doc(memberUid);
+      const initial=await access.get({source:'server'});
+      if(!currentAdmin())return;
+      const grants=initial.data()||{};
+      dialog=document.createElement('dialog');
+      dialog.style.cssText='width:min(92vw,32rem);max-height:85vh;overflow:auto';
+      const heading=document.createElement('h3');
+      heading.textContent='Smartphone-Freigaben · '+player;
+      dialog.append(heading);
+      const form=document.createElement('form');
+      const items=ECWSmartphoneNavigation.memberItems(settings.data());
+      const controls=items.map(item=>{
+        const row=document.createElement('label');
+        row.style.cssText='display:flex;align-items:center;gap:.65em;margin:.65em 0';
+        const checkbox=document.createElement('input');
+        checkbox.type='checkbox';
+        checkbox.style.width='auto';
+        checkbox.checked=item.custom?!grants.gesperrteLinks?.includes(item.key):ECWSmartphoneNavigation.memberFeatureAllowed(grants,item.feature);
+        row.append(checkbox,document.createTextNode(item.title));
+        form.append(row);
+        return {item,checkbox};
+      });
+      const cancel=document.createElement('button');
+      cancel.type='button';
+      cancel.textContent='Abbrechen';
+      cancel.addEventListener('click',()=>dialog.close());
+      const submit=document.createElement('button');
+      submit.type='submit';
+      submit.textContent='Speichern';
+      form.append(cancel,submit);
+      dialog.append(form);
+      document.body.append(dialog);
+      const fingerprint=snapshot=>JSON.stringify(snapshot.data()||{});
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();
+        if(!currentAdmin())return dialog.close();
+        submit.disabled=cancel.disabled=true;
+        try{
+          const updated={gesperrteLinks:[]};
+          for(const {item,checkbox} of controls){
+            if(!item.custom)updated[item.key]=checkbox.checked;
+            else if(!checkbox.checked)updated.gesperrteLinks.push(item.key);
+          }
+          await firestoreDb.runTransaction(async transaction=>{
+            const snapshot=await transaction.get(access);
+            if(!currentAdmin())throw Error('Adminsitzung geändert');
+            if(fingerprint(snapshot)!==fingerprint(initial))throw Error('Freigaben wurden zwischenzeitlich geändert');
+            transaction.set(access,updated);
+          });
+          showToast('Smartphone-Freigaben gespeichert');
+          dialog.close();
+        }catch(error){
+          showToast('Freigaben konnten nicht gespeichert werden: '+error.message,8000);
+        }finally{
+          submit.disabled=cancel.disabled=false;
+        }
+      });
+      dialog.addEventListener('cancel',event=>{if(submit.disabled)event.preventDefault();});
+      dialog.addEventListener('close',()=>{dialog.remove();button.disabled=false;},{once:true});
+      dialog.showModal();
+    }catch(error){
+      dialog?.remove();
+      showToast('Freigaben konnten nicht geladen werden: '+error.message,8000);
+    }finally{
+      if(!dialog?.open)button.disabled=false;
+    }
+  }
+
+  window.tpEditSmartphoneAccess = tpEditSmartphoneAccess;
   window.ECWSmartphoneNavigation = {documentName, settingsRef, applyMembers, applyAdmin, memberItems, memberFeatureAllowed, open};
 })();
