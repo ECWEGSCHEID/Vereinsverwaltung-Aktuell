@@ -1636,7 +1636,7 @@ function shRender(){
  const grp=shOpen>=0?SH.buttons[shOpen]:null;
  const label=grp?grp.t.replace(/\n/g,' '):SH.title;
  const background=SH.bg||SH_BG;
- art.style.backgroundImage='url("'+(background===SH_BG?'assets/startseite-ecw19.svg':background)+'")';
+ art.style.backgroundImage='url("'+background+'")';
  document.getElementById('shTitle').textContent=label;document.getElementById('shTitle2').textContent=label;
  document.getElementById('shSubReturn').hidden=!grp;
  document.getElementById('startseite').classList.toggle('sh-submenu',!!grp);
