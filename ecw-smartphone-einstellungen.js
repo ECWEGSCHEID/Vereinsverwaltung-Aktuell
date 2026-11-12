@@ -75,12 +75,46 @@
     dialog.showModal();
   }
 
-  function renderLinks(host, settings, group, openPage) {
+  const memberPermissionFields = {
+    reservation: 'reservierungenLesen', planner: 'terminplaner', hall: 'halle',
+    games: 'spiele', tables: 'tabellen', solo: 'soloPyramide'
+  };
+
+  function memberFeatureAllowed(permissions, feature) {
+    if (feature === 'games' && permissions?.spiele === undefined) {
+      return permissions?.reservierungenLesen !== false;
+    }
+    return permissions?.[memberPermissionFields[feature]] !== false;
+  }
+
+  function memberLinkKey(item) {
+    const url = linkUrl(item?.url);
+    return url && item.title ? JSON.stringify([String(item.title), url]) : '';
+  }
+
+  function memberItems(settings) {
+    const entries = Object.entries(groups.members.items).map(([key, title]) =>
+      ({key: memberPermissionFields[key], feature: key, title, custom: false}));
+    const customKeys = new Set();
+    for (const item of readLinks(settings, 'members')) {
+      const key = memberLinkKey(item);
+      if (!key || customKeys.has(key)) continue;
+      customKeys.add(key);
+      entries.push({key, title: item.title, custom: true});
+    }
+    return entries;
+  }
+
+  function renderLinks(host, settings, group, openPage, permissions) {
     if (!host) return;
     host.querySelectorAll('[data-smartphone-custom]').forEach(link => link.remove());
     for (const item of readLinks(settings, group)) {
       const url = linkUrl(item?.url);
       if (!url || !item.title || item.visible === false) continue;
+      if (group === 'members' && (
+        permissions?.gesperrteLinks?.includes(memberLinkKey(item)) ||
+        (permissions?.reservierungenLesen === false && String(item.title).trim().toLocaleLowerCase('de-DE') === 'reservierungssystem')
+      )) continue;
       const link = document.createElement('button');
       link.type = 'button';
       link.dataset.smartphoneCustom = '';
@@ -164,11 +198,12 @@
     return field('title');
   }
 
-  function applyMembers(settings, openPage) {
+  function applyMembers(settings, openPage, permissions) {
     document.querySelectorAll('#menu [data-mobile-feature]').forEach(button => {
-      button.hidden = !visible(settings, 'members', button.dataset.mobileFeature);
+      const feature = button.dataset.mobileFeature;
+      button.hidden = !visible(settings, 'members', feature) || !memberFeatureAllowed(permissions, feature);
     });
-    renderLinks(document.querySelector('#menu nav'), settings, 'members', openPage);
+    renderLinks(document.querySelector('#menu nav'), settings, 'members', openPage, permissions);
   }
 
   function applyAdmin(settings) {
@@ -307,5 +342,5 @@
     }
   }
 
-  window.ECWSmartphoneNavigation = {documentName, settingsRef, applyMembers, applyAdmin, open};
+  window.ECWSmartphoneNavigation = {documentName, settingsRef, applyMembers, applyAdmin, memberItems, memberFeatureAllowed, open};
 })();
