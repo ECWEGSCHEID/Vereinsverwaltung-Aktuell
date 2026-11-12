@@ -1595,7 +1595,9 @@ function shMakeBtn(b,idx){
   }
 
   if(externalWebUrl(u)){
-   if(isLiveStartlistUrl(u)){
+   if(isWhiteboardReservationLink(u)){
+    a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
+   }else if(isLiveStartlistUrl(u)){
     a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
    }else if(isEcwTournamentAppUrl(u)||isSoloPyramideUrl(u)){
     if(isPublicWhiteboardMode()&&!isWhiteboardInternalResultAllowed(u)){
@@ -2691,6 +2693,15 @@ async function ecwVerifyResultUser(){
   return profile.admin===true || isVerifiedWhiteboard;
  }catch(e){window.__ecwVerifiedWhiteboardUid=null;console.error('Ergebnis-Berechtigung:',e);return false;}
 }
+function isWhiteboardReservationLink(value){
+ if(!(isWhiteboardUser()||isWhiteboardKioskAccount()))return false;
+ const url=new URL(value,location.href);
+ if(url.origin==='https://ecwegscheid.github.io' &&
+    /^\/Reservierungssystem(?:\/index\.html|\/)?$/i.test(url.pathname))return true;
+ return url.origin===location.origin &&
+   /\/(?:ecw-reservierung-v\d+\.html|reservierung-smartphone-test\.html|verwaltung\/reservierungssystem(?:\/index\.html|\/)?)$/i.test(url.pathname);
+}
+
 async function openExternalPage(value,title){
  const checkUrl=externalWebUrl(value);
  const resultApp=isEcwTournamentAppUrl(checkUrl)||isSoloPyramideUrl(checkUrl);
@@ -2743,12 +2754,9 @@ async function openExternalPage(value,title){
  document.getElementById('externalPrevious').hidden=isReservationApp||externalPreviousView==='admin'||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
- const legacyReservation = new URL(url, location.href);
- const whiteboardReservation = isWhiteboardUser() && (isReservationApp ||
-   (legacyReservation.origin === 'https://ecwegscheid.github.io' &&
-     /^\/Reservierungssystem(?:\/index\.html|\/)?$/i.test(legacyReservation.pathname)));
- if (whiteboardReservation) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=10&ansicht=whiteboard', location.href).href;
+ if (isWhiteboardReservationLink(url)) {
+   frameUrl = new URL('reservierung-smartphone-test.html?v=11&ansicht=whiteboard', location.href).href;
+   page?.classList.add('ecw-reservation-embed');
  }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
  // Versionierung der gespeicherten Startseitenlinks wird hier vereinheitlicht.

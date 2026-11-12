@@ -509,9 +509,9 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                         </div>
                     </div>
                     <div class="mt-2">
-                        <label class="block font-semibold text-zinc-300">Bahn</label>
-                        <select id="modalSelectedResource" onchange="checkTimeAvailability()" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 font-bold text-red-500">
-                            <option value="Bahn 1">Bahn 1</option><option value="Bahn 2">Bahn 2</option><option value="Bahn 3">Bahn 3</option><option value="Bahn 4">Bahn 4</option>
+                        <label class="block font-semibold text-zinc-300">Ressource</label>
+                        <select id="modalSelectedResource" onchange="syncReservationResource();checkTimeAvailability()" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 font-bold text-red-500">
+                            <option value="Bahn 1">Bahn 1</option><option value="Bahn 2">Bahn 2</option><option value="Bahn 3">Bahn 3</option><option value="Bahn 4">Bahn 4</option><option value="Vereinsheim">Vereinsheim</option>
                         </select>
                     </div>
                 </div>
@@ -795,6 +795,17 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                     }
                 });
             });
+        }
+
+        function syncReservationResource() {
+            const resource = document.getElementById('modalSelectedResource').value;
+            const mode = document.getElementById('modalTemplateSelect');
+            if (resource === 'Vereinsheim') {
+                mode.replaceChildren(new Option('Vereinsheim', 'Vereinsheim'));
+                onTemplateChange();
+            } else if (!mode.options.length || mode.value === 'Vereinsheim') {
+                renderTemplatesUI();
+            }
         }
 
         function onTemplateChange() {
@@ -1138,11 +1149,6 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         window.ecwOpenOriginalBookingForm = function(date, resource, time, options) {
             membersList=options.players.map(name=>({name,active:true}));
             editingBookingId=null;
-            renderTemplatesUI();
-            if (resource === 'Vereinsheim') {
-                const mode = document.getElementById('modalTemplateSelect');
-                mode.replaceChildren(new Option('Vereinsheim', 'Vereinsheim'));
-            }
             const timeTo=document.getElementById('modalTimeTo');
             if(!Array.from(timeTo.options).some(option=>option.value==='24:00')){
                 timeTo.add(new Option('24:00','24:00'));
@@ -1164,6 +1170,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 document.getElementById('modalTitleHeading').innerText = resourceName === "Vereinsheim" ? "Vereinsheim reservieren" : "📝 Bahn reservieren";
             }
             document.getElementById('modalSelectedResource').value = resourceName;
+            syncReservationResource();
             document.getElementById('modalBookDate').value = dateStr;
             document.getElementById('modalTimeFrom').value = timeStr;
 
