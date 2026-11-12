@@ -40,11 +40,13 @@ onAuthStateChanged(auth,async user=>{
     if(!Array.isArray(rows))throw Error('Kein Buchungsbestand');
     const courts=new Set(['Bahn 1','Bahn 2','Bahn 3','Bahn 4','Vereinsheim']);
     const time=/^(?:(?:[01]\d|2[0-3]):[0-5]\d|24:00)$/;
+    const text=value=>typeof value==='string'?value.trim():'';
+    const names=value=>Array.isArray(value)?value.map(text).filter(Boolean):[];
     const safe=rows.flatMap((row,index)=>{
       if(!courts.has(row?.resource)||typeof row.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||
          typeof row.timeFrom!=='string'||!time.test(row.timeFrom)||typeof row.timeTo!=='string'||!time.test(row.timeTo))return [];
       return [{id:index+1,date:row.date,timeFrom:row.timeFrom,timeTo:row.timeTo,resource:row.resource,
-        mode:'Reserviert',bookedBy:'',homeTeam:[],guestTeam:[]}];
+        mode:text(row.mode)||'Reserviert',bookedBy:text(row.bookedBy),homeTeam:names(row.homeTeam),guestTeam:names(row.guestTeam)}];
     });
     window.ecwShowReservationSnapshot(safe);
     status.textContent=safe.length+' von '+rows.length+' Buchungen geladen · Testansicht ohne Schreibzugriff';
@@ -941,10 +943,10 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                         let homeStr = b.homeTeam && b.homeTeam.length > 0 ? b.homeTeam.join(', ') : '';
                         let guestStr = b.guestTeam && b.guestTeam.length > 0 ? b.guestTeam.join(', ') : '';
 
-                        let teamsHtml = homeStr ? `<p class="text-zinc-300">🏠 Spieler/Team: ${homeStr}</p>` : '';
-                        if(guestStr) teamsHtml += `<p class="text-zinc-300">✈️ Gegner: ${guestStr}</p>`;
+                        let teamsHtml = homeStr ? `<p class="text-zinc-300">🏠 Spieler/Team: ${escapeHtml(homeStr)}</p>` : '';
+                        if(guestStr) teamsHtml += `<p class="text-zinc-300">✈️ Gegner: ${escapeHtml(guestStr)}</p>`;
 
-                        let modeHtml = b.mode ? `<p class="text-zinc-400 italic">Modus/Anlass: ${b.mode}</p>` : '';
+                        let modeHtml = b.mode ? `<p class="text-zinc-400 italic">Modus/Anlass: ${escapeHtml(b.mode)}</p>` : '';
                         let isClubhouse = b.resource === "Vereinsheim";
                         let resIcon = isClubhouse ? "🏠" : "🏟️";
                         
@@ -962,7 +964,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                                 </div>
                                 ${modeHtml} ${teamsHtml}
                                 <p class="text-[10px] text-zinc-400 pt-1 border-t border-zinc-800 flex justify-between">
-                                    <span>Reserviert von: <strong>${b.bookedBy}</strong></span>
+                                    <span>Reserviert von: <strong>${escapeHtml(b.bookedBy)}</strong></span>
                                 </p>
                                 ${bookingActionHint}
                             </div>`;
@@ -1246,10 +1248,10 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 <div><strong>Datum:</strong> ${formatDateDE(b.date)}</div>
                 <div><strong>Zeit:</strong> ${b.timeFrom} - ${b.timeTo} Uhr</div>
                 <div><strong>Bahn:</strong> ${b.resource}</div>
-                <div><strong>Spielmodus:</strong> ${b.mode || '-'}</div>
-                <div><strong>Spieler:</strong> ${home}</div>
-                <div><strong>Gegner:</strong> ${opponent}</div>
-                <div class="pt-1 border-t border-zinc-700"><strong>Reserviert von:</strong> ${b.bookedBy || '-'}</div>`;
+                <div><strong>Spielmodus:</strong> ${escapeHtml(b.mode || '-')}</div>
+                <div><strong>Spieler:</strong> ${escapeHtml(home)}</div>
+                <div><strong>Gegner:</strong> ${escapeHtml(opponent)}</div>
+                <div class="pt-1 border-t border-zinc-700"><strong>Reserviert von:</strong> ${escapeHtml(b.bookedBy || '-')}</div>`;
 
             if(canManage) {
                 buttons.innerHTML = `
