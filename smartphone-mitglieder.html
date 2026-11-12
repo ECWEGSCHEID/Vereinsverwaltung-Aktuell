@@ -286,7 +286,7 @@ async function loadPlanner(signal) {
 }
 const temperatureStatus = document.getElementById('temperature-status');
 const temperatureFields = ['aussen', 'halle', 'vereinsheim'];
-const temperatureUrl = 'https://firestore.googleapis.com/v1/projects/ecw-technik/databases/(default)/documents/temperaturen/aktuell';
+const temperatureUrl = 'https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/sensors/temperatures';
 const temperatureFormat = new Intl.NumberFormat('de-DE', {minimumFractionDigits: 1, maximumFractionDigits: 1});
 const dateFormat = new Intl.DateTimeFormat('de-DE', {dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin'});
 let selectedButton;
@@ -432,10 +432,10 @@ async function loadTemperatures(signal) {
     if (!response.ok) throw new Error('Temperaturquelle nicht erreichbar');
     const {fields} = await response.json();
     if (signal.aborted) return;
-    const updated = new Date(fields?.aktualisiert?.timestampValue);
+    const updated = new Date(fields?.updatedAt?.timestampValue);
     if (!Number.isFinite(updated.getTime())) throw new Error('Messzeit fehlt');
     const age = Date.now() - updated.getTime();
-    if (age > 15 * 60 * 1000 || age < -60 * 1000) {
+    if (age > 10 * 60 * 1000 || age < -60 * 1000) {
       temperatureStatus.textContent = 'Keine aktuellen Messwerte. Letzter Stand: ' + dateFormat.format(updated) + ' Uhr.';
       return;
     }
