@@ -11,7 +11,7 @@ import secrets
 import subprocess
 import sys
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 PROJECT = "ec-wegscheid-verwaltung-neu"
@@ -131,9 +131,15 @@ def main():
             })
             link = result.get("oobLink", "")
             parsed = urlparse(link)
-            if parsed.scheme != "https" or not parsed.netloc:
+            params = parse_qs(parsed.query)
+            codes = params.get("oobCode", [])
+            if parsed.scheme != "https" or not parsed.netloc or params.get("mode") != ["resetPassword"] or len(codes) != 1:
                 raise RuntimeError("Firebase hat keinen gültigen Aktivierungslink zurückgegeben.")
-            output.write(f"{name}\t{link}\n")
+            portal = (
+                "https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/smartphone-mitglieder.html"
+                "?reservierungTest=1&namenTest=1#" + urlencode({"aktivierung": codes[0]})
+            )
+            output.write(f"{name}\t{portal}\n")
             output.flush()
             os.fsync(output.fileno())
             values.append({"mapValue": {"fields": {
