@@ -1,10 +1,10 @@
 /* ECW14: öffentliche Firebase-Webkonfiguration für die Technik-Anzeige.
    Dies ist KEIN privater Dienstkonto-Schlüssel. */
 window.ECW_TECHNIK_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCF2K9IhI2InNhosfuk8WdDpz7zVsuzjkA",
-  authDomain: "ecw-technik.firebaseapp.com",
-  projectId: "ecw-technik",
-  storageBucket: "ecw-technik.firebasestorage.app",
-  messagingSenderId: "132725844521",
-  appId: "1:132725844521:web:79ccbad59d12eef6730a38"
+  apiKey: "AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
+  authDomain: "ec-wegscheid-verwaltung-neu.firebaseapp.com",
+  projectId: "ec-wegscheid-verwaltung-neu",
+  storageBucket: "ec-wegscheid-verwaltung-neu.firebasestorage.app",
+  messagingSenderId: "558472054725",
+  appId: "1:558472054725:web:10145e2d8d6f168b056dac"
 };

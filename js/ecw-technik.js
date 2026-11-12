@@ -3,7 +3,7 @@
   'use strict';
 
   const temperatureKeys = ['halle', 'aussen', 'vereinsheim'];
-  const maxAge = 3 * 60 * 1000;
+  const maxAge = 10 * 60 * 1000; // Versand alle 5 Minuten
   const pendingAge = 2 * 60 * 1000;
   const dateFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' });
   const numberFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -46,7 +46,7 @@
     for (const key of temperatureKeys) {
       const temperature = data?.[key];
       const valid = typeof temperature === 'number' && Number.isFinite(temperature);
-      const time = data?.messzeiten?.[key] ?? data?.aktualisiert;
+      const time = data?.updatedAt;
       const recent = valid && isFresh(time) && !source.cached;
       $('technik-' + key).textContent = valid ? numberFormat.format(temperature) + ' °C' : '— °C';
       $('technik-' + key + '-zeit').textContent = valid
@@ -141,7 +141,7 @@
     render();
     if (window.ecwTechnikDb) {
       const opened=session;
-      subscriptions.push(window.ecwTechnikDb.collection('temperaturen').doc('aktuell').onSnapshot(
+      subscriptions.push(window.ecwTechnikDb.collection('sensors').doc('temperatures').onSnapshot(
         {includeMetadataChanges:true}, snap=>{
           if(session!==opened)return;
           sources.temperatures={data:snap.exists?snap.data():null,cached:snap.metadata.fromCache};render();
