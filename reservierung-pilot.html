@@ -6,11 +6,12 @@
 <form id="login" hidden><label>E-Mail<input id="email" type="email" autocomplete="username" required></label><label>Passwort<input id="password" type="password" autocomplete="current-password" required></label><button>Anmelden</button></form>
 <section id="booking" hidden><button id="reserve" type="button">Testbuchung speichern</button><button id="release" type="button">Testbuchung zurücksetzen</button></section>
 <section id="import-check" hidden><button id="check-import" type="button">Importierte Buchungen prüfen</button><p id="import-status" role="status"></p><ol id="import-appointments" class="appointments" aria-label="Importierte Buchungen"></ol></section>
+<section id="slot-check" hidden><h2>Doppelbuchung prüfen</h2><p>Fester Testslot ohne Bezug zu echten Bahnen.</p><button id="race" type="button">Zwei Buchungsversuche starten</button><button id="reset-slot" type="button">Testslot freigeben</button><p id="slot-status" role="status"></p></section>
 <button id="logout" type="button" hidden>Abmelden</button></main>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import {getFirestore,doc,getDocFromServer,setDoc} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import {getFirestore,doc,getDocFromServer,setDoc,runTransaction,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const firebaseConfig={
   apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
   authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
@@ -23,17 +24,21 @@ const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 const ref=doc(db,'reservierungPilot','testbuchung');
+const slot=doc(db,'reservierungPilot','doppelbuchung');
 const importedBookings=doc(db,'reservierungMigration','buchungen_20261112');
 const byId=id=>document.getElementById(id);
 const status=byId('status'), login=byId('login'), booking=byId('booking'), logout=byId('logout');
 const reserve=byId('reserve'), release=byId('release');
 const importCheck=byId('import-check'), checkImport=byId('check-import'), importStatus=byId('import-status');
 const appointments=byId('import-appointments');
+const slotCheck=byId('slot-check'), slotStatus=byId('slot-status'), race=byId('race'), resetSlot=byId('reset-slot');
 async function refresh(user){
   login.hidden=!!user;
   logout.hidden=!user;
   booking.hidden=true;
   importCheck.hidden=user?.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2';
+  slotCheck.hidden=importCheck.hidden;
+  if(slotCheck.hidden)slotStatus.textContent='';
   if(importCheck.hidden){importStatus.textContent='';appointments.replaceChildren();}
   if(!user){status.textContent='Melde dich mit deinem Testkonto an.';return;}
   if(user.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2'){
@@ -111,6 +116,54 @@ checkImport.addEventListener('click', async () => {
       ? 'Firestore verweigert den Lesezugriff auf den Import.'
       : 'Abruf fehlgeschlagen ('+(error.code||'unbekannter Fehler')+').';
   } finally {checkImport.disabled=false;}
+});
+async function claimSlot(uid) {
+  return runTransaction(db, async transaction => {
+    const snapshot=await transaction.get(slot);
+    if(snapshot.exists())return false;
+    transaction.set(slot,{ownerUid:uid,createdAt:serverTimestamp()});
+    return true;
+  });
+}
+
+race.addEventListener('click', async () => {
+  const uid=auth.currentUser?.uid;
+  if(!uid||slotCheck.hidden)return;
+  race.disabled=true;
+  resetSlot.disabled=true;
+  slotStatus.textContent='Test läuft …';
+  try {
+    if((await getDocFromServer(slot)).exists()){
+      if(auth.currentUser?.uid===uid)slotStatus.textContent='Der Testslot ist belegt. Gib ihn zuerst frei.';
+      return;
+    }
+    const results=await Promise.allSettled([claimSlot(uid),claimSlot(uid)]);
+    if(auth.currentUser?.uid!==uid)return;
+    const error=results.find(result=>result.status==='rejected');
+    if(error){
+      slotStatus.textContent='Test unvollständig ('+(error.reason?.code||'unbekannter Fehler')+').';
+      return;
+    }
+    const booked=results.filter(result=>result.value===true).length;
+    const blocked=results.filter(result=>result.value===false).length;
+    slotStatus.textContent=booked===1&&blocked===1
+      ?'Bestanden: 1 Buchung gespeichert, 1 Doppelbuchung verhindert.'
+      :'Test nicht bestanden: '+booked+' gespeichert, '+blocked+' wegen Belegung abgelehnt.';
+  } catch(error) {
+    if(auth.currentUser?.uid===uid)slotStatus.textContent='Test fehlgeschlagen ('+(error.code||'unbekannter Fehler')+').';
+  } finally {race.disabled=false;resetSlot.disabled=false;}
+});
+
+resetSlot.addEventListener('click', async () => {
+  const uid=auth.currentUser?.uid;
+  if(!uid||slotCheck.hidden)return;
+  race.disabled=true;resetSlot.disabled=true;
+  try{
+    if((await getDocFromServer(slot)).exists())await deleteDoc(slot);
+    if(auth.currentUser?.uid===uid)slotStatus.textContent='Der Testslot ist frei.';
+  }catch(error){
+    if(auth.currentUser?.uid===uid)slotStatus.textContent='Freigabe fehlgeschlagen ('+(error.code||'unbekannter Fehler')+').';
+  }finally{race.disabled=false;resetSlot.disabled=false;}
 });
 logout.addEventListener('click',()=>signOut(auth));
 </script></body></html>
