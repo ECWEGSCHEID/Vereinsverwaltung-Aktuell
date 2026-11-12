@@ -223,7 +223,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
  #exitToStartButton{position:static!important;display:block;margin:8px 8px max(8px,env(safe-area-inset-bottom));width:calc(100% - 16px);flex-shrink:0}
 }
 </style><style>
-#userLoginButton,#logoutBtn,[onclick^="openBookingModal("],[onclick="openClubhouseModal()"],#navAdmin,#navMembers{display:none!important}
+#userLoginButton,#logoutBtn,[onclick^="openBookingModal("],button[onclick="openClubhouseModal()"],#navAdmin,#navMembers{display:none!important}
 </style></head>
 <body class="bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
 <p id="shared-session-status" role="status" style="margin:0;padding:10px;color:white;background:#2e2528">Smartphone-Anmeldung wird geprüft …</p>
@@ -1050,8 +1050,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 
                                 matrixHtml += `<td data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} ${cellColorBg} font-bold text-xs ${cursorStyle}" ${bookingClick}>✓</td>`;
                             } else {
-                                let clickAction = res === "Vereinsheim" ? `openClubhouseModal()` : `handleSlotClick(event, '${res}', '${dateStr}', '${t}')`;
-                                matrixHtml += `<td data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} hover:bg-red-950/45 cursor-pointer text-zinc-700 text-[10px] slot-cell" onclick="${clickAction}">+</td>`;
+                                matrixHtml += `<td data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass}"></td>`;
                             }
                         });
                     });
