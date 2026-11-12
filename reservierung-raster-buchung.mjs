@@ -6,13 +6,16 @@ const clock = new Intl.DateTimeFormat('sv-SE', {
 });
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
-export function createRasterBooking(app, auth, {games, status, showRows}) {
+export function createRasterBooking(app, auth, {games, whiteboard, status, showRows}) {
   const call = httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
   let imported = [], dates = [], dateKey = '', loaded = false, sequence = 0;
   let writable = new Set(), busy = false, options, formAccount, pending, session = 0;
   const uid = () => auth.currentUser?.uid;
   const element = id => document.getElementById(id);
   const pause = () => new Promise(resolve => setTimeout(resolve, 400));
+
+  const resourcePattern = /^(Bahn [1-4]|Vereinsheim)$/;
+  const canBookDay = date => writable.has(date);
 
   async function callWithRetry(data, account) {
     try {
@@ -33,7 +36,7 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
     writable = new Set();
     const request = ++sequence, account = uid();
     void Promise.allSettled(days.map(date => callWithRetry({
-      action: 'list', date, view: games ? 'spiele' : 'reservierungen'
+      action: 'list', date, view: whiteboard ? 'whiteboard' : games ? 'spiele' : 'reservierungen'
     }, account))).then(results => {
       if (request !== sequence || account !== uid()) return;
       const extra = [];
@@ -41,8 +44,8 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
         if (result.status !== 'fulfilled') return;
         if (result.value.data.canBook === true && !games) writable.add(days[index]);
         for (const booking of result.value.data.bookings || []) {
-          if (!/^[a-f0-9]{64}$/.test(booking.id) || booking.date !== days[index] ||
-              !/^Bahn [1-4]$/.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
+          if ((!whiteboard && !/^[a-f0-9]{64}$/.test(booking.id)) || booking.date !== days[index] ||
+              !resourcePattern.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
               !(timePattern.test(booking.timeTo) || booking.timeTo === '24:00')) continue;
           extra.push({
             id: 1000000 + extra.length, liveId: booking.id, own: !games && booking.own === true,
@@ -56,14 +59,14 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
       });
       status.textContent = results.some(result => result.status === 'rejected')
         ? 'Aktuelle Buchungen konnten nicht vollständig geladen werden.'
-        : writable.size ? 'Freies Feld antippen, um eine Bahn zu reservieren.'
-          : games ? 'Reservierungen · Leseansicht' : 'Für dieses Konto ist nur Lesen freigegeben.';
+        : writable.size ? 'Freies Feld antippen, um eine Bahn oder das Vereinsheim zu reservieren.'
+          : games || whiteboard ? 'Reservierungen · Leseansicht' : 'Für dieses Konto ist nur Lesen freigegeben.';
       showRows([...imported, ...extra]);
     });
   }
 
   function canBook(date, resource, time) {
-    return !games && /^Bahn [1-4]$/.test(resource) && writable.has(date)
+    return !games && !whiteboard && resourcePattern.test(resource) && canBookDay(date)
       && date + ' ' + time >= clock.format(new Date());
   }
 
@@ -150,6 +153,6 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
       writable.clear(); options = undefined; formAccount = undefined; pending = undefined;
       window.closeBookingModal(true);
     },
-    update, canBook, openSlot, submit, cancelBooking, isBusy: () => busy
+    update, canBookDay, canBook, openSlot, submit, cancelBooking, isBusy: () => busy
   };
 }

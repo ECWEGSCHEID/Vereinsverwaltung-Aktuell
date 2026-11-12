@@ -22,12 +22,14 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 // Match the parent portal so Firebase does not move the shared session to IndexedDB.
 const auth=initializeAuth(app,{persistence:browserLocalPersistence});
-import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=2';
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=3';
 const db=getFirestore(app);
 const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
-const games=new URLSearchParams(location.search).get('ansicht')==='tag';
-const raster=createRasterBooking(app,auth,{games,status,showRows:rows=>window.ecwShowReservationSnapshot(rows)});
+const params=new URLSearchParams(location.search);
+const games=params.get('ansicht')==='tag';
+const whiteboard=params.get('ansicht')==='whiteboard';
+const raster=createRasterBooking(app,auth,{games,whiteboard,status,showRows:rows=>window.ecwShowReservationSnapshot(rows)});
 window.ecwRasterBuchung=raster;
 let version=0;
 onAuthStateChanged(auth,async user=>{
@@ -35,11 +37,16 @@ onAuthStateChanged(auth,async user=>{
   raster.reset();
   window.ecwShowReservationSnapshot([]);
   if(!user){
-    status.textContent='Keine freigegebene Smartphone-Anmeldung aktiv.';
+    status.textContent='Keine freigegebene Anmeldung aktiv.';
     return;
   }
   status.textContent='Buchungen werden geladen …';
   try{
+    if(whiteboard){
+      raster.setImported([]);
+      window.ecwShowReservationSnapshot([]);
+      return;
+    }
     const initialPilot=user.uid==='n9MpiKXZNLap8wsbRcP4fVjrT4D2';
     const permission=await getDocFromServer(doc(db,'smartphoneFreigaben',user.uid)).catch(error=>{
       if(initialPilot && error.code==='permission-denied')return null;
@@ -641,10 +648,11 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         let defaultMembersList=[];
         let membersList=[];
         let eventTemplates = [
-            { id: 1, name: "Freies Training (Standard)", players: 4 },
+            { id: 1, name: "Freies Training (Standard)", players: 0 },
             { id: 2, name: "Cup-Spiel", players: 4 },
             { id: 3, name: "Solo Turnier", players: 1 },
-            { id: 4, name: "Duo Cup", players: 2 }
+            { id: 4, name: "Duo Cup", players: 2 },
+            { id: 5, name: "Frauencup", players: 2 }
         ];
 
         let clubhouseTemplates = [
@@ -792,7 +800,9 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         function onTemplateChange() {
             const select = document.getElementById('modalTemplateSelect');
             const selectedTemplateName = select.value;
-            let found = eventTemplates.find(t => t.name === selectedTemplateName);
+            const found = selectedTemplateName === 'Vereinsheim'
+                ? {name: 'Vereinsheim', players: 0}
+                : eventTemplates.find(t => t.name === selectedTemplateName);
             const hint = document.getElementById('gameModeHint');
             if (found && found.players !== undefined) {
                 const section = document.getElementById('playerSelectionSection');
@@ -818,7 +828,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             const playerHint = document.getElementById('playerSelectionHint');
 
             // Spielerauswahl nach Auswahl des Spielmodus sichtbar machen.
-            if (section) section.classList.remove('hidden');
+            if (section) section.classList.toggle('hidden', playerCount === 0);
             if (guestContainer) guestContainer.style.display = playerCount > 0 ? 'block' : 'none';
 
             if (playerHint) {
@@ -1010,7 +1020,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 
                 let hasClubhouseOnDay = {};
                 weekDates.forEach(dStr => {
-                    hasClubhouseOnDay[dStr] = bookingsList.some(b => b.date === dStr && b.resource === "Vereinsheim");
+                    hasClubhouseOnDay[dStr] = window.ecwRasterBuchung?.canBookDay(dStr) || bookingsList.some(b => b.date === dStr && b.resource === "Vereinsheim");
                 });
 
                 let matrixHtml = `
@@ -1121,7 +1131,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         function openBookingModal(resourceName) { return readOnlyReservation();
             resetSlotSelection();
             editingBookingId = null;
-            document.getElementById('modalTitleHeading').innerText = "📝 Bahn reservieren";
+            document.getElementById('modalTitleHeading').innerText = resourceName === "Vereinsheim" ? "Vereinsheim reservieren" : "📝 Bahn reservieren";
             openBookingModalAtTime(resourceName, getTodayFormatted(), "15:00");
         }
 
@@ -1129,13 +1139,16 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             membersList=options.players.map(name=>({name,active:true}));
             editingBookingId=null;
             renderTemplatesUI();
+            if (resource === 'Vereinsheim') {
+                const mode = document.getElementById('modalTemplateSelect');
+                mode.replaceChildren(new Option('Vereinsheim', 'Vereinsheim'));
+            }
             const timeTo=document.getElementById('modalTimeTo');
             if(!Array.from(timeTo.options).some(option=>option.value==='24:00')){
                 timeTo.add(new Option('24:00','24:00'));
             }
             openBookingModalAtTime(resource,date,time,time==='23:30'?'24:00':addMinutesToTime(time,30));
-            document.getElementById('homePlayer1').value=options.owner;
-            updateMemberDropdowns();
+            onTemplateChange();
             checkTimeAvailability();
         };
 
@@ -1148,7 +1161,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             }
 
             if(editingBookingId === null) {
-                document.getElementById('modalTitleHeading').innerText = "📝 Bahn reservieren";
+                document.getElementById('modalTitleHeading').innerText = resourceName === "Vereinsheim" ? "Vereinsheim reservieren" : "📝 Bahn reservieren";
             }
             document.getElementById('modalSelectedResource').value = resourceName;
             document.getElementById('modalBookDate').value = dateStr;

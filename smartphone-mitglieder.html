@@ -296,11 +296,11 @@ const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const legacyReservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=9', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=10', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 function reservationAddress(games = false) {
   const url = new URL(bookingPilot || bookingOperationActive
-    ? 'reservierung-smartphone-test.html?v=9' : legacyReservationUrl, location.href);
+    ? 'reservierung-smartphone-test.html?v=10' : legacyReservationUrl, location.href);
   if (games) url.searchParams.set('ansicht', 'tag');
   return url;
 }

@@ -2743,6 +2743,13 @@ async function openExternalPage(value,title){
  document.getElementById('externalPrevious').hidden=isReservationApp||externalPreviousView==='admin'||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
+ const legacyReservation = new URL(url, location.href);
+ const whiteboardReservation = isWhiteboardUser() && (isReservationApp ||
+   (legacyReservation.origin === 'https://ecwegscheid.github.io' &&
+     /^\/Reservierungssystem(?:\/index\.html|\/)?$/i.test(legacyReservation.pathname)));
+ if (whiteboardReservation) {
+   frameUrl = new URL('reservierung-smartphone-test.html?v=10&ansicht=whiteboard', location.href).href;
+ }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
  // Versionierung der gespeicherten Startseitenlinks wird hier vereinheitlicht.
  if(isEcwTournament){
