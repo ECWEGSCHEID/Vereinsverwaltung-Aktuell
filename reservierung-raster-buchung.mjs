@@ -9,8 +9,21 @@ const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 export function createRasterBooking(app, auth, {games, status, showRows}) {
   const call = httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
   let imported = [], dates = [], dateKey = '', loaded = false, sequence = 0;
-  let writable = new Set(), dialog, busy = false;
+  let writable = new Set(), busy = false, options, formAccount, pending, session = 0;
   const uid = () => auth.currentUser?.uid;
+  const element = id => document.getElementById(id);
+  const pause = () => new Promise(resolve => setTimeout(resolve, 400));
+
+  async function callWithRetry(data, account) {
+    try {
+      return await call(data);
+    } catch (error) {
+      if (!['functions/unauthenticated', 'functions/unavailable', 'functions/deadline-exceeded'].includes(error.code)) throw error;
+      await pause();
+      if (uid() !== account) throw error;
+      return call(data);
+    }
+  }
 
   function update(days, force = false) {
     const key = days.join(',');
@@ -19,9 +32,9 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
     dates = days;
     writable = new Set();
     const request = ++sequence, account = uid();
-    void Promise.allSettled(days.map(date => call({
+    void Promise.allSettled(days.map(date => callWithRetry({
       action: 'list', date, view: games ? 'spiele' : 'reservierungen'
-    }))).then(results => {
+    }, account))).then(results => {
       if (request !== sequence || account !== uid()) return;
       const extra = [];
       results.forEach((result, index) => {
@@ -30,19 +43,21 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
         for (const booking of result.value.data.bookings || []) {
           if (!/^[a-f0-9]{64}$/.test(booking.id) || booking.date !== days[index] ||
               !/^Bahn [1-4]$/.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
-              !timePattern.test(booking.timeTo)) continue;
+              !(timePattern.test(booking.timeTo) || booking.timeTo === '24:00')) continue;
           extra.push({
             id: 1000000 + extra.length, liveId: booking.id, own: !games && booking.own === true,
             date: booking.date, resource: booking.resource, timeFrom: booking.timeFrom, timeTo: booking.timeTo,
             bookedBy: typeof booking.bookedBy === 'string' ? booking.bookedBy : '',
-            mode: 'Reserviert', homeTeam: [], guestTeam: []
+            mode: booking.mode || 'Reserviert',
+            homeTeam: Array.isArray(booking.homeTeam) ? booking.homeTeam : [],
+            guestTeam: Array.isArray(booking.guestTeam) ? booking.guestTeam : []
           });
         }
       });
       status.textContent = results.some(result => result.status === 'rejected')
         ? 'Aktuelle Buchungen konnten nicht vollständig geladen werden.'
         : writable.size ? 'Freies Feld antippen, um eine Bahn zu reservieren.'
-          : 'Reservierungen · Leseansicht';
+          : games ? 'Reservierungen · Leseansicht' : 'Für dieses Konto ist nur Lesen freigegeben.';
       showRows([...imported, ...extra]);
     });
   }
@@ -52,46 +67,66 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
       && date + ' ' + time >= clock.format(new Date());
   }
 
-  function openSlot(date, resource, time) {
+  async function openSlot(date, resource, time) {
     if (busy || !canBook(date, resource, time)) return;
-    dialog?.remove();
+    busy = true;
+    const account = uid(), openingSession = session;
+    try {
+      const nextOptions = options ?? (await callWithRetry({action: 'bookingOptions'}, account)).data;
+      if (openingSession !== session || account !== uid() || !canBook(date, resource, time)) return;
+      options = nextOptions;
+      if (!Array.isArray(options.players) || typeof options.owner !== 'string') {
+        throw new Error('Die Spielerliste fehlt.');
+      }
+      formAccount = account;
+      pending = undefined;
+      element('raster-booking-message').textContent = '';
+      window.ecwOpenOriginalBookingForm(date, resource, time, options);
+    } catch (error) {
+      if (account === uid()) status.textContent = 'Buchungsmaske konnte nicht geöffnet werden: ' + (error.message || 'Dienst nicht erreichbar.');
+    } finally {
+      busy = false;
+    }
+  }
+
+  function selectedPlayers(side) {
+    return Array.from({length: 4}, (_, index) => index + 1)
+      .filter(index => element('field_' + side + 'Player' + index).style.display !== 'none')
+      .map(index => element(side + 'Player' + index).value)
+      .filter(Boolean);
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (busy || !uid() || formAccount !== uid()) return;
+    const values = {
+      action: 'book', date: element('modalBookDate').value,
+      resource: element('modalSelectedResource').value,
+      timeFrom: element('modalTimeFrom').value, timeTo: element('modalTimeTo').value,
+      mode: element('modalTemplateSelect').value,
+      homeTeam: selectedPlayers('home'), guestTeam: selectedPlayers('guest')
+    };
+    const message = element('raster-booking-message');
+    if (!canBook(values.date, values.resource, values.timeFrom) || values.timeFrom >= values.timeTo) {
+      message.textContent = 'Bitte einen freien zukünftigen Beginn und eine spätere Endzeit wählen.';
+      return;
+    }
+    const signature = JSON.stringify(values);
+    if (pending?.signature !== signature) pending = {signature, id: crypto.randomUUID()};
+    const button = element('modalSubmitBtn');
+    busy = button.disabled = true;
+    message.textContent = 'Reservierung wird gespeichert …';
     const account = uid();
-    dialog = document.createElement('dialog');
-    dialog.className = 'w-[min(92vw,360px)] rounded-xl border border-zinc-600 bg-zinc-900 p-4 text-white';
-    dialog.innerHTML = '<form class="space-y-3"><h2 class="text-base font-bold">Bahn reservieren</h2><p></p><label class="block">Bis <input type="time" required class="ml-2 rounded bg-zinc-800 p-2 text-white"></label><p role="status"></p><div class="flex gap-2"><button type="button" class="rounded bg-zinc-700 p-2">Abbrechen</button><button type="submit" class="rounded bg-red-700 p-2">Reservieren</button></div></form>';
-    const form = dialog.querySelector('form');
-    form.querySelector('p').textContent = resource + ' · ' + date.split('-').reverse().join('.') + ' · ab ' + time + ' Uhr';
-    const end = form.querySelector('input');
-    const [hour, minute] = time.split(':').map(Number);
-    const minutes = Math.min(hour * 60 + minute + 30, 1439);
-    end.value = String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
-    const message = form.querySelector('[role="status"]');
-    const [cancel, submit] = form.querySelectorAll('button');
-    let pending;
-    cancel.onclick = () => dialog.close();
-    dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
-    dialog.addEventListener('close', event => event.currentTarget.remove(), {once: true});
-    form.addEventListener('submit', async event => {
-      event.preventDefault();
-      if (busy || account !== uid() || !canBook(date, resource, time)) return;
-      if (end.value <= time) {
-        message.textContent = 'Die Endzeit muss nach dem Beginn liegen.';
-        return;
-      }
-      if (pending?.end !== end.value) pending = {end: end.value, id: crypto.randomUUID()};
-      busy = submit.disabled = cancel.disabled = true;
-      try {
-        await call({action: 'book', date, resource, timeFrom: time, timeTo: pending.end, requestId: pending.id});
-        dialog.close();
-        update(dates, true);
-      } catch (error) {
-        message.textContent = error.message || 'Buchung konnte nicht gespeichert werden.';
-      } finally {
-        busy = submit.disabled = cancel.disabled = false;
-      }
-    });
-    document.body.append(dialog);
-    dialog.showModal();
+    try {
+      await call({...values, requestId: pending.id});
+      if (account !== uid()) return;
+      window.closeBookingModal(true);
+      update(dates, true);
+    } catch (error) {
+      if (account === uid()) message.textContent = error.message || 'Buchung konnte nicht gespeichert werden.';
+    } finally {
+      busy = button.disabled = false;
+    }
   }
 
   async function cancelBooking(booking) {
@@ -111,9 +146,10 @@ export function createRasterBooking(app, auth, {games, status, showRows}) {
   return {
     setImported(rows) { imported = rows; loaded = true; },
     reset() {
-      sequence++; loaded = false; dateKey = ''; imported = []; dates = [];
-      writable.clear(); dialog?.close();
+      sequence++; session++; loaded = false; dateKey = ''; imported = []; dates = [];
+      writable.clear(); options = undefined; formAccount = undefined; pending = undefined;
+      window.closeBookingModal(true);
     },
-    update, canBook, openSlot, cancelBooking
+    update, canBook, openSlot, submit, cancelBooking, isBusy: () => busy
   };
 }

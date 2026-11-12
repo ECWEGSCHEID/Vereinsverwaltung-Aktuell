@@ -245,8 +245,15 @@ async function readBookingOperation() {
 
 async function readMemberPermissions(uid) {
   const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
-  const snapshot = await getDocFromServer(doc(getFirestore(app), 'smartphoneFreigaben', uid));
-  return snapshot.data();
+  const ref = doc(getFirestore(app), 'smartphoneFreigaben', uid);
+  try {
+    return (await getDocFromServer(ref)).data();
+  } catch (error) {
+    if (!['unavailable', 'deadline-exceeded', 'unauthenticated'].includes(error.code)) throw error;
+    await new Promise(resolve => setTimeout(resolve, 400));
+    if (auth.currentUser?.uid !== uid) throw error;
+    return (await getDocFromServer(ref)).data();
+  }
 }
 
 async function readSmartphoneSettings() {
@@ -289,11 +296,11 @@ const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const legacyReservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=8', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=9', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 function reservationAddress(games = false) {
   const url = new URL(bookingPilot || bookingOperationActive
-    ? 'reservierung-smartphone-test.html?v=8' : legacyReservationUrl, location.href);
+    ? 'reservierung-smartphone-test.html?v=9' : legacyReservationUrl, location.href);
   if (games) url.searchParams.set('ansicht', 'tag');
   return url;
 }
@@ -511,9 +518,13 @@ function loginError(message) {
   error.hidden = false;
 }
 
+let authRevision = 0;
 onAuthStateChanged(auth, async user => {
+  const revision = ++authRevision;
+  const stillCurrent = () => revision === authRevision &&
+    (auth.currentUser?.uid ?? null) === (user?.uid ?? null);
   const operation = await readBookingOperation();
-  if ((auth.currentUser?.uid ?? null) !== (user?.uid ?? null)) return;
+  if (!stillCurrent()) return;
   bookingOperationActive = operation.reservierungAktiv === true;
   nameLoginEnabled = namePilot || operation.namensloginAktiv === true;
   if (user) {
@@ -521,7 +532,7 @@ onAuthStateChanged(auth, async user => {
     try {
       [settings, permissions] = await Promise.all([readSmartphoneSettings(), readMemberPermissions(user.uid)]);
     } catch {
-      if (auth.currentUser?.uid !== user.uid) return;
+      if (!stillCurrent()) return;
       login.hidden = true;
       menu.hidden = false;
       menu.querySelector('nav').hidden = true;
@@ -529,7 +540,7 @@ onAuthStateChanged(auth, async user => {
       sessionCheck.hidden = false;
       return;
     }
-    if (auth.currentUser?.uid !== user.uid) return;
+    if (!stillCurrent()) return;
     menu.querySelector('nav').hidden = false;
     ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
       selectedButton = button;
@@ -552,7 +563,7 @@ onAuthStateChanged(auth, async user => {
   if (activationCode) {
     submit.disabled = true;
     await loadMemberLogin();
-    if (auth.currentUser) return;
+    if (!stillCurrent()) return;
     if (memberDirectory) {
       setActivationView(false);
       submit.disabled = false;

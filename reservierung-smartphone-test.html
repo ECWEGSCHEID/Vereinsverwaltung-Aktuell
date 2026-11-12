@@ -22,7 +22,7 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 // Match the parent portal so Firebase does not move the shared session to IndexedDB.
 const auth=initializeAuth(app,{persistence:browserLocalPersistence});
-import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=1';
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=2';
 const db=getFirestore(app);
 const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
@@ -542,6 +542,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 <div id="availabilityWarning" class="p-1.5 bg-red-950 border border-red-700 rounded text-red-300 font-medium text-[11px] hidden">
                     ⚠️ Achtung: In diesem Zeitraum ist diese Bahn bereits belegt!
                 </div>
+                <p id="raster-booking-message" role="status" class="text-zinc-200"></p>
                 <div class="flex gap-2 pt-1">
                     <button type="submit" id="modalSubmitBtn" class="w-full bg-red-700 hover:bg-red-800 text-white py-1.5 rounded font-semibold transition cursor-pointer">Verbindlich buchen</button>
                     <button type="button" onclick="closeBookingModal()" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white py-1.5 rounded font-semibold transition cursor-pointer">Abbrechen</button>
@@ -899,7 +900,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             if((conflict || userConflict) && !hasSpecial && currentUser.role !== 'admin') {
                 warningBox.classList.remove('hidden');
                 if (userConflict) {
-                    warningBox.innerHTML = `⚠️ Achtung: Der Spieler (${playerToCheck}) hat zu dieser Zeit bereits eine andere Buchung (${userConflict.resource})!`;
+                    warningBox.textContent = `⚠️ Achtung: Der Spieler (${playerToCheck}) hat zu dieser Zeit bereits eine andere Buchung (${userConflict.resource})!`;
                 } else {
                     warningBox.innerHTML = "⚠️ Achtung: In diesem Zeitraum ist diese Bahn bereits belegt!";
                 }
@@ -1124,7 +1125,22 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             openBookingModalAtTime(resourceName, getTodayFormatted(), "15:00");
         }
 
-        function openBookingModalAtTime(resourceName, dateStr, timeStr, endTimeStr) { return readOnlyReservation();
+        window.ecwOpenOriginalBookingForm = function(date, resource, time, options) {
+            membersList=options.players.map(name=>({name,active:true}));
+            editingBookingId=null;
+            renderTemplatesUI();
+            const timeTo=document.getElementById('modalTimeTo');
+            if(!Array.from(timeTo.options).some(option=>option.value==='24:00')){
+                timeTo.add(new Option('24:00','24:00'));
+            }
+            openBookingModalAtTime(resource,date,time,time==='23:30'?'24:00':addMinutesToTime(time,30));
+            document.getElementById('homePlayer1').value=options.owner;
+            updateMemberDropdowns();
+            checkTimeAvailability();
+        };
+
+        function openBookingModalAtTime(resourceName, dateStr, timeStr, endTimeStr) {
+            if(!window.ecwRasterBuchung?.canBook(dateStr,resourceName,timeStr))return;
             let todayStr = getTodayFormatted();
             if (currentUser.role !== 'admin' && dateStr < todayStr) {
                 alert("Reservierungen in der Vergangenheit sind nicht möglich!");
@@ -1365,7 +1381,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             }
         }
 
-        function closeBookingModal() { 
+        function closeBookingModal(force=false) {
+            if(!force&&window.ecwRasterBuchung?.isBusy())return; 
             document.getElementById('bookingModal').classList.add('hidden'); 
             editingBookingId = null;
         }
@@ -2180,71 +2197,11 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             switchTab('booking');
         }
 
-        async function handleBooking(event) { return readOnlyReservation();
+        async function handleBooking(event) {
             event.preventDefault();
-            const resource = document.getElementById('modalSelectedResource').value;
-            const date = document.getElementById('modalBookDate').value;
-            const timeFrom = document.getElementById('modalTimeFrom').value;
-            const timeTo = document.getElementById('modalTimeTo').value;
-            const template = document.getElementById('modalTemplateSelect').value;
-
-            let todayStr = getTodayFormatted();
-            if(currentUser.role !== 'admin' && date < todayStr) {
-                alert("Reservierungen in der Vergangenheit sind nicht möglich!");
-                return;
-            }
-
-            let homeTeam = [];
-            let guestTeam = [];
-
-            for (let i = 1; i <= 4; i++) {
-                const hp = document.getElementById(`homePlayer${i}`);
-                const gp = document.getElementById(`guestPlayer${i}`);
-                const hf = document.getElementById(`field_homePlayer${i}`);
-                const gf = document.getElementById(`field_guestPlayer${i}`);
-                if (hp && hf && hf.style.display !== 'none' && hp.value) homeTeam.push(hp.value);
-                if (gp && gf && gf.style.display !== 'none' && gp.value) guestTeam.push(gp.value);
-            }
-
-            if(editingBookingId !== null) {
-                let b = bookingsList.find(item => item.id === editingBookingId);
-                if(!canManageReservation(b)) {
-                    alert("Keine Berechtigung zum Ändern dieser Reservierung.");
-                    return;
-                }
-                if(b) {
-                    b.resource = resource; b.date = date; b.timeFrom = timeFrom; b.timeTo = timeTo;
-                    b.mode = template; b.homeTeam = homeTeam; b.guestTeam = guestTeam;
-                    b.lastEditedBy = currentUser.name;
-                    b.lastEditedAt = new Date().toISOString();
-                }
-                alert("Reservierung erfolgreich aktualisiert!");
-                editingBookingId = null;
-            } else {
-                let newBooking = {
-                    id: Date.now(),
-                    resource: resource,
-                    date: date,
-                    timeFrom: timeFrom,
-                    timeTo: timeTo,
-                    mode: template,
-                    bookedBy: currentUser.name,
-                    homeTeam: homeTeam,
-                    guestTeam: guestTeam
-                };
-                bookingsList.push(newBooking);
-                bookingHistory.push(newBooking);
-                alert(`Erfolgreich gebucht: ${resource} (${timeFrom} - ${timeTo} Uhr)!` );
-            }
-
-            await saveDataToFirebase();
-            renderSavedBookings();
-            renderAdminStats();
-            closeBookingModal();
+            await window.ecwRasterBuchung?.submit(event);
         }
-    
-        // Beendet die Web-App bestmöglich und gibt den Fokus an das zuvor geöffnete
-        // Fenster zurück. Browser erlauben window.close() nur in bestimmten Fällen.
+
         function exitToStartPage() {
             const home = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/index.html#startseite';
             if (window.self !== window.top) {
