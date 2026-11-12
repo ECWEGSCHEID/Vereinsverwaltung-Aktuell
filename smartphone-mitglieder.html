@@ -251,7 +251,8 @@ const results = document.getElementById('results');
 const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
-const reservationUrl = new URLSearchParams(location.search).get('reservierungTest') === '1'
+const reservationTest = new URLSearchParams(location.search).get('reservierungTest') === '1';
+const reservationUrl = reservationTest
   ? new URL('reservierung-smartphone-test.html', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 const gamesUrl = new URL('?ansicht=tag', reservationUrl);
@@ -451,6 +452,20 @@ form.addEventListener('submit', async event => {
     submit.disabled = false;
   }
 });
+
+if (reservationTest) {
+  // Custom menu links can also be named Reservierungssystem.
+  // In the pilot, open the calendar in this signed-in portal in both cases.
+  menu.querySelector('nav').addEventListener('click', event => {
+    const button = event.target.closest('button');
+    const isCustomReservation = button?.hasAttribute('data-smartphone-custom')
+      && button.firstChild.textContent.trim().toLocaleLowerCase('de-DE') === 'reservierungssystem';
+    if (button?.dataset.mobileFeature !== 'reservation' && !isCustomReservation) return;
+    event.stopPropagation();
+    selectedButton = button;
+    showModule('Reservierungssystem', reservationUrl, false, true);
+  }, {capture: true});
+}
 
 menu.querySelectorAll('nav button').forEach(button => {
   button.addEventListener('click', () => {
