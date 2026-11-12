@@ -16,10 +16,10 @@ header small{display:block;color:#e4bec1;margin-top:3px}
 section{background:#202023;border:1px solid #454045;border-radius:20px;padding:clamp(18px,5vw,28px);box-shadow:0 18px 50px #0005}
 h1{font-size:clamp(24px,6vw,32px);margin:0 0 20px;line-height:1.15}
 label{display:block;margin-bottom:8px;font-weight:650}
-input,button{font:inherit;border-radius:10px;min-height:48px;width:100%}
-input{background:#151517;border:1px solid #77717a;padding:12px;color:white}
+input,select,button{font:inherit;border-radius:10px;min-height:48px;width:100%}
+input,select{background:#151517;border:1px solid #77717a;padding:12px;color:white}
 button{cursor:pointer;color:white;background:#b91f2e;border:1px solid transparent;padding:12px;font-weight:700}
-button:focus-visible,input:focus-visible{outline:3px solid #ffb9bf;outline-offset:3px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #ffb9bf;outline-offset:3px}
 form button,.password-label{margin-top:14px}
 p{line-height:1.5;color:#ddd5d8}
 .hint{font-size:14px;margin:14px 0 0}
@@ -72,8 +72,16 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <section id="login" aria-labelledby="login-title" hidden>
 <h1 id="login-title">Anmelden</h1>
 <form id="form">
+<div id="member-login" hidden>
+<label for="member-name">Mitglied auswählen</label>
+<select id="member-name" autocomplete="username" disabled>
+<option value="">Bitte Namen auswählen</option>
+</select>
+</div>
+<div id="email-login">
 <label for="email">E-Mail</label>
 <input id="email" type="email" autocomplete="username" required>
+</div>
 <label class="password-label" for="password">Passwort</label>
 <input id="password" type="password" autocomplete="current-password" aria-describedby="error" required>
 <button>Anmelden</button>
@@ -407,6 +415,40 @@ async function loadTemperatures(signal) {
 const form = document.getElementById('form');
 const email = document.getElementById('email');
 const submit = form.querySelector('button');
+const memberName = document.getElementById('member-name');
+let memberDirectory;
+let memberLoginRequest;
+
+function loadMemberLogin() {
+  return memberLoginRequest ??= (async () => {
+    try {
+      const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
+      const snapshot = await getDocFromServer(doc(getFirestore(app), 'smartphoneAnmeldung', 'mitglieder'));
+      const entries = snapshot.data()?.members;
+      if (!Array.isArray(entries) || !entries.length) return;
+      const directory = new Map();
+      const aliases = new Set();
+      for (const {name, alias} of entries) {
+        if (typeof name !== 'string' || !name.trim() || typeof alias !== 'string' ||
+            !/^[a-f0-9]{32}$/.test(alias) || directory.has(name.trim()) || aliases.has(alias)) return;
+        directory.set(name.trim(), alias);
+        aliases.add(alias);
+      }
+      const names = [...directory.keys()].sort((a, b) => a.localeCompare(b, 'de'));
+      for (const name of names) memberName.add(new Option(name, name));
+      memberDirectory = directory;
+      document.getElementById('email-login').hidden = true;
+      email.required = false;
+      email.disabled = true;
+      memberName.required = true;
+      memberName.disabled = false;
+      document.getElementById('member-login').hidden = false;
+    } catch {
+      // Keep the existing sign-in available while the directory is being provisioned.
+      memberLoginRequest = undefined;
+    }
+  })();
+}
 
 function loginError(message) {
   error.textContent = message;
@@ -436,6 +478,7 @@ onAuthStateChanged(auth, async user => {
   menu.hidden = true;
   sessionCheck.hidden = true;
   login.hidden = false;
+  void loadMemberLogin();
 });
 
 form.addEventListener('submit', async event => {
@@ -444,10 +487,12 @@ form.addEventListener('submit', async event => {
   submit.disabled = true;
   try {
     await authReady;
-    await signInWithEmailAndPassword(auth, email.value.trim(), password.value);
+    const alias = memberDirectory?.get(memberName.value);
+    const identifier = memberDirectory ? (alias ? alias + '@login.ec-wegscheid.de' : '') : email.value.trim();
+    await signInWithEmailAndPassword(auth, identifier, password.value);
     document.getElementById('menu-title').focus();
   } catch {
-    loginError('Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.');
+    loginError(memberDirectory ? 'Anmeldung fehlgeschlagen. Prüfe den ausgewählten Namen und das Passwort.' : 'Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.');
   } finally {
     password.value = '';
     submit.disabled = false;
@@ -511,7 +556,7 @@ document.getElementById('back').addEventListener('click', () => {
 document.getElementById('logout').addEventListener('click', async () => {
   try {
     await signOut(auth);
-    email.focus();
+    (memberDirectory ? memberName : email).focus();
   } catch {
     window.alert('Abmeldung fehlgeschlagen. Bitte erneut versuchen.');
   }
