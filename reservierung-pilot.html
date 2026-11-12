@@ -5,6 +5,7 @@
 <body><main><h1>Testreservierung</h1><p id="status" role="status">Anmeldung wird geprüft …</p>
 <form id="login" hidden><label>E-Mail<input id="email" type="email" autocomplete="username" required></label><label>Passwort<input id="password" type="password" autocomplete="current-password" required></label><button>Anmelden</button></form>
 <section id="booking" hidden><button id="reserve" type="button">Testbuchung speichern</button><button id="release" type="button">Testbuchung zurücksetzen</button></section>
+<section id="import-check" hidden><button id="check-import" type="button">Importierte Buchungen prüfen</button><p id="import-status" role="status"></p></section>
 <button id="logout" type="button" hidden>Abmelden</button></main>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
@@ -20,14 +21,19 @@ const firebaseConfig={
 };
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
-const ref=doc(getFirestore(app),'reservierungPilot','testbuchung');
+const db=getFirestore(app);
+const ref=doc(db,'reservierungPilot','testbuchung');
+const importedBookings=doc(db,'reservierungMigration','buchungen_20261112');
 const byId=id=>document.getElementById(id);
 const status=byId('status'), login=byId('login'), booking=byId('booking'), logout=byId('logout');
 const reserve=byId('reserve'), release=byId('release');
+const importCheck=byId('import-check'), checkImport=byId('check-import'), importStatus=byId('import-status');
 async function refresh(user){
   login.hidden=!!user;
   logout.hidden=!user;
   booking.hidden=true;
+  importCheck.hidden=user?.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2';
+  if(importCheck.hidden)importStatus.textContent='';
   if(!user){status.textContent='Melde dich mit deinem Testkonto an.';return;}
   if(user.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2'){
     status.textContent='Ein anderes Konto ist angemeldet (' + (user.email || 'ohne E-Mail') + '). Melde dich ab und mit dem Testkonto an.';
@@ -66,5 +72,23 @@ async function write(gebucht){
 }
 reserve.addEventListener('click',()=>write(true));
 release.addEventListener('click',()=>write(false));
+checkImport.addEventListener('click', async () => {
+  const uid=auth.currentUser?.uid;
+  if(uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2')return;
+  checkImport.disabled=true;
+  importStatus.textContent='Importierter Bestand wird geprüft …';
+  try {
+    const snapshot=await getDocFromServer(importedBookings);
+    if(auth.currentUser?.uid!==uid)return;
+    const list=snapshot.data()?.list;
+    importStatus.textContent=Array.isArray(list)
+      ? 'Buchungen erfolgreich geladen: '+list.length
+      : 'Das Importdokument fehlt oder enthält keine Buchungsliste.';
+  } catch(error) {
+    if(auth.currentUser?.uid===uid)importStatus.textContent=error.code==='permission-denied'
+      ? 'Firestore verweigert den Lesezugriff auf den Import.'
+      : 'Abruf fehlgeschlagen ('+(error.code||'unbekannter Fehler')+').';
+  } finally {checkImport.disabled=false;}
+});
 logout.addEventListener('click',()=>signOut(auth));
 </script></body></html>
