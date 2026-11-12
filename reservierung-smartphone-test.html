@@ -22,12 +22,17 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 // Match the parent portal so Firebase does not move the shared session to IndexedDB.
 const auth=initializeAuth(app,{persistence:browserLocalPersistence});
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=1';
 const db=getFirestore(app);
 const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
+const games=new URLSearchParams(location.search).get('ansicht')==='tag';
+const raster=createRasterBooking(app,auth,{games,status,showRows:rows=>window.ecwShowReservationSnapshot(rows)});
+window.ecwRasterBuchung=raster;
 let version=0;
 onAuthStateChanged(auth,async user=>{
   const request=++version;
+  raster.reset();
   window.ecwShowReservationSnapshot([]);
   if(!user){
     status.textContent='Keine freigegebene Smartphone-Anmeldung aktiv.';
@@ -41,7 +46,12 @@ onAuthStateChanged(auth,async user=>{
       throw error;
     });
     if(request!==version)return;
-    if(permission?.exists() ? permission.data().reservierungenLesen!==true : !initialPilot){
+    const registeredMember=initialPilot||/^ecw-mobile-[a-f0-9]{32}$/.test(user.uid);
+    const grants=permission?.data()||{};
+    const reservationAllowed=grants.reservierungenLesen??registeredMember;
+    const gamesAllowed=grants.spiele??reservationAllowed;
+    const dayView=new URLSearchParams(location.search).get('ansicht')==='tag';
+    if((dayView?gamesAllowed:reservationAllowed)!==true){
       status.textContent='Für dieses Konto sind Reservierungen noch nicht zum Lesen freigegeben.';
       return;
     }
@@ -59,8 +69,9 @@ onAuthStateChanged(auth,async user=>{
       return [{id:index+1,date:row.date,timeFrom:row.timeFrom,timeTo:row.timeTo,resource:row.resource,
         mode:text(row.mode)||'Reserviert',bookedBy:text(row.bookedBy),homeTeam:names(row.homeTeam),guestTeam:names(row.guestTeam)}];
     });
+    status.textContent=safe.length+' von '+rows.length+' importierten Buchungen geladen.';
+    raster.setImported(safe);
     window.ecwShowReservationSnapshot(safe);
-    status.textContent=safe.length+' von '+rows.length+' Buchungen geladen · Testansicht ohne Schreibzugriff';
   }catch(error){
     if(request===version)status.textContent=error.code==='permission-denied'
       ? 'Für dieses Konto sind Reservierungen noch nicht zum Lesen freigegeben.'
@@ -907,6 +918,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             container.innerHTML = '';
             let selectedDateInput = document.getElementById('calendarDate').value;
             let mondayStr = getMonday(selectedDateInput);
+            window.ecwRasterBuchung?.update(getWeekDates(mondayStr));
             if(document.getElementById('calendarDate').value !== mondayStr) {
                 document.getElementById('calendarDate').value = mondayStr;
             }
@@ -1048,7 +1060,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                         if(hasClubhouseOnDay[dateStr]) dayRes.push("Vereinsheim");
 
                         dayRes.forEach((res, rIndex) => {
-                            let activeBooking = dayBookings.find(b => b.resource === res && b.timeFrom <= t && b.timeTo > t);
+                            const slotEnd=t==='23:30'?'24:00':addMinutesToTime(t,30);
+                            let activeBooking = dayBookings.find(b => b.resource === res && b.timeFrom < slotEnd && b.timeTo > t);
                             let borderClass = (rIndex === dayRes.length - 1) ? "week-day-divider" : "week-lane-divider";
 
                             if(activeBooking) {
@@ -1063,7 +1076,9 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 
                                 matrixHtml += `<td data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} ${cellColorBg} font-bold text-xs ${cursorStyle}" ${bookingClick}>✓</td>`;
                             } else {
-                                matrixHtml += `<td data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass}"></td>`;
+                                const available=window.ecwRasterBuchung?.canBook(dateStr,res,t);
+                                const button=available ? `<button type="button" class="w-full rounded text-zinc-300 hover:bg-red-700 focus:bg-red-700" aria-label="${res} am ${formatDateDE(dateStr)} ab ${t} Uhr reservieren" onclick="ecwRasterBuchung.openSlot('${dateStr}','${res}','${t}')">+</button>` : '';
+                                matrixHtml += `<td data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass}">${button}</td>`;
                             }
                         });
                     });
@@ -1265,7 +1280,14 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 <div><strong>Gegner:</strong> ${escapeHtml(opponent)}</div>
                 <div class="pt-1 border-t border-zinc-700"><strong>Reserviert von:</strong> ${escapeHtml(b.bookedBy || '-')}</div>`;
 
-            if(canManage) {
+            if(b.liveId && b.own && window.ecwRasterBuchung) {
+                const cancel=document.createElement('button');
+                cancel.type='button';
+                cancel.className='bg-red-700 hover:bg-red-800 text-white py-2 rounded font-semibold';
+                cancel.textContent='Eigene Reservierung stornieren';
+                cancel.onclick=()=>{closeBookingActionModal();void window.ecwRasterBuchung.cancelBooking(b);};
+                buttons.replaceChildren(cancel);
+            } else if(canManage) {
                 buttons.innerHTML = `
                     <button type="button" onclick="closeBookingActionModal(); editBooking(${id})" class="bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold">✏️ Reservierung ändern</button>
                     <button type="button" onclick="closeBookingActionModal(); deleteBooking(${id})" class="bg-red-700 hover:bg-red-800 text-white py-2 rounded font-semibold">🗑️ Reservierung stornieren</button>`;

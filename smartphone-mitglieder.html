@@ -139,7 +139,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=4"></script>
+<script src="ecw-smartphone-einstellungen.js?v=5"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -155,6 +155,8 @@ const app = initializeApp(firebaseConfig);
 const pageParams = new URLSearchParams(location.search);
 const reservationTest = pageParams.get('reservierungTest') === '1';
 const namePilot = reservationTest && pageParams.get('namenTest') === '1';
+const bookingPilot = reservationTest && pageParams.get('buchung') === '1';
+let nameLoginEnabled = namePilot;
 let activationCode = namePilot ? new URLSearchParams(location.hash.slice(1)).get('aktivierung') : null;
 if (activationCode) history.replaceState(null, '', location.pathname + location.search);
 const auth = initializeAuth(app, {persistence: browserLocalPersistence});
@@ -232,6 +234,21 @@ function plannerEventCard(event) {
   return card;
 }
 
+async function readBookingOperation() {
+  try {
+    const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
+    return (await getDocFromServer(doc(getFirestore(app), 'smartphoneBetrieb', 'reservierung'))).data() || {};
+  } catch {
+    return {};
+  }
+}
+
+async function readMemberPermissions(uid) {
+  const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
+  const snapshot = await getDocFromServer(doc(getFirestore(app), 'smartphoneFreigaben', uid));
+  return snapshot.data();
+}
+
 async function readSmartphoneSettings() {
   try {
     const {getFirestore, doc, getDoc} = await import(firestoreSdkUrl);
@@ -271,11 +288,16 @@ const results = document.getElementById('results');
 const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
-const reservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=6', location.href).href
+const legacyReservationUrl = reservationTest
+  ? new URL('reservierung-smartphone-test.html?v=8', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
-const gamesUrl = new URL(reservationUrl);
-gamesUrl.searchParams.set('ansicht', 'tag');
+function reservationAddress(games = false) {
+  const url = new URL(bookingPilot || bookingOperationActive
+    ? 'reservierung-smartphone-test.html?v=8' : legacyReservationUrl, location.href);
+  if (games) url.searchParams.set('ansicht', 'tag');
+  return url;
+}
+let bookingOperationActive = false;
 const administrationUrl = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
 const soloUrl = new URL('solo-pyramide.html?v=2.5.2', administrationUrl);
 
@@ -490,13 +512,29 @@ function loginError(message) {
 }
 
 onAuthStateChanged(auth, async user => {
+  const operation = await readBookingOperation();
+  if ((auth.currentUser?.uid ?? null) !== (user?.uid ?? null)) return;
+  bookingOperationActive = operation.reservierungAktiv === true;
+  nameLoginEnabled = namePilot || operation.namensloginAktiv === true;
   if (user) {
-    const settings = await readSmartphoneSettings();
+    let settings, permissions;
+    try {
+      [settings, permissions] = await Promise.all([readSmartphoneSettings(), readMemberPermissions(user.uid)]);
+    } catch {
+      if (auth.currentUser?.uid !== user.uid) return;
+      login.hidden = true;
+      menu.hidden = false;
+      menu.querySelector('nav').hidden = true;
+      sessionCheck.textContent = 'Freigaben konnten nicht geladen werden. Bitte Seite neu laden.';
+      sessionCheck.hidden = false;
+      return;
+    }
     if (auth.currentUser?.uid !== user.uid) return;
+    menu.querySelector('nav').hidden = false;
     ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
       selectedButton = button;
       showModule(title, url, false, true);
-    });
+    }, permissions);
     login.hidden = true;
     sessionCheck.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
@@ -525,7 +563,7 @@ onAuthStateChanged(auth, async user => {
       password.parentElement.querySelector('label[for="password"]').hidden = true;
       loginError('Die Namensliste konnte nicht geladen werden. Öffne den Aktivierungslink erneut.');
     }
-  } else if (namePilot) {
+  } else if (nameLoginEnabled) {
     void loadMemberLogin();
   }
   login.hidden = false;
@@ -568,7 +606,7 @@ form.addEventListener('submit', async event => {
       setActivationView(false);
       await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
     } else {
-      if (namePilot && memberDirectory && password.value === '1234') {
+      if (nameLoginEnabled && memberDirectory && password.value === '1234') {
         loginError('Öffne für den ersten Passwortwechsel deinen persönlichen Aktivierungslink.');
         return;
       }
@@ -599,7 +637,7 @@ if (reservationTest) {
     if (button?.dataset.mobileFeature !== 'reservation' && !isCustomReservation) return;
     event.stopPropagation();
     selectedButton = button;
-    showModule('Reservierungssystem', reservationUrl, false, true);
+    showModule('Reservierungssystem', reservationAddress(), false, true);
   }, {capture: true});
 }
 
@@ -609,7 +647,7 @@ menu.querySelectorAll('nav button').forEach(button => {
     detailTitle.textContent = button.firstChild.textContent.trim();
     const title = detailTitle.textContent;
     if (title === 'Reservierungssystem' || title === 'Spiele') {
-      showModule(title, title === 'Spiele' ? gamesUrl : reservationUrl);
+      showModule(title, reservationAddress(title === 'Spiele'));
       return;
     }
     if (title === 'Solo Pyramide') {
