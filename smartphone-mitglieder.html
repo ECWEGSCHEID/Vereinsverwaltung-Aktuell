@@ -478,7 +478,9 @@ onAuthStateChanged(auth, async user => {
   menu.hidden = true;
   sessionCheck.hidden = true;
   login.hidden = false;
-  void loadMemberLogin();
+  if (reservationTest && new URLSearchParams(location.search).get('namenTest') === '1') {
+    void loadMemberLogin();
+  }
 });
 
 form.addEventListener('submit', async event => {
