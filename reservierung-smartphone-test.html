@@ -20,7 +20,7 @@ const firebaseConfig={
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
 const app=initializeApp(firebaseConfig);
-import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=4';
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=5';
 const db=getFirestore(app);
 const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
@@ -566,6 +566,10 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 <div id="availabilityWarning" class="p-1.5 bg-red-950 border border-red-700 rounded text-red-300 font-medium text-[11px] hidden">
                     ⚠️ Achtung: In diesem Zeitraum ist diese Bahn bereits belegt!
                 </div>
+                <label id="whiteboard-booker" class="hidden">
+                    <span class="block font-semibold">Gebucht von</span>
+                    <select id="whiteboard-booker-name" class="w-full rounded border border-zinc-700 bg-zinc-900 p-2 text-white"></select>
+                </label>
                 <p id="raster-booking-message" role="status" class="text-zinc-200"></p>
                 <div class="flex gap-2 pt-1">
                     <button type="submit" id="modalSubmitBtn" class="w-full bg-red-700 hover:bg-red-800 text-white py-1.5 rounded font-semibold transition cursor-pointer">Verbindlich buchen</button>
@@ -825,6 +829,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             }
         }
 
+        let rasterBookingOwner = '';
+
         function onTemplateChange() {
             const select = document.getElementById('modalTemplateSelect');
             const selectedTemplateName = select.value;
@@ -881,6 +887,11 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 }
             }
 
+            const firstPlayer = document.getElementById('homePlayer1');
+            if (playerCount > 0 && rasterBookingOwner && !firstPlayer.value &&
+                !Array.from(document.querySelectorAll('.member-select')).some(select => select.value === rasterBookingOwner)) {
+                firstPlayer.value = rasterBookingOwner;
+            }
             updateMemberDropdowns();
         }
 
@@ -1164,6 +1175,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         }
 
         window.ecwOpenOriginalBookingForm = function(date, resource, time, options) {
+            rasterBookingOwner = options.chooseBooker ? '' : options.owner;
             membersList=options.players.map(name=>({name,active:true}));
             editingBookingId=null;
             const timeTo=document.getElementById('modalTimeTo');

@@ -2764,7 +2764,7 @@ async function openExternalPage(value,title){
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
  if (isWhiteboardReservationLink(url)) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=12&ansicht=whiteboard', location.href).href;
+   frameUrl = new URL('reservierung-smartphone-test.html?v=13&ansicht=whiteboard', location.href).href;
    page?.classList.add('ecw-reservation-embed');
  }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.

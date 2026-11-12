@@ -84,6 +84,10 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </div>
 <label class="password-label" for="password">Passwort</label>
 <input id="password" type="password" autocomplete="current-password" aria-describedby="error" required>
+<div id="activation-entry" hidden>
+<label for="activation-value">Persönlicher Aktivierungscode oder Link</label>
+<input id="activation-value" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" disabled>
+</div>
 <p class="hint" id="activation-hint" hidden>Wähle deinen Namen und gib das Startpasswort ein.</p>
 <div id="new-password-fields" hidden>
 <label for="new-password">Neues Passwort</label>
@@ -296,11 +300,11 @@ const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const legacyReservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=11', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=13', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 function reservationAddress(games = false) {
   const url = new URL(bookingPilot || bookingOperationActive
-    ? 'reservierung-smartphone-test.html?v=11' : legacyReservationUrl, location.href);
+    ? 'reservierung-smartphone-test.html?v=13' : legacyReservationUrl, location.href);
   if (games) url.searchParams.set('ansicht', 'tag');
   return url;
 }
@@ -459,12 +463,31 @@ const memberName = document.getElementById('member-name');
 let memberDirectory;
 let memberLoginRequest;
 let activationEmail;
+const activationEntry = document.getElementById('activation-entry');
+const activationValue = document.getElementById('activation-value');
 const activationHint = document.getElementById('activation-hint');
+
+function readActivationCode(value) {
+  const input = value.trim();
+  if (/^[A-Za-z0-9_-]{20,256}$/.test(input)) return input;
+  try {
+    const link = new URL(input);
+    if (link.origin !== 'https://ecwegscheid.github.io' ||
+        link.pathname !== '/Vereinsverwaltung-Aktuell/smartphone-mitglieder.html') return null;
+    const code = new URLSearchParams(link.hash.slice(1)).get('aktivierung');
+    return code && /^[A-Za-z0-9_-]{20,256}$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
+}
 const newPasswordFields = document.getElementById('new-password-fields');
 const newPassword = document.getElementById('new-password');
 const repeatPassword = document.getElementById('repeat-password');
 
 function setActivationView(changingPassword) {
+  activationEntry.hidden = true;
+  activationValue.disabled = true;
+  activationValue.value = '';
   activationHint.hidden = !activationCode;
   activationHint.textContent = changingPassword
     ? 'Lege jetzt dein persönliches Passwort fest.'
@@ -584,20 +607,37 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   error.hidden = true;
   submit.disabled = true;
+  let checkingActivation = false;
+  let keepStartPassword = false;
   try {
     await authReady;
     const alias = memberDirectory?.get(memberName.value);
     const identifier = memberDirectory ? (alias ? alias + '@login.ec-wegscheid.de' : '') : email.value.trim();
-    if (activationCode && !activationEmail) {
+    let candidateCode = activationCode;
+    if (!candidateCode && nameLoginEnabled && memberDirectory && password.value === '1234') {
+      activationEntry.hidden = false;
+      activationValue.disabled = false;
+      candidateCode = readActivationCode(activationValue.value);
+      if (!candidateCode) {
+        keepStartPassword = true;
+        loginError('Füge deinen persönlichen Aktivierungscode oder Link hier ein und klicke auf Weiter.');
+        submit.textContent = 'Weiter';
+        activationValue.focus();
+        return;
+      }
+    }
+    if (candidateCode && !activationEmail) {
+      checkingActivation = true;
       if (!alias || password.value !== '1234') {
         loginError('Wähle deinen Namen und gib das Startpasswort 1234 ein.');
         return;
       }
-      const verifiedEmail = await verifyPasswordResetCode(auth, activationCode);
+      const verifiedEmail = await verifyPasswordResetCode(auth, candidateCode);
       if (verifiedEmail.toLowerCase() !== identifier.toLowerCase()) {
-        loginError('Dieser Aktivierungslink gehört nicht zum ausgewählten Namen.');
+        loginError('Dieser Aktivierungscode gehört nicht zum ausgewählten Namen.');
         return;
       }
+      activationCode = candidateCode;
       activationEmail = identifier;
       setActivationView(true);
       newPassword.focus();
@@ -617,15 +657,11 @@ form.addEventListener('submit', async event => {
       setActivationView(false);
       await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
     } else {
-      if (nameLoginEnabled && memberDirectory && password.value === '1234') {
-        loginError('Öffne für den ersten Passwortwechsel deinen persönlichen Aktivierungslink.');
-        return;
-      }
       await signInWithEmailAndPassword(auth, identifier, password.value);
     }
     document.getElementById('menu-title').focus();
   } catch (failure) {
-    if (activationCode) {
+    if (activationCode || checkingActivation) {
       loginError(failure.code === 'auth/weak-password' || failure.code === 'auth/password-does-not-meet-requirements'
         ? 'Wähle ein stärkeres Passwort.'
         : 'Aktivierung fehlgeschlagen. Prüfe den persönlichen Link oder lass dir einen neuen geben.');
@@ -633,7 +669,7 @@ form.addEventListener('submit', async event => {
       loginError(memberDirectory ? 'Anmeldung fehlgeschlagen. Prüfe den ausgewählten Namen und das Passwort.' : 'Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.');
     }
   } finally {
-    password.value = '';
+    if (!keepStartPassword) password.value = '';
     submit.disabled = false;
   }
 });

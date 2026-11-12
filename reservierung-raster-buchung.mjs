@@ -42,7 +42,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       const extra = [];
       results.forEach((result, index) => {
         if (result.status !== 'fulfilled') return;
-        if (result.value.data.canBook === true && !games && !whiteboard) writable.add(days[index]);
+        if (result.value.data.canBook === true && !games) writable.add(days[index]);
         for (const booking of result.value.data.bookings || []) {
           if ((!whiteboard && !/^[a-f0-9]{64}$/.test(booking.id)) || booking.date !== days[index] ||
               !resourcePattern.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
@@ -69,7 +69,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
   }
 
   function canBook(date, resource, time) {
-    return !games && !whiteboard && resourcePattern.test(resource) && canBookDay(date)
+    return !games && resourcePattern.test(resource) && canBookDay(date)
       && date + ' ' + time >= clock.format(new Date());
   }
 
@@ -78,11 +78,20 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     busy = true;
     const account = uid(), openingSession = session;
     try {
-      const nextOptions = options ?? (await callWithRetry({action: 'bookingOptions'}, account)).data;
+      const nextOptions = options ?? (await callWithRetry({action: 'bookingOptions', view: whiteboard ? 'whiteboard' : 'reservierungen'}, account)).data;
       if (openingSession !== session || account !== uid() || !canBook(date, resource, time)) return;
       options = nextOptions;
       if (!Array.isArray(options.players) || typeof options.owner !== 'string') {
         throw new Error('Die Spielerliste fehlt.');
+      }
+      const booker = element('whiteboard-booker-name');
+      const chooseBooker = whiteboard && options.chooseBooker === true;
+      element('whiteboard-booker').classList.toggle('hidden', !chooseBooker);
+      booker.required = chooseBooker;
+      booker.replaceChildren();
+      if (chooseBooker) {
+        booker.append(new Option('Bitte Namen auswählen', ''),
+          ...options.players.map(name => new Option(name, name)));
       }
       formAccount = account;
       pending = undefined;
@@ -113,6 +122,14 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       homeTeam: selectedPlayers('home'), guestTeam: selectedPlayers('guest')
     };
     const message = element('raster-booking-message');
+    if (whiteboard && options?.chooseBooker) {
+      values.view = 'whiteboard';
+      values.bookedBy = element('whiteboard-booker-name').value;
+      if (!values.bookedBy) {
+        message.textContent = 'Bitte unter „Gebucht von“ deinen Namen auswählen.';
+        return;
+      }
+    }
     if (!canBook(values.date, values.resource, values.timeFrom) || values.timeFrom >= values.timeTo) {
       message.textContent = 'Bitte einen freien zukünftigen Beginn und eine spätere Endzeit wählen.';
       return;
