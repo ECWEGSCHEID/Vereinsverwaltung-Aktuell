@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EC Wegscheid · Testreservierung</title>
-<style>body{color:#fff;background:#17171a;font:16px system-ui;margin:0;padding:24px}main{max-width:440px;margin:auto}label{display:block;margin:12px 0}input,button{box-sizing:border-box;min-height:46px;font:inherit;padding:8px;width:100%}button{margin-top:10px;background:#a91d2b;color:white;border:0;border-radius:8px}button:disabled{opacity:.55}[hidden]{display:none!important}</style></head>
+<style>body{color:#fff;background:#17171a;font:16px system-ui;margin:0;padding:24px}main{max-width:600px;margin:auto}label{display:block;margin:12px 0}input,button{box-sizing:border-box;min-height:46px;font:inherit;padding:8px;width:100%}button{margin-top:10px;background:#a91d2b;color:white;border:0;border-radius:8px}button:disabled{opacity:.55}[hidden]{display:none!important}.appointments{list-style:none;padding:0}.appointments li{margin:8px 0;padding:12px;background:#27272b;border-radius:8px;overflow-wrap:anywhere}.appointments h2{font-size:16px;margin:0 0 4px}</style></head>
 <body><main><h1>Testreservierung</h1><p id="status" role="status">Anmeldung wird geprüft …</p>
 <form id="login" hidden><label>E-Mail<input id="email" type="email" autocomplete="username" required></label><label>Passwort<input id="password" type="password" autocomplete="current-password" required></label><button>Anmelden</button></form>
 <section id="booking" hidden><button id="reserve" type="button">Testbuchung speichern</button><button id="release" type="button">Testbuchung zurücksetzen</button></section>
-<section id="import-check" hidden><button id="check-import" type="button">Importierte Buchungen prüfen</button><p id="import-status" role="status"></p></section>
+<section id="import-check" hidden><button id="check-import" type="button">Importierte Buchungen prüfen</button><p id="import-status" role="status"></p><ol id="import-appointments" class="appointments" aria-label="Importierte Buchungen"></ol></section>
 <button id="logout" type="button" hidden>Abmelden</button></main>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
@@ -28,12 +28,13 @@ const byId=id=>document.getElementById(id);
 const status=byId('status'), login=byId('login'), booking=byId('booking'), logout=byId('logout');
 const reserve=byId('reserve'), release=byId('release');
 const importCheck=byId('import-check'), checkImport=byId('check-import'), importStatus=byId('import-status');
+const appointments=byId('import-appointments');
 async function refresh(user){
   login.hidden=!!user;
   logout.hidden=!user;
   booking.hidden=true;
   importCheck.hidden=user?.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2';
-  if(importCheck.hidden)importStatus.textContent='';
+  if(importCheck.hidden){importStatus.textContent='';appointments.replaceChildren();}
   if(!user){status.textContent='Melde dich mit deinem Testkonto an.';return;}
   if(user.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2'){
     status.textContent='Ein anderes Konto ist angemeldet (' + (user.email || 'ohne E-Mail') + '). Melde dich ab und mit dem Testkonto an.';
@@ -72,11 +73,31 @@ async function write(gebucht){
 }
 reserve.addEventListener('click',()=>write(true));
 release.addEventListener('click',()=>write(false));
+function renderAppointments(list) {
+  const value=input=>typeof input==='string'?input.trim():'';
+  const formatDate=date=>/^\d{4}-\d{2}-\d{2}$/.test(date)?date.split('-').reverse().join('.'):date;
+  const rows=list.map(entry=>({
+    date:value(entry?.date), from:value(entry?.timeFrom), to:value(entry?.timeTo),
+    resource:value(entry?.resource), mode:value(entry?.mode)
+  })).sort((a,b)=>a.date.localeCompare(b.date)||a.from.localeCompare(b.from)||a.resource.localeCompare(b.resource,'de'));
+  const entries=rows.map(row=>{
+    const item=document.createElement('li');
+    const title=document.createElement('h2');
+    const time=[row.from,row.to].filter(Boolean).join('–');
+    title.textContent=[formatDate(row.date)||'Datum nicht hinterlegt',time].filter(Boolean).join(' · ');
+    const detail=document.createElement('span');
+    detail.textContent=[row.resource,row.mode].filter(Boolean).join(' · ')||'Keine weiteren Angaben';
+    item.append(title,detail);
+    return item;
+  });
+  appointments.replaceChildren(...entries);
+}
 checkImport.addEventListener('click', async () => {
   const uid=auth.currentUser?.uid;
   if(uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2')return;
   checkImport.disabled=true;
   importStatus.textContent='Importierter Bestand wird geprüft …';
+  appointments.replaceChildren();
   try {
     const snapshot=await getDocFromServer(importedBookings);
     if(auth.currentUser?.uid!==uid)return;
@@ -84,6 +105,7 @@ checkImport.addEventListener('click', async () => {
     importStatus.textContent=Array.isArray(list)
       ? 'Buchungen erfolgreich geladen: '+list.length
       : 'Das Importdokument fehlt oder enthält keine Buchungsliste.';
+    if(Array.isArray(list))renderAppointments(list);
   } catch(error) {
     if(auth.currentUser?.uid===uid)importStatus.textContent=error.code==='permission-denied'
       ? 'Firestore verweigert den Lesezugriff auf den Import.'
