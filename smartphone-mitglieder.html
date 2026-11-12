@@ -127,7 +127,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <script src="ecw-smartphone-einstellungen.js?v=4"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, initializeAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
   authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
@@ -138,9 +138,9 @@ const firebaseConfig={
 };
 const app = initializeApp(firebaseConfig);
 const reservationTest = new URLSearchParams(location.search).get('reservierungTest') === '1';
-const auth = reservationTest ? initializeAuth(app, {persistence: browserLocalPersistence}) : getAuth(app);
+const auth = initializeAuth(app, {persistence: browserLocalPersistence});
 const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-const authReady = reservationTest ? auth.authStateReady() : setPersistence(auth, browserLocalPersistence);
+const authReady = auth.authStateReady();
 
 const login = document.getElementById('login');
 const sessionCheck = document.getElementById('session-check');
@@ -253,7 +253,7 @@ const modulePanel = document.getElementById('module');
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const reservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=3', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=4', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 const gamesUrl = new URL(reservationUrl);
 gamesUrl.searchParams.set('ansicht', 'tag');
@@ -370,7 +370,7 @@ moduleBack.addEventListener('click', () => {
 results.querySelectorAll('button').forEach(button => {
   button.addEventListener('click', () => {
     const result = button.dataset.result;
-    const url = new URL('turnierauswertung.html?v=2.5.2&seite=' + result, administrationUrl);
+    const url = new URL('turnierauswertung.html?v=mobile-results-1&mode=mobile-results&seite=' + result, administrationUrl);
     if (button.dataset.cup) url.searchParams.set("cup", button.dataset.cup);
     showModule(button.textContent, url, true);
   });
