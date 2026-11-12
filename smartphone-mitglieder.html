@@ -84,6 +84,13 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </div>
 <label class="password-label" for="password">Passwort</label>
 <input id="password" type="password" autocomplete="current-password" aria-describedby="error" required>
+<p class="hint" id="activation-hint" hidden>Wähle deinen Namen und gib das Startpasswort ein.</p>
+<div id="new-password-fields" hidden>
+<label for="new-password">Neues Passwort</label>
+<input id="new-password" type="password" autocomplete="new-password" minlength="6" disabled>
+<label class="password-label" for="repeat-password">Neues Passwort wiederholen</label>
+<input id="repeat-password" type="password" autocomplete="new-password" minlength="6" disabled>
+</div>
 <button>Anmelden</button>
 <p class="hint" id="error" role="alert" hidden></p>
 </form>
@@ -135,7 +142,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <script src="ecw-smartphone-einstellungen.js?v=4"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
   authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
@@ -145,7 +152,11 @@ const firebaseConfig={
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
 const app = initializeApp(firebaseConfig);
-const reservationTest = new URLSearchParams(location.search).get('reservierungTest') === '1';
+const pageParams = new URLSearchParams(location.search);
+const reservationTest = pageParams.get('reservierungTest') === '1';
+const namePilot = reservationTest && pageParams.get('namenTest') === '1';
+let activationCode = namePilot ? new URLSearchParams(location.hash.slice(1)).get('aktivierung') : null;
+if (activationCode) history.replaceState(null, '', location.pathname + location.search);
 const auth = initializeAuth(app, {persistence: browserLocalPersistence});
 const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const authReady = auth.authStateReady();
@@ -418,6 +429,29 @@ const submit = form.querySelector('button');
 const memberName = document.getElementById('member-name');
 let memberDirectory;
 let memberLoginRequest;
+let activationEmail;
+const activationHint = document.getElementById('activation-hint');
+const newPasswordFields = document.getElementById('new-password-fields');
+const newPassword = document.getElementById('new-password');
+const repeatPassword = document.getElementById('repeat-password');
+
+function setActivationView(changingPassword) {
+  activationHint.hidden = !activationCode;
+  activationHint.textContent = changingPassword
+    ? 'Lege jetzt dein persönliches Passwort fest.'
+    : 'Wähle deinen Namen und gib das Startpasswort ein.';
+  password.parentElement.querySelector('label[for="password"]').hidden = changingPassword;
+  password.hidden = changingPassword;
+  password.required = !changingPassword;
+  password.disabled = changingPassword;
+  memberName.disabled = changingPassword || !memberDirectory;
+  newPasswordFields.hidden = !changingPassword;
+  for (const field of [newPassword, repeatPassword]) {
+    field.disabled = !changingPassword;
+    field.required = changingPassword;
+  }
+  submit.textContent = changingPassword ? 'Passwort speichern' : activationCode ? 'Weiter' : 'Anmelden';
+}
 
 function loadMemberLogin() {
   return memberLoginRequest ??= (async () => {
@@ -477,10 +511,24 @@ onAuthStateChanged(auth, async user => {
   detail.hidden = true;
   menu.hidden = true;
   sessionCheck.hidden = true;
-  login.hidden = false;
-  if (reservationTest && new URLSearchParams(location.search).get('namenTest') === '1') {
+  if (activationCode) {
+    submit.disabled = true;
+    await loadMemberLogin();
+    if (auth.currentUser) return;
+    if (memberDirectory) {
+      setActivationView(false);
+      submit.disabled = false;
+    } else {
+      document.getElementById('email-login').hidden = true;
+      password.hidden = true;
+      password.disabled = true;
+      password.parentElement.querySelector('label[for="password"]').hidden = true;
+      loginError('Die Namensliste konnte nicht geladen werden. Öffne den Aktivierungslink erneut.');
+    }
+  } else if (namePilot) {
     void loadMemberLogin();
   }
+  login.hidden = false;
 });
 
 form.addEventListener('submit', async event => {
@@ -491,10 +539,50 @@ form.addEventListener('submit', async event => {
     await authReady;
     const alias = memberDirectory?.get(memberName.value);
     const identifier = memberDirectory ? (alias ? alias + '@login.ec-wegscheid.de' : '') : email.value.trim();
-    await signInWithEmailAndPassword(auth, identifier, password.value);
+    if (activationCode && !activationEmail) {
+      if (!alias || password.value !== '1234') {
+        loginError('Wähle deinen Namen und gib das Startpasswort 1234 ein.');
+        return;
+      }
+      const verifiedEmail = await verifyPasswordResetCode(auth, activationCode);
+      if (verifiedEmail.toLowerCase() !== identifier.toLowerCase()) {
+        loginError('Dieser Aktivierungslink gehört nicht zum ausgewählten Namen.');
+        return;
+      }
+      activationEmail = identifier;
+      setActivationView(true);
+      newPassword.focus();
+      return;
+    }
+    if (activationCode && activationEmail) {
+      if (newPassword.value !== repeatPassword.value) {
+        loginError('Die beiden neuen Passwörter stimmen nicht überein.');
+        return;
+      }
+      const chosenPassword = newPassword.value;
+      await confirmPasswordReset(auth, activationCode, chosenPassword);
+      activationCode = null;
+      const verifiedEmail = activationEmail;
+      activationEmail = null;
+      newPassword.value = repeatPassword.value = '';
+      setActivationView(false);
+      await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
+    } else {
+      if (namePilot && memberDirectory && password.value === '1234') {
+        loginError('Öffne für den ersten Passwortwechsel deinen persönlichen Aktivierungslink.');
+        return;
+      }
+      await signInWithEmailAndPassword(auth, identifier, password.value);
+    }
     document.getElementById('menu-title').focus();
-  } catch {
-    loginError(memberDirectory ? 'Anmeldung fehlgeschlagen. Prüfe den ausgewählten Namen und das Passwort.' : 'Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.');
+  } catch (failure) {
+    if (activationCode) {
+      loginError(failure.code === 'auth/weak-password' || failure.code === 'auth/password-does-not-meet-requirements'
+        ? 'Wähle ein stärkeres Passwort.'
+        : 'Aktivierung fehlgeschlagen. Prüfe den persönlichen Link oder lass dir einen neuen geben.');
+    } else {
+      loginError(memberDirectory ? 'Anmeldung fehlgeschlagen. Prüfe den ausgewählten Namen und das Passwort.' : 'Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.');
+    }
   } finally {
     password.value = '';
     submit.disabled = false;
