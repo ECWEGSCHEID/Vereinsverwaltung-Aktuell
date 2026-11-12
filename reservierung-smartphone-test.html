@@ -22,18 +22,29 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 // Match the parent portal so Firebase does not move the shared session to IndexedDB.
 const auth=initializeAuth(app,{persistence:browserLocalPersistence});
-const source=doc(getFirestore(app),'reservierungMigration','buchungen_20261112');
+const db=getFirestore(app);
+const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
 let version=0;
 onAuthStateChanged(auth,async user=>{
   const request=++version;
   window.ecwShowReservationSnapshot([]);
-  if(user?.uid!=='n9MpiKXZNLap8wsbRcP4fVjrT4D2'){
+  if(!user){
     status.textContent='Keine freigegebene Smartphone-Anmeldung aktiv.';
     return;
   }
   status.textContent='Buchungen werden geladen …';
   try{
+    const initialPilot=user.uid==='n9MpiKXZNLap8wsbRcP4fVjrT4D2';
+    const permission=await getDocFromServer(doc(db,'smartphoneFreigaben',user.uid)).catch(error=>{
+      if(initialPilot && error.code==='permission-denied')return null;
+      throw error;
+    });
+    if(request!==version)return;
+    if(permission?.exists() ? permission.data().reservierungenLesen!==true : !initialPilot){
+      status.textContent='Für dieses Konto sind Reservierungen noch nicht zum Lesen freigegeben.';
+      return;
+    }
     const snapshot=await getDocFromServer(source);
     if(request!==version)return;
     const rows=snapshot.data()?.list;
@@ -50,8 +61,10 @@ onAuthStateChanged(auth,async user=>{
     });
     window.ecwShowReservationSnapshot(safe);
     status.textContent=safe.length+' von '+rows.length+' Buchungen geladen · Testansicht ohne Schreibzugriff';
-  }catch{
-    if(request===version)status.textContent='Buchungen konnten mit dieser Anmeldung nicht geladen werden.';
+  }catch(error){
+    if(request===version)status.textContent=error.code==='permission-denied'
+      ? 'Für dieses Konto sind Reservierungen noch nicht zum Lesen freigegeben.'
+      : 'Buchungen konnten mit dieser Anmeldung nicht geladen werden.';
   }
 });
 </script>
