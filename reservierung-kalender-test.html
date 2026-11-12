@@ -16,19 +16,29 @@ h2{font-size:18px;margin:20px 0 8px}.appointments{list-style:none;padding:0;marg
 .appointments li{background:#29262a;padding:10px 12px;margin:6px 0;border-radius:8px;overflow-wrap:anywhere}
 .appointments strong{display:block;margin-bottom:3px}#logout{margin-top:20px;background:#322c31}
 [hidden]{display:none!important}
+#booking-form{margin:18px 0;padding:12px;background:#272429;border-radius:8px}
+#booking-form select{width:100%;min-height:46px;font:inherit;background:#222226;color:white}
+.booking-times{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.appointments button{display:block;margin-top:6px}
 </style></head><body><main>
-<h1>Bahnreservierung</h1><p class="muted">EC Wegscheid · Testansicht zum Lesen</p>
+<h1>Bahnreservierung</h1><p class="muted">EC Wegscheid · Testzugang für Bahnreservierungen</p>
 <p id="status" role="status">Anmeldung wird geprüft …</p>
 <form id="login" hidden><label>E-Mail <input id="email" type="email" autocomplete="username" required></label><label>Passwort <input id="password" type="password" autocomplete="current-password" required></label><button>Anmelden</button></form>
 <section id="calendar" hidden>
 <div class="toolbar"><button type="button" id="prev" aria-label="Zurück">‹</button><input id="date" type="date" aria-label="Datum wählen"><button type="button" id="next" aria-label="Weiter">›</button></div>
 <div class="views"><button type="button" id="day" aria-pressed="false">Tag</button><button type="button" id="week" aria-pressed="true">Woche</button><button type="button" id="today">Heute</button></div>
-<div id="results"></div>
+<form id="booking-form" hidden>
+<h2>Bahn für das gewählte Datum buchen</h2>
+<label>Bahn <select id="court"><option>Bahn 1</option><option>Bahn 2</option><option>Bahn 3</option><option>Bahn 4</option></select></label>
+<div class="booking-times"><label>Von <input id="time-from" type="time" required></label><label>Bis <input id="time-to" type="time" required></label></div>
+<button type="submit">Bahn reservieren</button></form>
+<p id="booking-status" role="status"></p><div id="results"></div>
 </section><button type="button" id="logout" hidden>Abmelden</button>
 </main>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import {getFunctions,httpsCallable} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
 import {getFirestore,doc,getDocFromServer} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const firebaseConfig={
   apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
@@ -40,12 +50,14 @@ const firebaseConfig={
 };
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
+const bookingCall=httpsCallable(getFunctions(app,'europe-west3'),'ecwBahnreservierung');
 const source=doc(getFirestore(app),'reservierungMigration','buchungen_20261112');
 const byId=id=>document.getElementById(id);
 const login=byId('login'), status=byId('status'), calendar=byId('calendar'), logout=byId('logout');
 const dateInput=byId('date'), results=byId('results');
 const dateFormat=new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'});
-let bookings=[],view='week',loadVersion=0;
+const bookingForm=byId('booking-form'), bookingStatus=byId('booking-status');
+let bookings=[],newBookings=[],view='week',loadVersion=0,bookingVersion=0,pendingRequest=null,bookingBusy=false;
 function berlinToday(){
   const parts=new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const fields=Object.fromEntries(parts.map(part=>[part.type,part.value]));
@@ -72,7 +84,7 @@ function render(){
     const title=document.createElement('h2');
     title.textContent=dateFormat.format(new Date(date+'T00:00:00Z'));
     section.append(title);
-    const items=bookings.filter(booking=>booking?.date===date).sort((a,b)=>String(a.timeFrom||'').localeCompare(String(b.timeFrom||'')));
+    const items=[...bookings,...newBookings].filter(booking=>booking?.date===date).sort((a,b)=>String(a.timeFrom||'').localeCompare(String(b.timeFrom||'')));
     if(!items.length){
       const empty=document.createElement('p');
       empty.textContent='Keine Buchungen im importierten Stand.';
@@ -89,6 +101,12 @@ function render(){
       const time=[booking.timeFrom,booking.timeTo].filter(Boolean).join('–');
       detail.textContent=[time,booking.mode].filter(Boolean).join(' · ')||'Keine weiteren Angaben';
       item.append(name,detail);
+      if(booking.own){
+        const cancel=document.createElement('button');
+        cancel.type='button';cancel.textContent='Eigene Buchung stornieren';cancel.disabled=bookingBusy;
+        cancel.addEventListener('click',()=>void cancelBooking(booking));
+        item.append(cancel);
+      }
       list.append(item);
     }
     section.append(list);
@@ -96,17 +114,74 @@ function render(){
   });
   results.replaceChildren(...sections);
 }
+async function refreshBookings(){
+  const version=++bookingVersion;
+  if(!auth.currentUser||!dateInput.value)return;
+  try{
+    const responses=await Promise.all(visibleDates(dateInput.value,view).map(date=>bookingCall({action:'list',date})));
+    if(version!==bookingVersion)return;
+    newBookings=responses.flatMap(response=>response.data.bookings);
+    bookingForm.hidden=false;
+  }catch(error){
+    if(version!==bookingVersion)return;
+    newBookings=[];
+    bookingForm.hidden=true;
+    bookingStatus.textContent=error.code==='functions/permission-denied'
+      ?'Für dieses Konto ist noch keine Reservierungsfreigabe eingerichtet.'
+      :'Buchen ist noch nicht verfügbar. Der importierte Bestand bleibt sichtbar.';
+  }
+  render();
+}
+function changeView(){
+  ++bookingVersion;
+  newBookings=[];
+  bookingForm.hidden=true;
+  bookingStatus.textContent='';
+  render();
+  void refreshBookings();
+}
+async function cancelBooking(booking){
+  if(bookingBusy||!window.confirm('Diese Buchung stornieren?'))return;
+  bookingBusy=true;
+  render();
+  try{
+    await bookingCall({action:'cancel',date:booking.date,id:booking.id});
+    bookingStatus.textContent='Buchung storniert.';
+    await refreshBookings();
+  }catch(error){bookingStatus.textContent=error.message||'Stornieren fehlgeschlagen.';}
+  finally{bookingBusy=false;render();}
+}
+bookingForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(bookingBusy||!auth.currentUser)return;
+  const data={action:'book',date:dateInput.value,resource:byId('court').value,timeFrom:byId('time-from').value,timeTo:byId('time-to').value};
+  const key=JSON.stringify(data);
+  if(pendingRequest?.key!==key)pendingRequest={key,id:crypto.randomUUID()};
+  bookingBusy=true;
+  const button=bookingForm.querySelector('button');
+  button.disabled=true;
+  try{
+    await bookingCall({...data,requestId:pendingRequest.id});
+    pendingRequest=null;
+    bookingStatus.textContent='Bahn reserviert.';
+    await refreshBookings();
+  }catch(error){
+    bookingStatus.textContent=error.message||'Buchung fehlgeschlagen.';
+  }finally{bookingBusy=false;button.disabled=false;render();}
+});
 dateInput.value=berlinToday();
-dateInput.addEventListener('change',render);
-for(const mode of ['day','week'])byId(mode).addEventListener('click',()=>{view=mode;render();});
+dateInput.addEventListener('change',changeView);
+for(const mode of ['day','week'])byId(mode).addEventListener('click',()=>{view=mode;changeView();});
 for(const [id,direction] of [['prev',-1],['next',1]])byId(id).addEventListener('click',()=>{
   dateInput.value=dateOffset(dateInput.value||berlinToday(),direction*(view==='week'?7:1));
-  render();
+  changeView();
 });
-byId('today').addEventListener('click',()=>{dateInput.value=berlinToday();render();});
+byId('today').addEventListener('click',()=>{dateInput.value=berlinToday();changeView();});
 onAuthStateChanged(auth,async user=>{
   const version=++loadVersion;
-  bookings=[];results.replaceChildren();
+  ++bookingVersion;
+  bookings=[];newBookings=[];pendingRequest=null;results.replaceChildren();
+  bookingForm.hidden=true;bookingStatus.textContent='';
   calendar.hidden=true;login.hidden=!!user;logout.hidden=!user;
   if(!user){status.textContent='Mit dem Firebase-Testkonto anmelden.';return;}
   status.textContent='Buchungen werden geladen …';
@@ -119,6 +194,7 @@ onAuthStateChanged(auth,async user=>{
     status.textContent=list.length+' Buchungen im importierten Stand geladen.';
     render();
     calendar.hidden=false;
+    void refreshBookings();
   }catch(error){
     if(version===loadVersion)status.textContent=error.code==='permission-denied'
       ?'Der Kalender ist für dieses Konto nicht freigegeben.'
