@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bahnreservierung · EC Wegscheid</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#17171a;color:#fff;font:16px system-ui,sans-serif}
+main{max-width:720px;margin:auto;padding:24px 16px 36px}h1{margin:0 0 6px;font-size:clamp(24px,6vw,34px)}
+p{line-height:1.45}.muted{color:#ded4d7;margin:0 0 20px}label{display:block;margin:12px 0}
+input,button{font:inherit;min-height:46px;border-radius:8px;padding:8px 10px}
+input{border:1px solid #817479;background:#222226;color:white;color-scheme:dark}
+button{border:0;background:#a91d2b;color:white;font-weight:650;cursor:pointer}button:disabled{opacity:.5;cursor:default}
+form{max-width:420px}form input,form button{width:100%}
+.toolbar{display:grid;grid-template-columns:auto minmax(135px,1fr) auto;gap:6px;align-items:center}
+.toolbar input{width:100%}.views{display:flex;gap:8px;margin:10px 0}
+.views button{flex:1;background:#332e33}.views button[aria-pressed=true]{background:#a91d2b}
+h2{font-size:18px;margin:20px 0 8px}.appointments{list-style:none;padding:0;margin:0}
+.appointments li{background:#29262a;padding:10px 12px;margin:6px 0;border-radius:8px;overflow-wrap:anywhere}
+.appointments strong{display:block;margin-bottom:3px}#logout{margin-top:20px;background:#322c31}
+[hidden]{display:none!important}
+#booking-form{margin:18px 0;padding:12px;background:#272429;border-radius:8px}
+#booking-form select{width:100%;min-height:46px;font:inherit;background:#222226;color:white}
+.booking-times{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.appointments button{display:block;margin-top:6px}
+</style></head><body><main>
+<h1>Bahnreservierung</h1><p class="muted">EC Wegscheid</p>
+<p id="status" role="status">Anmeldung wird geprüft …</p>
+<section id="calendar" hidden>
+<div class="toolbar"><button type="button" id="prev" aria-label="Zurück">‹</button><input id="date" type="date" aria-label="Datum wählen"><button type="button" id="next" aria-label="Weiter">›</button></div>
+<div class="views"><button type="button" id="day" aria-pressed="false">Tag</button><button type="button" id="week" aria-pressed="true">Woche</button><button type="button" id="today">Heute</button></div>
+<form id="booking-form" hidden>
+<h2>Bahn für das gewählte Datum buchen</h2>
+<label>Bahn <select id="court"><option>Bahn 1</option><option>Bahn 2</option><option>Bahn 3</option><option>Bahn 4</option></select></label>
+<div class="booking-times"><label>Von <input id="time-from" type="time" required></label><label>Bis <input id="time-to" type="time" required></label></div>
+<button type="submit">Bahn reservieren</button></form>
+<p id="booking-status" role="status"></p><div id="results"></div>
+</section>
+</main>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import {initializeAuth,browserLocalPersistence,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import {getFunctions,httpsCallable} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import {getFirestore,doc,getDocFromServer} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+const firebaseConfig={
+  apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
+  authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
+  projectId:"ec-wegscheid-verwaltung-neu",
+  storageBucket:"ec-wegscheid-verwaltung-neu.firebasestorage.app",
+  messagingSenderId:"558472054725",
+  appId:"1:558472054725:web:10145e2d8d6f168b056dac"
+};
+const app=initializeApp(firebaseConfig);
+const auth=initializeAuth(app,{persistence:browserLocalPersistence});
+const games=new URLSearchParams(location.search).get("ansicht")==="tag";
+if(games)document.querySelector("h1").textContent="Spiele";
+const bookingCall=httpsCallable(getFunctions(app,'europe-west3'),'ecwBahnreservierung');
+const db=getFirestore(app);
+const source=doc(db,'reservierungMigration','buchungen_20261112');
+const byId=id=>document.getElementById(id);
+const status=byId('status'), calendar=byId('calendar');
+const dateInput=byId('date'), results=byId('results');
+const dateFormat=new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'});
+const bookingForm=byId('booking-form'), bookingStatus=byId('booking-status');
+let bookings=[],newBookings=[],view=games?'day':'week',loadVersion=0,bookingVersion=0,pendingRequest=null,bookingBusy=false;
+function berlinToday(){
+  const parts=new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const fields=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+  return fields.year+'-'+fields.month+'-'+fields.day;
+}
+function dateOffset(date,days){
+  const value=new Date(date+'T00:00:00Z');
+  value.setUTCDate(value.getUTCDate()+days);
+  return value.toISOString().slice(0,10);
+}
+function weekStart(date){
+  const day=new Date(date+'T00:00:00Z').getUTCDay();
+  return dateOffset(date,-((day+6)%7));
+}
+function visibleDates(date,mode){
+  return mode==='day'?[date]:Array.from({length:7},(_,offset)=>dateOffset(weekStart(date),offset));
+}
+function render(){
+  if(!dateInput.value)return;
+  byId('day').setAttribute('aria-pressed',view==='day');
+  byId('week').setAttribute('aria-pressed',view==='week');
+  const sections=visibleDates(dateInput.value,view).map(date=>{
+    const section=document.createElement('section');
+    const title=document.createElement('h2');
+    title.textContent=dateFormat.format(new Date(date+'T00:00:00Z'));
+    section.append(title);
+    const items=[...bookings,...newBookings].filter(booking=>booking?.date===date).sort((a,b)=>String(a.timeFrom||'').localeCompare(String(b.timeFrom||'')));
+    if(!items.length){
+      const empty=document.createElement('p');
+      empty.textContent='Keine Buchungen.';
+      section.append(empty);
+      return section;
+    }
+    const list=document.createElement('ul');
+    list.className='appointments';
+    for(const booking of items){
+      const item=document.createElement('li');
+      const name=document.createElement('strong');
+      const detail=document.createElement('span');
+      name.textContent=booking.resource||'Bahn nicht hinterlegt';
+      const time=[booking.timeFrom,booking.timeTo].filter(Boolean).join('–');
+      detail.textContent=[time,booking.mode,booking.bookedBy].filter(Boolean).join(' · ')||'Keine weiteren Angaben';
+      item.append(name,detail);
+      if(booking.own){
+        const cancel=document.createElement('button');
+        cancel.type='button';cancel.textContent='Eigene Buchung stornieren';cancel.disabled=bookingBusy;
+        cancel.addEventListener('click',()=>void cancelBooking(booking));
+        item.append(cancel);
+      }
+      list.append(item);
+    }
+    section.append(list);
+    return section;
+  });
+  results.replaceChildren(...sections);
+}
+async function refreshBookings(){
+  const version=++bookingVersion;
+  if(!auth.currentUser||!dateInput.value)return;
+  try{
+    const responses=await Promise.all(visibleDates(dateInput.value,view).map(date=>bookingCall({action:'list',date,view:games?'spiele':'reservierungen'})));
+    if(version!==bookingVersion)return;
+    newBookings=responses.flatMap(response=>response.data.bookings);
+    bookingForm.hidden=games||!responses.every(response=>response.data.canBook===true);
+  }catch(error){
+    if(version!==bookingVersion)return;
+    newBookings=[];
+    bookingForm.hidden=true;
+    bookingStatus.textContent=error.code==='functions/permission-denied'
+      ?'Die aktuellen Buchungen sind für dieses Konto nicht freigegeben.'
+      :'Buchen ist noch nicht verfügbar. Der importierte Bestand bleibt sichtbar.';
+  }
+  render();
+}
+function changeView(){
+  ++bookingVersion;
+  newBookings=[];
+  bookingForm.hidden=true;
+  bookingStatus.textContent='';
+  render();
+  void refreshBookings();
+}
+async function cancelBooking(booking){
+  if(bookingBusy||!window.confirm('Diese Buchung stornieren?'))return;
+  bookingBusy=true;
+  render();
+  try{
+    await bookingCall({action:'cancel',date:booking.date,id:booking.id});
+    bookingStatus.textContent='Buchung storniert.';
+    await refreshBookings();
+  }catch(error){bookingStatus.textContent=error.message||'Stornieren fehlgeschlagen.';}
+  finally{bookingBusy=false;render();}
+}
+bookingForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(bookingBusy||!auth.currentUser)return;
+  const data={action:'book',date:dateInput.value,resource:byId('court').value,timeFrom:byId('time-from').value,timeTo:byId('time-to').value};
+  const key=JSON.stringify(data);
+  if(pendingRequest?.key!==key)pendingRequest={key,id:crypto.randomUUID()};
+  bookingBusy=true;
+  const button=bookingForm.querySelector('button');
+  button.disabled=true;
+  try{
+    await bookingCall({...data,requestId:pendingRequest.id});
+    pendingRequest=null;
+    bookingStatus.textContent='Bahn reserviert.';
+    await refreshBookings();
+  }catch(error){
+    bookingStatus.textContent=error.message||'Buchung fehlgeschlagen.';
+  }finally{bookingBusy=false;button.disabled=false;render();}
+});
+dateInput.value=berlinToday();
+dateInput.addEventListener('change',changeView);
+for(const mode of ['day','week'])byId(mode).addEventListener('click',()=>{view=mode;changeView();});
+for(const [id,direction] of [['prev',-1],['next',1]])byId(id).addEventListener('click',()=>{
+  dateInput.value=dateOffset(dateInput.value||berlinToday(),direction*(view==='week'?7:1));
+  changeView();
+});
+byId('today').addEventListener('click',()=>{dateInput.value=berlinToday();changeView();});
+onAuthStateChanged(auth,async user=>{
+  const version=++loadVersion;
+  ++bookingVersion;
+  bookings=[];newBookings=[];pendingRequest=null;results.replaceChildren();
+  bookingForm.hidden=true;bookingStatus.textContent='';
+  calendar.hidden=true;
+  if(!user){status.textContent='Bitte zuerst im Smartphonezugang anmelden.';return;}
+  status.textContent='Buchungen werden geladen …';
+  try{
+    const permission=await getDocFromServer(doc(db,'smartphoneFreigaben',user.uid));
+    if(version!==loadVersion)return;
+    const grants=permission.data()||{};
+    const member=user.uid==='n9MpiKXZNLap8wsbRcP4fVjrT4D2'||/^ecw-mobile-[a-f0-9]{32}$/.test(user.uid);
+    const reservationAllowed=grants.reservierungenLesen??member;
+    if((games?grants.spiele??reservationAllowed:reservationAllowed)!==true){
+      status.textContent='Der Kalender ist für dieses Konto nicht freigegeben.';
+      return;
+    }
+    const snapshot=await getDocFromServer(source);
+    if(version!==loadVersion)return;
+    const list=snapshot.data()?.list;
+    if(!Array.isArray(list)){status.textContent='Der importierte Buchungsbestand fehlt.';return;}
+    bookings=list;
+    status.textContent=list.length+' Buchungen im importierten Stand geladen.';
+    render();
+    calendar.hidden=false;
+    void refreshBookings();
+  }catch(error){
+    if(version===loadVersion)status.textContent=error.code==='permission-denied'
+      ?'Der Kalender ist für dieses Konto nicht freigegeben.'
+      :'Die Buchungen konnten nicht geladen werden.';
+  }
+});
+</script></body></html>
