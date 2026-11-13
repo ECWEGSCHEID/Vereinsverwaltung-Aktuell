@@ -20,6 +20,18 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 <script src="js/ladefehler.js?v=2.9.29"></script>
 <link rel="stylesheet" href="css/hauptprogramm.css?v=20261110-startseite4">
 <link rel="stylesheet" href="css/dokumente-drucken.css?v=2.9.29">
+<style>
+#startseite .ecw-temp-open{margin:0;width:100%;min-height:0;border:1px solid #86505a;cursor:pointer}
+#startseite .ecw-temp-open:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#ecwClimateDialog{box-sizing:border-box;width:min(580px,calc(100% - 24px));max-height:85vh;padding:20px;color:#fff;background:#232024;border:1px solid #86505a;border-radius:14px}
+#ecwClimateDialog::backdrop{background:#0009}
+#ecwClimateDialog h2{margin:0 0 12px}
+#ecwClimateDialog .climate-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:8px}
+#ecwClimateDialog .climate-card{padding:10px;border:1px solid #664b52;border-radius:8px;background:#36282d}
+#ecwClimateDialog h3{margin:0 0 8px}
+#ecwClimateDialog dl{margin:0}
+#ecwClimateDialog dd{margin:0 0 6px;font-weight:700}
+</style>
 </head>
 <body data-ecw-build="ECW18-TEST">
 <div id="ecwPublicWhiteboardLoading" style="display:none;position:fixed;inset:0;z-index:99999;background:#7b0000;color:#fff;align-items:center;justify-content:center;font:700 22px Arial,sans-serif;text-align:center;padding:30px">
@@ -71,13 +83,23 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
   <div id="ecwInfoRibbon" aria-label="Aktuelle Meldungen und Temperaturen">
     <div class="ecw-ribbon-news" aria-label="Vereins-Laufschrift"><span id="ecwHomeTickerText">Willkommen beim EC Wegscheid</span></div>
     <div id="ecwTemperatures" aria-label="Temperaturen Halle, Außen und Vereinsheim">
-      <div class="ecw-temp-cell"><span>Halle</span><strong id="ecwTempHalle">--,- °C</strong></div>
-      <div class="ecw-temp-cell"><span>Außen</span><strong id="ecwTempAussen">--,- °C</strong></div>
-      <div class="ecw-temp-cell"><span>Vereinsheim</span><strong id="ecwTempVereinsheim">--,- °C</strong></div>
+      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Halle – Messwerte im Detail" aria-haspopup="dialog"><span>Halle</span><strong id="ecwTempHalle">--,- °C</strong></button>
+      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Außen – Messwerte im Detail" aria-haspopup="dialog"><span>Außen</span><strong id="ecwTempAussen">--,- °C</strong></button>
+      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Vereinsheim – Messwerte im Detail" aria-haspopup="dialog"><span>Vereinsheim</span><strong id="ecwTempVereinsheim">--,- °C</strong></button>
       <div class="ecw-ribbon-clock"><span id="ecwHomeDate">--.--.----</span><strong id="ecwHomeClock">--:--</strong></div>
       <div id="ecwTempStatus" role="status" title="Temperaturstatus">Sensorwerte noch nicht verbunden</div>
     </div>
   </div>
+  <dialog id="ecwClimateDialog" aria-labelledby="ecwClimateTitle">
+  <h2 id="ecwClimateTitle">Messwerte im Detail</h2>
+  <div class="climate-cards">
+    <section class="climate-card"><h3>Halle</h3><dl><dt>Temperatur</dt><dd id="ecwClimate-halle-temperature">–</dd><dt>Luftfeuchte</dt><dd id="ecwClimate-halle-humidity">Kein Messwert</dd><dt>Batterie</dt><dd id="ecwClimate-halle-battery">Kein Messwert</dd></dl></section>
+    <section class="climate-card"><h3>Außen</h3><dl><dt>Temperatur</dt><dd id="ecwClimate-aussen-temperature">–</dd><dt>Luftfeuchte</dt><dd id="ecwClimate-aussen-humidity">Kein Messwert</dd><dt>Batterie</dt><dd id="ecwClimate-aussen-battery">Kein Messwert</dd></dl></section>
+    <section class="climate-card"><h3>Vereinsheim</h3><dl><dt>Temperatur</dt><dd id="ecwClimate-vereinsheim-temperature">–</dd><dt>Luftfeuchte</dt><dd id="ecwClimate-vereinsheim-humidity">Kein Messwert</dd><dt>Batterie</dt><dd id="ecwClimate-vereinsheim-battery">Kein Messwert</dd></dl></section>
+  </div>
+  <p id="ecwClimateStatus" role="status">Sensorwerte noch nicht verbunden</p>
+  <form method="dialog"><button type="submit" autofocus>Schließen</button></form>
+</dialog>
   <button id="shUserLogin" type="button" title="Benutzer anmelden" aria-label="Benutzer anmelden" onclick="ecwCornerLogin(event)">Benutzer anmelden</button>
   <div id="shSubReturn" class="bottom menu-return" hidden><button type="button" onclick="closeStartSubmenu()">Zurück zum Hauptmenü</button></div>
   <button id="shFs" title="Vollbild" aria-label="Vollbild umschalten" onclick="shFullscreen()">⛶</button>
@@ -520,6 +542,6 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 <script src="designvorlagen-daten.js?v=2.9.29"></script>
 <script src="systemeinstellungen.js?v=2.9.29"></script>
 <script src="js/admin-menu-design.js?v=2.9.29"></script>
-<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-temperaturen.js?v=20261112-tempfix1"></script><script src="js/ecw-startleiste.js?v=20261110-startseite5"></script><script src="js/ecw-qr-code.js?v=1"></script><script src="js/ecw-aktivierung.js?v=1"></script><script src="ecw-smartphone-einstellungen.js?v=aktivierung-1"></script>
+<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-temperaturen.js?v=20261113-details"></script><script src="js/ecw-startleiste.js?v=20261110-startseite5"></script><script src="js/ecw-qr-code.js?v=1"></script><script src="js/ecw-aktivierung.js?v=1"></script><script src="ecw-smartphone-einstellungen.js?v=aktivierung-1"></script>
 </body>
 </html>
