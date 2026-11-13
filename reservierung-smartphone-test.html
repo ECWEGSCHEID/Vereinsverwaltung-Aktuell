@@ -20,7 +20,7 @@ const firebaseConfig={
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
 const app=initializeApp(firebaseConfig);
-import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=5';
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=6';
 const db=getFirestore(app);
 const source=doc(db,'reservierungMigration','buchungen_20261112');
 const status=document.getElementById('shared-session-status');
@@ -568,7 +568,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 </div>
                 <label id="whiteboard-booker" class="hidden">
                     <span class="block font-semibold">Gebucht von</span>
-                    <select id="whiteboard-booker-name" class="w-full rounded border border-zinc-700 bg-zinc-900 p-2 text-white"></select>
+                    <select id="whiteboard-booker-name" onchange="onWhiteboardBookerChange()" class="w-full rounded border border-zinc-700 bg-zinc-900 p-2 text-white"></select>
                 </label>
                 <p id="raster-booking-message" role="status" class="text-zinc-200"></p>
                 <div class="flex gap-2 pt-1">
@@ -830,6 +830,21 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         }
 
         let rasterBookingOwner = '';
+
+        function onWhiteboardBookerChange() {
+            const firstPlayer = document.getElementById('homePlayer1');
+            const name = document.getElementById('whiteboard-booker-name').value;
+            if (name) {
+                document.querySelectorAll('.member-select').forEach(select => {
+                    if (select !== firstPlayer && select.value === name) select.value = '';
+                });
+                updateMemberDropdowns();
+            }
+            if (name || firstPlayer.value === rasterBookingOwner) firstPlayer.value = '';
+            rasterBookingOwner = name;
+            onTemplateChange();
+            checkTimeAvailability();
+        }
 
         function onTemplateChange() {
             const select = document.getElementById('modalTemplateSelect');
@@ -1320,8 +1335,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         }
 
         function canManageReservation(booking) {
-            return Boolean(booking) && (currentUser.role === 'admin' ||
-                isInformationssystemUser() || booking.bookedBy === currentUser.name);
+            return Boolean(booking?.liveId && booking.own === true);
         }
 
         function showBookingActions(id) {
