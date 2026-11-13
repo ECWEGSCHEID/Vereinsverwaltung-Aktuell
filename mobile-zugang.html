@@ -94,10 +94,20 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 .qr-compact #qrView > :not(#qrBox){display:none!important}
 .qr-compact #qrBox{width:198px;height:198px;margin:0;padding:8px;box-sizing:border-box;background:white}
 .qr-compact #qrBox svg{display:block;width:100%!important;height:100%!important}
+#tilePlayers[hidden],#tileMore[hidden]{display:none}
+#mobilePlayerRows{list-style:none;padding:0;display:grid;gap:6px}
+#mobilePlayerRows button,#mobilePlayerDetail button,#mobilePlayersView button{min-height:44px}
+#mobilePlayerRows button{width:100%;text-align:left}
+#mobilePlayerDialog{box-sizing:border-box;width:min(92vw,34rem);max-height:88vh;overflow:auto;color:#fff;background:#1e1c20;border:1px solid #745158;border-radius:14px}
+#mobilePlayerDialog::backdrop{background:#0009}
+#mobilePlayerDetail button{margin:6px 8px 6px 0}
+#mobilePlayerDetail .mobile-player-permission{display:flex;align-items:center;gap:12px;min-height:44px}
+#mobilePlayerDetail input[type=checkbox]{width:20px;height:20px;flex:none}
 </style>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-functions-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -144,6 +154,18 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
     </div>
   </section>
 
+  <button class="tile" id="tilePlayers" type="button" hidden><span><h2>Spielerliste</h2><p>Spieler bearbeiten, Zugriffe verwalten und Aktivierungslinks teilen.</p></span></button>
+  <section id="mobilePlayersView" class="panel hidden" aria-labelledby="mobilePlayersTitle">
+    <div class="section-head"><h2 id="mobilePlayersTitle">Spielerliste</h2><button class="secondary back" id="mobilePlayersBack" type="button">← Weitere Funktionen</button></div>
+    <form id="mobilePlayerAddForm"><label for="mobilePlayerNew">Neuer Spieler</label><input id="mobilePlayerNew" maxlength="120" required><div class="actions"><button class="primary" id="mobilePlayerAdd" type="submit" disabled>Hinzufügen</button></div></form>
+    <label for="mobilePlayerSearch">Spieler suchen</label><input id="mobilePlayerSearch" type="search">
+    <p id="mobilePlayersStatus" role="status"></p>
+    <ul id="mobilePlayerRows"></ul>
+  </section>
+  <dialog id="mobilePlayerDialog" aria-labelledby="mobilePlayerHeading">
+    <div class="section-head"><h2 id="mobilePlayerHeading"></h2><form method="dialog"><button class="secondary back" type="submit">Schließen</button></form></div>
+    <div id="mobilePlayerDetail"></div>
+  </dialog>
   <section id="technikView" class="panel hidden" aria-labelledby="technikHeading">
     <div class="section-head"><h2 id="technikHeading" tabindex="-1">Technik</h2><button class="secondary back" data-home type="button">← Übersicht</button></div>
     <div class="technik-grid">
@@ -2736,12 +2758,14 @@ async function initApp(){
     currentUser=user||null;profile=null;
     if(!user){show('loginView');return}
     try{
-      profile=await ensureProfile(user);
+      const userProfile=await ensureProfile(user);
       const settings = await ECWSmartphoneNavigation.settingsRef(db).get().catch(() => null);
       if (auth.currentUser?.uid !== user.uid) return;
+      profile=userProfile;
       smartphoneSettings = settings?.data();
       show('homeView');applyTiles();
     }catch(e){
+      if (auth.currentUser?.uid !== user.uid) return;
       console.error(e);show('loginView');setStatus('loginStatus','Berechtigungen konnten nicht geladen werden: '+(e.message||e),'err');
     }
   });
@@ -2766,5 +2790,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 <script src="ecw-smartphone-einstellungen.js?v=4"></script>
 <script src="ecw-mobile-navigation.js?v=auto-2"></script>
-<script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-technik.js?v=20261112-tempfix1"></script></body>
+<script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-technik.js?v=20261112-tempfix1"></script><script src="js/ecw-aktivierung.js?v=2"></script>
+<script src="js/ecw-mobile-spielerliste.js?v=1"></script>
+</body>
 </html>
+
