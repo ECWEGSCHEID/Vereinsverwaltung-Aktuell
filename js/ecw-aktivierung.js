@@ -1,4 +1,4 @@
-window.ecwActivationControls = function (dialog, name, allowed, generate) {
+window.ecwActivationControls = function (container, name, allowed, generate, dialog = container) {
   const heading = document.createElement('h3');
   heading.textContent = 'Smartphone-Zugang · ' + name;
   const button = document.createElement('button');
@@ -7,7 +7,7 @@ window.ecwActivationControls = function (dialog, name, allowed, generate) {
   const status = document.createElement('p');
   status.setAttribute('role', 'status');
   const result = document.createElement('div');
-  dialog.append(heading, button, status, result);
+  container.append(heading, button, status, result);
 
   button.onclick = async () => {
     if (!allowed()) return;
@@ -18,9 +18,10 @@ window.ecwActivationControls = function (dialog, name, allowed, generate) {
       const link = await generate();
       if (!dialog.open || !allowed()) return;
       const url = new URL(link);
+      const code = new URLSearchParams(url.hash.slice(1)).get('aktivierung');
       if (url.origin !== 'https://ecwegscheid.github.io' ||
           url.pathname !== '/Vereinsverwaltung-Aktuell/smartphone-mitglieder.html' ||
-          !new URLSearchParams(url.hash.slice(1)).get('aktivierung')) throw Error('Ungültiger Link.');
+          !code) throw Error('Ungültiger Link.');
       const qr = qrcode(0, 'M');
       qr.addData(url.href);
       qr.make();
@@ -46,7 +47,27 @@ window.ecwActivationControls = function (dialog, name, allowed, generate) {
           status.textContent = 'Link markiert. Mit Strg+C kopieren.';
         }
       };
-      result.append(picture, field, copy);
+      const codeLabel = document.createElement('label');
+      codeLabel.textContent = 'Aktivierungscode';
+      const codeField = document.createElement('input');
+      codeField.value = code;
+      codeField.readOnly = true;
+      codeLabel.append(codeField);
+      result.append(picture, codeLabel, field, copy);
+      if (typeof navigator.share === 'function') {
+        const share = document.createElement('button');
+        share.type = 'button';
+        share.textContent = 'Link teilen';
+        share.onclick = async () => {
+          if (!dialog.open || !allowed()) return;
+          try {
+            await navigator.share({title: 'EC Wegscheid', text: 'Dein persönlicher Link für den Smartphonezugang', url: url.href});
+          } catch (error) {
+            if (error.name !== 'AbortError') status.textContent = 'Teilen fehlgeschlagen. Du kannst den Link kopieren.';
+          }
+        };
+        result.append(share);
+      }
       status.textContent = 'QR-Code scannen oder den Link privat verschicken.';
     } catch (error) {
       if (dialog.open && allowed()) status.textContent = 'Link konnte nicht erstellt werden. ' + error.message;
@@ -55,3 +76,4 @@ window.ecwActivationControls = function (dialog, name, allowed, generate) {
     }
   };
 };
+
