@@ -48,7 +48,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
               !resourcePattern.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
               !(timePattern.test(booking.timeTo) || booking.timeTo === '24:00')) continue;
           extra.push({
-            id: 1000000 + extra.length, liveId: booking.id, own: !games && !whiteboard && booking.own === true,
+            id: 1000000 + extra.length, liveId: booking.id, own: !games && booking.own === true && /^[a-f0-9]{64}$/.test(booking.id),
             date: booking.date, resource: booking.resource, timeFrom: booking.timeFrom, timeTo: booking.timeTo,
             bookedBy: typeof booking.bookedBy === 'string' ? booking.bookedBy : '',
             mode: booking.mode || 'Reserviert',
@@ -157,7 +157,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
         !confirm('Diese eigene Buchung stornieren?')) return;
     busy = true;
     try {
-      await call({action: 'cancel', date: booking.date, id: booking.liveId});
+      await call({action: 'cancel', date: booking.date, id: booking.liveId, view: whiteboard ? 'whiteboard' : 'reservierungen'});
       update(dates, true);
     } catch (error) {
       status.textContent = error.message || 'Stornieren fehlgeschlagen.';
@@ -176,3 +176,4 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     update, canBookDay, canBook, openSlot, submit, cancelBooking, isBusy: () => busy
   };
 }
+
