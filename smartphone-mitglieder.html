@@ -162,7 +162,7 @@ const namePilot = reservationTest && pageParams.get('namenTest') === '1';
 const bookingPilot = reservationTest && pageParams.get('buchung') === '1';
 let nameLoginEnabled = namePilot;
 let activationCode = namePilot ? new URLSearchParams(location.hash.slice(1)).get('aktivierung') : null;
-if (activationCode) history.replaceState(null, '', location.pathname + location.search);
+const personalActivation = Boolean(activationCode);
 const auth = initializeAuth(app, {persistence: browserLocalPersistence});
 const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const authReady = auth.authStateReady();
@@ -463,6 +463,7 @@ const memberName = document.getElementById('member-name');
 let memberDirectory;
 let memberLoginRequest;
 let activationEmail;
+let linkedMemberEmail;
 const activationEntry = document.getElementById('activation-entry');
 const activationValue = document.getElementById('activation-value');
 const activationHint = document.getElementById('activation-hint');
@@ -491,12 +492,12 @@ function setActivationView(changingPassword) {
   activationHint.hidden = !activationCode;
   activationHint.textContent = changingPassword
     ? 'Lege jetzt dein persönliches Passwort fest.'
-    : 'Wähle deinen Namen und gib das Startpasswort ein.';
+    : 'Gib das Startpasswort 1234 ein und tippe auf Weiter.';
   password.parentElement.querySelector('label[for="password"]').hidden = changingPassword;
   password.hidden = changingPassword;
   password.required = !changingPassword;
   password.disabled = changingPassword;
-  memberName.disabled = changingPassword || !memberDirectory;
+  memberName.disabled = changingPassword || Boolean(linkedMemberEmail) || !memberDirectory;
   newPasswordFields.hidden = !changingPassword;
   for (const field of [newPassword, repeatPassword]) {
     field.disabled = !changingPassword;
@@ -588,8 +589,20 @@ onAuthStateChanged(auth, async user => {
     await loadMemberLogin();
     if (!stillCurrent()) return;
     if (memberDirectory) {
-      setActivationView(false);
-      submit.disabled = false;
+      try {
+        const verifiedEmail = (await verifyPasswordResetCode(auth, activationCode)).toLowerCase();
+        if (!stillCurrent()) return;
+        const match = [...memberDirectory].find(([, alias]) => alias + '@login.ec-wegscheid.de' === verifiedEmail);
+        if (!match) throw new Error('Mitglied nicht gefunden');
+        memberName.value = match[0];
+        linkedMemberEmail = verifiedEmail;
+        setActivationView(false);
+        submit.disabled = false;
+        password.focus();
+      } catch {
+        if (!stillCurrent()) return;
+        loginError('Dieser persönliche Link ist ungültig oder abgelaufen. Bitte lass dir einen neuen Link geben.');
+      }
     } else {
       document.getElementById('email-login').hidden = true;
       password.hidden = true;
@@ -629,10 +642,10 @@ form.addEventListener('submit', async event => {
     if (candidateCode && !activationEmail) {
       checkingActivation = true;
       if (!alias || password.value !== '1234') {
-        loginError('Wähle deinen Namen und gib das Startpasswort 1234 ein.');
+        loginError(linkedMemberEmail ? 'Gib das Startpasswort 1234 ein.' : 'Wähle deinen Namen und gib das Startpasswort 1234 ein.');
         return;
       }
-      const verifiedEmail = await verifyPasswordResetCode(auth, candidateCode);
+      const verifiedEmail = linkedMemberEmail ?? await verifyPasswordResetCode(auth, candidateCode);
       if (verifiedEmail.toLowerCase() !== identifier.toLowerCase()) {
         loginError('Dieser Aktivierungscode gehört nicht zum ausgewählten Namen.');
         return;
@@ -651,6 +664,8 @@ form.addEventListener('submit', async event => {
       const chosenPassword = newPassword.value;
       await confirmPasswordReset(auth, activationCode, chosenPassword);
       activationCode = null;
+      linkedMemberEmail = null;
+      if (personalActivation) history.replaceState(null, '', location.pathname + location.search);
       const verifiedEmail = activationEmail;
       activationEmail = null;
       newPassword.value = repeatPassword.value = '';
