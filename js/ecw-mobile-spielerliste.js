@@ -13,6 +13,11 @@
   let entries;
   let settings;
 
+  function sameData(first, second) {
+    const ordered = snapshot => Object.entries(snapshot.data() || {}).sort(([a], [b]) => a.localeCompare(b));
+    return first.exists === second.exists && JSON.stringify(ordered(first)) === JSON.stringify(ordered(second));
+  }
+
   function status(message, error = false) {
     setStatus('mobilePlayersStatus', message, error ? 'err' : '');
   }
@@ -164,11 +169,9 @@
     const bookingRef = db.doc('reservierungZugaenge/' + memberUid);
     try {
       info.textContent = 'Freigaben werden geladen …';
-      const [initial, booking] = await Promise.all([ref.get({source: 'server'}), bookingRef.get({source: 'server'}).catch(error => {
-        if (error.code === 'permission-denied') return null;
-        throw error;
-      })]);
+      const [initial, initialBooking] = await Promise.all([ref.get({source: 'server'}), bookingRef.get({source: 'server'}).catch(() => null)]);
       if (!permitted()) return;
+      let booking = initialBooking;
       info.textContent = '';
       const grants = initial.data() || {};
       const form = document.createElement('form');
@@ -186,8 +189,6 @@
       const controls = items.map(item => [item, checkbox(item.title, item.custom
         ? !grants.gesperrteLinks?.includes(item.key)
         : ECWSmartphoneNavigation.memberFeatureAllowed(grants, item.feature))]);
-      const write = booking?.exists ? checkbox('Bahn und Vereinsheim buchen', booking.data()?.reservieren === true) : null;
-      if (!booking) info.textContent = 'Buchungsrecht kann für dieses Konto nicht geladen werden.';
       const submit = document.createElement('button');
       submit.textContent = 'Freigaben speichern';
       form.append(submit);
@@ -203,31 +204,65 @@
           else blocked.add(item.key);
         }
         updates.gesperrteLinks = [...blocked];
-        const bookingChanged = write && write.checked !== (booking.data()?.reservieren === true);
-        const allowBooking = write?.checked;
         try {
           await db.runTransaction(async tx => {
             const current = await tx.get(ref);
-            const currentBooking = bookingChanged ? await tx.get(bookingRef) : null;
             if (!permitted()) throw Error('Adminsitzung geändert.');
-            if (JSON.stringify(current.data() || {}) !== JSON.stringify(grants) ||
-                (currentBooking && JSON.stringify(currentBooking.data()) !== JSON.stringify(booking.data()))) {
+            if (!sameData(current, initial)) {
               throw Error('Freigaben wurden zwischenzeitlich geändert. Bitte erneut öffnen.');
             }
-            tx.set(ref, updates, {merge: true});
-            if (bookingChanged) tx.update(bookingRef, {reservieren: allowBooking});
+            tx.set(ref, updates);
           });
           if (permitted()) {
             dialog.close();
             status('Freigaben für ' + name + ' gespeichert.');
           }
         } catch (error) {
-          if (permitted()) info.textContent = 'Speichern fehlgeschlagen: ' + error.message;
+          if (permitted()) info.textContent = error.code === 'permission-denied'
+            ? 'Firebase verweigert das Speichern der Menüfreigaben. Bitte den Regelblock smartphoneFreigaben prüfen.'
+            : 'Speichern fehlgeschlagen: ' + error.message;
         } finally {
           submit.disabled = false;
         }
       };
       content.append(form);
+      if (booking?.exists) {
+        const bookingForm = document.createElement('form');
+        const label = document.createElement('label');
+        label.className = 'mobile-player-permission';
+        const write = document.createElement('input');
+        write.type = 'checkbox';
+        write.checked = booking.data()?.reservieren === true;
+        label.append(write, document.createTextNode('Bahn und Vereinsheim buchen'));
+        const saveBooking = document.createElement('button');
+        saveBooking.textContent = 'Buchungsrecht speichern';
+        const bookingStatus = document.createElement('p');
+        bookingStatus.setAttribute('role', 'status');
+        bookingForm.append(label, saveBooking, bookingStatus);
+        bookingForm.onsubmit = async event => {
+          event.preventDefault();
+          if (!permitted() || saveBooking.disabled) return;
+          saveBooking.disabled = true;
+          const allowed = write.checked;
+          try {
+            await db.runTransaction(async tx => {
+              const current = await tx.get(bookingRef);
+              if (!permitted()) throw Error('Adminsitzung geändert.');
+              if (!sameData(current, booking)) throw Error('Buchungsrecht wurde zwischenzeitlich geändert. Bitte erneut öffnen.');
+              tx.update(bookingRef, {reservieren: allowed});
+            });
+            if (permitted()) {
+              booking = await bookingRef.get({source: 'server'});
+              bookingStatus.textContent = 'Buchungsrecht gespeichert.';
+            }
+          } catch (error) {
+            if (permitted()) bookingStatus.textContent = 'Buchungsrecht konnte nicht gespeichert werden: ' + error.message;
+          } finally {
+            saveBooking.disabled = false;
+          }
+        };
+        content.append(bookingForm);
+      }
     } catch (error) {
       if (permitted()) info.textContent = 'Freigaben konnten nicht geladen werden: ' + error.message;
     }

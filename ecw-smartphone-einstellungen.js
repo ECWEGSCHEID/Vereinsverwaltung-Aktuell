@@ -399,7 +399,9 @@
       submit.type='submit';
       submit.textContent='Speichern';
       form.append(cancel,submit);
-      dialog.append(form);
+      const status = document.createElement('p');
+      status.setAttribute('role', 'status');
+      dialog.append(form, status);
       if (window.ecwActivationControls) {
         window.ecwActivationControls(dialog, player, currentAdmin, async () => {
           const call = firebase.app().functions('europe-west3').httpsCallable('ecwSmartphoneAktivierungslink');
@@ -407,7 +409,7 @@
         });
       }
       document.body.append(dialog);
-      const fingerprint=snapshot=>JSON.stringify(snapshot.data()||{});
+      const fingerprint=snapshot=>JSON.stringify(Object.entries(snapshot.data()||{}).sort(([a],[b])=>a.localeCompare(b)));
       form.addEventListener('submit',async event=>{
         event.preventDefault();
         if(!currentAdmin())return dialog.close();
@@ -427,7 +429,9 @@
           showToast('Smartphone-Freigaben gespeichert');
           dialog.close();
         }catch(error){
-          showToast('Freigaben konnten nicht gespeichert werden: '+error.message,8000);
+          status.textContent = error.code === 'permission-denied'
+            ? 'Firebase verweigert das Speichern der Menüfreigaben. Bitte den Regelblock smartphoneFreigaben prüfen.'
+            : 'Freigaben konnten nicht gespeichert werden: ' + error.message;
         }finally{
           submit.disabled=cancel.disabled=false;
         }
