@@ -6288,12 +6288,13 @@ function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
  const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'||s==='homepage'?'sh':s==='players'?'tp':s);
- const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin'];
+ const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin','checklists'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
  try{unloadMvAdmin()}catch(e){}
  try{document.getElementById('adminMain').classList.remove('mv-mode')}catch(e){}
  if(s==='reservadmin'){ecwReservationAdmin();return}
+ if(s==='checklists'){openECWChecklists();return}
  if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
  if(s==='docs'){ecwDocsAdmin();return}
  if(s==='homepage'){renderHomepageAdmin();return}
