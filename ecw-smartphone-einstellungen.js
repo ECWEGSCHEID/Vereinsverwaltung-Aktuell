@@ -400,6 +400,12 @@
       submit.textContent='Speichern';
       form.append(cancel,submit);
       dialog.append(form);
+      if (window.ecwActivationControls) {
+        window.ecwActivationControls(dialog, player, currentAdmin, async () => {
+          const call = firebase.app().functions('europe-west3').httpsCallable('ecwSmartphoneAktivierungslink');
+          return (await call({name: player})).data.link;
+        });
+      }
       document.body.append(dialog);
       const fingerprint=snapshot=>JSON.stringify(snapshot.data()||{});
       form.addEventListener('submit',async event=>{
