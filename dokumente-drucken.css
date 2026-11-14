@@ -1,0 +1,30 @@
+#druckdokumente{overflow:auto!important;overscroll-behavior:contain;min-height:100dvh}
+#druckdokumente .ecw-doc-content{overflow:auto;flex:1;min-height:0;padding:20px 22px 100px;color:#fff}
+.ecw-doc-card{max-width:1050px;margin:0 auto;background:rgba(24,0,0,.78);border:1px solid rgba(255,255,255,.25);border-radius:15px;padding:24px}
+.ecw-doc-card h2{font-size:1.5rem;margin:12px 0 18px}
+.ecw-doc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.ecw-doc-tiles button{padding:30px 16px;min-height:100px;font-size:1.2rem}
+.ecw-doc-list{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.ecw-doc-file,.ecw-doc-adminrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.22);border-radius:9px;flex-wrap:wrap}
+.ecw-doc-file span{font-weight:700}
+.ecw-doc-file button{margin:3px}
+.ecw-doc-adminrow input{flex:1;min-width:160px}
+.ecw-doc-adminrow span{flex:1}
+@media(max-width:650px){#druckdokumente .ecw-doc-content{padding:12px 12px 110px}.ecw-doc-card{padding:16px}.ecw-doc-file{align-items:stretch}.ecw-doc-file div{display:flex;flex-wrap:wrap}}
+
+/* V2.9.5: Dokumentenvorschau in der Verwaltung – immer sichtbar und gut bedienbar. */
+#adminMain .ecw-doc-preview-card{border:1px solid rgba(215,74,74,.5);background:linear-gradient(145deg,rgba(54,14,18,.95),rgba(12,12,14,.92));margin-bottom:16px}
+#adminMain .ecw-doc-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#adminMain .ecw-doc-preview-heading h3{margin:0 0 4px;font-size:1.2rem}
+#adminMain .ecw-doc-preview-heading p{margin:0 0 8px}
+#adminMain .ecw-doc-preview-count{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);border-radius:24px;padding:5px 12px;font-size:13px;white-space:nowrap}
+#adminMain .ecw-doc-preview-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#adminMain .ecw-doc-preview-actions button{flex:1 1 155px;min-height:44px}
+#adminMain #ecwDocPreviewStatus{min-height:20px;margin:10px 0}
+#adminMain #ecwDocPreviewFrame{display:block;width:100%;height:min(66vh,790px);min-height:440px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:#fff}
+#adminMain .ecw-doc-preview-empty{border:1px dashed rgba(255,255,255,.3);border-radius:10px;padding:30px 15px;text-align:center;color:#ddd;margin-top:12px}
+@media(max-width:650px){#adminMain #ecwDocPreviewFrame{min-height:320px;height:54vh}}
+
+#adminMain .ecw-doc-local-preview{margin:12px 0;padding:14px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:rgba(255,255,255,.05)}
+#adminMain .ecw-doc-local-preview[hidden]{display:none}
+#adminMain .ecw-doc-local-preview iframe{display:block;width:100%;height:360px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:#fff;margin-top:8px}
