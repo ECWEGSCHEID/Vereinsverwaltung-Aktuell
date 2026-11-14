@@ -1,0 +1,11 @@
+[Unit]
+Description=EC Wegscheid Firebase-Druckauftraege alle 60 Sekunden pruefen
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=60s
+AccuracySec=10s
+Unit=ecw-druckserver.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=EC Wegscheid Firebase-Druckauftraege an CUPS
+Wants=network-online.target cups.service
+After=network-online.target cups.service
+
+[Service]
+Type=oneshot
+User=administrator
+WorkingDirectory=/home/administrator
+ExecStart=/usr/bin/python3 /home/administrator/ecw_druckserver.py --once --print
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
