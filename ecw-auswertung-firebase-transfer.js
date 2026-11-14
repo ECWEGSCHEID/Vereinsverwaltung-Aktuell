@@ -2,7 +2,7 @@
     import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, getDocs, collection, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import {
-      getAuth, initializeAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+      getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
       setPersistence, browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import {
@@ -57,10 +57,9 @@
     const CENTRAL_ADMIN_PARENT=!!(CENTRAL_PARENT && ECW_EMBEDDED_ADMIN);
     const CENTRAL_WHITEBOARD_PARENT=!!(CENTRAL_PARENT && ECW_FORCED_WHITEBOARD && !CENTRAL_ADMIN_PARENT);
 
-    const mobileResults = urlParams.get('mode') === 'mobile-results' && window.parent !== window;
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = mobileResults ? initializeAuth(app,{persistence:browserLocalPersistence}) : getAuth(app);
+    const auth = getAuth(app);
 
     window.db = db;
     window.firebaseAuth = auth;
@@ -624,19 +623,7 @@
       throw new Error('Bitte die Funktion „Bisherige Turnierauswertung übernehmen“ verwenden.');
     };
 
-    if(mobileResults){
-      onAuthStateChanged(auth,user=>{
-        if(!user)return;
-        const target=urlParams.get('seite');
-        if(target==='cup'){
-          window.showView('view-main');
-          window.initFirebaseSync();
-        }else if(target==='jahresmeisterschaft'){
-          window.showView('view-jahresmeisterschaft');
-          document.getElementById('jahresmeisterschaftFrame').srcdoc=JAHRESMEISTERSCHAFT_HTML;
-        }
-      });
-    }else if(CENTRAL_PARENT){
+    if(CENTRAL_PARENT){
       // Bereits gepruefte zentrale Anmeldung ohne zweite Passwortabfrage.
       const activateCentralSession=()=>{
         window.currentFirebaseUser=CENTRAL_PARENT.firebaseAuthUser;

@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V7';
+const APP_RELEASE='ECW Startseite V5';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1547,20 +1547,11 @@ async function shLoadFromFirebase(showMessage=true){
 
 function shSafeUrl(u){u=(u||'').trim();if(!u||/^(javascript|data|vbscript):/i.test(u))return '';
  if(/^[a-z][a-z0-9+.-]*:/i.test(u)||/^[#/.?]/.test(u))return u;return 'https://'+u}
-function ecwRebaseLocalTournamentUrl(value){
- try{
-  const u=new URL(value,location.href);
-  if(u.origin===location.origin||!['localhost','127.0.0.1','[::1]'].includes(u.hostname))return value;
-  const file=u.pathname.split('/').pop().toLowerCase();
-  if(!['turnierauswertung.html','solo-pyramide.html'].includes(file))return value;
-  return new URL(file+u.search+u.hash,location.href).href;
- }catch(e){return value;}
-}
 var shOpen=-1;
 function shMakeBtn(b,idx){
  try{
   b=b||{};
-  const a=document.createElement('a'),u=ecwRebaseLocalTournamentUrl(shSafeUrl(b.u));
+  const a=document.createElement('a'),u=shSafeUrl(b.u);
   a.className='shbtn';a.textContent=String(b.t||'');
   const routePerm=(shInternalHash(u)||String(b.u||'')).replace(/^.*#/,'').split('?')[0];
   const routeMap={'turnierliste':'tp','turniere-monatsuebersicht':'t','eigene-turniere':'o','nachrichten':'n','fotos':'p','fotos-sponsoren':'sp','mitglieder':'mv','mannschaften':'m','links':'lk'};
@@ -1595,9 +1586,7 @@ function shMakeBtn(b,idx){
   }
 
   if(externalWebUrl(u)){
-   if(isWhiteboardReservationLink(u)){
-    a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
-   }else if(isLiveStartlistUrl(u)){
+   if(isLiveStartlistUrl(u)){
     a.onclick=e=>{e.preventDefault();openExternalPage(u,b.t);};
    }else if(isEcwTournamentAppUrl(u)||isSoloPyramideUrl(u)){
     if(isPublicWhiteboardMode()&&!isWhiteboardInternalResultAllowed(u)){
@@ -2362,7 +2351,7 @@ function openInternalCupAdmin(mode='home'){
  window.__adminBack='menu';
  window.__adminPreviewMode=false;
  const labels={doppelko:'Doppel KO System',home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
- openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
+ openExternalPage(internalCupUrl(mode),labels[mode]||'Interne Cup');
  setInternalCupAdminReturnButton();
 }
 function openInternalCupMigration(){
@@ -2377,7 +2366,7 @@ function renderInternalCupAdmin(){
   +'<div><h2 style="margin:0">Interne Cup</h2><div class="small">Turnierauswertung zentral in der Vereinsverwaltung · keine zweite Anmeldung erforderlich.</div></div>'
   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
   +'<div class="card"><h3>Bereich auswählen</h3><div class="ovmenu">'
-  +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung bearbeiten</button>'
+  +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'doppelko\')">Doppel KO System</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'stockdart\')">Stockdartauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
@@ -2661,7 +2650,7 @@ function renderWhiteboardPermissionsAdmin(target){
   +'<div id="wbPermStatus" class="small" style="margin-top:10px"></div></div>'
   +'<div class="card" style="margin-top:12px"><b>Hinweis</b><div class="small" style="margin-top:6px">Diese Einstellung betrifft nur die internen Ergebnisbereiche. Die vollständige Turnierverwaltung, Mannschaftsmeldungen und Adminfunktionen bleiben geschützt.</div></div>';
 }
-function externalWebUrl(value){value=window.ecwLocalUrl(ecwRebaseLocalTournamentUrl(value));
+function externalWebUrl(value){value=window.ecwLocalUrl(value);
  try{const parsed=new URL(value,location.href);return ['http:','https:'].includes(parsed.protocol)?parsed.href:'';}catch(e){return '';}
 }
 function clearExternalPage(){
@@ -2693,27 +2682,9 @@ async function ecwVerifyResultUser(){
   return profile.admin===true || isVerifiedWhiteboard;
  }catch(e){window.__ecwVerifiedWhiteboardUid=null;console.error('Ergebnis-Berechtigung:',e);return false;}
 }
-function isWhiteboardReservationLink(value){
- if(!(isWhiteboardUser()||isWhiteboardKioskAccount()))return false;
- const url=new URL(value,location.href);
- if(url.origin==='https://ecwegscheid.github.io' &&
-    /^\/Reservierungssystem(?:\/index\.html|\/)?$/i.test(url.pathname))return true;
- return url.origin===location.origin &&
-   /\/(?:ecw-reservierung-v\d+\.html|reservierung-smartphone-test\.html|verwaltung\/reservierungssystem(?:\/index\.html|\/)?)$/i.test(url.pathname);
-}
-
 async function openExternalPage(value,title){
  const checkUrl=externalWebUrl(value);
  const resultApp=isEcwTournamentAppUrl(checkUrl)||isSoloPyramideUrl(checkUrl);
- if(checkUrl && isWhiteboardReservationLink(checkUrl)){
-  await window.__ecwPersistenceReady;
-  if(!window.firebaseAuth?.currentUser){
-   window.__ecwPendingInternalResult={url:value,title, reservation:true};
-   loginPurpose='internalResult';
-   showView('login');
-   return;
-  }
- }
  if(resultApp && (isPublicWhiteboardMode()||isWhiteboardUser()||isWhiteboardKioskAccount())){
   // Ohne echte Firebase-Sitzung darf der Browser die App nicht als Whiteboard starten.
   if(!firebaseAuthUser){
@@ -2763,23 +2734,15 @@ async function openExternalPage(value,title){
  document.getElementById('externalPrevious').hidden=isReservationApp||externalPreviousView==='admin'||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
- if (isWhiteboardReservationLink(url)) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=13&ansicht=whiteboard', location.href).href;
-   page?.classList.add('ecw-reservation-embed');
- }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
  // Versionierung der gespeicherten Startseitenlinks wird hier vereinheitlicht.
  if(isEcwTournament){
    try{
      const normalized=new URL('turnierauswertung.html',location.href);
-     normalized.searchParams.set('v',APP_RELEASE);
-     const mode=ecwTournamentModeFromUrl(url);
-     normalized.searchParams.set('seite',mode);
+     normalized.searchParams.set('v','2.9.29');
+     normalized.searchParams.set('seite',ecwTournamentModeFromUrl(url));
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
-       if(mode==='cup' && new URL(url).searchParams.get('bearbeiten')==='1'){
-         normalized.searchParams.set('bearbeiten','1');
-       }
      }
      frameUrl=normalized.href;
    }catch(e){console.warn('Cup-Aufruf:',e);}
@@ -2982,7 +2945,7 @@ async function loginFirebaseAdmin(){
  if(window.__ecwPendingInternalResult){
   const pending=window.__ecwPendingInternalResult;
   window.__ecwPendingInternalResult=null;
-  setStatus(pending.reservation?'Anmeldung erfolgreich. Reservierungskalender wird geöffnet …':'Anmeldung erfolgreich. Ergebnisprogramm wird geöffnet …');
+  setStatus('Anmeldung erfolgreich. Ergebnisprogramm wird geoeffnet ...');
   await openExternalPage(pending.url,pending.title);
   return;
  }
@@ -4305,54 +4268,13 @@ async function tpLoadCentralPlayerList(){
     }
   }catch(e){console.warn('Zentrale Spielerliste nicht geladen:',e);}
 }
-function canEditTpSmartphoneAccess(){
-  return !!(firebaseAuthUser&&firestoreDb&&appPermissions.admin===true&&!isWhiteboardUser());
-}
-
-async function tpEditSmartphoneAccess(button,player){
-  if(!canEditTpSmartphoneAccess()||!tpPlayers().includes(player))return;
-  const adminUid=firebaseAuthUser.uid;
-  button.disabled=true;
-  try{
-    const directory=await firestoreDb.doc('smartphoneAnmeldung/mitglieder').get({source:'server'});
-    const members=directory.data()?.members;
-    const matches=Array.isArray(members)?members.filter(entry=>entry?.name===player):[];
-    if(matches.length!==1||typeof matches[0].alias!=='string'||!/^[a-f0-9]{32}$/.test(matches[0].alias)){
-      showToast('Für diesen Spieler ist kein eindeutiges Smartphonekonto eingerichtet.',6500);
-      return;
-    }
-    // The initial pilot was created before the batch provisioning UID convention.
-    const initialPilot=player==='Stadler Martin';
-    const memberUid=initialPilot
-      ? 'n9MpiKXZNLap8wsbRcP4fVjrT4D2'
-      : 'ecw-mobile-'+matches[0].alias;
-    const access=firestoreDb.collection('smartphoneFreigaben').doc(memberUid);
-    const hasReadAccess=snapshot=>snapshot.exists?snapshot.data()?.reservierungenLesen===true:initialPilot;
-    const current=hasReadAccess(await access.get({source:'server'}));
-    if(!canEditTpSmartphoneAccess()||firebaseAuthUser.uid!==adminUid||!button.isConnected)return;
-    const action=current?'Lesefreigabe entziehen':'Lesefreigabe erteilen';
-    if(!confirm(player+'\nReservierungssystem: '+(current?'Lesen freigegeben':'Lesen gesperrt')+'\n\n'+action+'?'))return;
-    await firestoreDb.runTransaction(async transaction=>{
-      const snapshot=await transaction.get(access);
-      if(!canEditTpSmartphoneAccess()||firebaseAuthUser.uid!==adminUid)throw Error('Adminsitzung geändert');
-      if(hasReadAccess(snapshot)!==current)throw Error('Freigabe wurde zwischenzeitlich geändert');
-      transaction.set(access,{reservierungenLesen:!current});
-    });
-    showToast(current?'Lesefreigabe entzogen':'Lesefreigabe erteilt');
-  }catch(error){
-    showToast('Freigabe konnte nicht gespeichert werden: '+error.message,8000);
-  }finally{
-    button.disabled=false;
-  }
-}
-
 function renderTpPlayersAdminList(){
   const el=document.getElementById('tpPlayersAdminList');if(!el)return;
   const players=tpPlayers().filter(p=>p!=='X');
   const aliases=tpPlayerAliases();
   el.innerHTML=players.length?players.map(p=>{
     const old=Object.keys(aliases).filter(a=>tpResolvePlayerName(a)===p);
-    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'')+'</div></div>';
+    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button></div></div>';
   }).join(''):'<div class="small">Keine Spieler vorhanden.</div>';
 }
 async function tpAddPlayer(){
@@ -6288,13 +6210,12 @@ function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
  const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'||s==='homepage'?'sh':s==='players'?'tp':s);
- const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin','checklists'];
+ const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
  try{unloadMvAdmin()}catch(e){}
  try{document.getElementById('adminMain').classList.remove('mv-mode')}catch(e){}
  if(s==='reservadmin'){ecwReservationAdmin();return}
- if(s==='checklists'){openECWChecklists();return}
  if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
  if(s==='docs'){ecwDocsAdmin();return}
  if(s==='homepage'){renderHomepageAdmin();return}

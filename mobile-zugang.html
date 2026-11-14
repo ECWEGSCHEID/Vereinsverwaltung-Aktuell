@@ -85,29 +85,10 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 #technikView .status:empty,#technikView .technik-liste:empty{display:none}
 @media(max-width:420px){#technikView .technik-grid{gap:6px}#technikView .technik-card{padding:8px}#technikView .technik-card h3{font-size:.85rem}}
 @media(max-width:360px){#technikView .technik-grid{grid-template-columns:1fr}#technikView .technik-card:not(.technik-breit){display:grid;grid-template-columns:1fr auto;align-items:center}#technikView .technik-card:not(.technik-breit) h3{margin:0}}
-[hidden]{display:none!important}
-.qr-compact{margin:0!important;background:transparent!important}
-.qr-compact body{margin:0!important;padding:0!important;background:transparent!important}
-.qr-compact .top,.qr-compact :is(header,footer){display:none!important}
-.qr-compact .wrap{margin:0;padding:0;max-width:none}
-.qr-compact #qrView{display:grid!important;place-items:center;background:transparent;border:0;box-shadow:none;margin:0;padding:0}
-.qr-compact #qrView > :not(#qrBox){display:none!important}
-.qr-compact #qrBox{width:198px;height:198px;margin:0;padding:8px;box-sizing:border-box;background:white}
-.qr-compact #qrBox svg{display:block;width:100%!important;height:100%!important}
-#tilePlayers[hidden],#tileMore[hidden]{display:none}
-#mobilePlayerRows{list-style:none;padding:0;display:grid;gap:6px}
-#mobilePlayerRows button,#mobilePlayerDetail button,#mobilePlayersView button{min-height:44px}
-#mobilePlayerRows button{width:100%;text-align:left}
-#mobilePlayerDialog{box-sizing:border-box;width:min(92vw,34rem);max-height:88vh;overflow:auto;color:#fff;background:#1e1c20;border:1px solid #745158;border-radius:14px}
-#mobilePlayerDialog::backdrop{background:#0009}
-#mobilePlayerDetail button{margin:6px 8px 6px 0}
-#mobilePlayerDetail .mobile-player-permission{display:flex;align-items:center;gap:12px;min-height:44px}
-#mobilePlayerDetail input[type=checkbox]{width:20px;height:20px;flex:none}
 </style>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-functions-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -117,7 +98,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   </div>
 
   <section id="qrView" class="panel qr-mode hidden">
-    <h2 id="mobileQrHeading" style="margin-top:0">QR-Code zur Anmeldung</h2>
+    <h2 style="margin-top:0">Ein QR-Code – vier mobile Funktionen</h2>
     <p class="small">QR-Code mit Smartphone oder Tablet scannen. Nach der ersten Anmeldung bleibt das Gerät angemeldet.</p>
     <div id="qrBox" class="qrbox"></div>
     <div class="qr-list">
@@ -154,24 +135,12 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
     </div>
   </section>
 
-  <button class="tile" id="tilePlayers" type="button" hidden><span><h2>Spielerliste</h2><p>Spieler bearbeiten, Zugriffe verwalten und Aktivierungslinks teilen.</p></span></button>
-  <section id="mobilePlayersView" class="panel hidden" aria-labelledby="mobilePlayersTitle">
-    <div class="section-head"><h2 id="mobilePlayersTitle">Spielerliste</h2><button class="secondary back" id="mobilePlayersBack" type="button">← Weitere Funktionen</button></div>
-    <form id="mobilePlayerAddForm"><label for="mobilePlayerNew">Neuer Spieler</label><input id="mobilePlayerNew" maxlength="120" required><div class="actions"><button class="primary" id="mobilePlayerAdd" type="submit" disabled>Hinzufügen</button></div></form>
-    <label for="mobilePlayerSearch">Spieler suchen</label><input id="mobilePlayerSearch" type="search">
-    <p id="mobilePlayersStatus" role="status"></p>
-    <ul id="mobilePlayerRows"></ul>
-  </section>
-  <dialog id="mobilePlayerDialog" aria-labelledby="mobilePlayerHeading">
-    <div class="section-head"><h2 id="mobilePlayerHeading"></h2><form method="dialog"><button class="secondary back" type="submit">Schließen</button></form></div>
-    <div id="mobilePlayerDetail"></div>
-  </dialog>
   <section id="technikView" class="panel hidden" aria-labelledby="technikHeading">
     <div class="section-head"><h2 id="technikHeading" tabindex="-1">Technik</h2><button class="secondary back" data-home type="button">← Übersicht</button></div>
     <div class="technik-grid">
-      <div class="technik-card"><h3>Halle</h3><span class="technik-wert" id="technik-halle">— °C</span><div class="small" id="technik-halle-zeit"></div></div>
-      <div class="technik-card"><h3>Außen</h3><span class="technik-wert" id="technik-aussen">— °C</span><div class="small" id="technik-aussen-zeit"></div></div>
-      <div class="technik-card"><h3>Vereinsheim</h3><span class="technik-wert" id="technik-vereinsheim">— °C</span><div class="small" id="technik-vereinsheim-zeit"></div></div>
+      <div class="technik-card"><h3>Halle</h3><span class="technik-wert" id="technik-halle">— °C</span><div class="small">Luftfeuchte: <strong id="technik-halle-feuchte">— %</strong></div><div class="small">Batterie: <strong id="technik-halle-batterie">— V</strong></div><div class="small" id="technik-halle-zeit"></div></div>
+      <div class="technik-card"><h3>Außen</h3><span class="technik-wert" id="technik-aussen">— °C</span><div class="small">Luftfeuchte: <strong id="technik-aussen-feuchte">— %</strong></div><div class="small">Batterie: <strong id="technik-aussen-batterie">— V</strong></div><div class="small" id="technik-aussen-zeit"></div></div>
+      <div class="technik-card"><h3>Vereinsheim</h3><span class="technik-wert" id="technik-vereinsheim">— °C</span><div class="small">Luftfeuchte: <strong id="technik-vereinsheim-feuchte">— %</strong></div><div class="small">Batterie: <strong id="technik-vereinsheim-batterie">— V</strong></div><div class="small" id="technik-vereinsheim-zeit"></div></div>
       <div class="small technik-breit" id="technikTemperaturStatus" role="status"></div>
       <div class="technik-card technik-breit">
         <h3>StockTV</h3>
@@ -2574,15 +2543,10 @@ function todayIso(){const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 
 function renderQrMode(){
   show('qrView');
-  if (qs.get('kompakt') === '1') document.documentElement.classList.add('qr-compact');
   const u=new URL(location.href);
   u.search='';
   u.hash='';
-  const members = qs.get('zugang') === 'members';
-  if (members) u.pathname = u.pathname.replace(/[^/]+$/, 'smartphone-mitglieder.html');
-  else u.searchParams.set('v','2.5.2');
-  $('mobileQrHeading').textContent = members ? 'QR-Code · Mitglieder' : 'QR-Code · Verwaltung';
-  $('qrView').querySelector('.qr-list').hidden = true;
+  u.searchParams.set('v','2.5.2');
   $('qrUrl').value=u.href;
   const qr=qrcode(0,'M');qr.addData(u.href);qr.make();
   $('qrBox').innerHTML=qr.createSvgTag({cellSize:5,margin:14,scalable:true});
@@ -2604,7 +2568,6 @@ async function ensureProfile(user){
   await ref.set(p);
   return p;
 }
-let smartphoneSettings;
 function applyTiles(){
   const map=[['tileTv','tv'],['tileNews','n'],['tilePlanner','tp'],['tileJm','jm']];
   map.forEach(([id,k])=>{
@@ -2617,7 +2580,6 @@ function applyTiles(){
   $('userLine').textContent=(currentUser?.email||'')+(profile?.admin?' · Administrator':'');
   const count=map.filter(x=>can(x[1])).length+Number(can('admin'));
   setStatus('homeStatus',count?count+' mobile Funktion(en) freigegeben.':'Für dieses Konto ist noch keine mobile Funktion freigegeben.');
-  ECWSmartphoneNavigation.applyAdmin(smartphoneSettings);
 }
 async function login(){
   const email=$('loginEmail').value.trim(),pw=$('loginPassword').value;
@@ -2758,14 +2720,9 @@ async function initApp(){
     currentUser=user||null;profile=null;
     if(!user){show('loginView');return}
     try{
-      const userProfile=await ensureProfile(user);
-      const settings = await ECWSmartphoneNavigation.settingsRef(db).get().catch(() => null);
-      if (auth.currentUser?.uid !== user.uid) return;
-      profile=userProfile;
-      smartphoneSettings = settings?.data();
+      profile=await ensureProfile(user);
       show('homeView');applyTiles();
     }catch(e){
-      if (auth.currentUser?.uid !== user.uid) return;
       console.error(e);show('loginView');setStatus('loginStatus','Berechtigungen konnten nicht geladen werden: '+(e.message||e),'err');
     }
   });
@@ -2788,10 +2745,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   initApp();
 });
 </script>
-<script src="ecw-smartphone-einstellungen.js?v=4"></script>
 <script src="ecw-mobile-navigation.js?v=auto-2"></script>
-<script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-technik.js?v=20261112-tempfix1"></script><script src="js/ecw-aktivierung.js?v=2"></script>
-<script src="js/ecw-mobile-spielerliste.js?v=2"></script>
-</body>
+<script src="js/ecw-technik-config.js?v=20261114a"></script><script src="js/ecw-technik-bridge.js?v=20261114a"></script><script src="js/ecw-technik.js?v=20261114a"></script></body>
 </html>
-

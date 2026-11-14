@@ -1742,7 +1742,7 @@ setTimeout(() => {
 
     <!-- VEREINE -->
     <section id="viewVereine" class="hidden">
-      <div class="section-intro"><h2>Vereine organisieren</h2><p>Vereinsadressen zentral in Firebase verwalten und für Excel exportieren. <strong>Teilnahmen seit 2020</strong></p></div>
+      <div class="section-intro"><h2>Vereine organisieren</h2><p>Vereinsadressen zentral in Firebase verwalten und für Excel exportieren. <strong>Teilnahmen seit 2021</strong></p></div>
       <div class="card desktop-mobile-access">
         <h3>Vereine unterwegs bearbeiten</h3>
         <p class="meta">QR-Code mit Smartphone oder Tablet scannen. Nach der ersten Anmeldung bleibt der Zugang auf diesem Gerät gespeichert.</p>
@@ -1785,13 +1785,13 @@ setTimeout(() => {
 
     <!-- HISTORIE -->
     <section id="viewHistorie" class="hidden">
-      <div class="section-intro"><h2>Historie seit 2020</h2><p>Teilnahmen seit 2020 aus der Vereinsliste und neue Einträge aus der Turnierverwaltung.</p></div>
+      <div class="section-intro"><h2>Historie seit 2021</h2><p>Teilnahmen seit 2021 aus der Vereinsliste und neue Einträge aus der Turnierverwaltung.</p></div>
       <div class="card"><button type="button" class="primary" id="historyBasisImportBtn">Teilnahmehistorie importieren</button><input type="file" id="historyBasisFile" accept=".json,application/json" hidden><p class="meta" id="historyBasisStatus" role="status">Teilnahmehistorie wird nach Anmeldung aus Firebase geladen.</p></div>
       <details class="card history-panel" id="historyOverviewPanel" open><summary>Teilnahmen bei uns – Jahresübersicht</summary>
         <div class="form-grid">
           <div><label for="historySearch">Verein suchen</label><input id="historySearch" type="search" placeholder="Vereinsname"></div>
           <div><label for="historyCategory">Kategorie</label><select id="historyCategory"><option value="Alle">Alle</option><option value="Herren">Herren</option><option value="Mixed">Mixed</option><option value="Damen">Damen</option></select></div>
-          <div><label for="historyYear">Jahr</label><select id="historyYear"><option value="all">Alle Jahre (ab 2020)</option></select></div>
+          <div><label for="historyYear">Jahr</label><select id="historyYear"><option value="all">Alle Jahre (ab 2021)</option></select></div>
           <div><label for="historySort">Sortieren nach</label><select id="historySort"><option value="teilnahmen">Teilnahmen gesamt</option><option value="mannschaften">Mannschaften gesamt</option><option value="herren">Herren</option><option value="mixed">Mixed</option><option value="damen">Damen</option><option value="letzte">Letzte Teilnahme</option><option value="name">Verein A–Z</option></select></div>
         </div>
         <div id="historySummary" class="meta" style="margin:10px 0"></div>
@@ -1801,18 +1801,12 @@ setTimeout(() => {
         <p class="meta">Bei uns: Mannschaften aus abgeschlossenen Heimturnieren. Wir dort: je erfasstem Turnier-/Terminplaner-Eintrag eine Mannschaft (nur vergangene externe Turniere). Meisterschaften und interne Turniere zählen nicht. Der Gegenbesuchsvergleich berücksichtigt alle Kategorien.</p>
         <div class="form-grid" aria-label="Gegenbesuche filtern und sortieren">
           <div><label for="historyCompareSearch">Verein suchen</label><input id="historyCompareSearch" type="search" placeholder="Vereinsname"></div>
-          <div><label for="historyCompareYear">Jahr</label><select id="historyCompareYear"><option value="all">Alle Jahre (ab 2020)</option></select></div>
+          <div><label for="historyCompareYear">Jahr</label><select id="historyCompareYear"><option value="all">Alle Jahre (ab 2021)</option></select></div>
           <div><label for="historyCompareSort">Sortieren nach</label><select id="historyCompareSort"><option value="gesamt">Gesamtzahl Mannschaften</option><option value="home">Bei uns (absteigend)</option><option value="away">Wir dort (absteigend)</option><option value="difference">Differenz (absteigend)</option><option value="differenceAsc">Differenz (aufsteigend)</option><option value="name">Verein A–Z</option><option value="nameDesc">Verein Z–A</option></select></div>
         </div>
         <div id="historyCompareSummary" class="meta" style="margin:10px 0"></div>
         <div style="overflow:auto"><table class="history-table"><thead><tr><th>Verein</th><th>Bei uns (Mannschaften)</th><th>Wir dort (Mannschaften)</th><th>Differenz</th></tr></thead><tbody id="historyCompareBody"></tbody></table></div>
         <div id="historyCompareDetail" class="meta" style="margin-top:12px">Verein in der Vergleichstabelle anklicken, um Einzeltermine anzuzeigen.</div>
-      </details>
-      <details class="card history-panel" id="historyHomeCorrectionBox">
-        <summary>Teilnahmen bei uns prüfen und korrigieren</summary>
-        <p class="meta">Vereinsnamen für die Auswertung ändern oder einzelne Teilnahmen ausblenden. Die Änderungen werden in diesem Browser gespeichert.</p>
-        <div id="historyHomeCorrectionStatus" class="meta" role="status"></div>
-        <div id="historyHomeCorrectionList"></div>
       </details>
       <details class="card history-panel" id="historyCorrectionBox"><summary>Gegenbesuche prüfen und korrigieren</summary>
           <p class="meta">Hier kannst du Terminplaner-Einträge nur für diese Auswertung ausblenden, einem Vereinsnamen zuordnen und die Mannschaftszahl berichtigen. Die Originaltermine bleiben unverändert. Korrekturen werden <strong>nur in diesem Browser</strong> gespeichert; für andere Geräte kannst du sie exportieren und importieren.</p>
@@ -5100,10 +5094,10 @@ function tournamentIsFinished(t){return !!t?.datum && String(t.datum)<localToday
 function tournamentIsActive(t){const status=String(t?.status||t?.turnierStatus||'').toLowerCase();return !['abgeschlossen','beendet','finished','completed','archiviert'].includes(status)&&!t?.abgeschlossen&&!t?.beendet&&!t?.finished&&!t?.completed&&(!t?.datum||String(t.datum)>=localTodayIso())}
 function tournamentCategory(t){if(['Herren','Damen','Mixed'].includes(t?.kategorie))return t.kategorie;const n=String(t?.name||'').toLowerCase();if(n.includes('damen'))return 'Damen';if(n.includes('mixed'))return 'Mixed';return 'Herren'}
 function isoFromGerman(d){const m=String(d||'').match(/^(\d{2})\.(\d{2})\.(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:String(d||'')}
-function historyRawHomeRecords(){
+function historyAllRecords(){
  const out=HISTORY_BASE_RECORDS
    .map(r=>({...r,verein:historyCanonicalClub(r.verein),source:'Excel',iso:isoFromGerman(r.datum)}))
-   .filter(r=>String(r.iso||'')>='2001-01-01' && String(r.iso||'')<localTodayIso());
+   .filter(r=>String(r.iso||'')>='2021-01-01' && String(r.iso||'')<localTodayIso());
  const baseCounts=new Map();for(const r of out){const k=[hNorm(historyCanonicalClub(r.verein)),r.iso,r.kategorie].join('|');baseCounts.set(k,(baseCounts.get(k)||0)+Number(r.mannschaften||1))}
  const tmap=new Map(turniereCache.map(t=>[t.id,t])),grouped=new Map();
  for(const m of historyMeldungenCache){
@@ -5111,7 +5105,7 @@ function historyRawHomeRecords(){
    const club=historyCanonicalClub(m.vereinName||'');
    if(!club||hNorm(club)==='ec wegscheid'||hNorm(club)==='frei')continue;
    const cat=tournamentCategory(t),iso=t.datum||'';
-   if(String(iso)<'2001-01-01'||String(iso)>=localTodayIso())continue;
+   if(String(iso)<'2021-01-01'||String(iso)>=localTodayIso())continue;
    const k=[hNorm(club),iso,cat].join('|');
    let g=grouped.get(k);
    if(!g)grouped.set(k,g={verein:club,turnierId:t.id,datum:iso,iso,turnierart:t.name||'Turnier',kategorie:cat,mannschaften:0,source:'Firebase'});
@@ -5120,96 +5114,16 @@ function historyRawHomeRecords(){
  for(const [k,r] of grouped){const already=baseCounts.get(k)||0;if(r.mannschaften>already)out.push({...r,mannschaften:r.mannschaften-already});}
  return out
 }
-const HISTORY_HOME_CORRECTIONS_KEY='ecw-history-home-corrections-v1';
-let historyHomeCorrections={};
-try {
- const saved=JSON.parse(localStorage.getItem(HISTORY_HOME_CORRECTIONS_KEY)||'{}');
- if(saved&&typeof saved==='object'&&!Array.isArray(saved))historyHomeCorrections=saved;
-}catch(error){console.warn('Korrekturen für Teilnahmen konnten nicht gelesen werden.',error)}
-function historyHomeKey(row){
- return JSON.stringify(row.source==='Excel'
-   ? ['Excel',row.id||[row.turnierId,row.datum,row.verein,row.kategorie]]
-   : ['Firebase',row.turnierId,row.iso,row.verein,row.kategorie]);
-}
-function historyAllRecords(){
- return historyRawHomeRecords().flatMap(row=>{
-   const correction=historyHomeCorrections[historyHomeKey(row)];
-   if(correction?.hidden===true)return [];
-   return [correction?.name?{...row,verein:correction.name}:row];
- });
-}
-function renderHistoryHomeCorrections(){
- const panel=document.getElementById('historyHomeCorrectionBox');
- const host=document.getElementById('historyHomeCorrectionList');
- if(!panel.open||host.querySelector('[data-dirty]'))return;
- const year=historySelectedYear();
- const records=historyRawHomeRecords().filter(row=>historyMatchesYear(row.iso,year));
- records.sort((a,b)=>b.iso.localeCompare(a.iso)||a.verein.localeCompare(b.verein,'de'));
- host.replaceChildren();
- if(!records.length){host.textContent='Keine Teilnahmen für das ausgewählte Jahr.';return}
- const form=document.createElement('form');
- const controls=[];
- for(const row of records){
-   const key=historyHomeKey(row), correction=historyHomeCorrections[key]||{};
-   const field=document.createElement('fieldset');
-   const title=document.createElement('legend');
-   title.textContent=formatDatum(row.iso)+' · '+row.turnierart+' · '+row.verein+' · '+row.kategorie;
-   const label=document.createElement('label');
-   label.textContent='Vereinsname';
-   const name=document.createElement('input');
-   name.value=correction.name||row.verein;
-   name.maxLength=200;
-   label.append(name);
-   const hideLabel=document.createElement('label');
-   const hidden=document.createElement('input');
-   hidden.type='checkbox';hidden.checked=correction.hidden===true;
-   hidden.style.width='auto';
-   hideLabel.append(hidden,document.createTextNode(' Nicht zählen'));
-   field.append(title,label,hideLabel);form.append(field);
-   controls.push({key,row,name,hidden});
- }
- const save=document.createElement('button');
- save.type='submit';save.className='primary';save.textContent='Alle Änderungen übernehmen';
- form.append(save);
- form.addEventListener('input',()=>{form.dataset.dirty='1'});
- form.addEventListener('submit',event=>{
-   event.preventDefault();
-   const status=document.getElementById('historyHomeCorrectionStatus');
-   const next={...historyHomeCorrections};
-   for(const {key,row,name,hidden} of controls){
-     const value=name.value.trim();
-     if(!value&&!hidden.checked){status.textContent='Bitte einen Vereinsnamen eingeben oder „Nicht zählen“ wählen.';name.focus();return}
-     if((value&&value!==row.verein)||hidden.checked){
-       next[key]={name:value&&value!==row.verein?value:'',hidden:hidden.checked};
-     }else delete next[key];
-   }
-   try{localStorage.setItem(HISTORY_HOME_CORRECTIONS_KEY,JSON.stringify(next))}
-   catch(error){status.textContent='Speichern fehlgeschlagen: '+error.message;return}
-   historyHomeCorrections=next;
-   delete form.dataset.dirty;
-   const detail=document.getElementById('historyDetail');
-   if(detail)detail.replaceChildren();
-   renderHistory();
-   status.textContent='Korrekturen gespeichert.';
- });
- host.append(form);
-}
-document.getElementById('historyHomeCorrectionBox').addEventListener('toggle',renderHistoryHomeCorrections);
-const HISTORY_FIRST_DISPLAY_YEAR=2020;
-function historyMatchesYear(date, selected='all'){
- const year=String(date||'').slice(0,4);
- return /^\d{4}$/.test(year)&&Number(year)>=HISTORY_FIRST_DISPLAY_YEAR&&(selected==='all'||year===selected);
-}
-function historyStats(records=historyAllRecords().filter(r=>historyMatchesYear(r.iso))){const map=new Map();for(const r of records){const n=historyCanonicalClub(r.verein);if(!n)continue;let x=map.get(n);if(!x)map.set(n,x={name:n,teilnahmen:0,mannschaften:0,herren:0,mixed:0,damen:0,last:'',records:[]});x.teilnahmen++;x.mannschaften+=Number(r.mannschaften||1);x.records.push(r);if(r.iso>x.last)x.last=r.iso;if(r.kategorie==='Damen')x.damen++;else if(r.kategorie==='Mixed')x.mixed++;else x.herren++}return map}
+function historyStats(records=historyAllRecords()){const map=new Map();for(const r of records){const n=historyCanonicalClub(r.verein);if(!n)continue;let x=map.get(n);if(!x)map.set(n,x={name:n,teilnahmen:0,mannschaften:0,herren:0,mixed:0,damen:0,last:'',records:[]});x.teilnahmen++;x.mannschaften+=Number(r.mannschaften||1);x.records.push(r);if(r.iso>x.last)x.last=r.iso;if(r.kategorie==='Damen')x.damen++;else if(r.kategorie==='Mixed')x.mixed++;else x.herren++}return map}
 function historyCategoriesForClub(name){const x=historyStats().get(historyCanonicalClub(name)),a=[];if(x?.herren)a.push('Herren');if(x?.mixed)a.push('Mixed');if(x?.damen)a.push('Damen');return a}
 function historySelectedYear(){return document.getElementById('historyYear')?.value||'all'}
 function historyFillYears(){
  const sel=document.getElementById('historyYear');if(!sel)return;
  const selected=sel.value||'all',years=new Set([String(new Date().getFullYear())]);
- historyRawHomeRecords().forEach(r=>{if(r.iso)years.add(String(r.iso).slice(0,4))});
+ historyAllRecords().forEach(r=>{if(r.iso)years.add(String(r.iso).slice(0,4))});
  historyPlannerEntries().forEach(r=>{if(r.date)years.add(String(r.date).slice(0,4))});
- const sorted=[...years].filter(y=>historyMatchesYear(y)).sort((a,b)=>b.localeCompare(a));
- sel.innerHTML='<option value="all">Alle Jahre (ab 2020)</option>'+sorted.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+ const sorted=[...years].filter(y=>/^20\d\d$/.test(y)&&Number(y)>=2021).sort((a,b)=>b.localeCompare(a));
+ sel.innerHTML='<option value="all">Alle Jahre (ab 2021)</option>'+sorted.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
  sel.value=sorted.includes(selected)?selected:'all';
  const compare=document.getElementById('historyCompareYear');
  if(compare){const previous=compare.value;compare.innerHTML=sel.innerHTML;compare.value=sorted.includes(previous)?previous:'all';}
@@ -5277,9 +5191,9 @@ function historyCorrectionsApplyAll(){
 }
 function historyCorrectionsRender(){
  const el=document.getElementById('historyCorrectionsList');if(!el)return;
- const year=historySelectedYear(),raw=historyRawEntriesWithKeys().filter(r=>historyMatchesYear(r.date,year));
+ const year=historySelectedYear(),raw=historyRawEntriesWithKeys().filter(r=>year==='all'||String(r.date||'').startsWith(year));
  el.replaceChildren();
- const info=document.createElement('p');info.className='meta';info.textContent=raw.length+' Termine aus dem Terminplaner · '+(year==='all'?'alle Jahre ab 2020':'Jahr '+year)+' · '+Object.keys(historyCorrections).length+' gespeicherte Korrektur(en). Du kannst mehrere Zeilen bearbeiten und anschließend alle Änderungen gemeinsam speichern.';el.appendChild(info);
+ const info=document.createElement('p');info.className='meta';info.textContent=raw.length+' Termine aus dem Terminplaner · '+(year==='all'?'alle Jahre':'Jahr '+year)+' · '+Object.keys(historyCorrections).length+' gespeicherte Korrektur(en). Du kannst mehrere Zeilen bearbeiten und anschließend alle Änderungen gemeinsam speichern.';el.appendChild(info);
  if(!raw.length){const warn=document.createElement('p');warn.className='meta';warn.textContent='Keine Terminplaner-Einträge verfügbar. Bitte über die Startseite der Vereinsverwaltung öffnen und warten, bis die Termine geladen sind.';el.appendChild(warn);return;}
  const saveAll=document.createElement('button');saveAll.type='button';saveAll.className='primary';saveAll.textContent='Alle Änderungen übernehmen';saveAll.style.margin='8px 0 12px';saveAll.addEventListener('click',historyCorrectionsApplyAll);el.appendChild(saveAll);
  const wrap=document.createElement('div');wrap.style.overflowX='auto';
@@ -5329,8 +5243,8 @@ function historyNormalizeCompareName(raw){
 function historyRenderComparison(){
  const body=document.getElementById('historyCompareBody'),summary=document.getElementById('historyCompareSummary');if(!body||!summary)return;
  const year=document.getElementById('historyCompareYear')?.value||'all',term=(document.getElementById('historyCompareSearch')?.value||'').toLocaleLowerCase('de');
- const inbound=historyAllRecords().filter(r=>historyMatchesYear(r.iso,year));
- const outbound=historyPlannerEntries().filter(r=>historyMatchesYear(r.date,year));
+ const inbound=historyAllRecords().filter(r=>year==='all'||String(r.iso||'').startsWith(year));
+ const outbound=historyPlannerEntries().filter(r=>year==='all'||String(r.date||'').startsWith(year));
  const groups=new Map();
  const add=(name,side,count,detail)=>{
    const canonical=historyNormalizeCompareName(name),key=hNorm(canonical);if(!key)return;
@@ -5372,7 +5286,7 @@ function renderHistory(){
  historyFillYears();
  const head=document.getElementById('historyHead');
  const year=historySelectedYear();
- const stats=[...historyStats(historyAllRecords().filter(r=>historyMatchesYear(r.iso,year))).values()];
+ const stats=[...historyStats(historyAllRecords().filter(r=>year==='all'||String(r.iso||'').startsWith(year))).values()];
  const term=(document.getElementById('historySearch')?.value||'').toLowerCase();
  const cat=document.getElementById('historyCategory')?.value||'Alle';
  const sort=document.getElementById('historySort')?.value||'teilnahmen';
@@ -5398,10 +5312,9 @@ function renderHistory(){
    }
    tr.addEventListener('click',()=>renderHistoryDetailFiltered(x,cat));body.appendChild(tr);
  }
- document.getElementById('historySummary').textContent=list.length+' Vereine · '+(year==='all'?'Teilnahmen seit 2020':'Jahr '+year)+(cat==='Alle'?'':' · '+cat);
+ document.getElementById('historySummary').textContent=list.length+' Vereine · '+(year==='all'?'Teilnahmen seit 2021':'Jahr '+year)+(cat==='Alle'?'':' · '+cat);
  historyRenderComparison();
  historyCorrectionsRender();
- renderHistoryHomeCorrections();
 }
 function renderHistoryDetailFiltered(x,cat){
  const el=document.getElementById('historyDetail');
@@ -5426,8 +5339,8 @@ function listenHistoryBasis(){
    const exists=typeof snap.exists==='function'?snap.exists():snap.exists;
    const value=exists?window.ECWHistoryCore.normalize({format:'ecw-tournament-history',...snap.data()}):null;
    applyHistoryBasis(value);historyBasisReady=true;
-   const count=HISTORY_BASE_RECORDS.filter(r=>isoFromGerman(r.datum)>='2001-01-01').length;
-   historyBasisStatus(value?count+' historische Einträge ab 2001 aus Firebase geladen.':'Noch keine historische Basis in Firebase. Die private Sicherungsdatei einmal über „Teilnahmehistorie importieren“ übernehmen.');
+   const count=HISTORY_BASE_RECORDS.filter(r=>isoFromGerman(r.datum)>='2021-01-01').length;
+   historyBasisStatus(value?count+' historische Einträge ab 2021 aus Firebase geladen.':'Noch keine historische Basis in Firebase. Die private Sicherungsdatei einmal über „Teilnahmehistorie importieren“ übernehmen.');
   }catch(e){historyBasisReady=false;historyBasisStatus('Historie konnte nicht geladen werden: '+e.message);dbError(e)}
  },error=>{historyBasisReady=false;historyBasisStatus('Historie nicht geladen. Firebase-Verbindung oder Berechtigung prüfen.');dbError(error)});
 }
@@ -5449,7 +5362,7 @@ async function importHistoryBasis(file){
   }return merged;
  });
  applyHistoryBasis(result.value);historyBasisReady=true;
- historyBasisStatus('In Firebase bestätigt: '+result.added+' Einträge ergänzt; '+result.value.records.filter(r=>isoFromGerman(r.datum)>='2001-01-01').length+' historische Einträge ab 2001 vorhanden.');
+ historyBasisStatus('In Firebase bestätigt: '+result.added+' Einträge ergänzt; '+result.value.records.filter(r=>isoFromGerman(r.datum)>='2021-01-01').length+' historische Einträge ab 2021 vorhanden.');
  notify(result.added?'Teilnahmehistorie in Firebase gespeichert.':'Diese Teilnahmehistorie ist bereits vollständig in Firebase vorhanden.');
 }
 document.getElementById('historyBasisImportBtn').addEventListener('click',()=>document.getElementById('historyBasisFile').click());
