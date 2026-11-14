@@ -7,7 +7,7 @@ const defaults=[{id:'verein',title:'Vereinsdokumente'},{id:'turnier',title:'Turn
 let state={categories:defaults.map(x=>({...x})),files:[],printer:'HP Color Laser MFP 178nwg',paper:'A4',note:'',updatedAt:''};
 let selected=null,previewFromAdmin=false,loading=false,busy=false,urls=new Map(),localPreviewUrl=null;
 let loadError='',loadSource='',lastLoaded='',loadPromise=null;
-const VERSION='2.8.6';
+const VERSION='2.8.7-hallendruck';
 function withDeadline(p,ms){return Promise.race([p,new Promise((_,reject)=>setTimeout(()=>reject(Error('Zeitüberschreitung nach '+Math.round(ms/1000)+' Sekunden')),ms))])}
 function explainError(e){const code=String(e?.code||'');const msg=String(e?.message||e||'Unbekannter Fehler');
  if(code.includes('permission-denied')||/permission.?denied|insufficient permissions/i.test(msg))return 'Firebase-Zugriff verweigert (permission-denied). Bitte veröffentlichte Firestore-Regeln für appSettings/druckdokumente und druckpdf_* prüfen.';
@@ -55,7 +55,7 @@ function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected)
  if(!c){html+='<h2>Bereich auswählen</h2><div class="ecw-doc-tiles">'+state.categories.map(x=>'<button type="button" data-doc-cat="'+esc(x.id)+'">'+esc(x.title)+'</button>').join('')+'</div>';}
  else {html+='<h2>'+esc(c.title)+'</h2><button type="button" data-doc-cat="">← Alle Bereiche</button><div class="ecw-doc-list">';
  const files=state.files.filter(x=>x.category===selected);
- html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">PDF öffnen</button> <button type="button" data-doc-print="'+esc(f.id)+'">Drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
+ html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">PDF öffnen</button> <button type="button" data-doc-print="'+esc(f.id)+'">Drucken</button> <button type="button" data-doc-hall="'+esc(f.id)+'">Über Hallendrucker drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
  html+='</div>'}
  html+='</div>';return html;
 }
@@ -82,7 +82,38 @@ function renderPublic(){
  box.querySelectorAll('[data-doc-cat]').forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.docCat||null;renderPublic()}));
  box.querySelectorAll('[data-doc-open]').forEach(b=>b.addEventListener('click',()=>openPdf(b.dataset.docOpen,false)));
  box.querySelectorAll('[data-doc-print]').forEach(b=>b.addEventListener('click',()=>openPdf(b.dataset.docPrint,true)));
+ box.querySelectorAll('[data-doc-hall]').forEach(b=>b.addEventListener('click',()=>enqueueHallPrint(b.dataset.docHall,b)));
 }
+// ECW Hallendruck: kein Browser-Druckdialog; ausschließlich bewusst erstellte Aufträge.
+// Bestehende Firestore-Regeln erlauben CREATE nur für das Informationssystem-Konto.
+const HALL_PRINT_UID='ewlezYPZBQUb0t0wMEZZ9Uytkcy1';
+async function enqueueHallPrint(id,button){
+ const file=state.files.find(f=>f.id===id);
+ if(!file || !/^[a-z0-9]{8,40}$/.test(id)){toast('PDF-ID nicht gültig.');return;}
+ const authUser=typeof firebaseAuthUser!=='undefined'?firebaseAuthUser:null;
+ if(!authUser || authUser.uid!==HALL_PRINT_UID){
+  toast('Hallendruck ist für das angemeldete Informationssystem-Konto freigegeben. Bitte am Whiteboard mit diesem Konto anmelden.');return;
+ }
+ if(!confirm('„'+file.title+'“ wirklich einmal über den Hallendrucker drucken?'))return;
+ if(button.disabled)return;
+ button.disabled=true;
+ const old=button.textContent;
+ button.textContent='Druckauftrag wird übermittelt …';
+ try{
+  const created=await withDeadline(db().collection('druckauftraege').add({
+   pdfId:id,status:'wartend',erstellt:firebase.firestore.FieldValue.serverTimestamp(),uid:authUser.uid
+  }),20000);
+  button.textContent='Auftrag angelegt ✓';
+  toast('Hallendruck-Auftrag gespeichert. Auftrags-ID: '+created.id+'. Der Raspberry Pi übernimmt ihn erst, wenn der Druckdienst gestartet wird.');
+  // Ein bereits angenommener Auftrag darf bei Verbindungsproblemen nicht blind wiederholt werden.
+  console.info('ECW Hallendruck Auftrag angelegt', created.id);
+ }catch(e){
+  button.textContent=old;
+  console.warn('Hallendruckauftrag fehlgeschlagen',e);
+  toast('Druckauftrag konnte nicht bestätigt werden: '+explainError(e)+'. Vor erneutem Tippen Warteschlange prüfen.');
+ }finally{setTimeout(()=>{button.disabled=false;if(button.textContent==='Auftrag angelegt ✓')button.textContent=old},8000)}
+}
+
 function back(){
  selected=null;
  if(previewFromAdmin){

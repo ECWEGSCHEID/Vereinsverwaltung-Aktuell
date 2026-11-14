@@ -1,0 +1,39 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EC Wegscheid – Tabellen (Nur Lesen)</title><style>
+:root{color-scheme:dark}body{margin:0;padding:14px;font:16px system-ui,Arial;background:#170d10;color:#fff}h1{font-size:1.3rem}select,button{background:#282126;border:1px solid #b45d60;color:#fff;border-radius:7px;padding:10px;font:inherit;max-width:100%}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:8px 5px;border-bottom:1px solid #555}th{background:#432126}section{margin:14px 0;border:1px solid #633;padding:9px;border-radius:8px;overflow:auto}#status{line-height:1.5}.muted{color:#bbb}
+</style></head><body><h1>EC Wegscheid – Ergebnistabellen</h1><p class="muted">Nur lesen · keine zusätzliche Anmeldung</p><p id="status" role="status">Lade veröffentlichte Ergebnisse …</p><div id="content"></div><script>
+(()=>{'use strict';
+const content=document.getElementById('content'),status=document.getElementById('status');
+const params=new URLSearchParams(location.search),mode=params.get('cup')||'duo';
+const endpoint='https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/turnierauswertung/cup';
+function val(f){if(!f)return null;if('stringValue'in f)return f.stringValue;if('integerValue'in f)return Number(f.integerValue);if('doubleValue'in f)return Number(f.doubleValue);if('booleanValue'in f)return f.booleanValue;if('nullValue'in f)return null;if(f.arrayValue)return(f.arrayValue.values||[]).map(val);if(f.mapValue)return Object.fromEntries(Object.entries(f.mapValue.fields||{}).map(([k,v])=>[k,val(v)]));return null;}
+const node=(tag,txt,parent)=>{let e=document.createElement(tag);e.textContent=String(txt);parent.append(e);return e};
+const N=x=>Number(x)||0;
+function standings(g){const stats=new Map();for(const team of (g.teams||[])){stats.set(String(team.id),{name:team.name||'—',played:0,points:0,sets:0,for:0,against:0,dq:!!team.dq,dnf:!!team.dnf});}
+ for(const m of Object.values(g.matches||{})){let a=stats.get(String(m.teamA)),b=stats.get(String(m.teamB));if(!a||!b)continue;if(!m.completed && !(a.dq||a.dnf||b.dq||b.dnf))continue;
+ if(!a.dq&&!a.dnf)a.played++;if(!b.dq&&!b.dnf)b.played++;
+ if(!(a.dq||a.dnf||b.dq||b.dnf)){a.for+=N(m.stocksA);a.against+=N(m.stocksB);b.for+=N(m.stocksB);b.against+=N(m.stocksA);}
+ let pa=0,pb=0;if(m.games?.length){for(const gm of m.games){if(N(gm.sA)>N(gm.sB))pa+=2;else if(N(gm.sB)>N(gm.sA))pb+=2;else if(N(gm.sA)||N(gm.sB)){pa++;pb++;}}}else{pa=N(m.pointsA);pb=N(m.pointsB);}
+ if(a.dq||a.dnf){if(!(b.dq||b.dnf)){b.points+=3;b.sets+=2;}}else if(b.dq||b.dnf){a.points+=3;a.sets+=2;}else if(pa>pb)a.points+=3;else if(pb>pa)b.points+=3;else{a.points++;b.points++;}
+ if(!(a.dq||a.dnf||b.dq||b.dnf)){a.sets+=pa;b.sets+=pb;}
+ }
+ const arr=[...stats.values()];for(let row of arr){if(row.dq||row.dnf){row.played=0;row.points=0;row.sets=0;row.for=0;row.against=0;}row.quota=row.against===0?(row.for?999:1):row.for/row.against;}
+ return arr.sort((a,b)=>Number(a.dq)-Number(b.dq)||Number(a.dnf)-Number(b.dnf)||b.points-a.points||b.sets-a.sets||b.quota-a.quota);
+}
+function render(tournaments){content.replaceChildren();const entries=Object.entries(tournaments).filter(([,v])=>v&&typeof v==='object');
+const filtered=entries.filter(([,t])=>new RegExp(mode==='frauen'?'frauen|damen':'duo','i').test(t.name||''));
+const candidates=filtered.length?filtered:entries;
+if(!candidates.length){status.textContent='Keine gespeicherten Cup-Ergebnisse vorhanden.';return;}
+const select=node('select','',content);select.setAttribute('aria-label','Turnier wählen');select.replaceChildren();for(const [id,t] of candidates){const option=document.createElement('option');option.value=id;option.textContent=t.name||id;select.append(option);}
+const holder=node('div','',content);
+function display(){holder.replaceChildren();const selected=tournaments[select.value];if(!selected)return;
+ for(const [gId,g] of Object.entries(selected.groups||{})){const box=node('section','',holder);node('h2',g.name||gId,box);const table=node('table','',box);const head=node('thead','',table),r=node('tr','',head);for(const h of ['Pl.','Mannschaft','Sp.','Pkt.','Stock','Quote','Satzpkt.'])node('th',h,r);
+ const body=node('tbody','',table);for(const [i,row] of standings(g).entries()){const tr=node('tr','',body);for(const v of [i+1,row.name+(row.dq?' (DSQ)':row.dnf?' (DNF)':''),row.played,row.points,`${row.for}:${row.against}`,row.quota.toFixed(3),row.sets])node('td',v,tr);}
+ } if(!Object.keys(selected.groups||{}).length)node('p','Für dieses Turnier sind keine Gruppentabellen gespeichert.',holder);
+}select.onchange=display;display();status.textContent=filtered.length?'Veröffentlichte '+(mode==='frauen'?'Frauen-':'Duo-')+'Cup-Ergebnisse':'Passender Cup nicht eindeutig gefunden. Bitte Turnier auswählen.';
+}
+async function load(){if(mode==='jahresmeisterschaft'){status.textContent='Ziel-Jahresmeisterschaft: Datenquelle dieser Tabelle ist noch nicht für die mobile öffentliche Ansicht verbunden.';return;}
+try{const r=await fetch(endpoint,{cache:'no-store'});if(!r.ok)throw Error('Firebase HTTP '+r.status);const j=await r.json();const data=Object.fromEntries(Object.entries(j.fields||{}).map(([k,v])=>[k,val(v)]));render(data.tournaments||{});
+}catch(e){status.textContent='Ergebnisdaten konnten nicht geladen werden: '+e.message;}}
+void load();
+})();
+</script></body></html>
