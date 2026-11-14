@@ -1,0 +1,24 @@
+EC Wegscheid – gezielte Wiederherstellung der Smartphone-Funktionen
+14.11.2026
+
+Ursache: Das Komplettpaket vom 14.11. wurde auf einer älteren Basis aufgebaut.
+Dadurch fehlten HTML-Einbindungen der Smartphone-Verwaltung vom 13.11.
+
+Nur diese beiden Dateien im GitHub-Hauptverzeichnis ersetzen:
+- index.html
+- mobile-zugang.html
+
+Die Dateien js/dokumente-drucken.js, js/ecw-technik.js,
+ecw-smartphone-einstellungen.js, js/ecw-mobile-spielerliste.js,
+js/ecw-aktivierung.js und smartphone-mitglieder.html
+NICHT durch ältere ZIP-Kopien ersetzen. Die neueren Hilfsmodule müssen
+auf GitHub vorhanden sein; die beiden HTML-Dateien verknüpfen sie wieder.
+
+Enthalten: Smartphonezugangs-Verwaltung, mobile Spielerliste,
+QR-Code-Anzeige, Aktivierungslink-UI, Temperatur-Detail-Schaltfläche
+und Verweis auf aktualisierte Hallendruckdatei.
+
+Hinweis: Es ist ein Quellcode-/Strukturtest, kein Live-Test.
+Firebase Cloud Function für Aktivierungslinks und die Berechtigungen
+müssen separat bereits eingerichtet sein.
+Vor Veröffentlichung GitHub-Dateien sichern; zuerst auf Testbranch prüfen.
