@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="de">
-<head><script src="ecw-site-base.js"></script>
+<head><script>
+if (window.self !== window.top && new URLSearchParams(location.search).get('smartphoneAnsicht') === '1') {
+  document.documentElement.classList.add('ecw-smartphone-view');
+}
+</script>
+<style>
+.smartphone-login-status{display:none}
+.ecw-smartphone-view #login > :not(.smartphone-login-status){display:none!important}
+.ecw-smartphone-view #login .smartphone-login-status{display:block;padding:20px;text-align:center}
+.ecw-smartphone-view #startseite,
+.ecw-smartphone-view #routeDiagHome,
+.ecw-smartphone-view button[onclick^="returnToPowerPoint("] { display:none!important; }
+</style>
+<script src="ecw-site-base.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vereins-Informationssystem – V2.5.4</title>
@@ -134,6 +147,7 @@
 </section>
 
 <section id="login" class="view">
+  <p class="smartphone-login-status" role="status">Diese Ansicht ist mit der aktuellen Smartphone-Sitzung nicht verfügbar.</p>
   <div class="header"><div><div class="title" id="loginTitle">Verwaltung</div><div class="subtitle" id="loginSubtitle">Administrator-Anmeldung</div></div></div>
   <div class="content" style="max-width:500px;margin:30px auto;width:100%;flex:none">
     <h2 style="margin-top:0" id="loginHeading">Administrator anmelden</h2>
@@ -184,6 +198,7 @@
       <div class="row" data-global-admin style="margin-bottom:8px;gap:6px"><button data-menu-icon="▣" style="flex:1" onclick="adminSection('reservadmin')">Reservierungssystem</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="♙" style="flex:1" data-app-perm="tp" onclick="adminSection('players')">Spielerliste</button></div>
       <button data-menu-icon="♙" data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('u')">Benutzer, Rechte und Datensicherung</button>
+      <button type="button" data-menu-icon="▣" data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="ECWSmartphoneNavigation.open()">Smartphonezugänge</button>
       <button data-menu-icon="⚙" data-global-admin hidden style="width:100%;margin-bottom:8px" onclick="adminSection('sysconfig')">⚙ Systemeinstellungen</button>
       <hr><div class="small">Lokale Sicherung: Texte/Einstellungen in localStorage, Bilder/PDF-Seiten in IndexedDB.</div><div id="firebaseStatus" class="small" style="margin-top:10px"></div>
     </div>
@@ -199,13 +214,14 @@
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-functions-compat.js"></script>
 <script src="js/firebase-init.js?v=2.9.49"></script>
 <link rel="stylesheet" href="ecw-ergebnisse.css?v=20261105-6">
 <script src="ecw-ergebnisse-daten.js?v=20261105-2"></script>
 <script src="ecw-ergebnisse.js?v=20261109-testhomepage-2"></script>
 <script src="ecw-nuetzliches.js?v=20261105-2"></script>
 <script src="js/ecw-homepage-test.js?v=22"></script>
-<script src="ecw-hauptprogramm-v2956.js?v=20261111-fix1"></script>
+<script src="ecw-hauptprogramm-v2956.js?v=ecw-reservierung-16"></script>
 <script src="js/dokumente-drucken.js?v=2.9.29"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
@@ -504,5 +520,6 @@
 <script src="designvorlagen-daten.js?v=2.9.29"></script>
 <script src="systemeinstellungen.js?v=2.9.29"></script>
 <script src="js/admin-menu-design.js?v=2.9.29"></script>
-<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=20261114a"></script><script src="js/ecw-technik-bridge.js?v=20261114a"></script><script src="js/ecw-temperaturen.js?v=20261114a"></script><script src="js/ecw-startleiste.js?v=20261110-startseite5"></script></body>
+<script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-temperaturen.js?v=20261112-tempfix1"></script><script src="js/ecw-startleiste.js?v=20261110-startseite5"></script><script src="ecw-smartphone-einstellungen.js?v=5"></script>
+</body>
 </html>

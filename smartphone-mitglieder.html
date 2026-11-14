@@ -34,16 +34,6 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .hall-status{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid #665047;border-radius:10px;background:#302725}
 .hall-status strong{color:#ffd2a9}
 .temperature-title{font-size:18px;margin:20px 0 8px}
-.climate-details{margin:12px 0 0;border:1px solid #4c4248;border-radius:12px;background:#252326}
-.climate-details summary{min-height:46px;padding:13px 12px;cursor:pointer;font-weight:650}
-.climate-details summary:focus-visible{outline:2px solid #ffaeb6;outline-offset:2px;border-radius:10px}
-.climate-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:8px;padding:0 10px 10px}
-.climate-card{padding:11px;border:1px solid #51434b;border-radius:9px;background:#302a2e}
-.climate-card h3{margin:0 0 6px;font-size:14px;color:#f0cbd1}
-.climate-card dl{margin:0}
-.climate-card dl div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;padding:5px 0;font-size:13px}
-.climate-card dd{margin:0;font-weight:650}
-
 .readings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0}
 .readings div{background:#2c292d;border:1px solid #4c4248;border-radius:10px;padding:10px 5px;text-align:center}
 .readings dt{font-size:clamp(11px,3vw,14px);color:#e9d7db}
@@ -141,14 +131,6 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <div><dt>Vereinsheim</dt><dd id="vereinsheim">–</dd></div>
 </dl>
 <p class="hint" id="temperature-status" role="status"></p>
-<details class="climate-details">
-<summary>Messwerte im Detail</summary>
-<div class="climate-cards">
-<section class="climate-card"><h3>Außen</h3><dl><div><dt>Temperatur</dt><dd id="aussen-temperature">–</dd></div><div><dt>Luftfeuchte</dt><dd id="aussen-humidity">–</dd></div><div><dt>Batterie</dt><dd id="aussen-battery">–</dd></div></dl></section>
-<section class="climate-card"><h3>Halle</h3><dl><div><dt>Temperatur</dt><dd id="halle-temperature">–</dd></div><div><dt>Luftfeuchte</dt><dd id="halle-humidity">–</dd></div><div><dt>Batterie</dt><dd id="halle-battery">–</dd></div></dl></section>
-<section class="climate-card"><h3>Vereinsheim</h3><dl><div><dt>Temperatur</dt><dd id="vereinsheim-temperature">–</dd></div><div><dt>Luftfeuchte</dt><dd id="vereinsheim-humidity">–</dd></div><div><dt>Batterie</dt><dd id="vereinsheim-battery">–</dd></div></dl></section>
-</div>
-</details>
 </div>
 <div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
 </section>
@@ -180,7 +162,7 @@ const namePilot = reservationTest && pageParams.get('namenTest') === '1';
 const bookingPilot = reservationTest && pageParams.get('buchung') === '1';
 let nameLoginEnabled = namePilot;
 let activationCode = namePilot ? new URLSearchParams(location.hash.slice(1)).get('aktivierung') : null;
-const personalActivation = Boolean(activationCode);
+if (activationCode) history.replaceState(null, '', location.pathname + location.search);
 const auth = initializeAuth(app, {persistence: browserLocalPersistence});
 const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const authReady = auth.authStateReady();
@@ -446,31 +428,8 @@ results.querySelectorAll('button').forEach(button => {
   });
 });
 
-function numericSensorField(field) {
-  if (typeof field?.doubleValue === 'number') return field.doubleValue;
-  if (typeof field?.integerValue === 'string' && /^-?\d+$/.test(field.integerValue)) {
-    return Number(field.integerValue);
-  }
-  return NaN;
-}
-
-function renderTemperatureDetails(fields) {
-  for (const location of temperatureFields) {
-    const temperature = numericSensorField(fields?.[location]);
-    document.getElementById(location + '-temperature').textContent = Number.isFinite(temperature)
-      ? temperatureFormat.format(temperature) + ' °C' : '–';
-    for (const metric of ['humidity', 'battery']) {
-      const byLocation = fields?.[metric]?.mapValue?.fields;
-      const value = numericSensorField(byLocation?.[location]);
-      document.getElementById(location + '-' + metric).textContent = value >= 0 && value <= 100
-        ? temperatureFormat.format(value) + ' %' : 'Kein Messwert';
-    }
-  }
-}
-
 async function loadTemperatures(signal) {
   temperatureStatus.textContent = 'Temperaturen werden geladen …';
-  renderTemperatureDetails();
   temperatureFields.forEach(field => { document.getElementById(field).textContent = '–'; });
   try {
     const response = await fetch(temperatureUrl, {signal, cache: 'no-store'});
@@ -485,12 +444,12 @@ async function loadTemperatures(signal) {
       return;
     }
     for (const field of temperatureFields) {
-      const value = numericSensorField(fields?.[field]);
+      const reading = fields[field];
+      const value = reading?.doubleValue ?? Number(reading?.integerValue);
       if (Number.isFinite(value)) {
         document.getElementById(field).textContent = temperatureFormat.format(value) + ' °C';
       }
     }
-    renderTemperatureDetails(fields);
     temperatureStatus.textContent = 'Stand: ' + dateFormat.format(updated) + ' Uhr.';
   } catch {
     if (!signal.aborted) temperatureStatus.textContent = 'Temperaturen derzeit nicht verfügbar.';
@@ -504,7 +463,6 @@ const memberName = document.getElementById('member-name');
 let memberDirectory;
 let memberLoginRequest;
 let activationEmail;
-let linkedMemberEmail;
 const activationEntry = document.getElementById('activation-entry');
 const activationValue = document.getElementById('activation-value');
 const activationHint = document.getElementById('activation-hint');
@@ -533,12 +491,12 @@ function setActivationView(changingPassword) {
   activationHint.hidden = !activationCode;
   activationHint.textContent = changingPassword
     ? 'Lege jetzt dein persönliches Passwort fest.'
-    : 'Gib das Startpasswort 1234 ein und tippe auf Weiter.';
+    : 'Wähle deinen Namen und gib das Startpasswort ein.';
   password.parentElement.querySelector('label[for="password"]').hidden = changingPassword;
   password.hidden = changingPassword;
   password.required = !changingPassword;
   password.disabled = changingPassword;
-  memberName.disabled = changingPassword || Boolean(linkedMemberEmail) || !memberDirectory;
+  memberName.disabled = changingPassword || !memberDirectory;
   newPasswordFields.hidden = !changingPassword;
   for (const field of [newPassword, repeatPassword]) {
     field.disabled = !changingPassword;
@@ -630,20 +588,8 @@ onAuthStateChanged(auth, async user => {
     await loadMemberLogin();
     if (!stillCurrent()) return;
     if (memberDirectory) {
-      try {
-        const verifiedEmail = (await verifyPasswordResetCode(auth, activationCode)).toLowerCase();
-        if (!stillCurrent()) return;
-        const match = [...memberDirectory].find(([, alias]) => alias + '@login.ec-wegscheid.de' === verifiedEmail);
-        if (!match) throw new Error('Mitglied nicht gefunden');
-        memberName.value = match[0];
-        linkedMemberEmail = verifiedEmail;
-        setActivationView(false);
-        submit.disabled = false;
-        password.focus();
-      } catch {
-        if (!stillCurrent()) return;
-        loginError('Dieser persönliche Link ist ungültig oder abgelaufen. Bitte lass dir einen neuen Link geben.');
-      }
+      setActivationView(false);
+      submit.disabled = false;
     } else {
       document.getElementById('email-login').hidden = true;
       password.hidden = true;
@@ -683,10 +629,10 @@ form.addEventListener('submit', async event => {
     if (candidateCode && !activationEmail) {
       checkingActivation = true;
       if (!alias || password.value !== '1234') {
-        loginError(linkedMemberEmail ? 'Gib das Startpasswort 1234 ein.' : 'Wähle deinen Namen und gib das Startpasswort 1234 ein.');
+        loginError('Wähle deinen Namen und gib das Startpasswort 1234 ein.');
         return;
       }
-      const verifiedEmail = linkedMemberEmail ?? await verifyPasswordResetCode(auth, candidateCode);
+      const verifiedEmail = await verifyPasswordResetCode(auth, candidateCode);
       if (verifiedEmail.toLowerCase() !== identifier.toLowerCase()) {
         loginError('Dieser Aktivierungscode gehört nicht zum ausgewählten Namen.');
         return;
@@ -705,8 +651,6 @@ form.addEventListener('submit', async event => {
       const chosenPassword = newPassword.value;
       await confirmPasswordReset(auth, activationCode, chosenPassword);
       activationCode = null;
-      linkedMemberEmail = null;
-      if (personalActivation) history.replaceState(null, '', location.pathname + location.search);
       const verifiedEmail = activationEmail;
       activationEmail = null;
       newPassword.value = repeatPassword.value = '';
@@ -795,4 +739,3 @@ document.getElementById('logout').addEventListener('click', async () => {
 </script>
 </body>
 </html>
-
