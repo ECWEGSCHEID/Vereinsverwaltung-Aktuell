@@ -1375,6 +1375,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  if([2,3,4].includes(+j.cols))d.cols=+j.cols;
  if(typeof j.bg==='string'&&j.bg.startsWith('data:image/'))d.bg=j.bg;
  if(Array.isArray(j.buttons))d.buttons=j.buttons.filter(b=>b&&typeof b.t==='string').map(b=>{const o={t:b.t,u:typeof b.u==='string'?b.u:''};
+  if(b.whiteboardSlot===1||b.whiteboardSlot===2)o.whiteboardSlot=b.whiteboardSlot;
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>({t:x.t,u:typeof x.u==='string'?x.u:''}));if(sb.length)o.sub=sb}
   return o});
  if(j.docMenuInitialized===true)d.docMenuInitialized=true;
@@ -1632,6 +1633,17 @@ function shMakeBtn(b,idx){
  }
 }
 function closeStartSubmenu(){shOpen=-1;shRender();}
+function shWhiteboardPosition(index, slot){
+ if(slot===1)return [1,10];
+ if(slot===2)return [2,1];
+ if(index<15){
+  const row=Math.floor(index/4);
+  return [row+1,2+2*(index%4)+(row%2)];
+ }
+ const extra=index-15;
+ const row=4+Math.floor(extra/4);
+ return [row+1,2+2*(extra%4)+(row%2)];
+}
 function shRender(){
  const art=document.getElementById('shArt');if(!art)return;
  if(shOpen>=SH.buttons.length||(shOpen>=0&&!(SH.buttons[shOpen].sub||[]).length))shOpen=-1;
@@ -1654,6 +1666,20 @@ function shRender(){
    const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
   }
  });
+ const whiteboardLayout=!grp&&(isWhiteboardUser()||isPublicWhiteboardMode());
+ g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
+ if(whiteboardLayout){
+  let regularIndex=0;
+  const occupied=new Set();
+  items.forEach((button,i)=>{
+   const slot=button.whiteboardSlot;
+   const reserved=(slot===1||slot===2)&&!occupied.has(slot);
+   const [row,column]=reserved?shWhiteboardPosition(0,slot):shWhiteboardPosition(regularIndex++);
+   if(reserved)occupied.add(slot);
+   els[i].style.setProperty('--sh-tile-row',row);
+   els[i].style.setProperty('--sh-tile-column',column);
+  });
+ }
  g.replaceChildren(...els);shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
 function shNorm(u){return String(u).split('#')[0].split('?')[0].replace(/index\.html$/i,'')}
 function shInternalHash(u){let x;try{x=new URL(u,location.href)}catch(e){return ''}
@@ -1747,7 +1773,10 @@ function shSet(k,v,re){if(!hasAppPermission('sh')){showToast('Startseite bearbei
 function shBtn(i,k,v){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}SH.buttons[i][k]=v;shSave();shRender()}
 function shMove(i,d){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}const j=i+d;if(j<0||j>=SH.buttons.length)return;const [b]=SH.buttons.splice(i,1);SH.buttons.splice(j,0,b);shOpen=-1;shSave();shRender();renderStartseiteAdmin()}
 function shDel(i){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}const b=SH.buttons[i],n=(b.sub||[]).length;if(confirm('Button „'+b.t.replace(/\n/g,' ')+'“'+(n?' mit '+n+' Unterbutton(s)':'')+' löschen?')){SH.buttons.splice(i,1);shOpen=-1;shSave();shRender();renderStartseiteAdmin()}}
-function shAdd(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}SH.buttons.push({t:'Neuer Button',u:''});shSave();shRender();renderStartseiteAdmin();const a=document.getElementById('adminMain');a.scrollTop=a.scrollHeight}
+function shAdd(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}const button={t:'Neuer Button',u:''};
+ const slot=[1,2].find(position=>!SH.buttons.some(b=>b.whiteboardSlot===position));
+ if(slot)button.whiteboardSlot=slot;
+ SH.buttons.push(button);shSave();shRender();renderStartseiteAdmin();const a=document.getElementById('adminMain');a.scrollTop=a.scrollHeight}
 async function shBg(inp){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(!inp.files[0])return;try{SH.bg=await shImg(inp.files[0]);shSave();shRender();showToast('Hintergrundbild geändert')}catch(e){showToast('Bild konnte nicht geladen werden')}}
 function shBgReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}SH.bg=null;shSave();shRender()}
 function shReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(confirm('Alle Änderungen (Texte, Buttons, Links, Hintergrundbild) verwerfen?')){SH=shSane({});shSave();shRender();renderStartseiteAdmin()}}
