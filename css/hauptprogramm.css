@@ -910,7 +910,7 @@ body.tv-preview-open{overflow:hidden!important}
 
 
 /* Positionen der erweiterbaren Waben auf dem Whiteboard. */
-@media (min-width: 1200px) and (min-aspect-ratio: 3/2) {
+@media (min-width: 1367px) and (min-aspect-ratio: 3/2) {
   #startseite #shGrid.sh-whiteboard-hex {
     --sh-menu-top: 3.2vh;
     --sh-menu-bottom: calc(var(--sh-ribbon-height) + 16px);
@@ -934,6 +934,7 @@ body.tv-preview-open{overflow:hidden!important}
     justify-self: center;
     width: var(--sh-hex-width);
     height: calc(var(--sh-hex-width) * 1.135);
+    min-height: 0;
     clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
     border: 0;
     border-radius: 0;
@@ -953,7 +954,7 @@ body.tv-preview-open{overflow:hidden!important}
   #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { background-color: #ff6158; filter: brightness(1.5); }
 }
 
-@media (max-width: 1199px), (max-aspect-ratio: 1499/1000) {
+@media (max-width: 1366px), (max-aspect-ratio: 1499/1000) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
     position: relative;
     inset: auto;
