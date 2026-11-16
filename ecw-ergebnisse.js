@@ -21,7 +21,27 @@ function perPage(){return currentGalleryLayout().perPage}
 function resizeGallery(){const d=document.getElementById('ecwResultsDialog');if(!d?.open||!d.classList.contains('er-gallery-mode')||!galleryEntries.length)return;galleryPage=Math.min(galleryPage,Math.max(0,Math.ceil(galleryEntries.length/perPage())-1));galleryToken++;renderGallery()}
 
 
-if(typeof ResizeObserver!=='undefined'){let observer;document.addEventListener('DOMContentLoaded',()=>{observer=new ResizeObserver(()=>{resizeGallery()});observer.observe(document.documentElement)})}
+function fitResultLabels(){
+ const dialog=document.getElementById('ecwResultsDialog');
+ if(!dialog?.open)return;
+ const ctx=document.createElement('canvas').getContext('2d');
+ if(!ctx)return;
+ for(const label of dialog.querySelectorAll('.er-tile-label')){
+  label.style.fontSize='';
+  const available=label.clientWidth-1;
+  if(available<=0)continue;
+  const style=getComputedStyle(label);
+  ctx.font=style.fontWeight+' '+style.fontSize+' '+style.fontFamily;
+  const words=label.textContent.split(/\s+/).filter(Boolean);
+  const widthToFit=Math.max(0,...words.map(word=>{
+   const width=ctx.measureText(word).width;
+   const almostFits=ctx.measureText(word.slice(0,-1)).width<=available;
+   return width>available&&(almostFits||word==='Meisterschaft')?width:0;
+  }));
+  if(widthToFit)label.style.fontSize=(parseFloat(style.fontSize)*available/widthToFit)+'px';
+ }
+}
+if(typeof ResizeObserver!=='undefined'){let observer;document.addEventListener('DOMContentLoaded',()=>{observer=new ResizeObserver(()=>{fitResultLabels();resizeGallery()});observer.observe(document.documentElement)})}
 
 function root(){return SH.results||(SH.results=normalize())}
 function active(){let n=root();const valid=[];for(const id of path){const c=n.children.find(x=>x.id===id);if(!c)break;valid.push(id);n=c}path=valid;return n}
@@ -56,7 +76,7 @@ function button(label,code,cls='',disabled=false){return '<button type="button" 
 function element(){let d=document.getElementById('ecwResultsDialog');if(d)return d;d=document.createElement('dialog');d.id='ecwResultsDialog';d.className='ecw-results-dialog';d.setAttribute('aria-label','Ergebnisse');document.body.append(d);d.addEventListener('cancel',e=>{if(document.getElementById('erZoom')){e.preventDefault();closeZoom()}else{document.body.classList.remove('ecw-results-open');viewed=null}});return d}
 function close(){const d=element();if(d.close)d.close();else{d.open=false;d.removeAttribute('open')}document.body.classList.remove('ecw-results-open');viewed=null;previousFocus?.focus?.()}
 function open(edit=false){if(edit)return admin();adminMode=false;previewMode=false;path=[];viewed=null;previousFocus=document.activeElement;showPublic()}
-function showPublic(){renderPublic();const d=element();if(!d.open){if(d.showModal)d.showModal();else{d.open=true;d.setAttribute('open','')}}document.body.classList.add('ecw-results-open')}
+function showPublic(){renderPublic();const d=element();if(!d.open){if(d.showModal)d.showModal();else{d.open=true;d.setAttribute('open','')}}document.body.classList.add('ecw-results-open');fitResultLabels()}
 function home(){close();previewMode=false;adminMode=false;path=[];if(typeof showView==='function')showView('startseite');if(typeof shRender==='function'){shOpen=-1;shRender()}}
 function preview(){if(!allowed()){showToast('Keine Berechtigung zur Ergebnis-Vorschau.');return}previewMode=true;viewed=null;showPublic()}
 function previewBack(){close();previewMode=false;adminMode=true;renderAdmin()}
@@ -64,8 +84,8 @@ function admin(){if(!allowed()){showToast('Ergebnisse bearbeiten ist nicht freig
 function publicTile(title,code){
  const shortTitle=title
    .replace(/^Alle Pokalturniergewinner$/i,'Pokalsieger')
-   .replace(/Vereinsmeisterschaft/gi,'Vereins-M.')
-   .replace(/Jahresmeisterschaft/gi,'Jahres-M.')
+   .replace(/Vereins[\s-]*meisterschaft/gi,'Vereins-\nMeisterschaft')
+   .replace(/Jahres[\s-]*meisterschaft/gi,'Jahres\nMeisterschaft')
    .replace(/Freundschaftsturnier/gi,'Freundschafts-Turnier')
    .replace(/^Turnier Betriebe Vereine$/i,'Betriebe & Vereine')
    .replace(/Ergebnis+s?liste/gi,'Ergebnis')
@@ -76,7 +96,7 @@ function publicTile(title,code){
 function renderPublic(){const n=active(),d=element();const bg=path.length?'assets/hintergrund-carbon-rot.png':(SH.bg||'assets/startseite-standard.jpg');d.style.backgroundImage='url('+JSON.stringify(bg)+')';const gallery=!intermediate()&&n.links.length>0;galleryToken++;d.classList.toggle('er-gallery-mode',!!gallery);d.classList.toggle('er-inner-level',path.length>0);
  const body=gallery?'<div id="erGalleryStatus" class="small" role="status">Ergebnisübersicht wird geladen …</div><div id="erGallery" class="er-gallery"></div><nav id="erGalleryNav" class="er-gallery-nav"></nav>':(n.body?'<div class="er-description">'+esc(n.body)+'</div>':'')+'<div class="er-public-grid" style="--er-cols:'+([2,3,4].includes(+SH.cols)?SH.cols:3)+'">'+n.children.map((c,i)=>publicTile(c.t,'enter('+i+')')).join('')+n.links.map((l,i)=>publicTile(l.t,'openFile('+i+')')).join('')+'</div>'+(!n.children.length&&!n.links.length&&!n.body?'<p>Noch keine Ergebnisse vorhanden.</p>':'');
  d.innerHTML='<div class="er-public-shell"><header class="er-public-heading"><h1>'+esc(n.t)+'</h1>'+(previewMode?button('Zurück zur Verwaltung','previewBack()','er-preview-back'):'')+'</header>'+body+'<nav class="er-bottom" aria-label="Zurück">'+button('Eine Ebene nach oben','back()','',!path.length)+button('Zurück zum Startmenü','home()')+'</nav></div>';
- if(gallery){galleryEntries=[];drawGallery(n,galleryToken)}
+ fitResultLabels();if(gallery){galleryEntries=[];drawGallery(n,galleryToken)}
 }
 async function manifest(l){const key=(l.file?.id||l.u)+'|'+l.t;if(manifestCache.has(key))return manifestCache.get(key);const work=(async()=>{const url=await fileUrl(l);if(l.kind==='image')return[{title:l.t,load:async()=>url}];const pdf=l.file?.mime==='application/pdf'||/\.pdf(?:[?#]|$)/i.test(url)||/\.pdf$/i.test(l.t);if(!pdf)return[{title:l.t,url,external:true}];
  if(typeof loadPdfJs==='function')await loadPdfJs();if(!window.pdfjsLib)throw Error('PDF-Anzeige konnte nicht geladen werden. Internetverbindung prüfen.');const doc=await window.pdfjsLib.getDocument({url}).promise;const pages=[];

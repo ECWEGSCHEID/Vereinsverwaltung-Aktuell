@@ -1204,7 +1204,7 @@ body.tv-preview-open{overflow:hidden!important}
   margin-block-start: calc(var(--team-hex-width) * -.175);
 }
 #teamsGrid {
-  --team-hex-width: min(var(--submenu-hex-width), calc((100cqi - 42px) / 5.5));
+  --team-hex-width: calc(min(var(--submenu-hex-width), (100cqi - 42px) / 5.5) * .9);
 }
 #teamsGrid .team-group-grid {
   display: flex;
@@ -1284,6 +1284,8 @@ body.tv-preview-open{overflow:hidden!important}
   font-size: clamp(11px, calc(var(--submenu-hex-width) * .115), 21px);
 }
 #ecwResultsDialog .er-tile-label {
+  width: 100%;
+  white-space: pre-line;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
