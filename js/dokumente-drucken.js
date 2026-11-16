@@ -7,7 +7,7 @@ const defaults=[{id:'verein',title:'Vereinsdokumente'},{id:'turnier',title:'Turn
 let state={categories:defaults.map(x=>({...x})),files:[],printer:'HP Color Laser MFP 178nwg',paper:'A4',note:'',updatedAt:''};
 let selected=null,previewFromAdmin=false,loading=false,busy=false,urls=new Map(),localPreviewUrl=null;
 let loadError='',loadSource='',lastLoaded='',loadPromise=null;
-const VERSION='2.8.8-vorschau';
+const VERSION='2.8.9-ganzseite';
 function withDeadline(p,ms){return Promise.race([p,new Promise((_,reject)=>setTimeout(()=>reject(Error('Zeitüberschreitung nach '+Math.round(ms/1000)+' Sekunden')),ms))])}
 function explainError(e){const code=String(e?.code||'');const msg=String(e?.message||e||'Unbekannter Fehler');
  if(code.includes('permission-denied')||/permission.?denied|insufficient permissions/i.test(msg))return 'Firebase-Zugriff verweigert (permission-denied). Bitte veröffentlichte Firestore-Regeln für appSettings/druckdokumente und druckpdf_* prüfen.';
@@ -63,7 +63,7 @@ function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected)
   }).join('')+'</div>';}
  else {html+='<h2>'+esc(c.title)+'</h2><button type="button" data-doc-cat="">← Alle Bereiche</button><div class="ecw-doc-list">';
  const files=state.files.filter(x=>x.category===selected);
- html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">Vorschau</button> <button type="button" data-doc-print="'+esc(f.id)+'"'+(canPrintDocument()?'':' disabled')+'>Drucken</button> <button type="button" data-doc-hall="'+esc(f.id)+'">Über Hallendrucker drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
+ html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">Vorschau</button> <button type="button" data-doc-print="'+esc(f.id)+'"'+(canPrintDocument()?'':' disabled')+'>Drucken</button> <button type="button" data-doc-hall="'+esc(f.id)+'"'+(canPrintToHall()?'':' disabled')+'>Über Hallendrucker drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
  html+='</div>'}
  html+='</div>';return html;
 }
@@ -95,11 +95,14 @@ function renderPublic(){
 // ECW Hallendruck: kein Browser-Druckdialog; ausschließlich bewusst erstellte Aufträge.
 // Bestehende Firestore-Regeln erlauben CREATE nur für das Informationssystem-Konto.
 const HALL_PRINT_UID='ewlezYPZBQUb0t0wMEZZ9Uytkcy1';
+function canPrintToHall(){
+ return firebaseAuthUser?.uid===HALL_PRINT_UID && appPermissions.admin!==true;
+}
 async function enqueueHallPrint(id,button){
  const file=state.files.find(f=>f.id===id);
  if(!file || !/^[a-z0-9]{8,40}$/.test(id)){toast('PDF-ID nicht gültig.');return;}
  const authUser=typeof firebaseAuthUser!=='undefined'?firebaseAuthUser:null;
- if(!authUser || authUser.uid!==HALL_PRINT_UID){
+ if(!canPrintToHall()){
   toast('Hallendruck ist für das angemeldete Informationssystem-Konto freigegeben. Bitte am Whiteboard mit diesem Konto anmelden.');return;
  }
  if(!confirm('„'+file.title+'“ wirklich einmal über den Hallendrucker drucken?'))return;
@@ -140,6 +143,7 @@ async function previewPdf(id){
  if(!file){toast('Dokument nicht gefunden.');return;}
  const dialog=document.createElement('dialog');
  dialog.className='ecw-doc-preview-dialog';
+ dialog.classList.toggle('ecw-doc-preview-whiteboard',isWhiteboardUser()||isWhiteboardKioskAccount());
  dialog.setAttribute('aria-label',file.title);
  dialog.innerHTML='<header><strong></strong><button type="button" data-close>Schließen</button></header><div class="ecw-doc-preview-page"><canvas hidden></canvas></div><footer><button type="button" data-prev disabled>Vorige Seite</button><output aria-live="polite">PDF wird geladen …</output><button type="button" data-next disabled>Nächste Seite</button></footer>';
  dialog.querySelector('strong').textContent=file.title;
