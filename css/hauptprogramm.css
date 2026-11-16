@@ -887,6 +887,25 @@ body.tv-preview-open{overflow:hidden!important}
 
 
 /* Positionen der erweiterbaren Waben auf dem Whiteboard. */
+#startseite #shGrid.sh-whiteboard-hex > .shbtn {
+  position: relative;
+  clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+  border: 0;
+  border-radius: 0;
+  isolation: isolate;
+  background: linear-gradient(145deg, #ffb1a4, #ec352d 34%, #790004 70%, #400003);
+}
+#startseite #shGrid.sh-whiteboard-hex > .shbtn::before {
+  content: "";
+  position: absolute;
+  inset: 5%;
+  z-index: -1;
+  clip-path: inherit;
+  background: repeating-linear-gradient(0deg, #ffffff06 0 1px, transparent 1px 3px),
+              linear-gradient(155deg, #df2521, #a40004 58%, #700005);
+}
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { filter: brightness(1.5); }
+
 @media (min-width: 1367px) and (min-aspect-ratio: 3/2) {
   #startseite #shGrid.sh-whiteboard-hex {
     --sh-menu-top: 3.2vh;
@@ -912,23 +931,8 @@ body.tv-preview-open{overflow:hidden!important}
     width: var(--sh-hex-width);
     height: calc(var(--sh-hex-width) * 1.135);
     min-height: 0;
-    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
-    border: 0;
-    border-radius: 0;
-    isolation: isolate;
-    background: linear-gradient(145deg, #ffb1a4, #ec352d 34%, #790004 70%, #400003);
   }
-  #shGrid.sh-whiteboard-hex > .shbtn::before {
-    content: "";
-    position: absolute;
-    inset: 5%;
-    z-index: -1;
-    clip-path: inherit;
-    background: repeating-linear-gradient(0deg, #ffffff06 0 1px, transparent 1px 3px),
-                linear-gradient(155deg, #df2521, #a40004 58%, #700005);
-  }
-  #shGrid.sh-whiteboard-hex > .shbtn { position: relative; font-size: clamp(11px, calc(var(--sh-hex-width) * .115), 28px); }
-  #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { background-color: #ff6158; filter: brightness(1.5); }
+  #shGrid.sh-whiteboard-hex > .shbtn { font-size: clamp(11px, calc(var(--sh-hex-width) * .115), 28px); }
 }
 
 @media (max-width: 1366px), (max-aspect-ratio: 1499/1000) {
@@ -956,13 +960,17 @@ body.tv-preview-open{overflow:hidden!important}
     width: min(100%, 840px);
     margin: 12px auto 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: minmax(clamp(70px, 16vw, 138px), auto);
+    grid-auto-rows: auto;
     gap: 10px;
     overflow: visible;
   }
   #startseite.active #shGrid.sh-whiteboard-hex > .shbtn {
+    justify-self: center;
+    width: min(100%, clamp(124px, 26vw, 180px));
+    aspect-ratio: 1 / 1.135;
     min-height: 0;
-    font-size: clamp(13px, 2.2vw, 20px);
+    padding-inline: 12px;
+    font-size: clamp(12px, 2.1vw, 18px);
   }
   #startseite.active:has(#shGrid.sh-whiteboard-hex) { overflow-y: auto; }
 }
