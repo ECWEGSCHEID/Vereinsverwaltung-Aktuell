@@ -849,12 +849,12 @@ body.tv-preview-open{overflow:hidden!important}
 
 /* ECW13: Flache Informationsleiste am unteren Rand, zwei Drittel Laufschrift.
    Unabhängig vom Hintergrundmotiv; bestehendes EC-Wegscheid-Logo bleibt im Bild. */
-#startseite #ecwInfoRibbon{position:fixed;z-index:6;left:0;right:0;bottom:0;height:var(--sh-ribbon-height);box-sizing:border-box;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0;color:#fff;background:linear-gradient(180deg,rgba(31,35,41,.9),rgba(10,13,18,.94));border-top:1px solid rgba(245,246,250,.55);box-shadow:0 -3px 15px rgba(0,0,0,.38);backdrop-filter:blur(9px);overflow:hidden}
+#startseite #ecwInfoRibbon{position:fixed;z-index:6;left:0;right:0;bottom:0;height:var(--sh-ribbon-height);box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) minmax(min(430px,58vw),1fr);gap:0;color:#fff;background:linear-gradient(180deg,rgba(31,35,41,.9),rgba(10,13,18,.94));border-top:1px solid rgba(245,246,250,.55);box-shadow:0 -3px 15px rgba(0,0,0,.38);backdrop-filter:blur(9px);overflow:hidden}
 #startseite .ecw-ribbon-news{position:relative;overflow:hidden;min-width:0;display:flex;align-items:center;border-right:1px solid rgba(255,255,255,.26)}
 #startseite #ecwHomeTickerText{display:inline-block;white-space:nowrap;position:absolute;left:12px;font-size:clamp(12px,1.25vw,20px);font-weight:650;letter-spacing:.015em}
 #startseite #ecwHomeTickerText.is-running{animation:ecw-home-ticker var(--ecw-ticker-duration,18s) linear both}
 @keyframes ecw-home-ticker{from{left:100%;transform:translateX(0)}to{left:0;transform:translateX(-100%)}}
-#startseite #ecwTemperatures{position:relative!important;inset:auto!important;left:auto!important;bottom:auto!important;z-index:auto!important;width:auto!important;max-width:none!important;height:100%;min-width:0;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(75px,1.05fr);align-items:stretch;gap:2px;margin:0!important;padding:4px!important;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;box-sizing:border-box}
+#startseite #ecwTemperatures{position:relative!important;inset:auto!important;left:auto!important;bottom:auto!important;z-index:auto!important;width:auto!important;max-width:none!important;height:100%;min-width:0;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(74px,1fr) minmax(62px,.87fr);align-items:stretch;gap:2px;margin:0!important;padding:4px!important;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;box-sizing:border-box}
 #startseite .ecw-temp-cell,#startseite .ecw-ribbon-clock{min-width:0;text-align:center;padding:2px 1px;border-radius:5px;background:linear-gradient(160deg,rgba(110,20,31,.8),rgba(25,30,37,.9));display:flex;flex-direction:column;align-items:center;justify-content:center}
 #startseite .ecw-temp-cell span,#startseite .ecw-ribbon-clock span{font-size:clamp(8px,.67vw,11px);white-space:nowrap;color:#dce4eb}
 #startseite .ecw-temp-cell strong,#startseite .ecw-ribbon-clock strong{font-size:clamp(11px,1.08vw,18px);white-space:nowrap;line-height:1.2;font-variant-numeric:tabular-nums;color:#fff}
@@ -864,36 +864,13 @@ body.tv-preview-open{overflow:hidden!important}
  #startseite #ecwInfoRibbon{grid-template-columns:minmax(0,1fr);grid-template-rows:23px 39px}
  #startseite .ecw-ribbon-news{border-right:none;border-bottom:1px solid rgba(255,255,255,.25)}
  #startseite #ecwHomeTickerText{font-size:13px}
- #startseite #ecwTemperatures{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(76px,1fr);padding:2px!important}
+ #startseite #ecwTemperatures{grid-template-columns:repeat(5,minmax(0,1fr));padding:2px!important}
  #startseite .ecw-temp-cell span,#startseite .ecw-ribbon-clock span{font-size:9px}
  #startseite .ecw-temp-cell strong,#startseite .ecw-ribbon-clock strong{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){#startseite #ecwHomeTickerText.is-running{animation-duration:max(45s,var(--ecw-ticker-duration,18s))}}
 
-#startseite #shUserLogin{
-  position:fixed;z-index:8;right:16px;bottom:calc(var(--sh-ribbon-height) + 12px);
-  min-height:34px;width:max-content;padding:4px 10px;border-radius:5px;
-  background:rgba(24,20,23,.62);font-size:clamp(11px,.78vw,13px);font-weight:600;
-  opacity:.7;white-space:nowrap;
-}
-#startseite #shUserLogin:hover,#startseite #shUserLogin:focus-visible{opacity:1}
 #startseite #shSubReturn{bottom:calc(var(--sh-ribbon-height) + 12px)!important}
-
-/* Mittelpunkt des sichtbaren Teils der silbernen Schräge im Originalmotiv. */
-@media (min-width:1367px) and (min-aspect-ratio:5/3),
-       (min-width:1200px) and (min-aspect-ratio:5/3) and (pointer:fine){
-  #startseite #shUserLogin{
-    --art-top:calc((100vh - var(--ah)) * .6);
-    --art-right-overhang:calc((var(--aw) - 100vw) * .7);
-    --stripe-at-right:calc(var(--art-top) + var(--ah) * .650 + var(--art-right-overhang) * 1.17);
-    --stripe-half:calc((100vh - var(--sh-ribbon-height) - var(--stripe-at-right)) / 2);
-    right:calc(var(--stripe-half) / 1.17);
-    bottom:calc(var(--sh-ribbon-height) + var(--stripe-half));
-    transform:translate(50%,50%) rotate(-49.5deg);
-    opacity:.42;
-  }
-  #startseite #shUserLogin:hover,#startseite #shUserLogin:focus-visible{opacity:.85}
-}
 
 @media (max-width:1199px), (pointer:coarse) and (max-width:1366px){
   #startseite.active #shStage{padding-bottom:calc(var(--sh-ribbon-height) + 72px)}
@@ -989,3 +966,47 @@ body.tv-preview-open{overflow:hidden!important}
   }
   #startseite.active:has(#shGrid.sh-whiteboard-hex) { overflow-y: auto; }
 }
+
+/* Uhr, Anmeldung und Sensorwerte im Infobalken. */
+#startseite #shUserLogin {
+  min-width: 0;
+  border-radius: 5px;
+  padding: 2px 1px;
+  background: linear-gradient(160deg, #52242b, #21242c);
+  font-size: clamp(9px,.78vw,13px);
+  line-height: 1.05;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#startseite .ecw-ribbon-humidity { display: inline-flex; align-items: center; gap: 4px; line-height: 1; }
+#startseite .ecw-ribbon-humidity::before {
+  content: "";
+  width: .5em;
+  height: .5em;
+  border: 1px solid currentColor;
+  border-radius: 70% 0 70% 70%;
+  transform: rotate(-45deg);
+}
+#startseite #ecwInfoRibbon button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+@media (max-width: 800px) {
+  #startseite #ecwTemperatures button { padding-block: 0; }
+}
+#ecwRibbonCalendar {
+  width: min(680px, 94vw);
+  max-height: 92vh;
+  padding: clamp(10px, 2vw, 24px);
+  background: #23191c;
+  color: #fff;
+  border: 1px solid #a44a55;
+  border-radius: 14px;
+}
+#ecwRibbonCalendar::backdrop { background: #11090bc4; }
+#ecwRibbonCalendar .ecw-calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+#ecwRibbonCalendar h2, #ecwRibbonCalendar h3 { margin: 0; }
+#ecwRibbonCalendar button { min-width: 44px; min-height: 44px; }
+#ecwRibbonCalendar table { width: 100%; table-layout: fixed; border-spacing: 3px; text-align: center; }
+#ecwRibbonCalendar th, #ecwRibbonCalendar td { padding: clamp(4px, 1vh, 12px) 0; }
+#ecwRibbonCalendar td:empty { background: transparent; }
+#ecwRibbonCalendar td { background: #3c272c; border-radius: 5px; }
+#ecwRibbonCalendar td[aria-current=date] { background: #a72e3c; font-weight: 700; }
