@@ -1,6 +1,7 @@
 <!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EC Wegscheid – Tabellen (Nur Lesen)</title><style>
 :root{color-scheme:dark}body{margin:0;padding:14px;font:16px system-ui,Arial;background:#170d10;color:#fff}h1{font-size:1.3rem}select,button{background:#282126;border:1px solid #b45d60;color:#fff;border-radius:7px;padding:10px;font:inherit;max-width:100%}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:8px 5px;border-bottom:1px solid #555}th{background:#432126}section{margin:14px 0;border:1px solid #633;padding:9px;border-radius:8px;overflow:auto}#status{line-height:1.5}.muted{color:#bbb}
-</style></head><body><h1>EC Wegscheid – Ergebnistabellen</h1><p class="muted">Nur lesen · keine zusätzliche Anmeldung</p><p id="status" role="status">Lade veröffentlichte Ergebnisse …</p><div id="content"></div><script>
+</style><script src="ecw-site-base.js"></script>
+</head><body><h1>EC Wegscheid – Ergebnistabellen</h1><p class="muted">Nur lesen · keine zusätzliche Anmeldung</p><p id="status" role="status">Lade veröffentlichte Ergebnisse …</p><div id="content"></div><script>
 (()=>{'use strict';
 const content=document.getElementById('content'),status=document.getElementById('status');
 const params=new URLSearchParams(location.search),mode=params.get('cup')||'duo';

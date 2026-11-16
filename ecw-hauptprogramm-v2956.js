@@ -1,6 +1,6 @@
 
-const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V13';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.1.161126';
+const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
