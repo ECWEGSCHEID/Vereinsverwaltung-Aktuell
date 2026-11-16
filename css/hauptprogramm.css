@@ -890,7 +890,7 @@ body.tv-preview-open{overflow:hidden!important}
 #startseite #shGrid.sh-whiteboard-hex {
   filter: drop-shadow(0 .38em .28em #130000db);
 }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile) {
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile) {
   position: relative;
   clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
   border: 0;
@@ -925,7 +925,7 @@ body.tv-preview-open{overflow:hidden!important}
   border-width: 0 .095em .095em 0;
   transform: rotate(45deg);
 }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile)::before {
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile)::before {
   content: "";
   position: absolute;
   inset: 5.2% 5.8%;
@@ -936,8 +936,8 @@ body.tv-preview-open{overflow:hidden!important}
     linear-gradient(118deg, #ffebd4bb, #ff61423d 34%, transparent 62%),
     linear-gradient(166deg, #e41508 8%, #bf0c02 48%, #8f0903 76%, #500200 100%);
 }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile):hover::before { filter: brightness(1.14); }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile):focus-visible::before { filter: brightness(1.38); }
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile):hover::before { filter: brightness(1.14); }
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile):focus-visible::before { filter: brightness(1.38); }
 
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
@@ -1291,4 +1291,64 @@ body.tv-preview-open{overflow:hidden!important}
   -webkit-line-clamp: 3;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  #startseite.active #shGrid.sh-internal-results-hex {
+    left: 52%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+#ecwUtilityDialog {
+  overflow: hidden;
+}
+#ecwUtilityDialog .utility-hex-shell {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: center;
+  padding: 12px 14px;
+}
+#ecwUtilityDialog h1 {
+  margin: 0 0 6px;
+  font-size: clamp(19px, 3dvh, 32px);
+  text-shadow: 0 2px 4px #000;
+}
+#ecwUtilityDialog .utility-hex-grid {
+  --utility-hex-width: min(155px, calc((100vw - 36px) / (var(--utility-columns) + .5) - 6px), calc((100dvh - 126px) / 3.2));
+  display: grid;
+  grid-template-columns: repeat(calc(var(--utility-columns) * 2 + 1), calc((var(--utility-hex-width) + 6px) / 2));
+  grid-auto-rows: calc(var(--utility-hex-width) * .96 + 3px);
+  place-content: center;
+  align-self: stretch;
+  filter: drop-shadow(0 4px 4px #130000c9);
+}
+#ecwUtilityDialog .utility-hex-tile {
+  box-sizing: border-box;
+  width: var(--utility-hex-width);
+  aspect-ratio: 1 / 1.135;
+  justify-self: center;
+  align-self: start;
+  min-height: 0;
+  padding: .4em;
+  font-size: clamp(10px, calc(var(--utility-hex-width) * .115), 18px);
+  overflow-wrap: anywhere;
+}
+#ecwUtilityDialog .utility-hex-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+#ecwUtilityDialog .utility-paging:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#ecwUtilityDialog .utility-hex-nav button {
+  min-height: 40px;
 }
