@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V12';
+const APP_RELEASE='ECW Startseite V13';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1675,12 +1675,16 @@ function shRender(){
    const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
   }
  });
- const internalResults=!!grp && /ergebnisse\s+turniere\s+intern/i.test(label);
- const whiteboardLayout=!grp||internalResults;
- g.classList.toggle('sh-internal-results-hex',internalResults);
+ const centeredSubmenu=!!grp && (
+  /ergebnisse\s+turniere\s+intern/i.test(label) ||
+  /dokumente\s*&?\s*drucken/i.test(label) ||
+  grp.sub.some(item=>/#druckdokumente(?:-|$)/i.test(item.u))
+ );
+ const whiteboardLayout=!grp||centeredSubmenu;
+ g.classList.toggle('sh-centered-submenu-hex',centeredSubmenu);
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
- if(internalResults){
-  g.style.setProperty('--internal-rows',Math.max(1,Math.ceil(total/4)));
+ if(centeredSubmenu){
+  g.style.setProperty('--centered-submenu-rows',Math.max(1,Math.ceil(total/4)));
   els.forEach((tile,i)=>{
    const [row,column]=shStaggeredPosition(i,total,4);
    tile.style.setProperty('--sh-tile-row',row);
