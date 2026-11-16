@@ -886,25 +886,45 @@ body.tv-preview-open{overflow:hidden!important}
 .ecw-tp-homepage input[type=checkbox]{width:auto}
 
 
-/* Positionen der erweiterbaren Waben auf dem Whiteboard. */
+/* Metallfacetten und gebürstete Flächen der Startseiten-Waben. */
+#startseite #shGrid.sh-whiteboard-hex {
+  filter: drop-shadow(0 .38em .28em #130000db);
+}
 #startseite #shGrid.sh-whiteboard-hex > .shbtn {
   position: relative;
   clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
   border: 0;
   border-radius: 0;
   isolation: isolate;
-  background: linear-gradient(145deg, #ffb1a4, #ec352d 34%, #790004 70%, #400003);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 600;
+  line-height: 1.12;
+  text-shadow: 0 1px 3px #3d0000;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: conic-gradient(
+    #ff9e8b 0deg, #e6402d 61deg,
+    #991007 61deg, #570300 119deg,
+    #9d130a 119deg, #310100 180deg,
+    #610500 180deg, #aa1b10 241deg,
+    #b32212 241deg, #f35239 299deg,
+    #fff3e5 299deg, #ff8f79 360deg
+  );
 }
 #startseite #shGrid.sh-whiteboard-hex > .shbtn::before {
   content: "";
   position: absolute;
-  inset: 5%;
+  inset: 5.2% 5.8%;
   z-index: -1;
   clip-path: inherit;
-  background: repeating-linear-gradient(0deg, #ffffff06 0 1px, transparent 1px 3px),
-              linear-gradient(155deg, #df2521, #a40004 58%, #700005);
+  background:
+    repeating-linear-gradient(0deg, #ffdfbf12 0 1px, transparent 1px 3px, #23000019 3px 4px, transparent 4px 6px),
+    linear-gradient(118deg, #ffebd4bb, #ff61423d 34%, transparent 62%),
+    linear-gradient(166deg, #e41508 8%, #bf0c02 48%, #8f0903 76%, #500200 100%);
 }
-#startseite #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { filter: brightness(1.5); }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:hover::before { filter: brightness(1.14); }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { filter: brightness(1.38); }
 
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
@@ -1041,18 +1061,80 @@ body.tv-preview-open{overflow:hidden!important}
 #ecwRibbonCalendar td { background: #3c272c; border-radius: 5px; }
 #ecwRibbonCalendar td[aria-current=date] { background: #a72e3c; font-weight: 700; }
 
-@media (min-width: 1367px) {
+/* Messwertkarten des Startleisten-Entwurfs. */
+#startseite #ecwInfoRibbon {
+  left: .8%;
+  right: .8%;
+  bottom: 3px;
+  border: 1px solid #b550526f;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #281e21f5, #151215fa);
+}
+#startseite #ecwTemperatures { gap: 4px; }
+#startseite #ecwTemperatures .ecw-temp-cell,
+#startseite #ecwTemperatures .ecw-ribbon-clock,
+#startseite #shUserLogin {
+  border: 1px solid #ad4b51a6;
+  border-radius: 7px;
+  background: linear-gradient(155deg, #2e282b, #141215);
+  box-shadow: inset 0 1px #ffffff12;
+}
+#startseite #ecwTemperatures .ecw-sensor-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .32em;
+  font-weight: 650;
+  color: #f5e7e4;
+}
+#startseite #ecwTemperatures .ecw-sensor-title svg {
+  width: 1.13em;
+  height: 1.13em;
+  flex: none;
+}
+#startseite #ecwTemperatures .ecw-temp-cell strong,
+#startseite #ecwTemperatures .ecw-ribbon-clock strong {
+  font-size: clamp(12px, 1.3vw, 27px);
+  letter-spacing: -.03em;
+}
+#startseite #ecwTemperatures .ecw-ribbon-humidity {
+  gap: .35em;
+  font-weight: 650;
+  color: #f5e7e4;
+}
+#startseite #ecwTemperatures .ecw-ribbon-humidity::before {
+  content: none;
+}
+#startseite #ecwTemperatures .ecw-ribbon-humidity::after {
+  content: "";
+  order: -1;
+  width: .64em;
+  height: .76em;
+  border: 1px solid currentColor;
+  border-radius: 65% 0 65% 65%;
+  transform: rotate(-45deg);
+}
+@media (min-width: 1250px) {
+  #startseite #ecwInfoRibbon {
+    grid-template-columns: minmax(0, 1fr) clamp(480px, 34vw, 820px);
+  }
+  #startseite #ecwTemperatures {
+    grid-template-columns: repeat(3,minmax(0,1fr)) minmax(70px,.72fr) minmax(64px,.67fr);
+  }
   #startseite #ecwTemperatures .ecw-temp-cell {
     display: grid;
     grid-template-columns: max-content max-content;
     grid-template-rows: auto auto;
-    align-content: center;
-    justify-content: center;
-    column-gap: clamp(3px, .45vw, 10px);
+    place-content: center;
+    column-gap: clamp(3px, .3vw, 9px);
   }
-  #startseite #ecwTemperatures .ecw-temp-cell > span:first-child {
+  #startseite #ecwTemperatures .ecw-sensor-title {
     grid-column: 1 / -1;
     justify-self: start;
   }
   #startseite #ecwTemperatures .ecw-ribbon-humidity { align-self: center; }
+}
+@media (max-width: 800px) {
+  #startseite #ecwTemperatures { gap: 2px; }
+  #startseite #ecwTemperatures .ecw-temp-cell strong,
+  #startseite #ecwTemperatures .ecw-ribbon-clock strong { font-size: 12px; }
 }
