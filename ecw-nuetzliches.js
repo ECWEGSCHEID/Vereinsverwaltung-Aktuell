@@ -69,7 +69,7 @@ function open(menu='useful'){
  const d=dialog();
  d.setAttribute('aria-label',title);
  d.style.backgroundImage='url('+JSON.stringify(SH.bg||'assets/startseite-standard.jpg')+')';
- d.innerHTML='<div class="utility-hex-shell"><h1>'+title+'</h1><div class="utility-hex-grid"></div><p class="utility-empty" hidden>Noch keine Einträge vorhanden.</p><nav class="utility-hex-nav" aria-label="Menünavigation"><div class="utility-paging" hidden><button type="button" data-prev onclick="ecwUtility.changePage(-1)" aria-label="Vorige Seite">‹</button><output aria-live="polite"></output><button type="button" data-next onclick="ecwUtility.changePage(1)" aria-label="Nächste Seite">›</button></div><button type="button" onclick="ecwUtility.home()">Zurück zum Startmenü</button></nav></div>';
+ d.innerHTML='<div class="utility-hex-shell"><h1 class="ecw-diagonal-title">'+title+'</h1><div class="utility-hex-grid"></div><p class="utility-empty" hidden>Noch keine Einträge vorhanden.</p><nav class="utility-hex-nav" aria-label="Menünavigation"><div class="utility-paging" hidden><button type="button" data-prev onclick="ecwUtility.changePage(-1)" aria-label="Vorige Seite">‹</button><output aria-live="polite"></output><button type="button" data-next onclick="ecwUtility.changePage(1)" aria-label="Nächste Seite">›</button></div><button type="button" onclick="ecwUtility.home()">Zurück zum Startmenü</button></nav></div>';
  renderPage();
  if(!d.open){if(d.showModal)d.showModal();else{d.open=true;d.setAttribute('open','')}}
  document.body.classList.add('ecw-utility-open');

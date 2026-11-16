@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.2.161126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.3.161126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -85,6 +85,7 @@ function updateTournamentTitles(){
  const l=(tCollection==='ownTournaments')?'Nächste eigene Turniere':tCfg().label;
  const a=document.getElementById('tMonthsTitle');if(a)a.textContent=l;
  const b=document.getElementById('tTitle');if(b)b.textContent=l;
+ document.getElementById('tournaments')?.classList.toggle('ecw-side-title-view',tCollection==='pressReports');
  const sub=document.getElementById('tMonthsSubtitle');if(sub)sub.textContent=tCollection==='pressReports'?'Alle Berichte':'Monatsübersicht';
 }
 function openOwnTournamentsReleased(){
@@ -1660,7 +1661,10 @@ function shRender(){
  const label=grp?grp.t.replace(/\n/g,' '):SH.title;
  const background=SH.bg||SH_BG;
  art.style.backgroundImage='url("'+background+'")';
- document.getElementById('shTitle').textContent=label;document.getElementById('shTitle2').textContent=label;
+ const heading=document.getElementById('shTitle');
+ heading.textContent=label;
+ heading.classList.toggle('ecw-long-sh-title',!!grp && label.length>22);
+ document.getElementById('shTitle2').textContent=label;
  document.getElementById('shSubReturn').hidden=!grp;
  document.getElementById('startseite').classList.toggle('sh-submenu',!!grp);
  const items=grp?grp.sub:SH.buttons;
