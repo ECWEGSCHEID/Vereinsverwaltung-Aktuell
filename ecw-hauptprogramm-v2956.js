@@ -4321,18 +4321,24 @@ async function tpSaveCentralPlayerList(){
   await fbTimeout(firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).set(payload),30000,'Spielerliste speichern');
   return true;
 }
-async function tpLoadCentralPlayerList(){
-  if(!firebaseReady||!firestoreDb)return;
+async function tpLoadCentralPlayerList(fromPlayerMenu=false){
+  if(!firebaseReady||!firestoreDb)return 'unavailable';
+  const uid=firebaseAuthUser?.uid;
   try{
-    const doc=await firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).get();
-    if(doc.exists){
-      const remote=doc.data()||{};
-      if(Array.isArray(remote.players)&&remote.players.length)data.tournamentPlannerPlayers=remote.players;
-      if(remote.aliases&&typeof remote.aliases==='object')data.tournamentPlannerPlayerAliases=remote.aliases;
-      save();
-      renderTpPlayersAdminList();
-    }
-  }catch(e){console.warn('Zentrale Spielerliste nicht geladen:',e);}
+    const ref=firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC);
+    const doc=await (fromPlayerMenu?ref.get({source:'server'}):ref.get());
+    if(firebaseAuthUser?.uid!==uid)return 'unavailable';
+    const remote=doc.data();
+    if(!Array.isArray(remote?.players)||!remote.players.length)return 'empty';
+    data.tournamentPlannerPlayers=remote.players;
+    if(remote.aliases&&typeof remote.aliases==='object')data.tournamentPlannerPlayerAliases=remote.aliases;
+    save();
+    renderTpPlayersAdminList();
+    return 'loaded';
+  }catch(e){
+    console.warn('Zentrale Spielerliste nicht geladen:',e);
+    return e.code==='permission-denied'?'denied':'unavailable';
+  }
 }
 function canEditTpSmartphoneAccess(){
   return !!(firebaseAuthUser&&firestoreDb&&appPermissions.admin===true&&!isWhiteboardUser());
@@ -6211,6 +6217,22 @@ function tpAdminSubSection(sub){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const b=document.getElementById('tpSubBtn-'+k);
   if(b)b.className=(k===sub?'primary':'');
  });
+ if(sub==='players')void tpRefreshPlayerMenu();
+}
+
+async function tpRefreshPlayerMenu(){
+  const status=document.getElementById('tpPlayersLoadStatus');
+  if(!status)return;
+  status.textContent='Zentrale Spielerliste wird geladen …';
+  const result=await tpLoadCentralPlayerList(true);
+  if(!status.isConnected)return;
+  const messages={
+    loaded:'',
+    empty:'In Firebase ist noch keine zentrale Spielerliste gespeichert.',
+    denied:'Dieses Konto darf die zentrale Spielerliste in Firebase nicht lesen.',
+    unavailable:'Die zentrale Spielerliste konnte nicht geladen werden.'
+  };
+  status.textContent=messages[result];
 }
 
 function renderAdminMenuLanding(){
@@ -6412,7 +6434,7 @@ function adminSection(s){
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
    +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings();tpGoogleConnect()">Mit Google verbinden und abgleichen</button><button type="button" onclick="tpGooglePullLinkedChanges(true)">Jetzt abgleichen</button></div><div id="tpGooglePullStatus" class="small" style="margin-top:8px">Google → Programm: Änderungen werden beim Öffnen angezeigt und erst nach deiner Bestätigung übernommen. Nach Ablauf der Google-Anmeldung bitte erneut verbinden.</div><div id="tpGoogleConflictList"></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Neue Termine werden beim Speichern automatisch in Google Kalender angelegt, sofern die Verbindung eingerichtet ist und keine mögliche Dublette gefunden wird. Bei einer Änderung eines bereits verknüpften Termins wird derselbe Kalendereintrag aktualisiert. Der automatische Rückabgleich berücksichtigt ausschließlich eindeutig mit Google verknüpfte Termine. Unverknüpfte ältere Exporte werden nicht automatisch geändert. Bei Konflikten oder gelöschten Google-Terminen werden keine Daten stillschweigend überschrieben oder gelöscht.</div></div></div>'
-   +'<div id="tpSub-players"><h3>Spielerliste (Auswahl für Turniere/Meisterschaften)</h3><div class="card"><div class="row"><input id="tpNewPlayer" type="text" placeholder="Name, z. B. Mustermann Max" style="flex:1" onkeydown="if(event.key===\'Enter\')tpAddPlayer()"><button type="button" onclick="tpAddPlayer()">Hinzufügen</button></div><div id="tpPlayersAdminList" style="margin-top:10px"></div></div></div>'
+   +'<div id="tpSub-players"><h3>Spielerliste (Auswahl für Turniere/Meisterschaften)</h3><div class="card"><div class="row"><input id="tpNewPlayer" type="text" placeholder="Name, z. B. Mustermann Max" style="flex:1" onkeydown="if(event.key===\'Enter\')tpAddPlayer()"><button type="button" onclick="tpAddPlayer()">Hinzufügen</button></div><p id="tpPlayersLoadStatus" class="small" role="status"></p><div id="tpPlayersAdminList" style="margin-top:10px"></div></div></div>'
    +'<div id="tpSub-events"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar" style="margin:0 0 10px"><label style="margin:0">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div><div id="tpAdminList"></div></div>';
   renderTpPlayersAdminList();
   renderTournamentPlannerAdminList();
