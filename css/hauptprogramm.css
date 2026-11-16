@@ -1438,3 +1438,73 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Lange Menütitel bleiben innerhalb des diagonalen Bereichs. */
+#shTitle.ecw-long-sh-title {
+  inline-size: 20cqw;
+  font-size: clamp(16px, 2.15cqw, 36px);
+  line-height: 1.08;
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.ecw-side-title-view > .header {
+  position: static;
+}
+.ecw-side-title-view > .header :is(.title, .tournament-title),
+#ecwUtilityDialog .utility-hex-shell > .ecw-diagonal-title,
+#ecwResultsDialog .ecw-results-menu-heading > .ecw-diagonal-title {
+  position: absolute;
+  left: var(--diagonal-title-x, 11vw);
+  top: var(--diagonal-title-y, 24dvh);
+  inline-size: var(--diagonal-title-width, min(20vw, 315px));
+  margin: 0;
+  color: #fff;
+  font-size: clamp(16px, min(2.35vw, 3.6dvh), 37px);
+  font-weight: 600;
+  line-height: 1.12;
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transform: translate(-50%, -50%) rotate(-52deg);
+  text-shadow: 0 2px 7px #240007;
+  pointer-events: none;
+}
+.ecw-side-title-view > .header .subtitle:empty { display: none; }
+#ecwResultsDialog .ecw-results-menu-heading { min-height: 32px; }
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  .ecw-side-title-view.active {
+    padding-inline-start: max(20vw, 180px);
+  }
+}
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  .ecw-side-title-view > .header,
+  #ecwResultsDialog .ecw-results-menu-heading {
+    position: relative;
+    min-height: 82px;
+    padding-inline-start: min(52vw, 250px);
+    box-sizing: border-box;
+  }
+  .ecw-side-title-view > .header :is(.title, .tournament-title),
+  #ecwUtilityDialog .utility-hex-shell > .ecw-diagonal-title,
+  #ecwResultsDialog .ecw-results-menu-heading > .ecw-diagonal-title {
+    left: 12px;
+    top: 50%;
+    inline-size: min(46vw, 220px);
+    font-size: clamp(14px, 3.6vw, 24px);
+    transform: translateY(-50%) rotate(-16deg);
+  }
+  #ecwUtilityDialog .utility-hex-shell {
+    position: relative;
+    --utility-edge: clamp(62px, 12dvh, 96px);
+  }
+  #ecwUtilityDialog .utility-hex-shell > .ecw-diagonal-title {
+    top: calc(var(--utility-edge) / 2);
+  }
+  #ecwResultsDialog .ecw-results-menu-heading {
+    margin-inline: 0;
+    width: 100%;
+  }
+}
