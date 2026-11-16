@@ -21,8 +21,7 @@ function perPage(){return currentGalleryLayout().perPage}
 function resizeGallery(){const d=document.getElementById('ecwResultsDialog');if(!d?.open||!d.classList.contains('er-gallery-mode')||!galleryEntries.length)return;galleryPage=Math.min(galleryPage,Math.max(0,Math.ceil(galleryEntries.length/perPage())-1));galleryToken++;renderGallery()}
 
 
-function fitTiles(){if(typeof requestAnimationFrame!=='function')return;requestAnimationFrame(()=>{const d=document.getElementById('ecwResultsDialog');if(!d?.open)return;const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');if(!ctx)return;d.querySelectorAll('.er-tile').forEach(b=>{b.style.fontSize='';const style=getComputedStyle(b),font=parseFloat(style.fontSize),available=b.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-4;if(available<=0)return;ctx.font=style.fontWeight+' '+font+'px '+style.fontFamily;const longest=Math.max(1,...b.textContent.split(/\s+/).map(w=>ctx.measureText(w).width));if(longest>available)b.style.fontSize=(font*available/longest)+'px'})})}
-if(typeof ResizeObserver!=='undefined'){let observer;document.addEventListener('DOMContentLoaded',()=>{observer=new ResizeObserver(()=>{fitTiles();resizeGallery()});observer.observe(document.documentElement)})}
+if(typeof ResizeObserver!=='undefined'){let observer;document.addEventListener('DOMContentLoaded',()=>{observer=new ResizeObserver(()=>{resizeGallery()});observer.observe(document.documentElement)})}
 
 function root(){return SH.results||(SH.results=normalize())}
 function active(){let n=root();const valid=[];for(const id of path){const c=n.children.find(x=>x.id===id);if(!c)break;valid.push(id);n=c}path=valid;return n}
@@ -57,16 +56,27 @@ function button(label,code,cls='',disabled=false){return '<button type="button" 
 function element(){let d=document.getElementById('ecwResultsDialog');if(d)return d;d=document.createElement('dialog');d.id='ecwResultsDialog';d.className='ecw-results-dialog';d.setAttribute('aria-label','Ergebnisse');document.body.append(d);d.addEventListener('cancel',e=>{if(document.getElementById('erZoom')){e.preventDefault();closeZoom()}else{document.body.classList.remove('ecw-results-open');viewed=null}});return d}
 function close(){const d=element();if(d.close)d.close();else{d.open=false;d.removeAttribute('open')}document.body.classList.remove('ecw-results-open');viewed=null;previousFocus?.focus?.()}
 function open(edit=false){if(edit)return admin();adminMode=false;previewMode=false;path=[];viewed=null;previousFocus=document.activeElement;showPublic()}
-function showPublic(){renderPublic();const d=element();if(!d.open){if(d.showModal)d.showModal();else{d.open=true;d.setAttribute('open','')}}document.body.classList.add('ecw-results-open');fitTiles()}
+function showPublic(){renderPublic();const d=element();if(!d.open){if(d.showModal)d.showModal();else{d.open=true;d.setAttribute('open','')}}document.body.classList.add('ecw-results-open')}
 function home(){close();previewMode=false;adminMode=false;path=[];if(typeof showView==='function')showView('startseite');if(typeof shRender==='function'){shOpen=-1;shRender()}}
 function preview(){if(!allowed()){showToast('Keine Berechtigung zur Ergebnis-Vorschau.');return}previewMode=true;viewed=null;showPublic()}
 function previewBack(){close();previewMode=false;adminMode=true;renderAdmin()}
 function admin(){if(!allowed()){showToast('Ergebnisse bearbeiten ist nicht freigegeben.');return}close();path=[];viewed=null;adminMode=true;previewMode=false;renderAdmin()}
-function publicTile(title,code){return button(esc(title),code,'shbtn er-tile')}
+function publicTile(title,code){
+ const shortTitle=title
+   .replace(/^Alle Pokalturniergewinner$/i,'Pokalsieger')
+   .replace(/Vereinsmeisterschaft/gi,'Vereins-M.')
+   .replace(/Jahresmeisterschaft/gi,'Jahres-M.')
+   .replace(/Freundschaftsturnier/gi,'Freundschafts-Turnier')
+   .replace(/^Turnier Betriebe Vereine$/i,'Betriebe & Vereine')
+   .replace(/Ergebnis+s?liste/gi,'Ergebnis')
+   .replace(/\.(pdf|png|jpe?g|webp)$/i,'');
+ const fullTitle=esc(title);
+ return '<button type="button" class="shbtn er-tile" title="'+fullTitle+'" aria-label="'+fullTitle+'" onclick="ecwResults.'+code+'"><span class="er-tile-label">'+esc(shortTitle)+'</span></button>';
+}
 function renderPublic(){const n=active(),d=element();const bg=path.length?'assets/hintergrund-carbon-rot.png':(SH.bg||'assets/startseite-standard.jpg');d.style.backgroundImage='url('+JSON.stringify(bg)+')';const gallery=!intermediate()&&n.links.length>0;galleryToken++;d.classList.toggle('er-gallery-mode',!!gallery);d.classList.toggle('er-inner-level',path.length>0);
  const body=gallery?'<div id="erGalleryStatus" class="small" role="status">Ergebnisübersicht wird geladen …</div><div id="erGallery" class="er-gallery"></div><nav id="erGalleryNav" class="er-gallery-nav"></nav>':(n.body?'<div class="er-description">'+esc(n.body)+'</div>':'')+'<div class="er-public-grid" style="--er-cols:'+([2,3,4].includes(+SH.cols)?SH.cols:3)+'">'+n.children.map((c,i)=>publicTile(c.t,'enter('+i+')')).join('')+n.links.map((l,i)=>publicTile(l.t,'openFile('+i+')')).join('')+'</div>'+(!n.children.length&&!n.links.length&&!n.body?'<p>Noch keine Ergebnisse vorhanden.</p>':'');
  d.innerHTML='<div class="er-public-shell"><header class="er-public-heading"><h1>'+esc(n.t)+'</h1>'+(previewMode?button('Zurück zur Verwaltung','previewBack()','er-preview-back'):'')+'</header>'+body+'<nav class="er-bottom" aria-label="Zurück">'+button('Eine Ebene nach oben','back()','',!path.length)+button('Zurück zum Startmenü','home()')+'</nav></div>';
- fitTiles();if(gallery){galleryEntries=[];drawGallery(n,galleryToken)}
+ if(gallery){galleryEntries=[];drawGallery(n,galleryToken)}
 }
 async function manifest(l){const key=(l.file?.id||l.u)+'|'+l.t;if(manifestCache.has(key))return manifestCache.get(key);const work=(async()=>{const url=await fileUrl(l);if(l.kind==='image')return[{title:l.t,load:async()=>url}];const pdf=l.file?.mime==='application/pdf'||/\.pdf(?:[?#]|$)/i.test(url)||/\.pdf$/i.test(l.t);if(!pdf)return[{title:l.t,url,external:true}];
  if(typeof loadPdfJs==='function')await loadPdfJs();if(!window.pdfjsLib)throw Error('PDF-Anzeige konnte nicht geladen werden. Internetverbindung prüfen.');const doc=await window.pdfjsLib.getDocument({url}).promise;const pages=[];

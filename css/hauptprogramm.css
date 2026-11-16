@@ -1204,7 +1204,7 @@ body.tv-preview-open{overflow:hidden!important}
   margin-block-start: calc(var(--team-hex-width) * -.175);
 }
 #teamsGrid {
-  --team-hex-width: min(var(--submenu-hex-width), calc((100cqi - 24px) / 4.5));
+  --team-hex-width: min(var(--submenu-hex-width), calc((100cqi - 42px) / 5.5));
 }
 #teamsGrid .team-group-grid {
   display: flex;
@@ -1274,4 +1274,19 @@ body.tv-preview-open{overflow:hidden!important}
   #startseite.active #shGrid.sh-internal-results-hex > .shbtn:nth-child(4n + 3) {
     grid-column: 2 / span 2;
   }
+}
+
+#teamsGrid .team-group-grid > .gbtn {
+  overflow-wrap: anywhere;
+  padding-inline: .35em;
+}
+#ecwResultsDialog .er-public-grid > .er-tile {
+  font-size: clamp(11px, calc(var(--submenu-hex-width) * .115), 21px);
+}
+#ecwResultsDialog .er-tile-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }

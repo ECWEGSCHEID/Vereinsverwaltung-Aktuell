@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V8';
+const APP_RELEASE='ECW Startseite V9';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1989,7 +1989,11 @@ function renderTeamsOverview(){
   const other=teamsData.filter(t=>!used.has(t.id));
   if(other.length)groups.push({title:'Weitere Mannschaften',cls:'main',items:other});
 
-  groups.filter(gr=>gr.items.length).forEach(gr=>{
+  const rows=groups.flatMap(group=>Array.from({length:Math.ceil(group.items.length/5)},(_,i)=>({
+    ...group,
+    items:group.items.slice(i*5,i*5+5)
+  })));
+  rows.forEach(gr=>{
     const sec=document.createElement('div');sec.className='team-group';
     sec.innerHTML='<div class="team-group-title">'+esc(gr.title)+'</div>';
     const grid=document.createElement('div');grid.className='team-group-grid '+gr.cls;
