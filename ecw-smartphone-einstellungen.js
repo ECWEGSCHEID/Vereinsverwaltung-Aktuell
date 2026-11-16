@@ -6,7 +6,7 @@
       qr: 'members',
       entry: 'smartphone-mitglieder.html',
       items: {
-        reservation: 'Reservierungssystem', planner: 'Terminplaner', hall: 'Halle',
+        reservation: 'Reservierungssystem', invitations: 'Turniereinladungen', planner: 'Terminplaner', hall: 'Halle',
         games: 'Spiele', tables: 'Tabellen', solo: 'Solo Pyramide'
       }
     },
@@ -80,7 +80,10 @@
     games: 'spiele', tables: 'tabellen', solo: 'soloPyramide'
   };
 
+  const invitationsPermissionKey = 'ecw:standard:turniereinladungen';
+
   function memberFeatureAllowed(permissions, feature) {
+    if (feature === 'invitations') return !permissions?.gesperrteLinks?.includes(invitationsPermissionKey);
     if (feature === 'games' && permissions?.spiele === undefined) {
       return permissions?.reservierungenLesen !== false;
     }
@@ -94,7 +97,9 @@
 
   function memberItems(settings) {
     const entries = Object.entries(groups.members.items).map(([key, title]) =>
-      ({key: memberPermissionFields[key], feature: key, title, custom: false}));
+      (key === 'invitations'
+        ? {key: invitationsPermissionKey, feature: key, title, custom: true}
+        : {key: memberPermissionFields[key], feature: key, title, custom: false}));
     const customKeys = new Set();
     for (const item of readLinks(settings, 'members')) {
       const key = memberLinkKey(item);

@@ -103,6 +103,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <h1 id="menu-title" tabindex="-1">Hauptmenü</h1>
 <nav aria-label="Hauptmenü">
 <button type="button" data-mobile-feature="reservation">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="invitations">Turniereinladungen<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="planner">Terminplaner<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="hall">Halle<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="games">Spiele<span class="arrow" aria-hidden="true">›</span></button>
@@ -126,11 +127,13 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <div class="hall-status"><span>Hallenstatus</span><strong>Unbekannt</strong></div>
 <h2 class="temperature-title">Temperaturanzeige</h2>
 <dl class="readings">
-<div><dt>Außen</dt><dd id="aussen">–</dd></div>
-<div><dt>Halle</dt><dd id="halle">–</dd></div>
-<div><dt>Vereinsheim</dt><dd id="vereinsheim">–</dd></div>
+<div><dt>Außen</dt><dd id="aussen">–</dd><dd class="hall-humidity">Luftfeuchtigkeit: <span id="aussen-humidity">–</span></dd></div>
+<div><dt>Halle</dt><dd id="halle">–</dd><dd class="hall-humidity">Luftfeuchtigkeit: <span id="halle-humidity">–</span></dd></div>
+<div><dt>Vereinsheim</dt><dd id="vereinsheim">–</dd><dd class="hall-humidity">Luftfeuchtigkeit: <span id="vereinsheim-humidity">–</span></dd></div>
 </dl>
 <p class="hint" id="temperature-status" role="status"></p>
+<p><button type="button" id="ecwMemberTemperatureDetailsButton" aria-controls="ecwMemberTemperatureDetailsPanel" aria-expanded="false">Messwerte im Detail anzeigen</button></p>
+<div id="ecwMemberTemperatureDetailsPanel" hidden role="region" aria-label="Temperaturdetails"></div>
 </div>
 <div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
 </section>
@@ -143,7 +146,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=5"></script>
+<script src="ecw-smartphone-einstellungen.js?v=20261116-einladungen"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -309,8 +312,9 @@ function reservationAddress(games = false) {
   return url;
 }
 let bookingOperationActive = false;
-const administrationUrl = 'https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/';
-const soloUrl = new URL('solo-pyramide.html?v=2.5.2', administrationUrl);
+const administrationUrl = new URL('./', location.href);
+const soloUrl = new URL('solo-pyramide.html?v=2.9.32&mode=whiteboard', administrationUrl);
+const invitationsUrl = new URL('index.html?whiteboard=1&smartphoneAnsicht=1#turniere-monatsuebersicht', administrationUrl);
 
 const moduleExternal = document.getElementById('module-external');
 const resultReader = document.getElementById('result-reader');
@@ -422,15 +426,23 @@ moduleBack.addEventListener('click', () => {
 results.querySelectorAll('button').forEach(button => {
   button.addEventListener('click', () => {
     const result = button.dataset.result;
+    if (button.dataset.cup) {
+      const table = new URL('ecw-mobile-results.html?v=20261114-repair4', location.href);
+      table.searchParams.set('cup', button.dataset.cup);
+      showModule(button.textContent, table, false, true);
+      return;
+    }
     const url = new URL('turnierauswertung.html?v=mobile-results-1&mode=mobile-results&seite=' + result, administrationUrl);
-    if (button.dataset.cup) url.searchParams.set("cup", button.dataset.cup);
     showModule(button.textContent, url, true);
   });
 });
 
 async function loadTemperatures(signal) {
   temperatureStatus.textContent = 'Temperaturen werden geladen …';
-  temperatureFields.forEach(field => { document.getElementById(field).textContent = '–'; });
+  for (const field of temperatureFields) {
+    document.getElementById(field).textContent = '–';
+    document.getElementById(field + '-humidity').textContent = '–';
+  }
   try {
     const response = await fetch(temperatureUrl, {signal, cache: 'no-store'});
     if (!response.ok) throw new Error('Temperaturquelle nicht erreichbar');
@@ -444,6 +456,11 @@ async function loadTemperatures(signal) {
       return;
     }
     for (const field of temperatureFields) {
+      const humidity = fields[field + '_luftfeuchte_prozent'];
+      const percent = humidity?.doubleValue ?? Number(humidity?.integerValue);
+      if (Number.isFinite(percent)) {
+        document.getElementById(field + '-humidity').textContent = temperatureFormat.format(percent) + ' %';
+      }
       const reading = fields[field];
       const value = reading?.doubleValue ?? Number(reading?.integerValue);
       if (Number.isFinite(value)) {
@@ -655,7 +672,11 @@ form.addEventListener('submit', async event => {
       activationEmail = null;
       newPassword.value = repeatPassword.value = '';
       setActivationView(false);
-      await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
+      const credential = await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
+      void import(firestoreSdkUrl).then(({getFirestore, doc, setDoc, serverTimestamp}) =>
+        setDoc(doc(getFirestore(app), 'smartphonePasswortstatus', credential.user.uid),
+          {confirmedAt: serverTimestamp()})
+      ).catch(error => console.warn('Passwortstatus konnte nicht bestätigt werden:', error.code));
     } else {
       await signInWithEmailAndPassword(auth, identifier, password.value);
     }
@@ -693,12 +714,23 @@ menu.querySelectorAll('nav button').forEach(button => {
     selectedButton = button;
     detailTitle.textContent = button.firstChild.textContent.trim();
     const title = detailTitle.textContent;
-    if (title === 'Reservierungssystem' || title === 'Spiele') {
-      showModule(title, reservationAddress(title === 'Spiele'));
+    if (button.dataset.mobileFeature === 'invitations') {
+      showModule(title, invitationsUrl, false, true);
+      return;
+    }
+    if (title === 'Spiele') {
+      const day = reservationAddress(true).href;
+      const tab = window.open(day, '_blank');
+      if (tab) tab.opener = null;
+      else window.location.assign(day);
+      return;
+    }
+    if (title === 'Reservierungssystem') {
+      showModule(title, reservationAddress());
       return;
     }
     if (title === 'Solo Pyramide') {
-      showModule(title, soloUrl);
+      showModule(title, soloUrl, false, true);
       return;
     }
     hallPanel.hidden = title !== 'Halle';
@@ -737,5 +769,6 @@ document.getElementById('logout').addEventListener('click', async () => {
   }
 });
 </script>
+<script src="js/ecw-smartphone-hall-details.js?v=20261114-repair4"></script>
 </body>
 </html>

@@ -7,7 +7,16 @@
  const number=(o)=>o?.doubleValue!==undefined?Number(o.doubleValue):o?.integerValue!==undefined?Number(o.integerValue):NaN;
  const stamp=(f)=>f?.updatedAt?.timestampValue?new Date(f.updatedAt.timestampValue):null;
  const put=(id,text)=>{const e=document.getElementById(id);if(e)e.textContent=text;};
- function render(){if(!values)return; const f=values;for(const [key,id] of sensors)put(id,fmt(number(f[key]),1,' °C'));
+ function render(){if(!values)return; const f=values;
+  for(const [key,id] of sensors){
+   put(id,fmt(number(f[key]),1,' °C'));
+   const humidity=document.getElementById(id.replace('ecwTemp','ecwHumidity'));
+   if(humidity){
+    const value=fmt(number(f[key+'_luftfeuchte_prozent']),0,' %');
+    humidity.textContent=value;
+    humidity.setAttribute('aria-label','Luftfeuchte: '+value);
+   }
+  }
   const d=stamp(f),age=d?Date.now()-d.getTime():Infinity;
   const note=(age>7*60e3?'Messwerte nicht aktuell · ':'Aktualisiert: ')+(d?d.toLocaleString('de-DE'):'Zeit unbekannt');put('ecwTempStatus',note);
   if(current)detail(current);

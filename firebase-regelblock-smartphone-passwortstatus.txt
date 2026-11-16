@@ -1,0 +1,10 @@
+// In die vorhandenen Firestore-Regeln unter match /databases/{database}/documents einfügen.
+// isAdmin() stammt aus den bestehenden Projektregeln.
+match /smartphonePasswortstatus/{uid} {
+  allow read: if request.auth != null && isAdmin();
+  allow create, update: if request.auth != null
+    && request.auth.uid == uid
+    && request.auth.token.firebase.sign_in_provider == 'password'
+    && request.resource.data.keys().hasOnly(['confirmedAt'])
+    && request.resource.data.confirmedAt == request.time;
+}
