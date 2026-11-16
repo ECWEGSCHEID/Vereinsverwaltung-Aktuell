@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V7';
+const APP_RELEASE='ECW Startseite V8';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1667,14 +1667,16 @@ function shRender(){
    const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
   }
  });
- const whiteboardLayout=!grp;
+ const internalResults=!!grp && /ergebnisse\s+turniere\s+intern/i.test(label);
+ const whiteboardLayout=!grp||internalResults;
+ g.classList.toggle('sh-internal-results-hex',internalResults);
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
  if(whiteboardLayout){
   let regularIndex=0;
   const occupied=new Set();
   items.forEach((button,i)=>{
    const slot=button.whiteboardSlot;
-   const reserved=(slot===1||slot===2)&&!occupied.has(slot);
+   const reserved=!grp&&(slot===1||slot===2)&&!occupied.has(slot);
    const [row,column]=reserved?shWhiteboardPosition(0,slot):shWhiteboardPosition(regularIndex++);
    if(reserved)occupied.add(slot);
    els[i].style.setProperty('--sh-tile-row',row);
@@ -2886,8 +2888,19 @@ document.addEventListener('click',event=>{
  event.preventDefault();openExternalPage(url,anchor.textContent.trim());
 });
 
+function ecwAdminViewUrl(){
+ const url=new URL(location.href);
+ url.searchParams.delete('v');
+ return url.href;
+}
 function ecwShouldRestoreAdminView(){
- try{return sessionStorage.getItem('ecw_admin_view_url')===location.href}catch(e){return false}
+ try{
+   const saved=sessionStorage.getItem('ecw_admin_view_url');
+   if(!saved)return false;
+   const url=new URL(saved);
+   url.searchParams.delete('v');
+   return url.href===ecwAdminViewUrl();
+ }catch(e){return false}
 }
 function showView(id){
  if(id!=='externalPage')clearExternalPage();
@@ -2915,7 +2928,7 @@ function showView(id){
  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
  document.getElementById(id).classList.add('active');
  try{
-   if(id==='admin'&&firebaseAuthUser)sessionStorage.setItem('ecw_admin_view_url',location.href);
+   if(id==='admin'&&firebaseAuthUser)sessionStorage.setItem('ecw_admin_view_url',ecwAdminViewUrl());
    else sessionStorage.removeItem('ecw_admin_view_url');
  }catch(e){}
  if(isWhiteboardUser()||['externalPage','tournamentMonths','tournaments','news','photos','sponsorPhotos','tournamentPlanner','teams','teamDetail','turnierverwaltung'].includes(id)){
@@ -7525,7 +7538,7 @@ async function ecwWaitForInitialAuth(){
   while(!window.__ecwAuthInitialResolved && Date.now()-start<timeout){
     await new Promise(r=>setTimeout(r,100));
   }
-  return window.__ecwAuthInitialUser||window.firebaseAuth?.currentUser||null;
+  return window.firebaseAuth?.currentUser||null;
 }
 
 async function ecwStartupAfterAuth(){
