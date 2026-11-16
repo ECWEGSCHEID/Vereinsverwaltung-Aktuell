@@ -886,11 +886,11 @@ body.tv-preview-open{overflow:hidden!important}
 .ecw-tp-homepage input[type=checkbox]{width:auto}
 
 
-/* Metallfacetten und gebürstete Flächen der Startseiten-Waben. */
+/* Metallfacetten und gebürstete Flächen der Menükacheln. */
 #startseite #shGrid.sh-whiteboard-hex {
   filter: drop-shadow(0 .38em .28em #130000db);
 }
-#startseite #shGrid.sh-whiteboard-hex > .shbtn {
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile) {
   position: relative;
   clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
   border: 0;
@@ -925,7 +925,7 @@ body.tv-preview-open{overflow:hidden!important}
   border-width: 0 .095em .095em 0;
   transform: rotate(45deg);
 }
-#startseite #shGrid.sh-whiteboard-hex > .shbtn::before {
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile)::before {
   content: "";
   position: absolute;
   inset: 5.2% 5.8%;
@@ -936,8 +936,8 @@ body.tv-preview-open{overflow:hidden!important}
     linear-gradient(118deg, #ffebd4bb, #ff61423d 34%, transparent 62%),
     linear-gradient(166deg, #e41508 8%, #bf0c02 48%, #8f0903 76%, #500200 100%);
 }
-#startseite #shGrid.sh-whiteboard-hex > .shbtn:hover::before { filter: brightness(1.14); }
-#startseite #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { filter: brightness(1.38); }
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile):hover::before { filter: brightness(1.14); }
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile):focus-visible::before { filter: brightness(1.38); }
 
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
@@ -1150,4 +1150,33 @@ body.tv-preview-open{overflow:hidden!important}
   #startseite #ecwTemperatures { gap: 2px; }
   #startseite #ecwTemperatures .ecw-temp-cell strong,
   #startseite #ecwTemperatures .ecw-ribbon-clock strong { font-size: 12px; }
+}
+
+/* Kleinere Waben für die Mannschafts- und Ergebnisübersicht. */
+#teamsGrid .team-group-grid,
+#ecwResultsDialog .er-public-grid {
+  --submenu-hex-width: calc(clamp(124px, 26vw, 180px) * .8);
+  grid-auto-rows: auto;
+  align-items: start;
+  filter: drop-shadow(0 .28em .22em #130000db);
+}
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  #teamsGrid .team-group-grid,
+  #ecwResultsDialog .er-public-grid {
+    --submenu-hex-width: calc(min(66.8vw / 5.85, (100dvh - 3.2vh - clamp(48px, 5.8vh, 65px) - 16px) / 4.015) * .8);
+  }
+}
+:is(#teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile) {
+  box-sizing: border-box;
+  justify-self: center;
+  width: min(100%, var(--submenu-hex-width));
+  aspect-ratio: 1 / 1.135;
+  min-height: 0;
+  padding: 0 9%;
+  font-size: clamp(11px, calc(var(--submenu-hex-width) * .115), 29px);
+  overflow-wrap: anywhere;
+  box-shadow: none;
+}
+:is(#teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile):focus-visible {
+  text-decoration: underline;
 }
