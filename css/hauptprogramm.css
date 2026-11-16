@@ -1426,3 +1426,15 @@ body.tv-preview-open{overflow:hidden!important}
     grid-column: var(--doc-column-narrow) / span 2;
   }
 }
+
+/* Versionsnummer im Rahmen externer Ansichten statt über dem Seiteninhalt. */
+body:has(#externalPage.active, #mitglieder.active) > #appVersion {
+  display: none;
+}
+#externalPage .external-toolbar {
+  flex-wrap: wrap;
+}
+#externalPage .external-version {
+  font-size: 11px;
+  white-space: nowrap;
+}
