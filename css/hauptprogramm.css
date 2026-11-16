@@ -1857,3 +1857,12 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   justify-content: flex-end;
   flex: none;
 }
+
+#tournamentPlanner .tp-participants { margin: 0; min-width: 0; }
+#tournamentPlanner .tp-participants > summary {
+  padding: 3px 0;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+#tournamentPlanner .tp-participants[open] > summary { margin-bottom: 3px; }
