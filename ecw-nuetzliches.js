@@ -45,7 +45,7 @@ function renderPage(){
  visible.forEach((item,i)=>{
   const [row,column]=shStaggeredPosition(i,visible.length,columns);
   const b=shMakeBtn(item,-1);
-  if(activeMenu==='useful')b.textContent=stockTvLabel(item.t);
+  if(activeMenu==='useful')b.textContent=stockTvLabel(window.ecwTileLabel?.(item.t,'useful')??item.t);
   b.classList.add('utility-hex-tile');
   b.style.gridArea=row+' / '+column+' / span 1 / span 2';
   b.addEventListener('click',()=>{if(!b.classList.contains('nolink')&&!b.classList.contains('app-disabled'))close()});

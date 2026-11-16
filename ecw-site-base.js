@@ -5,7 +5,7 @@ window.ecwLocalUrl=function(value){try{const u=new URL(value,location.href);if(u
 })();
 
 /* Gemeinsamer Versionsstand der aktiven Vereinsverwaltung. version.json führt denselben Stand für den Update-Check. */
-window.ECW_APP_VERSION = '3.1.4.161126';
+window.ECW_APP_VERSION = '3.1.5.161126';
 (function () {
   const page = location.pathname.split('/').pop();
   if (/^START_VEREINSVERWALTUNG_|^ecw-versammlungen-v295[56]\.html$/.test(page)) return;
@@ -45,3 +45,21 @@ window.ECW_APP_VERSION = '3.1.4.161126';
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showRelease, {once:true});
   else showRelease();
 })();
+
+/* Zeilenumbrüche für Waben unabhängig vom gespeicherten Namen. */
+window.ecwTileLabel = function (title, menu) {
+  const label = String(title || '').trim();
+  switch (menu) {
+    case 'documents':
+      if (/^vereins[\s-]*dokumente$/i.test(label)) return 'Vereins-\ndokumente';
+      if (/^turnier[\s-]*unterlagen$/i.test(label)) return 'Turnier-\nunterlagen';
+      break;
+    case 'useful':
+      if (/^turnier[\s-]*auslosung$/i.test(label)) return 'Turnier-\nauslosung';
+      break;
+    case 'results':
+      if (/^eigene\s+turniere$/i.test(label)) return 'Eigene\nTurniere';
+      break;
+  }
+  return title;
+};

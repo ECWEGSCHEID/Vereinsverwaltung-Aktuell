@@ -1508,3 +1508,5 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
     width: 100%;
   }
 }
+
+#druckdokumente .ecw-doc-tiles > button { white-space: pre-line; }

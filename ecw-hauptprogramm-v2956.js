@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.4.161126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.5.161126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -1672,12 +1672,16 @@ function shRender(){
  const g=document.getElementById('shGrid'),rows=Math.max(1,Math.ceil(total/SH.cols));
  g.style.setProperty('--cd',SH.cols);g.style.setProperty('--rd',rows);g.style.setProperty('--rp',Math.ceil(total/2)||1);
  const internalResults=!!grp && /ergebnisse\s+turniere\s+intern/i.test(label);
+ const documentMenu=!!grp && (/dokumente\s*&?\s*drucken/i.test(label) ||
+  grp.sub.some(item=>/#druckdokumente(?:-|$)/i.test(item.u)));
  const els=[];
  items.forEach((b,i)=>{
   try{
    const tile=shMakeBtn(b,grp?-1:i);
    if(internalResults && (ecwInternalResultMode(b.u)==='cup' || /^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))) {
     tile.textContent='Cup\nErgebnisse';
+   }else if(documentMenu || internalResults){
+    tile.textContent=window.ecwTileLabel?.(b.t,documentMenu?'documents':'results')??b.t;
    }
    els.push(tile);
   }
@@ -1688,9 +1692,9 @@ function shRender(){
  });
  const centeredSubmenu=!!grp && (
   internalResults ||
-  /dokumente\s*&?\s*drucken/i.test(label) ||
+  documentMenu ||
   /fotos|zeitungsberichte/i.test(label) ||
-  grp.sub.some(item=>/#(?:druckdokumente(?:-|$)|fotos$|zeitungsberichte$)/i.test(item.u))
+  grp.sub.some(item=>/#(?:fotos|zeitungsberichte)$/i.test(item.u))
  );
  const whiteboardLayout=!grp||centeredSubmenu;
  g.classList.toggle('sh-centered-submenu-hex',centeredSubmenu);
