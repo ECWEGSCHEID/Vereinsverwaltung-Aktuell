@@ -1566,3 +1566,17 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
     font-size: clamp(18px, 4.5vw, 30px);
   }
 }
+
+/* Der ausgeschriebene Titel soll auch im Schrägstreifen eine Zeile bleiben. */
+#news > .ecw-diagonal-title-strip {
+  inline-size: max-content;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  font-size: clamp(18px, min(2.25vw, 3.7dvh), 42px);
+}
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  #news > .ecw-diagonal-title-strip {
+    font-size: clamp(14px, 4.35vw, 28px);
+    margin-inline-start: 8px;
+  }
+}
