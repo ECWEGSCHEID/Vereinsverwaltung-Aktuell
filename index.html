@@ -18,7 +18,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vereins-Informationssystem – V2.5.4</title>
 <script src="js/ladefehler.js?v=2.9.29"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=20261116-waben-gross-messwerte">
+<link rel="stylesheet" href="css/hauptprogramm.css?v=20261116-waben-metall-messkarten">
 <link rel="stylesheet" href="css/dokumente-drucken.css?v=2.9.29">
 <style>
 #startseite .ecw-temp-open{margin:0;width:100%;min-height:0;border:1px solid #86505a;cursor:pointer}
@@ -83,9 +83,9 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
   <div id="ecwInfoRibbon" aria-label="Aktuelle Meldungen und Temperaturen">
     <div class="ecw-ribbon-news" aria-label="Vereins-Laufschrift"><span id="ecwHomeTickerText">Willkommen beim EC Wegscheid</span></div>
     <div id="ecwTemperatures" aria-label="Temperaturen Halle, Außen und Vereinsheim">
-      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Halle – Messwerte im Detail" aria-haspopup="dialog"><span>Halle</span><strong id="ecwTempHalle">--,- °C</strong><span id="ecwHumidityHalle" class="ecw-ribbon-humidity" aria-label="Luftfeuchte: kein Messwert">–</span></button>
-      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Außen – Messwerte im Detail" aria-haspopup="dialog"><span>Außen</span><strong id="ecwTempAussen">--,- °C</strong><span id="ecwHumidityAussen" class="ecw-ribbon-humidity" aria-label="Luftfeuchte: kein Messwert">–</span></button>
-      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Vereinsheim – Messwerte im Detail" aria-haspopup="dialog"><span>Vereinsheim</span><strong id="ecwTempVereinsheim">--,- °C</strong><span id="ecwHumidityVereinsheim" class="ecw-ribbon-humidity" aria-label="Luftfeuchte: kein Messwert">–</span></button>
+      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Halle – Messwerte im Detail" aria-haspopup="dialog"><span class="ecw-sensor-title"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10V6l6-4 6 4v8H2zM5 14V9h6v5M5 11h6"/></svg>Halle</span><strong id="ecwTempHalle">--,- °C</strong><span id="ecwHumidityHalle" class="ecw-ribbon-humidity" aria-label="Luftfeuchte: kein Messwert">–</span></button>
+      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Außen – Messwerte im Detail" aria-haspopup="dialog"><span class="ecw-sensor-title"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 12h7.1a2.6 2.6 0 1 0-.5-5.2 3.7 3.7 0 0 0-7 1.1A2.1 2.1 0 0 0 4.3 12Z"/></svg>Außen</span><strong id="ecwTempAussen">--,- °C</strong><span id="ecwHumidityAussen" class="ecw-ribbon-humidity" aria-label="Luftfeuchte: kein Messwert">–</span></button>
+      <button type="button" class="ecw-temp-cell ecw-temp-open" aria-label="Vereinsheim – Messwerte im Detail" aria-haspopup="dialog"><span class="ecw-sensor-title"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 7.5 8 2l6.5 5.5M3 7v7h10V7M6.5 14v-4.5h3V14"/></svg>Vereinsheim</span><strong id="ecwTempVereinsheim">--,- °C</strong><span id="ecwHumidityVereinsheim" class="ecw-ribbon-humidity" aria-label="Luftfeuchte: kein Messwert">–</span></button>
       <button id="ecwRibbonClock" class="ecw-ribbon-clock" type="button" aria-label="Kalender öffnen" aria-haspopup="dialog"><span id="ecwHomeDate">--.--.----</span><strong id="ecwHomeClock">--:--</strong></button>
       <button id="shUserLogin" type="button">Benutzer anmelden</button>
       <div id="ecwTempStatus" role="status" title="Temperaturstatus">Sensorwerte noch nicht verbunden</div>
