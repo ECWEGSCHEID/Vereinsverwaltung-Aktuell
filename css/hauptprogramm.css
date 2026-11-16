@@ -1153,16 +1153,19 @@ body.tv-preview-open{overflow:hidden!important}
 }
 
 /* Kleinere Waben für die Mannschafts- und Ergebnisübersicht. */
+#teamsGrid,
+#ecwResultsDialog {
+  --submenu-hex-width: calc(clamp(124px, 26vw, 180px) * .8);
+}
 #teamsGrid .team-group-grid,
 #ecwResultsDialog .er-public-grid {
-  --submenu-hex-width: calc(clamp(124px, 26vw, 180px) * .8);
   grid-auto-rows: auto;
   align-items: start;
   filter: drop-shadow(0 .28em .22em #130000db);
 }
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
-  #teamsGrid .team-group-grid,
-  #ecwResultsDialog .er-public-grid {
+  #teamsGrid,
+  #ecwResultsDialog {
     --submenu-hex-width: calc(min(66.8vw / 5.85, (100dvh - 3.2vh - clamp(48px, 5.8vh, 65px) - 16px) / 4.015) * .8);
   }
 }
@@ -1179,4 +1182,73 @@ body.tv-preview-open{overflow:hidden!important}
 }
 :is(#teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile):focus-visible {
   text-decoration: underline;
+}
+
+/* Die Zeilen rücken wie auf der Startseite um eine halbe Kachel ein. */
+#teamsGrid {
+  overflow: auto;
+  justify-content: flex-start;
+  padding-block: 10px;
+  container-type: inline-size;
+}
+#teamsGrid .team-group {
+  margin: 0;
+}
+#teamsGrid .team-group:first-of-type {
+  margin-block-start: auto;
+}
+#teamsGrid .team-group:last-of-type {
+  margin-block-end: auto;
+}
+#teamsGrid .team-group + .team-group {
+  margin-block-start: calc(var(--team-hex-width) * -.175);
+}
+#teamsGrid {
+  --team-hex-width: min(var(--submenu-hex-width), calc((100cqi - 24px) / 4.5));
+}
+#teamsGrid .team-group-grid {
+  display: flex;
+  justify-content: safe center;
+  gap: 7px;
+}
+#teamsGrid .team-group:nth-child(odd) .team-group-grid:has(> :last-child:nth-child(even)),
+#teamsGrid .team-group:nth-child(even) .team-group-grid:has(> :last-child:nth-child(odd)) {
+  padding-inline-start: calc(var(--team-hex-width) + 7px);
+}
+#teamsGrid .team-group-grid > .gbtn {
+  flex: 0 0 var(--team-hex-width);
+  width: var(--team-hex-width);
+  padding-inline: .65em;
+  font-size: clamp(10px, calc(var(--team-hex-width) * .115), 29px);
+}
+#ecwResultsDialog .er-public-grid {
+  --er-hex-columns: var(--er-cols, 3);
+  --er-hex-tracks: calc(var(--er-hex-columns) * 2 + 1);
+  --er-hex-half-pitch: min(calc((var(--submenu-hex-width) + 8px) / 2), calc(100% / var(--er-hex-tracks)));
+  grid-template-columns: repeat(var(--er-hex-tracks), minmax(0, var(--er-hex-half-pitch)));
+  grid-auto-rows: auto;
+  justify-content: center;
+  gap: 0;
+  padding-bottom: 30px;
+}
+#ecwResultsDialog .er-public-grid > .er-tile {
+  grid-column: auto / span 2;
+  width: calc(100% - 8px);
+  margin-bottom: calc((100% - 8px) * -.175);
+  padding-inline: .65em;
+}
+@media (min-width: 901px) {
+  #ecwResultsDialog .er-public-grid[style*="--er-cols:2"] > .er-tile:nth-child(4n + 3),
+  #ecwResultsDialog .er-public-grid[style*="--er-cols:3"] > .er-tile:nth-child(6n + 4),
+  #ecwResultsDialog .er-public-grid[style*="--er-cols:4"] > .er-tile:nth-child(8n + 5) {
+    grid-column: 2 / span 2;
+  }
+}
+@media (max-width: 900px) {
+  #ecwResultsDialog .er-public-grid {
+    --er-hex-columns: 2;
+  }
+  #ecwResultsDialog .er-public-grid > .er-tile:nth-child(4n + 3) {
+    grid-column: 2 / span 2;
+  }
 }
