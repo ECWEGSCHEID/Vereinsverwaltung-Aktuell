@@ -7,7 +7,7 @@ const defaults=[{id:'verein',title:'Vereinsdokumente'},{id:'turnier',title:'Turn
 let state={categories:defaults.map(x=>({...x})),files:[],printer:'HP Color Laser MFP 178nwg',paper:'A4',note:'',updatedAt:''};
 let selected=null,previewFromAdmin=false,loading=false,busy=false,urls=new Map(),localPreviewUrl=null;
 let loadError='',loadSource='',lastLoaded='',loadPromise=null;
-const VERSION='2.8.9-ganzseite';
+const VERSION='2.8.10-admin-druck';
 function withDeadline(p,ms){return Promise.race([p,new Promise((_,reject)=>setTimeout(()=>reject(Error('Zeitüberschreitung nach '+Math.round(ms/1000)+' Sekunden')),ms))])}
 function explainError(e){const code=String(e?.code||'');const msg=String(e?.message||e||'Unbekannter Fehler');
  if(code.includes('permission-denied')||/permission.?denied|insufficient permissions/i.test(msg))return 'Firebase-Zugriff verweigert (permission-denied). Bitte veröffentlichte Firestore-Regeln für appSettings/druckdokumente und druckpdf_* prüfen.';
@@ -50,8 +50,12 @@ function menuSync(){
   if(typeof shRender==='function')shRender();
 }
 async function save(){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}
+function isDocumentWhiteboardMode(){
+ return isPublicWhiteboardMode() ||
+  (appPermissions.admin!==true && (isWhiteboardUser() || isWhiteboardKioskAccount()));
+}
 function canPrintDocument(){
- return !!firebaseAuthUser && !isPublicWhiteboardMode() && !isWhiteboardUser() && !isWhiteboardKioskAccount();
+ return !!firebaseAuthUser && !isDocumentWhiteboardMode();
 }
 function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected):null;
  let html='<div class="ecw-doc-card"><p>PDF-Dokumente in der Vorschau ansehen. Beim Drucken bitte nur <b>1 Exemplar</b> auswählen.</p>';
@@ -143,7 +147,7 @@ async function previewPdf(id){
  if(!file){toast('Dokument nicht gefunden.');return;}
  const dialog=document.createElement('dialog');
  dialog.className='ecw-doc-preview-dialog';
- dialog.classList.toggle('ecw-doc-preview-whiteboard',isWhiteboardUser()||isWhiteboardKioskAccount());
+ dialog.classList.toggle('ecw-doc-preview-whiteboard',isDocumentWhiteboardMode());
  dialog.setAttribute('aria-label',file.title);
  dialog.innerHTML='<header><strong></strong><button type="button" data-close>Schließen</button></header><div class="ecw-doc-preview-page"><canvas hidden></canvas></div><footer><button type="button" data-prev disabled>Vorige Seite</button><output aria-live="polite">PDF wird geladen …</output><button type="button" data-next disabled>Nächste Seite</button></footer>';
  dialog.querySelector('strong').textContent=file.title;
