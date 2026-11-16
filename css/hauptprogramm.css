@@ -949,7 +949,7 @@ body.tv-preview-open{overflow:hidden!important}
 :is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):hover::before { filter: brightness(1.14); }
 :is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):focus-visible::before { filter: brightness(1.38); }
 
-@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5), (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
     position: fixed;
     inset: 0;
@@ -1001,45 +1001,47 @@ body.tv-preview-open{overflow:hidden!important}
 }
 
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
-  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
-    position: relative;
-    inset: auto;
-    min-height: 100dvh;
-    height: auto;
-    overflow: visible;
-    padding: 0 12px calc(var(--sh-ribbon-height) + 16px);
+  @media not all and (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
+    #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
+      position: relative;
+      inset: auto;
+      min-height: 100dvh;
+      height: auto;
+      overflow: visible;
+      padding: 0 12px calc(var(--sh-ribbon-height) + 16px);
+    }
+    #startseite.active:has(#shGrid.sh-whiteboard-hex) #shArt {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+    #startseite.active:has(#shGrid.sh-whiteboard-hex) #shTitle2 { display: none; }
+    #startseite.active #shGrid.sh-whiteboard-hex {
+      position: relative;
+      inset: auto;
+      width: min(100%, 840px);
+      margin: 12px auto 0;
+      --sh-compact-width: min(clamp(124px, 26vw, 180px), calc((100% - var(--hex-gap)) / 2));
+      grid-template-columns: repeat(2, minmax(0, var(--sh-compact-width)));
+      grid-auto-rows: auto;
+      justify-content: center;
+      gap: var(--hex-gap);
+      overflow: visible;
+    }
+    #startseite.active #shGrid.sh-whiteboard-hex > .shbtn {
+      justify-self: center;
+      width: 100%;
+      aspect-ratio: 1 / 1.135;
+      min-height: 0;
+      padding-inline: 12px;
+      font-size: clamp(12px, 2.1vw, 18px);
+    }
+    #startseite.active:has(#shGrid.sh-whiteboard-hex) { overflow-y: auto; }
   }
-  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shArt {
-    position: relative;
-    inset: auto;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-    background-size: contain;
-    background-repeat: no-repeat;
-  }
-  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shTitle2 { display: none; }
-  #startseite.active #shGrid.sh-whiteboard-hex {
-    position: relative;
-    inset: auto;
-    width: min(100%, 840px);
-    margin: 12px auto 0;
-    --sh-compact-width: min(clamp(124px, 26vw, 180px), calc((100% - var(--hex-gap)) / 2));
-    grid-template-columns: repeat(2, minmax(0, var(--sh-compact-width)));
-    grid-auto-rows: auto;
-    justify-content: center;
-    gap: var(--hex-gap);
-    overflow: visible;
-  }
-  #startseite.active #shGrid.sh-whiteboard-hex > .shbtn {
-    justify-self: center;
-    width: 100%;
-    aspect-ratio: 1 / 1.135;
-    min-height: 0;
-    padding-inline: 12px;
-    font-size: clamp(12px, 2.1vw, 18px);
-  }
-  #startseite.active:has(#shGrid.sh-whiteboard-hex) { overflow-y: auto; }
 }
 
 /* Uhr, Anmeldung und Sensorwerte im Infobalken. */
@@ -1265,7 +1267,7 @@ body.tv-preview-open{overflow:hidden!important}
   }
 }
 
-@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5), (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
   #startseite.active #shGrid.sh-centered-submenu-hex {
     --internal-edge: calc(var(--sh-ribbon-height) + 26px);
     --sh-hex-width: min(
@@ -1285,20 +1287,22 @@ body.tv-preview-open{overflow:hidden!important}
   }
 }
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
-  #startseite.active #shGrid.sh-centered-submenu-hex {
-    --internal-hex-width: min(calc(clamp(124px, 26vw, 180px) * .96), calc((100% - 20px) / 2.5 - var(--hex-gap)));
-    grid-template-columns: repeat(5, minmax(0, calc((var(--internal-hex-width) + var(--hex-gap)) / 2)));
-    justify-content: center;
-    gap: 0;
-    padding-bottom: 28px;
-  }
-  #startseite.active #shGrid.sh-centered-submenu-hex > .shbtn {
-    grid-column: auto / span 2;
-    width: calc(100% - var(--hex-gap));
-    margin-bottom: calc(var(--hex-diagonal-row-gap) - (100% - var(--hex-gap)) * var(--hex-row-overhang-factor));
-  }
-  #startseite.active #shGrid.sh-centered-submenu-hex > .shbtn:nth-child(4n + 3) {
-    grid-column: 2 / span 2;
+  @media not all and (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
+    #startseite.active #shGrid.sh-centered-submenu-hex {
+      --internal-hex-width: min(calc(clamp(124px, 26vw, 180px) * .96), calc((100% - 20px) / 2.5 - var(--hex-gap)));
+      grid-template-columns: repeat(5, minmax(0, calc((var(--internal-hex-width) + var(--hex-gap)) / 2)));
+      justify-content: center;
+      gap: 0;
+      padding-bottom: 28px;
+    }
+    #startseite.active #shGrid.sh-centered-submenu-hex > .shbtn {
+      grid-column: auto / span 2;
+      width: calc(100% - var(--hex-gap));
+      margin-bottom: calc(var(--hex-diagonal-row-gap) - (100% - var(--hex-gap)) * var(--hex-row-overhang-factor));
+    }
+    #startseite.active #shGrid.sh-centered-submenu-hex > .shbtn:nth-child(4n + 3) {
+      grid-column: 2 / span 2;
+    }
   }
 }
 
@@ -1578,5 +1582,22 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   #news > .ecw-diagonal-title-strip {
     font-size: clamp(14px, 4.35vw, 28px);
     margin-inline-start: 8px;
+  }
+}
+
+/* Das Tablet zeigt das gesamte Hintergrundmotiv hinter dem Wabenraster. */
+@media (min-width: 768px) and (min-height: 500px) and (orientation: landscape) and (max-aspect-ratio: 1599/1000) {
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
+    --sh-tablet-art-top: max(0px, calc((100dvh - var(--sh-ribbon-height) - 56.25vw) / 2));
+  }
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shArt {
+    left: 0;
+    top: var(--sh-tablet-art-top);
+    width: 100vw;
+    height: 56.25vw;
+    background-size: contain;
+  }
+  #startseite.active #shGrid.sh-whiteboard-hex:not(.sh-centered-submenu-hex) {
+    --sh-menu-top: calc(var(--sh-tablet-art-top) + 1.8vw);
   }
 }
