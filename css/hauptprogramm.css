@@ -1601,3 +1601,90 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
     --sh-menu-top: calc(var(--sh-tablet-art-top) + 1.8vw);
   }
 }
+
+/* Hochformat der Informationssystem-Startseite. */
+@media (orientation: portrait) {
+  #startseite {
+    --sh-ribbon-height: calc(121px + env(safe-area-inset-bottom, 0px));
+  }
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
+    box-sizing: border-box;
+    padding: 10px 0 calc(var(--sh-ribbon-height) + 20px);
+    background: linear-gradient(180deg, #24070b, #100d10 72%);
+  }
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shArt {
+    display: block;
+    width: min(calc(100% - 20px), 760px);
+    margin-inline: auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px #080004b0;
+  }
+  #startseite.active #shGrid.sh-whiteboard-hex:not(.sh-centered-submenu-hex) {
+    --portrait-columns: 2;
+    --portrait-tile: min(148px, calc(100% / (var(--portrait-columns) + .5) - var(--hex-gap)));
+    width: min(calc(100% - 20px), 740px);
+    margin-block-start: 18px;
+    grid-template-columns: repeat(calc(var(--portrait-columns) * 2 + 1), calc((var(--portrait-tile) + var(--hex-gap)) / 2));
+    grid-auto-rows: auto;
+    gap: 0;
+    padding-bottom: 38px;
+  }
+  #startseite.active #shGrid.sh-whiteboard-hex:not(.sh-centered-submenu-hex) > .shbtn {
+    grid-column: auto / span 2;
+    width: calc(100% - var(--hex-gap));
+    margin-bottom: calc(var(--hex-diagonal-row-gap) - (100% - var(--hex-gap)) * var(--hex-row-overhang-factor));
+    padding-inline: .55em;
+    font-size: clamp(13px, 3.65vw, 19px);
+  }
+  #startseite #ecwInfoRibbon {
+    left: max(6px, env(safe-area-inset-left, 0px));
+    right: max(6px, env(safe-area-inset-right, 0px));
+    bottom: max(4px, env(safe-area-inset-bottom, 0px));
+    height: 116px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 23px minmax(0, 1fr);
+  }
+  #startseite .ecw-ribbon-news {
+    border-right: 0;
+    border-bottom: 1px solid #ad4b5170;
+  }
+  #startseite #ecwTemperatures {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: 45px minmax(0, 1fr);
+    gap: 3px;
+    padding: 3px !important;
+  }
+  #startseite #ecwTemperatures .ecw-temp-cell {
+    grid-column: span 2;
+  }
+  #startseite #ecwTemperatures .ecw-ribbon-clock,
+  #startseite #shUserLogin {
+    grid-column: span 3;
+  }
+  #startseite #ecwTemperatures .ecw-sensor-title,
+  #startseite #shUserLogin {
+    font-size: clamp(10px, 2.8vw, 15px);
+  }
+  #startseite #ecwTemperatures .ecw-temp-cell strong,
+  #startseite #ecwTemperatures .ecw-ribbon-clock strong {
+    font-size: clamp(13px, 3.3vw, 19px);
+  }
+  #startseite.sh-submenu #ecwTemperatures .ecw-ribbon-clock {
+    grid-column: 1 / -1;
+  }
+}
+@media (orientation: portrait) and (max-width: 599px) {
+  #startseite.active #shGrid.sh-whiteboard-hex:not(.sh-centered-submenu-hex) > .shbtn:nth-child(4n + 3) {
+    grid-column: 2 / span 2;
+  }
+}
+@media (orientation: portrait) and (min-width: 600px) {
+  #startseite.active #shGrid.sh-whiteboard-hex:not(.sh-centered-submenu-hex) {
+    --portrait-columns: 3;
+    --portrait-tile: min(184px, calc(100% / (var(--portrait-columns) + .5) - var(--hex-gap)));
+    margin-block-start: 24px;
+  }
+  #startseite.active #shGrid.sh-whiteboard-hex:not(.sh-centered-submenu-hex) > .shbtn:nth-child(6n + 4) {
+    grid-column: 2 / span 2;
+  }
+}
