@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.10.161126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.11.161126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
