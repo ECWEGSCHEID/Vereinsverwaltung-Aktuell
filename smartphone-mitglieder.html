@@ -42,6 +42,10 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
 #back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
 #module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
+#module:has(> #module-results:not([hidden])){grid-template-rows:auto minmax(0,1fr) auto}
+#module-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:max(6px,env(safe-area-inset-top)) 6px 6px;background:#202023;border-bottom:1px solid #51434b}
+#module-results button{min-width:0;min-height:42px;padding:4px;font-size:clamp(11px,3.2vw,14px);line-height:1.15;overflow-wrap:anywhere}
+#module-results button[aria-pressed="true"]{background:#752231;border-color:#db727b;color:#fff}
 #module iframe{width:100%;height:100%;border:0;background:#202023}
 .module-nav{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px max(8px,env(safe-area-inset-bottom));background:#202023;border-top:1px solid #51434b}
 .module-nav button{min-height:52px}
@@ -139,6 +143,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
 </section>
 <section id="module" aria-label="Vereinsmodul" hidden>
+<nav id="module-results" aria-label="Ergebnisanzeige wählen" hidden></nav>
 <iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 <div id="result-reader" hidden><h1 id="result-heading"></h1><p id="result-status" role="status"></p><div id="result-table"></div></div>
 <div class="module-nav">
@@ -301,6 +306,8 @@ let selectedButton;
 let hallRequest;
 const results = document.getElementById('results');
 const modulePanel = document.getElementById('module');
+const moduleResults = document.getElementById('module-results');
+moduleResults.append(...Array.from(results.children, button => button.cloneNode(true)));
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const legacyReservationUrl = reservationTest
@@ -386,6 +393,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false) {
   menu.hidden = true;
   detail.hidden = true;
   closeResults();
+  moduleResults.hidden = true;
   modulePanel.classList.toggle('is-results', readOnly || embeddedPage);
   moduleFrame.hidden = readOnly;
   moduleExternal.hidden = readOnly || embeddedPage;
@@ -424,19 +432,30 @@ moduleBack.addEventListener('click', () => {
   selectedButton.focus();
 });
 
-results.querySelectorAll('button').forEach(button => {
-  button.addEventListener('click', () => {
-    const result = button.dataset.result;
-    if (button.dataset.cup) {
-      const table = new URL('ecw-mobile-results.html?v=20261114-repair4', location.href);
-      table.searchParams.set('cup', button.dataset.cup);
-      showModule(button.textContent, table, false, true);
-      return;
-    }
+function selectResult(button) {
+  const result = button.dataset.result;
+  const cup = button.dataset.cup;
+  const title = button.textContent;
+  if (cup) {
+    const table = new URL('ecw-mobile-results.html?v=3.1.11.161126', location.href);
+    table.searchParams.set('cup', cup);
+    showModule(title, table, false, true);
+  } else {
     const url = new URL('turnierauswertung.html?v=mobile-results-1&mode=mobile-results&seite=' + result, administrationUrl);
-    showModule(button.textContent, url, true);
+    showModule(title, url, true);
+  }
+  moduleResults.hidden = false;
+  for (const option of moduleResults.querySelectorAll('button')) {
+    const selected = option.dataset.result === result && option.dataset.cup === cup;
+    option.setAttribute('aria-pressed', String(selected));
+    if (selected) option.focus({preventScroll: true});
+  }
+}
+for (const nav of [results, moduleResults]) {
+  nav.querySelectorAll('button').forEach(button => {
+    button.addEventListener('click', () => selectResult(button));
   });
-});
+}
 
 async function loadTemperatures(signal) {
   temperatureStatus.textContent = 'Temperaturen werden geladen …';
