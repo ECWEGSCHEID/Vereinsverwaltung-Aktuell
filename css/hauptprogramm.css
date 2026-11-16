@@ -912,6 +912,19 @@ body.tv-preview-open{overflow:hidden!important}
     #fff3e5 299deg, #ff8f79 360deg
   );
 }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn.hassub {
+  flex-direction: column;
+  gap: .36em;
+}
+#startseite #shGrid.sh-whiteboard-hex > .shbtn.hassub::after {
+  content: "";
+  flex: none;
+  width: .44em;
+  height: .44em;
+  border: solid currentColor;
+  border-width: 0 .095em .095em 0;
+  transform: rotate(45deg);
+}
 #startseite #shGrid.sh-whiteboard-hex > .shbtn::before {
   content: "";
   position: absolute;
