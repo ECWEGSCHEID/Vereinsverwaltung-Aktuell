@@ -82,7 +82,7 @@ function preview(){if(!allowed()){showToast('Keine Berechtigung zur Ergebnis-Vor
 function previewBack(){close();previewMode=false;adminMode=true;renderAdmin()}
 function admin(){if(!allowed()){showToast('Ergebnisse bearbeiten ist nicht freigegeben.');return}close();path=[];viewed=null;adminMode=true;previewMode=false;renderAdmin()}
 function publicTile(title,code){
- const shortTitle=title
+ const shortTitle=(window.ecwTileLabel?.(title,'results')??title)
    .replace(/^Alle Pokalturniergewinner$/i,'Pokalsieger')
    .replace(/Vereins[\s-]*meisterschaft/gi,'Vereins-\nMeisterschaft')
    .replace(/Jahres[\s-]*meisterschaft/gi,'Jahres\nMeisterschaft')

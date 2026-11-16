@@ -63,7 +63,7 @@ function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected)
    const [wideRow,wideColumn]=shStaggeredPosition(i,state.categories.length,4);
    const [narrowRow,narrowColumn]=shStaggeredPosition(i,state.categories.length,2);
    const position='--doc-row-wide:'+wideRow+';--doc-column-wide:'+wideColumn+';--doc-row-narrow:'+narrowRow+';--doc-column-narrow:'+narrowColumn;
-   return '<button type="button" style="'+position+'" data-doc-cat="'+esc(x.id)+'">'+esc(x.title)+'</button>';
+   return '<button type="button" style="'+position+'" data-doc-cat="'+esc(x.id)+'">'+esc(window.ecwTileLabel?.(x.title,'documents')??x.title)+'</button>';
   }).join('')+'</div>';}
  else {html+='<h2>'+esc(c.title)+'</h2><button type="button" data-doc-cat="">← Alle Bereiche</button><div class="ecw-doc-list">';
  const files=state.files.filter(x=>x.category===selected);
