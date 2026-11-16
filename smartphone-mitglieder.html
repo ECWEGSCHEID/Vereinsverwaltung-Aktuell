@@ -42,7 +42,11 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
 #back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
 #module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
-#module:has(> #module-results:not([hidden])){grid-template-rows:auto minmax(0,1fr) auto}
+#module.has-result-options{inset:0 0 auto;height:100vh;height:100dvh;min-height:0;overflow:hidden;grid-template-rows:auto minmax(0,1fr) auto}
+#module.has-result-options > #module-results{grid-row:1}
+#module.has-result-options > :is(#module-frame,#result-reader){grid-row:2;min-height:0;min-width:0}
+#module.has-result-options > #result-reader{height:100%;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#module.has-result-options > .module-nav{grid-row:3}
 #module-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:max(6px,env(safe-area-inset-top)) 6px 6px;background:#202023;border-bottom:1px solid #51434b}
 #module-results button{min-width:0;min-height:42px;padding:4px;font-size:clamp(11px,3.2vw,14px);line-height:1.15;overflow-wrap:anywhere}
 #module-results button[aria-pressed="true"]{background:#752231;border-color:#db727b;color:#fff}
@@ -394,6 +398,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false) {
   detail.hidden = true;
   closeResults();
   moduleResults.hidden = true;
+  modulePanel.classList.remove('has-result-options');
   modulePanel.classList.toggle('is-results', readOnly || embeddedPage);
   moduleFrame.hidden = readOnly;
   moduleExternal.hidden = readOnly || embeddedPage;
@@ -437,7 +442,7 @@ function selectResult(button) {
   const cup = button.dataset.cup;
   const title = button.textContent;
   if (cup) {
-    const table = new URL('ecw-mobile-results.html?v=3.1.11.161126', location.href);
+    const table = new URL('ecw-mobile-results.html?v=3.1.14.161126', location.href);
     table.searchParams.set('cup', cup);
     showModule(title, table, false, true);
   } else {
@@ -445,6 +450,7 @@ function selectResult(button) {
     showModule(title, url, true);
   }
   moduleResults.hidden = false;
+  modulePanel.classList.add('has-result-options');
   for (const option of moduleResults.querySelectorAll('button')) {
     const selected = option.dataset.result === result && option.dataset.cup === cup;
     option.setAttribute('aria-pressed', String(selected));
