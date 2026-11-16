@@ -1688,3 +1688,125 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
     grid-column: 2 / span 2;
   }
 }
+
+/* Kompakter Terminplaner für Smartphones und Tablets. */
+.tp-filters,
+.tp-filter,
+.tp-actions {
+  display: contents;
+}
+@media (max-width: 1100px), (orientation: portrait) and (max-width: 1400px), (pointer: coarse) and (max-width: 1366px) {
+  #tournamentPlanner.active {
+    box-sizing: border-box;
+    min-height: 0;
+    padding: max(6px, env(safe-area-inset-top)) 8px max(6px, env(safe-area-inset-bottom));
+    gap: 4px;
+  }
+  #tournamentPlanner .tp-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 5px 8px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  #tournamentPlanner .tp-header-left { display: none; }
+  #tournamentPlanner .tp-header-title {
+    font-size: clamp(15px, 2.4vw, 22px);
+    text-align: start;
+  }
+  #tournamentPlanner .tp-header-version { font-size: 10px; }
+  #tournamentPlanner .tp-stats {
+    justify-content: flex-start;
+    flex-shrink: 0;
+    gap: 4px;
+    margin: 0;
+  }
+  #tournamentPlanner .tp-stat { padding: 3px 6px; font-size: 10px; }
+  #tournamentPlanner .tp-stat b { display: inline; margin-inline-start: 4px; font-size: 12px; }
+  #tournamentPlanner #tpListNote { display: none !important; }
+  #tournamentPlanner .tp-toolbar {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    min-width: 0;
+  }
+  #tournamentPlanner .tp-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+  #tournamentPlanner .tp-filter { display: grid; gap: 1px; min-width: 0; }
+  #tournamentPlanner .tp-filter label { font-size: 11px; }
+  #tournamentPlanner .tp-filter select {
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
+    min-height: 36px;
+    padding: 3px 5px;
+    font-size: 14px;
+  }
+  #tournamentPlanner .tp-actions {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  #tournamentPlanner .tp-actions button {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 4px 8px;
+    margin: 0;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  #tournamentPlanner #tpFirebaseStatus,
+  #tournamentPlanner #tpLoginNote {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 3px !important;
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  #tournamentPlanner #tpFirebaseStatus:empty { display: none; }
+  #tournamentPlanner .tp-list { margin: 0; padding: 0; gap: 4px; }
+  #tournamentPlanner .tp-card {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 5px 7px;
+    gap: 3px;
+  }
+  #tournamentPlanner .tp-name { flex: auto; width: auto; white-space: normal; overflow-wrap: anywhere; }
+  #tournamentPlanner .tp-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 7px;
+    min-width: 0;
+  }
+  #tournamentPlanner .tp-date { flex-direction: row; flex-wrap: wrap; gap: 2px 5px; font-size: 12px; }
+  #tournamentPlanner .tp-type-locked-value { padding: 2px 6px; font-size: 11px; white-space: normal; }
+  #tournamentPlanner .tp-loc { font-size: 12px; overflow-wrap: anywhere; }
+  #tournamentPlanner .tp-fields { min-width: 0; }
+  #tournamentPlanner .tp-fields-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr));
+    align-items: start;
+    gap: 3px 5px;
+  }
+  #tournamentPlanner .tp-row { display: grid; min-width: 0; gap: 1px; }
+  #tournamentPlanner .tp-row :is(select, button) {
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
+    min-height: 34px;
+    padding: 3px 5px;
+    font-size: 12px;
+  }
+  #tournamentPlanner > .bottom {
+    position: static;
+    justify-content: flex-end;
+    flex: none;
+  }
+  #tournamentPlanner > .bottom button { min-height: 38px; padding: 4px 10px; font-size: 13px; }
+}
