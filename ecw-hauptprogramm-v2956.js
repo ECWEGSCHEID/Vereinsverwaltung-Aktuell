@@ -2886,6 +2886,9 @@ document.addEventListener('click',event=>{
  event.preventDefault();openExternalPage(url,anchor.textContent.trim());
 });
 
+function ecwShouldRestoreAdminView(){
+ try{return sessionStorage.getItem('ecw_admin_view_url')===location.href}catch(e){return false}
+}
 function showView(id){
  if(id!=='externalPage')clearExternalPage();
  if(id==='userPassword'&&!canChangeOwnPassword()){showToast('Benutzerkennwort ändern ist für dieses Konto nicht verfügbar.');return;}
@@ -2911,6 +2914,10 @@ function showView(id){
  }
  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
  document.getElementById(id).classList.add('active');
+ try{
+   if(id==='admin'&&firebaseAuthUser)sessionStorage.setItem('ecw_admin_view_url',location.href);
+   else sessionStorage.removeItem('ecw_admin_view_url');
+ }catch(e){}
  if(isWhiteboardUser()||['externalPage','tournamentMonths','tournaments','news','photos','sponsorPhotos','tournamentPlanner','teams','teamDetail','turnierverwaltung'].includes(id)){
    enterPresentationFullscreen();
  }else{
@@ -7503,7 +7510,7 @@ async function publicWhiteboardBootstrap(){
 }
 // V2.5.2: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
-try{ if(!isPublicWhiteboardMode() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
+try{ if(!isPublicWhiteboardMode() && !ecwShouldRestoreAdminView() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
 // V2.5.2: Start erst nach Wiederherstellung der gespeicherten Firebase-Anmeldung.
 async function ecwWaitForInitialAuth(){
   try{
@@ -7533,11 +7540,18 @@ async function ecwStartupAfterAuth(){
 
     const hasDirect=!!(location.hash||p.get('seite')||p.get('turniere'));
 
-    if(hasDirect){
-      setTimeout(()=>{
+    if(hasDirect && !ecwShouldRestoreAdminView()){
+      setTimeout(async ()=>{
         if(!document.querySelector('.view.active')){
-          if(firebaseAuthUser&&prefersPresentationStart())showView('startseite');
-          else{loginPurpose='admin';showView('login');}
+          const user=await ecwWaitForInitialAuth();
+          if(document.querySelector('.view.active'))return;
+          if(user && window.firebaseAuth?.currentUser?.uid===user.uid){
+            await loadAppPermissions(user);
+            if(document.querySelector('.view.active') || window.firebaseAuth?.currentUser?.uid!==user.uid)return;
+            if(prefersPresentationStart())showView('startseite');
+            else if(appPermissions.admin===true || Object.keys(APP_PERMISSIONS).some(k=>!k.endsWith('View')&&hasAppPermission(k)))showView('admin');
+            else showView('userPassword');
+          }else{loginPurpose='admin';showView('login');}
         }
       },2500);
       return;
@@ -7549,6 +7563,7 @@ async function ecwStartupAfterAuth(){
       firebaseAuthUser=user;
       window.firebaseAuthUser=user;
       await loadAppPermissions(user);
+      if(window.firebaseAuth?.currentUser?.uid!==user.uid)return;
 
       if(prefersPresentationStart()){
         window.__adminPreviewMode=false;
@@ -7559,7 +7574,9 @@ async function ecwStartupAfterAuth(){
       }
 
       updateHomeAdminButton();
-      showView('admin');
+      const canManage=appPermissions.admin===true || Object.keys(APP_PERMISSIONS).some(k=>!k.endsWith('View')&&hasAppPermission(k));
+      currentUser=appPermissions.admin===true?'admin':null;
+      showView(canManage?'admin':'userPassword');
       return;
     }
 
