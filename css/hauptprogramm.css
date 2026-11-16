@@ -906,15 +906,37 @@ body.tv-preview-open{overflow:hidden!important}
 }
 #startseite #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before { filter: brightness(1.5); }
 
-@media (min-width: 1367px) and (min-aspect-ratio: 3/2) {
-  #startseite #shGrid.sh-whiteboard-hex {
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
+    position: fixed;
+    inset: 0;
+    height: auto;
+    padding: 0;
+    overflow: hidden;
+  }
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shArt {
+    position: absolute;
+    inset: auto;
+    left: calc((100vw - var(--aw)) * .3);
+    top: calc((100vh - var(--ah)) * .6);
+    width: var(--aw);
+    height: var(--ah);
+    background-size: cover;
+    container-type: inline-size;
+    opacity: 1;
+  }
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shTitle { display: block; }
+  #startseite.active:has(#shGrid.sh-whiteboard-hex) #shTitle2 { display: none; }
+  #startseite.active #shGrid.sh-whiteboard-hex {
     --sh-menu-top: 3.2vh;
     --sh-menu-bottom: calc(var(--sh-ribbon-height) + 16px);
-    --sh-menu-width: 48vw;
+    --sh-menu-width: 66.8vw;
     --sh-menu-height: calc(100dvh - var(--sh-menu-top) - var(--sh-menu-bottom));
     --sh-hex-width: min(calc(var(--sh-menu-width) / 5.85), calc(var(--sh-menu-height) / 4.015));
+    position: absolute;
+    margin: 0;
     left: auto;
-    right: 8%;
+    right: 1.5%;
     top: var(--sh-menu-top);
     bottom: var(--sh-menu-bottom);
     width: calc(var(--sh-hex-width) * 5.85);
@@ -932,10 +954,10 @@ body.tv-preview-open{overflow:hidden!important}
     height: calc(var(--sh-hex-width) * 1.135);
     min-height: 0;
   }
-  #shGrid.sh-whiteboard-hex > .shbtn { font-size: clamp(11px, calc(var(--sh-hex-width) * .115), 28px); }
+  #startseite.active #shGrid.sh-whiteboard-hex > .shbtn { min-height: 0; font-size: clamp(11px, calc(var(--sh-hex-width) * .115), 36px); }
 }
 
-@media (max-width: 1366px), (max-aspect-ratio: 1499/1000) {
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
     position: relative;
     inset: auto;
@@ -1018,3 +1040,19 @@ body.tv-preview-open{overflow:hidden!important}
 #ecwRibbonCalendar td:empty { background: transparent; }
 #ecwRibbonCalendar td { background: #3c272c; border-radius: 5px; }
 #ecwRibbonCalendar td[aria-current=date] { background: #a72e3c; font-weight: 700; }
+
+@media (min-width: 1367px) {
+  #startseite #ecwTemperatures .ecw-temp-cell {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-template-rows: auto auto;
+    align-content: center;
+    justify-content: center;
+    column-gap: clamp(3px, .45vw, 10px);
+  }
+  #startseite #ecwTemperatures .ecw-temp-cell > span:first-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  #startseite #ecwTemperatures .ecw-ribbon-humidity { align-self: center; }
+}
