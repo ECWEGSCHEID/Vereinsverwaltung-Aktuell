@@ -7,7 +7,7 @@ const defaults=[{id:'verein',title:'Vereinsdokumente'},{id:'turnier',title:'Turn
 let state={categories:defaults.map(x=>({...x})),files:[],printer:'HP Color Laser MFP 178nwg',paper:'A4',note:'',updatedAt:''};
 let selected=null,previewFromAdmin=false,loading=false,busy=false,urls=new Map(),localPreviewUrl=null;
 let loadError='',loadSource='',lastLoaded='',loadPromise=null;
-const VERSION='2.8.7-hallendruck';
+const VERSION='2.8.8-vorschau';
 function withDeadline(p,ms){return Promise.race([p,new Promise((_,reject)=>setTimeout(()=>reject(Error('Zeitüberschreitung nach '+Math.round(ms/1000)+' Sekunden')),ms))])}
 function explainError(e){const code=String(e?.code||'');const msg=String(e?.message||e||'Unbekannter Fehler');
  if(code.includes('permission-denied')||/permission.?denied|insufficient permissions/i.test(msg))return 'Firebase-Zugriff verweigert (permission-denied). Bitte veröffentlichte Firestore-Regeln für appSettings/druckdokumente und druckpdf_* prüfen.';
@@ -50,8 +50,11 @@ function menuSync(){
   if(typeof shRender==='function')shRender();
 }
 async function save(){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}
+function canPrintDocument(){
+ return !!firebaseAuthUser && !isPublicWhiteboardMode() && !isWhiteboardUser() && !isWhiteboardKioskAccount();
+}
 function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected):null;
- let html='<div class="ecw-doc-card"><p>PDF-Dokumente ansehen oder direkt den Druckdialog öffnen. Dort Drucker, Farbe und Papierformat einstellen. <b>Bitte nur 1 Exemplar drucken.</b> Die Kopienanzahl kann im Browser nicht technisch gesperrt werden.</p>';
+ let html='<div class="ecw-doc-card"><p>PDF-Dokumente in der Vorschau ansehen. Beim Drucken bitte nur <b>1 Exemplar</b> auswählen.</p>';
  if(!c){html+='<h2>Bereich auswählen</h2><div class="ecw-doc-tiles">'+state.categories.map((x,i)=>{
    const [wideRow,wideColumn]=shStaggeredPosition(i,state.categories.length,4);
    const [narrowRow,narrowColumn]=shStaggeredPosition(i,state.categories.length,2);
@@ -60,7 +63,7 @@ function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected)
   }).join('')+'</div>';}
  else {html+='<h2>'+esc(c.title)+'</h2><button type="button" data-doc-cat="">← Alle Bereiche</button><div class="ecw-doc-list">';
  const files=state.files.filter(x=>x.category===selected);
- html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">PDF öffnen</button> <button type="button" data-doc-print="'+esc(f.id)+'">Drucken</button> <button type="button" data-doc-hall="'+esc(f.id)+'">Über Hallendrucker drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
+ html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">Vorschau</button> <button type="button" data-doc-print="'+esc(f.id)+'"'+(canPrintDocument()?'':' disabled')+'>Drucken</button> <button type="button" data-doc-hall="'+esc(f.id)+'">Über Hallendrucker drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
  html+='</div>'}
  html+='</div>';return html;
 }
@@ -85,8 +88,8 @@ function renderPublic(){
  }
  const retry=$('ecwDocRetry');if(retry)retry.addEventListener('click',async()=>{box.innerHTML='<div class="ecw-doc-card">Firebase-Server wird abgefragt …</div>';await load();renderPublic()});
  box.querySelectorAll('[data-doc-cat]').forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.docCat||null;renderPublic()}));
- box.querySelectorAll('[data-doc-open]').forEach(b=>b.addEventListener('click',()=>openPdf(b.dataset.docOpen,false)));
- box.querySelectorAll('[data-doc-print]').forEach(b=>b.addEventListener('click',()=>openPdf(b.dataset.docPrint,true)));
+ box.querySelectorAll('[data-doc-open]').forEach(b=>b.addEventListener('click',()=>previewPdf(b.dataset.docOpen)));
+ box.querySelectorAll('[data-doc-print]').forEach(b=>b.addEventListener('click',()=>printPdf(b.dataset.docPrint)));
  box.querySelectorAll('[data-doc-hall]').forEach(b=>b.addEventListener('click',()=>enqueueHallPrint(b.dataset.docHall,b)));
 }
 // ECW Hallendruck: kein Browser-Druckdialog; ausschließlich bewusst erstellte Aufträge.
@@ -132,18 +135,64 @@ function back(){
 async function getUrl(id){if(urls.has(id))return urls.get(id);const f=state.files.find(x=>x.id===id);if(!f)throw Error('Dokument nicht gefunden.');const parts=[];for(let i=0;i<f.parts;i++){const snap=await db().collection(COL).doc('druckpdf_'+id+'_'+i).get();if(!snap.exists)throw Error('PDF-Daten fehlen (Block '+(i+1)+').');parts.push(snap.data().data||'')}
  const base64=parts.join('');const binary=atob(base64);const chunks=[];for(let i=0;i<binary.length;i+=32768){const sl=binary.slice(i,i+32768),arr=new Uint8Array(sl.length);for(let j=0;j<sl.length;j++)arr[j]=sl.charCodeAt(j);chunks.push(arr)}
  const url=URL.createObjectURL(new Blob(chunks,{type:'application/pdf'}));urls.set(id,url);return url}
+async function previewPdf(id){
+ const file=state.files.find(item=>item.id===id);
+ if(!file){toast('Dokument nicht gefunden.');return;}
+ const dialog=document.createElement('dialog');
+ dialog.className='ecw-doc-preview-dialog';
+ dialog.setAttribute('aria-label',file.title);
+ dialog.innerHTML='<header><strong></strong><button type="button" data-close>Schließen</button></header><div class="ecw-doc-preview-page"><canvas hidden></canvas></div><footer><button type="button" data-prev disabled>Vorige Seite</button><output aria-live="polite">PDF wird geladen …</output><button type="button" data-next disabled>Nächste Seite</button></footer>';
+ dialog.querySelector('strong').textContent=file.title;
+ const canvas=dialog.querySelector('canvas'),status=dialog.querySelector('output');
+ const previous=dialog.querySelector('[data-prev]'),next=dialog.querySelector('[data-next]');
+ let task,pdf,pageNumber=1;
+ dialog.addEventListener('close',()=>{
+  dialog.remove();
+  if(task)void task.destroy().catch(()=>{});
+ },{once:true});
+ dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+ document.body.append(dialog);
+ dialog.showModal();
+ async function renderPage(){
+  previous.disabled=next.disabled=true;
+  status.textContent='Seite wird geladen …';
+  try{
+   const page=await pdf.getPage(pageNumber);
+   if(!dialog.open)return;
+   const original=page.getViewport({scale:1});
+   const viewport=page.getViewport({scale:Math.min(2,1600/Math.max(original.width,original.height))});
+   canvas.width=Math.ceil(viewport.width);
+   canvas.height=Math.ceil(viewport.height);
+   await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+   if(!dialog.open)return;
+   canvas.hidden=false;
+   status.textContent=pageNumber+' / '+pdf.numPages;
+  }catch(e){
+   if(dialog.open)status.textContent='Seite konnte nicht angezeigt werden: '+e.message;
+  }finally{
+   if(dialog.open){previous.disabled=pageNumber<=1;next.disabled=pageNumber>=pdf.numPages;}
+  }
+ }
+ previous.onclick=()=>{pageNumber--;void renderPage()};
+ next.onclick=()=>{pageNumber++;void renderPage()};
+ try{
+  const [url,ready]=await Promise.all([getUrl(id),loadPdfJs()]);
+  if(!dialog.open)return;
+  if(!ready)throw Error('PDF-Viewer konnte nicht geladen werden.');
+  task=window.pdfjsLib.getDocument(url);
+  pdf=await task.promise;
+  if(dialog.open)await renderPage();
+ }catch(e){
+  if(dialog.open)status.textContent='PDF konnte nicht angezeigt werden: '+e.message;
+ }
+}
 // Der Druckaufruf muss mit einem echten Klick beginnen: Druckfenster sofort öffnen,
 // PDF-Daten danach asynchron laden und nach dem Laden den nativen Dialog versuchen.
 // Browser/PDF-Viewer (insbesondere Samsung Internet) entscheiden selbst, ob
 // programmgesteuertes Drucken unterstützt wird. Deshalb gibt es einen sichtbaren
 // Wiederholen-Knopf und eine PDF-Fallback-Ansicht im Druckfenster.
-async function openPdf(id,print){
- if(print){return printPdf(id)}
- const tab=window.open('about:blank','_blank');
- if(tab)try{tab.document.write('<!doctype html><html lang="de"><title>PDF wird geladen</title><body style="font:18px Arial;padding:30px">PDF wird geladen …</body></html>');tab.document.close()}catch(e){}
- try{const url=await getUrl(id);if(tab){if(!tab.closed)tab.location.href=url}else{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click()}}catch(e){if(tab&&!tab.closed)tab.close();toast('PDF konnte nicht geöffnet werden: '+e.message)}
-}
 async function printPdf(id){
+ if(!canPrintDocument())return;
  // Popup direkt innerhalb des Klick-Handlers anlegen, nicht erst nach Firebase-await.
  const tab=window.open('about:blank','_blank');
  if(!tab){toast('Druckfenster blockiert. Bitte Pop-ups für diese Vereinsseite erlauben und erneut auf „Drucken“ tippen.');return}
@@ -204,7 +253,7 @@ function htmlAdmin(){
  h+='<div class="card"><p class="small">Die Bereiche erscheinen auf der Startseite unter „Dokumente Drucken“. Bereiche und PDFs werden zentral in Firebase gespeichert. Nach dem Ändern von Bereichsnamen die Startseite ebenfalls zentral speichern.</p><h3>Unterbuttons / Bereiche</h3>';
  h+=state.categories.map((c,i)=>'<div class="ecw-doc-adminrow"><input aria-label="Bereichsname" data-cat-title="'+i+'" value="'+esc(c.title)+'"><button type="button" data-cat-remove="'+i+'">Entfernen</button></div>').join('');
  h+='<button type="button" id="ecwDocAddCat">+ Unterbutton hinzufügen</button></div><div class="card"><h3>PDF-Dokumente</h3><label>Bereich</label><select id="ecwDocCat">'+state.categories.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.title)+'</option>').join('')+'</select><label>Titel (optional)</label><input id="ecwDocTitle" placeholder="Dokumentname"><label>PDF-Datei auswählen (max. 8 MB)</label><input id="ecwDocUpload" type="file" accept="application/pdf,.pdf"><div id="ecwDocLocalPreviewWrap" class="ecw-doc-local-preview" hidden><strong>Vorschau vor dem Speichern</strong><div id="ecwDocLocalPreviewInfo" class="small"></div><iframe id="ecwDocLocalPreviewFrame" title="Vorschau der ausgewählten PDF-Datei"></iframe></div><button class="primary" id="ecwDocUploadBtn" type="button">PDF hinzufügen und speichern</button><div id="ecwDocStatus" class="small" aria-live="polite"></div><h3>Vorhandene Dokumente</h3>';
- h+=state.files.length?state.files.map(f=>'<div class="ecw-doc-adminrow"><span>'+esc(f.title)+' <small>('+esc(state.categories.find(c=>c.id===f.category)?.title||'Ohne Bereich')+')</small></span><div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" data-file-open="'+esc(f.id)+'">Separat öffnen</button><button type="button" data-file-delete="'+esc(f.id)+'">Entfernen</button></div></div>').join(''):'<p>Noch keine PDFs gespeichert.</p>';
+ h+=state.files.length?state.files.map(f=>'<div class="ecw-doc-adminrow"><span>'+esc(f.title)+' <small>('+esc(state.categories.find(c=>c.id===f.category)?.title||'Ohne Bereich')+')</small></span><div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" data-file-open="'+esc(f.id)+'">Vorschau</button><button type="button" data-file-delete="'+esc(f.id)+'">Entfernen</button></div></div>').join(''):'<p>Noch keine PDFs gespeichert.</p>';
  h+='</div><div class="card"><h3>Druckereinstellungen / Hinweise</h3><label>Druckerbezeichnung (Information, keine automatische Druckerwahl)</label><input id="ecwDocPrinter" value="'+esc(state.printer)+'"><label>Papierformat (Information)</label><select id="ecwDocPaper"><option '+(state.paper==='A4'?'selected':'')+'>A4</option><option '+(state.paper==='A5'?'selected':'')+'>A5</option></select><p class="small">Der normale Browser-Druckdialog wird verwendet. Die Anzahl 1 ist die Vorgabe in der Oberfläche, kann im Browserdialog aber nicht gesperrt werden. Drucker, Papierformat und Kopien müssen im Browser kontrolliert werden.</p><button type="button" class="primary" id="ecwDocSave">Einstellungen und Unterbuttons speichern</button><div id="ecwDocAdminStatus" class="small" aria-live="polite"></div></div>';
  return h;
 }
@@ -234,7 +283,7 @@ function renderAdmin(){const a=$('adminMain');if(!a)return;
  a.querySelectorAll('[data-cat-remove]').forEach(x=>x.addEventListener('click',async()=>{const i=+x.dataset.catRemove,c=state.categories[i];if(state.files.some(f=>f.category===c.id)){toast('Zuerst die Dokumente dieses Bereichs entfernen.');return}if(!confirm('Unterbutton „'+c.title+'“ entfernen?'))return;state.categories.splice(i,1);try{await save();renderAdmin()}catch(e){toast('Speichern fehlgeschlagen: '+e.message)}}));
  $('ecwDocAddCat').onclick=async()=>{const title=prompt('Name des neuen Unterbuttons:');if(!title?.trim())return;state.categories.push({id:'c'+Date.now().toString(36),title:title.trim().slice(0,80)});try{await save();renderAdmin()}catch(e){toast('Speichern fehlgeschlagen: '+e.message)}};
  $('ecwDocUploadBtn').onclick=upload;
- a.querySelectorAll('[data-file-open]').forEach(x=>x.addEventListener('click',()=>openPdf(x.dataset.fileOpen,false)));
+ a.querySelectorAll('[data-file-open]').forEach(x=>x.addEventListener('click',()=>previewPdf(x.dataset.fileOpen)));
  a.querySelectorAll('[data-file-delete]').forEach(x=>x.addEventListener('click',()=>removeFile(x.dataset.fileDelete)));
  $('ecwDocSave').onclick=async()=>{state.printer=$('ecwDocPrinter').value.trim();state.paper=$('ecwDocPaper').value;try{await save();$('ecwDocAdminStatus').textContent='Zentral gespeichert ✓ · Bitte „Startseite bearbeiten“ → „Startseite speichern“ für die neuen Unterbuttons wählen.'}catch(e){toast('Speichern fehlgeschlagen: '+e.message)}};
 }
