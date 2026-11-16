@@ -25,6 +25,12 @@ function close(){const d=dialog();if(d.close)d.close();else{d.open=false;d.remov
 function home(){close();shOpen=-1;showView('startseite');shRender()}
 const utilityColumns=window.matchMedia('(max-width: 620px)');
 let activeMenu='useful',page=0;
+function stockTvLabel(title){
+ const name=String(title||'').trim();
+ const lane=name.match(/^stock[\s-]*tv[\s:–—-]*(?:bahn\s*)?(\d+)$/i)
+   ||name.match(/^bahn\s*(\d+)(?:[\s:–—-]+stock[\s-]*tv)?$/i);
+ return lane?'Stock TV\nBahn '+lane[1]:title;
+}
 function renderPage(){
  const d=dialog();
  const items=activeMenu==='links'?SH.links||[]:SH.utilityItems||[];
@@ -39,6 +45,7 @@ function renderPage(){
  visible.forEach((item,i)=>{
   const [row,column]=shStaggeredPosition(i,visible.length,columns);
   const b=shMakeBtn(item,-1);
+  if(activeMenu==='useful')b.textContent=stockTvLabel(item.t);
   b.classList.add('utility-hex-tile');
   b.style.gridArea=row+' / '+column+' / span 1 / span 2';
   b.addEventListener('click',()=>{if(!b.classList.contains('nolink')&&!b.classList.contains('app-disabled'))close()});
