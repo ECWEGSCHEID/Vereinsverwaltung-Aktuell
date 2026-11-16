@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.3.161126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.4.161126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -1671,18 +1671,26 @@ function shRender(){
  const total=items.length;
  const g=document.getElementById('shGrid'),rows=Math.max(1,Math.ceil(total/SH.cols));
  g.style.setProperty('--cd',SH.cols);g.style.setProperty('--rd',rows);g.style.setProperty('--rp',Math.ceil(total/2)||1);
+ const internalResults=!!grp && /ergebnisse\s+turniere\s+intern/i.test(label);
  const els=[];
  items.forEach((b,i)=>{
-  try{els.push(shMakeBtn(b,grp?-1:i))}
+  try{
+   const tile=shMakeBtn(b,grp?-1:i);
+   if(internalResults && (ecwInternalResultMode(b.u)==='cup' || /^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))) {
+    tile.textContent='Cup\nErgebnisse';
+   }
+   els.push(tile);
+  }
   catch(e){
    console.error('Startseiten-Button:',e);
    const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
   }
  });
  const centeredSubmenu=!!grp && (
-  /ergebnisse\s+turniere\s+intern/i.test(label) ||
+  internalResults ||
   /dokumente\s*&?\s*drucken/i.test(label) ||
-  grp.sub.some(item=>/#druckdokumente(?:-|$)/i.test(item.u))
+  /fotos|zeitungsberichte/i.test(label) ||
+  grp.sub.some(item=>/#(?:druckdokumente(?:-|$)|fotos$|zeitungsberichte$)/i.test(item.u))
  );
  const whiteboardLayout=!grp||centeredSubmenu;
  g.classList.toggle('sh-centered-submenu-hex',centeredSubmenu);
