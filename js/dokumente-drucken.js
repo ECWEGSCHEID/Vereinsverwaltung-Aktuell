@@ -7,7 +7,7 @@ const defaults=[{id:'verein',title:'Vereinsdokumente'},{id:'turnier',title:'Turn
 let state={categories:defaults.map(x=>({...x})),files:[],printer:'HP Color Laser MFP 178nwg',paper:'A4',note:'',updatedAt:''};
 let selected=null,previewFromAdmin=false,loading=false,busy=false,urls=new Map(),localPreviewUrl=null;
 let loadError='',loadSource='',lastLoaded='',loadPromise=null;
-const VERSION='2.8.10-admin-druck';
+const VERSION='2.8.11-druck-rueckkehr';
 function withDeadline(p,ms){return Promise.race([p,new Promise((_,reject)=>setTimeout(()=>reject(Error('Zeitüberschreitung nach '+Math.round(ms/1000)+' Sekunden')),ms))])}
 function explainError(e){const code=String(e?.code||'');const msg=String(e?.message||e||'Unbekannter Fehler');
  if(code.includes('permission-denied')||/permission.?denied|insufficient permissions/i.test(msg))return 'Firebase-Zugriff verweigert (permission-denied). Bitte veröffentlichte Firestore-Regeln für appSettings/druckdokumente und druckpdf_* prüfen.';
@@ -93,7 +93,7 @@ function renderPublic(){
  const retry=$('ecwDocRetry');if(retry)retry.addEventListener('click',async()=>{box.innerHTML='<div class="ecw-doc-card">Firebase-Server wird abgefragt …</div>';await load();renderPublic()});
  box.querySelectorAll('[data-doc-cat]').forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.docCat||null;renderPublic()}));
  box.querySelectorAll('[data-doc-open]').forEach(b=>b.addEventListener('click',()=>previewPdf(b.dataset.docOpen)));
- box.querySelectorAll('[data-doc-print]').forEach(b=>b.addEventListener('click',()=>printPdf(b.dataset.docPrint)));
+ box.querySelectorAll('[data-doc-print]').forEach(b=>b.addEventListener('click',()=>printPdf(b.dataset.docPrint,b)));
  box.querySelectorAll('[data-doc-hall]').forEach(b=>b.addEventListener('click',()=>enqueueHallPrint(b.dataset.docHall,b)));
 }
 // ECW Hallendruck: kein Browser-Druckdialog; ausschließlich bewusst erstellte Aufträge.
@@ -101,6 +101,26 @@ function renderPublic(){
 const HALL_PRINT_UID='ewlezYPZBQUb0t0wMEZZ9Uytkcy1';
 function canPrintToHall(){
  return firebaseAuthUser?.uid===HALL_PRINT_UID && appPermissions.admin!==true;
+}
+function waitForHallPrint(job){
+ return new Promise((resolve,reject)=>{
+  let unsubscribe;
+  const finish=(complete,value)=>{
+   clearTimeout(timeout);
+   unsubscribe?.();
+   complete(value);
+  };
+  const timeout=setTimeout(()=>finish(reject,Error('Der Druckserver hat noch keinen Abschluss gemeldet.')),90000);
+  unsubscribe=job.onSnapshot({includeMetadataChanges:true},snap=>{
+   if(!snap.exists||snap.metadata.fromCache||snap.metadata.hasPendingWrites)return;
+   const {status,detail}=snap.data();
+   if(status==='an_cups')finish(resolve);
+   else if(status==='fehler'||status==='unklar')finish(reject,Error(detail||'Druckstatus: '+status));
+  },error=>finish(reject,error));
+ });
+}
+function returnFromDocumentPrint(button){
+ if(button.isConnected&&$('druckdokumente')?.classList.contains('active'))back();
 }
 async function enqueueHallPrint(id,button){
  const file=state.files.find(f=>f.id===id);
@@ -118,15 +138,17 @@ async function enqueueHallPrint(id,button){
   const created=await withDeadline(db().collection('druckauftraege').add({
    pdfId:id,status:'wartend',erstellt:firebase.firestore.FieldValue.serverTimestamp(),uid:authUser.uid
   }),20000);
-  button.textContent='Auftrag angelegt ✓';
-  toast('Hallendruck-Auftrag gespeichert. Auftrags-ID: '+created.id+'. Der Raspberry Pi übernimmt ihn erst, wenn der Druckdienst gestartet wird.');
-  // Ein bereits angenommener Auftrag darf bei Verbindungsproblemen nicht blind wiederholt werden.
-  console.info('ECW Hallendruck Auftrag angelegt', created.id);
+  button.textContent='Warte auf Hallendrucker …';
+  try{await waitForHallPrint(created)}
+  catch(e){toast('Auftrag '+created.id+': '+explainError(e));return;}
+  toast('Auftrag an den Hallendrucker übergeben.');
+  returnFromDocumentPrint(button);
  }catch(e){
-  button.textContent=old;
   console.warn('Hallendruckauftrag fehlgeschlagen',e);
   toast('Druckauftrag konnte nicht bestätigt werden: '+explainError(e)+'. Vor erneutem Tippen Warteschlange prüfen.');
- }finally{setTimeout(()=>{button.disabled=false;if(button.textContent==='Auftrag angelegt ✓')button.textContent=old},8000)}
+ }finally{
+  if(button.isConnected){button.disabled=false;button.textContent=old;}
+ }
 }
 
 function back(){
@@ -199,7 +221,7 @@ async function previewPdf(id){
 // Browser/PDF-Viewer (insbesondere Samsung Internet) entscheiden selbst, ob
 // programmgesteuertes Drucken unterstützt wird. Deshalb gibt es einen sichtbaren
 // Wiederholen-Knopf und eine PDF-Fallback-Ansicht im Druckfenster.
-async function printPdf(id){
+async function printPdf(id,button){
  if(!canPrintDocument())return;
  // Popup direkt innerhalb des Klick-Handlers anlegen, nicht erst nach Firebase-await.
  const tab=window.open('about:blank','_blank');
@@ -214,14 +236,23 @@ async function printPdf(id){
   #ecwPrintStatus{padding:10px 16px;background:#fff3cd;color:#382a0b;min-height:42px}
   iframe{display:block;width:100%;height:calc(100vh - 117px);border:0;background:white}
   @media print{header,#ecwPrintStatus{display:none}iframe{width:100%;height:100vh}}
-  </style></head><body><header><strong>EC Wegscheid · PDF drucken</strong><button type="button" class="primary" id="ecwPrintAgain" disabled>Druckdialog öffnen</button><button type="button" id="ecwPrintView" disabled>PDF separat öffnen</button></header><div id="ecwPrintStatus" role="status">PDF wird geladen …</div><iframe id="ecwPrintFrame" title="Druckvorschau PDF"></iframe></body></html>`);
+  </style></head><body><header><strong>EC Wegscheid · PDF drucken</strong><button type="button" class="primary" id="ecwPrintAgain" disabled>Druckdialog öffnen</button><button type="button" id="ecwPrintView" disabled>PDF separat öffnen</button><button type="button" id="ecwPrintBack">Zurück zum Menü</button></header><div id="ecwPrintStatus" role="status">PDF wird geladen …</div><iframe id="ecwPrintFrame" title="Druckvorschau PDF"></iframe></body></html>`);
   tab.document.close();
  }catch(e){toast('Druckfenster konnte nicht vorbereitet werden: '+e.message);try{tab.close()}catch(_){}return}
  const status=tab.document.getElementById('ecwPrintStatus');
  const frame=tab.document.getElementById('ecwPrintFrame');
  const again=tab.document.getElementById('ecwPrintAgain');
  const view=tab.document.getElementById('ecwPrintView');
- let ready=false,requested=false,pdfUrl=null;
+ let ready=false,requested=false,pdfUrl=null,printing=false,finished=false;
+ const finish=()=>{
+  if(finished)return;
+  finished=true;
+  tab.close();
+  returnFromDocumentPrint(button);
+ };
+ const afterPrint=()=>{if(printing)finish()};
+ tab.document.getElementById('ecwPrintBack').addEventListener('click',finish);
+ tab.addEventListener('afterprint',afterPrint);
  const launch=()=>{
   if(!ready||tab.closed)return;
   status.textContent='Druckdialog wird geöffnet. Bitte Drucker und Einstellungen prüfen und 1 Exemplar auswählen. Falls kein Dialog erscheint, „Druckdialog öffnen“ erneut drücken oder „PDF separat öffnen“ wählen.';
@@ -231,8 +262,12 @@ async function printPdf(id){
    // Ein Print des äußeren HTML-Fensters wäre nicht zuverlässig (leere Seiten).
    const pdfWindow=frame.contentWindow;
    if(!pdfWindow||typeof pdfWindow.print!=='function')throw Error('PDF-Druckfunktion nicht verfügbar');
-   pdfWindow.focus();pdfWindow.print();
+   try{pdfWindow.addEventListener('afterprint',afterPrint,{once:true})}catch(e){}
+   pdfWindow.focus();
+   printing=true;
+   pdfWindow.print();
   }catch(e){
+   printing=false;
    console.warn('Direktdruck nicht verfügbar:',e);
    status.textContent='Automatischer Druckdialog wird von diesem Browser nicht unterstützt. Bitte „PDF separat öffnen“ und dort Drucken wählen.';
   }
