@@ -29,7 +29,7 @@
 #adminMain .ecw-doc-local-preview[hidden]{display:none}
 #adminMain .ecw-doc-local-preview iframe{display:block;width:100%;height:360px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:#fff;margin-top:8px}
 
-#druckdokumente [data-doc-print]:disabled {
+#druckdokumente :is([data-doc-print], [data-doc-hall]):disabled {
   opacity: .45;
   filter: grayscale(1);
   cursor: default;
@@ -45,6 +45,17 @@
   color: #fff;
   border: 1px solid #ffffff70;
   border-radius: 12px;
+}
+.ecw-doc-preview-dialog.ecw-doc-preview-whiteboard {
+  inset: 0;
+  margin: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
 }
 .ecw-doc-preview-dialog[open] {
   display: grid;
@@ -75,4 +86,13 @@
   height: auto;
   margin: auto;
   background: #fff;
+}
+.ecw-doc-preview-whiteboard .ecw-doc-preview-page {
+  overflow: hidden;
+}
+.ecw-doc-preview-whiteboard canvas:not([hidden]) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
 }
