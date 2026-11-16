@@ -662,7 +662,11 @@ form.addEventListener('submit', async event => {
       activationEmail = null;
       newPassword.value = repeatPassword.value = '';
       setActivationView(false);
-      await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
+      const credential = await signInWithEmailAndPassword(auth, verifiedEmail, chosenPassword);
+      void import(firestoreSdkUrl).then(({getFirestore, doc, setDoc, serverTimestamp}) =>
+        setDoc(doc(getFirestore(app), 'smartphonePasswortstatus', credential.user.uid),
+          {confirmedAt: serverTimestamp()})
+      ).catch(error => console.warn('Passwortstatus konnte nicht bestätigt werden:', error.code));
     } else {
       await signInWithEmailAndPassword(auth, identifier, password.value);
     }
