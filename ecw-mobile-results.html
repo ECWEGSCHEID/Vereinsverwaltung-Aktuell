@@ -1,5 +1,5 @@
 <!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EC Wegscheid – Tabellen (Nur Lesen)</title><style>
-:root{color-scheme:dark}body{margin:0;padding:14px;font:16px system-ui,Arial;background:#170d10;color:#fff}h1{font-size:1.3rem}select,button{background:#282126;border:1px solid #b45d60;color:#fff;border-radius:7px;padding:10px;font:inherit;max-width:100%}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:8px 5px;border-bottom:1px solid #555}th{background:#432126}section{margin:14px 0;border:1px solid #633;padding:9px;border-radius:8px;overflow:auto}#status{line-height:1.5}.muted{color:#bbb}
+:root{color-scheme:dark}body{margin:0;padding:14px;font:16px system-ui,Arial;background:#170d10;color:#fff}h1{font-size:1.3rem}select,button{background:#282126;border:1px solid #b45d60;color:#fff;border-radius:7px;padding:10px;font:inherit;max-width:100%}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:8px 5px;border-bottom:1px solid #555}th{background:#432126}section{margin:14px 0;border:1px solid #633;padding:9px;border-radius:8px;overflow:auto}#status{line-height:1.5}.muted{color:#bbb}.result-selector{position:sticky;top:0;z-index:2;padding:6px 0;background:#170d10;border-bottom:1px solid #633}.result-selector select{width:100%;min-height:42px}
 </style><script src="ecw-site-base.js"></script>
 </head><body><h1>EC Wegscheid – Ergebnistabellen</h1><p class="muted">Nur lesen · keine zusätzliche Anmeldung</p><p id="status" role="status">Lade veröffentlichte Ergebnisse …</p><div id="content"></div><script>
 (()=>{'use strict';
@@ -24,7 +24,7 @@ function render(tournaments){content.replaceChildren();const entries=Object.entr
 const filtered=entries.filter(([,t])=>new RegExp(mode==='frauen'?'frauen|damen':'duo','i').test(t.name||''));
 const candidates=filtered.length?filtered:entries;
 if(!candidates.length){status.textContent='Keine gespeicherten Cup-Ergebnisse vorhanden.';return;}
-const select=node('select','',content);select.setAttribute('aria-label','Turnier wählen');select.replaceChildren();for(const [id,t] of candidates){const option=document.createElement('option');option.value=id;option.textContent=t.name||id;select.append(option);}
+const controls=node('div','',content);controls.className='result-selector';const select=node('select','',controls);select.setAttribute('aria-label','Turnier wählen');select.replaceChildren();for(const [id,t] of candidates){const option=document.createElement('option');option.value=id;option.textContent=t.name||id;select.append(option);}
 const holder=node('div','',content);
 function display(){holder.replaceChildren();const selected=tournaments[select.value];if(!selected)return;
  for(const [gId,g] of Object.entries(selected.groups||{})){const box=node('section','',holder);node('h2',g.name||gId,box);const table=node('table','',box);const head=node('thead','',table),r=node('tr','',head);for(const h of ['Pl.','Mannschaft','Sp.','Pkt.','Stock','Quote','Satzpkt.'])node('th',h,r);
