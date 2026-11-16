@@ -7,7 +7,7 @@ const defaults=[{id:'verein',title:'Vereinsdokumente'},{id:'turnier',title:'Turn
 let state={categories:defaults.map(x=>({...x})),files:[],printer:'HP Color Laser MFP 178nwg',paper:'A4',note:'',updatedAt:''};
 let selected=null,previewFromAdmin=false,loading=false,busy=false,urls=new Map(),localPreviewUrl=null;
 let loadError='',loadSource='',lastLoaded='',loadPromise=null;
-const VERSION='2.8.11-druck-rueckkehr';
+const VERSION=window.ECW_APP_VERSION || '3.1.1.161126';
 function withDeadline(p,ms){return Promise.race([p,new Promise((_,reject)=>setTimeout(()=>reject(Error('Zeitüberschreitung nach '+Math.round(ms/1000)+' Sekunden')),ms))])}
 function explainError(e){const code=String(e?.code||'');const msg=String(e?.message||e||'Unbekannter Fehler');
  if(code.includes('permission-denied')||/permission.?denied|insufficient permissions/i.test(msg))return 'Firebase-Zugriff verweigert (permission-denied). Bitte veröffentlichte Firestore-Regeln für appSettings/druckdokumente und druckpdf_* prüfen.';
