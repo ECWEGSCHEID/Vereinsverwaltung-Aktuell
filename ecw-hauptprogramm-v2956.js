@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V11';
+const APP_RELEASE='ECW Startseite V12';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1635,6 +1635,13 @@ function shMakeBtn(b,idx){
  }
 }
 function closeStartSubmenu(){shOpen=-1;shRender();}
+function shStaggeredPosition(index, count, columns){
+ const row=Math.floor(index/columns);
+ const rowLength=Math.min(columns,count-row*columns);
+ const centered=columns-rowLength;
+ const inset=centered+(centered%2===row%2?0:1);
+ return [row+1,1+2*(index%columns)+inset];
+}
 function shWhiteboardPosition(index, slot){
  if(slot===1)return [1,10];
  if(slot===2)return [2,1];
@@ -1672,7 +1679,14 @@ function shRender(){
  const whiteboardLayout=!grp||internalResults;
  g.classList.toggle('sh-internal-results-hex',internalResults);
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
- if(whiteboardLayout){
+ if(internalResults){
+  g.style.setProperty('--internal-rows',Math.max(1,Math.ceil(total/4)));
+  els.forEach((tile,i)=>{
+   const [row,column]=shStaggeredPosition(i,total,4);
+   tile.style.setProperty('--sh-tile-row',row);
+   tile.style.setProperty('--sh-tile-column',column);
+  });
+ }else if(whiteboardLayout){
   let regularIndex=0;
   const occupied=new Set();
   const linksIndex=grp?-1:items.findIndex(button=>String(button.u).endsWith('#ecw-utility-links'));

@@ -37,12 +37,10 @@ function renderPage(){
  holder.replaceChildren();
  const visible=items.slice(page*pageSize,(page+1)*pageSize);
  visible.forEach((item,i)=>{
-  const row=Math.floor(i/columns);
+  const [row,column]=shStaggeredPosition(i,visible.length,columns);
   const b=shMakeBtn(item,-1);
   b.classList.add('utility-hex-tile');
-  const rowLength=Math.min(columns,visible.length-row*columns);
-  const inset=columns-rowLength+(row%2);
-  b.style.gridArea=(row+1)+' / '+(1+2*(i%columns)+inset)+' / span 1 / span 2';
+  b.style.gridArea=row+' / '+column+' / span 1 / span 2';
   b.addEventListener('click',()=>{if(!b.classList.contains('nolink')&&!b.classList.contains('app-disabled'))close()});
   holder.append(b);
  });

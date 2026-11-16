@@ -1255,12 +1255,26 @@ body.tv-preview-open{overflow:hidden!important}
 
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active #shGrid.sh-internal-results-hex {
-    --sh-hex-width: calc(min(var(--sh-menu-width) / 5.85, var(--sh-menu-height) / 4.015) * .8);
+    --internal-edge: calc(var(--sh-ribbon-height) + 26px);
+    --sh-hex-width: min(
+      calc(min(var(--sh-menu-width) / 5.85, var(--sh-menu-height) / 4.015) * .96),
+      calc((var(--submenu-area-width) - 16px) / 4.5),
+      calc((100dvh - 2 * var(--internal-edge) - 12px) / (var(--internal-rows) * .96 + .175))
+    );
+    left: var(--submenu-area-left);
+    right: var(--submenu-area-right);
+    top: var(--internal-edge);
+    bottom: var(--internal-edge);
+    width: auto;
+    grid-template-columns: repeat(9, calc(var(--sh-hex-width) / 2));
+    place-content: center;
+    padding-bottom: calc(var(--sh-hex-width) * .175);
+    overflow: visible;
   }
 }
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active #shGrid.sh-internal-results-hex {
-    --internal-hex-width: min(calc(clamp(124px, 26vw, 180px) * .8), calc((100% - 20px) / 2.5));
+    --internal-hex-width: min(calc(clamp(124px, 26vw, 180px) * .96), calc((100% - 20px) / 2.5));
     grid-template-columns: repeat(5, minmax(0, calc(var(--internal-hex-width) / 2 + 4px)));
     justify-content: center;
     gap: 0;
@@ -1293,11 +1307,15 @@ body.tv-preview-open{overflow:hidden!important}
   overflow-wrap: anywhere;
 }
 
+:is(#startseite, #ecwUtilityDialog) {
+  --submenu-area-left: 0px;
+  --submenu-area-right: 0px;
+  --submenu-area-width: calc(100vw - var(--submenu-area-left) - var(--submenu-area-right));
+}
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
-  #startseite.active #shGrid.sh-internal-results-hex {
-    left: 52%;
-    right: auto;
-    transform: translateX(-50%);
+  :is(#startseite, #ecwUtilityDialog) {
+    --submenu-area-left: 45vw;
+    --submenu-area-right: 2vw;
   }
 }
 #ecwUtilityDialog {
@@ -1308,9 +1326,11 @@ body.tv-preview-open{overflow:hidden!important}
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  --utility-edge: clamp(54px, 10dvh, 96px);
+  grid-template-rows: var(--utility-edge) minmax(0, 1fr) var(--utility-edge);
   justify-items: center;
-  padding: 12px 14px;
+  align-items: center;
+  padding-inline: calc(var(--submenu-area-left) + 14px) calc(var(--submenu-area-right) + 14px);
 }
 #ecwUtilityDialog h1 {
   margin: 0 0 6px;
@@ -1318,7 +1338,9 @@ body.tv-preview-open{overflow:hidden!important}
   text-shadow: 0 2px 4px #000;
 }
 #ecwUtilityDialog .utility-hex-grid {
-  --utility-hex-width: min(155px, calc((100vw - 36px) / (var(--utility-columns) + .5) - 6px), calc((100dvh - 126px) / 3.2));
+  --utility-hex-width: min(186px, calc((var(--submenu-area-width) - 36px) / (var(--utility-columns) + .5) - 6px), calc((100dvh - 2 * var(--utility-edge) - 9px) / 3.055));
+  grid-area: 2 / 1;
+  padding-bottom: calc(var(--utility-hex-width) * .175);
   display: grid;
   grid-template-columns: repeat(calc(var(--utility-columns) * 2 + 1), calc((var(--utility-hex-width) + 6px) / 2));
   grid-auto-rows: calc(var(--utility-hex-width) * .96 + 3px);
@@ -1334,10 +1356,14 @@ body.tv-preview-open{overflow:hidden!important}
   align-self: start;
   min-height: 0;
   padding: .4em;
-  font-size: clamp(10px, calc(var(--utility-hex-width) * .115), 18px);
+  font-size: clamp(10px, calc(var(--utility-hex-width) * .115), 21px);
   overflow-wrap: anywhere;
 }
+#ecwUtilityDialog .utility-empty {
+  grid-area: 2 / 1;
+}
 #ecwUtilityDialog .utility-hex-nav {
+  grid-area: 3 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
