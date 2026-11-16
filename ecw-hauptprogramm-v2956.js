@@ -389,6 +389,7 @@ if(firebaseReady&&window.firebaseAuth){
    const label=document.getElementById('currentUserLabel');
    if(label)label.textContent=user?(user.email||user.uid):'';
    if(!isPublicWhiteboardMode()) await loadAppPermissions(user);
+   if(user&&canViewApp('tp'))void tpLoadCentralPlayerList(true);
    if(user && (isWhiteboardUser() || isWhiteboardKioskAccount())){
      try{
        localStorage.setItem('ecw_whiteboard_trusted_device','1');
@@ -4301,11 +4302,15 @@ function tpResolvePlayerName(name){
   while(aliases[n]&&!seen.has(n)){seen.add(n);n=aliases[n];}
   return n;
 }
-function tpPlayers(){
+function tpInactivePlayerNames(values=data.tournamentPlannerInactivePlayers){
+  return new Set(Array.isArray(values)?values.filter(n=>typeof n==='string').map(tpResolvePlayerName).filter(n=>n&&n!=='X'):[]);
+}
+function tpPlayers(includeInactive=false){
   const list=(data.tournamentPlannerPlayers&&data.tournamentPlannerPlayers.length)?data.tournamentPlannerPlayers.slice():TP_PLAYER_NAMES.slice();
   const names=[...new Set(list.map(tpResolvePlayerName).filter(Boolean))];
   if(!names.includes('X'))names.push('X');
-  return names.sort((a,b)=>a.localeCompare(b,'de'));
+  const inactive=tpInactivePlayerNames();
+  return names.filter(n=>includeInactive||!inactive.has(n)).sort((a,b)=>a.localeCompare(b,'de'));
 }
 function tpPlayerOptionsHtml(selected){
   const chosen=tpResolvePlayerName(selected), opts=['<option value="">– auswählen –</option>'];
@@ -4317,8 +4322,8 @@ function tpPlayerOptionsHtml(selected){
 async function tpSaveCentralPlayerList(){
   if(!save())throw Error('Lokales Speichern fehlgeschlagen');
   if(!firebaseReady||!firestoreDb||!firebaseAuthUser)throw Error('Keine Firebase-Verbindung. Die Liste wurde nur lokal gespeichert.');
-  const payload={players:tpPlayers().filter(n=>n!=='X'),aliases:{...tpPlayerAliases()},updatedAt:new Date().toISOString()};
-  await fbTimeout(firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).set(payload),30000,'Spielerliste speichern');
+  const payload={players:tpPlayers(true).filter(n=>n!=='X'),aliases:{...tpPlayerAliases()},updatedAt:new Date().toISOString()};
+  await fbTimeout(firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).set(payload,{merge:true}),30000,'Spielerliste speichern');
   return true;
 }
 async function tpLoadCentralPlayerList(fromPlayerMenu=false){
@@ -4331,6 +4336,7 @@ async function tpLoadCentralPlayerList(fromPlayerMenu=false){
     const remote=doc.data();
     if(!Array.isArray(remote?.players)||!remote.players.length)return 'empty';
     data.tournamentPlannerPlayers=remote.players;
+    data.tournamentPlannerInactivePlayers=Array.isArray(remote.inactivePlayers)?remote.inactivePlayers:[];
     if(remote.aliases&&typeof remote.aliases==='object')data.tournamentPlannerPlayerAliases=remote.aliases;
     save();
     renderTpPlayersAdminList();
@@ -4345,7 +4351,7 @@ function canEditTpSmartphoneAccess(){
 }
 
 async function tpEditSmartphoneAccess(button,player){
-  if(!canEditTpSmartphoneAccess()||!tpPlayers().includes(player))return;
+  if(!canEditTpSmartphoneAccess()||!tpPlayers(true).includes(player))return;
   const adminUid=firebaseAuthUser.uid;
   button.disabled=true;
   try{
@@ -4412,14 +4418,50 @@ async function tpShowPasswordStatus(labels){
   }
 }
 
+async function tpSetPlayerActive(button,player,active){
+  if(!canEditTpSmartphoneAccess()||player==='X'||!tpPlayers(true).includes(player))return;
+  const uid=firebaseAuthUser.uid;
+  const ref=firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC);
+  button.disabled=true;
+  try{
+    await firestoreDb.runTransaction(async transaction=>{
+      const snapshot=await transaction.get(ref);
+      if(!canEditTpSmartphoneAccess()||firebaseAuthUser.uid!==uid)throw Error('Adminsitzung geändert');
+      const remote=snapshot.data();
+      if(!Array.isArray(remote?.players)||!remote.players.some(n=>tpResolvePlayerName(n)===player)){
+        throw Error('Spieler fehlt in der zentralen Liste');
+      }
+      const inactive=tpInactivePlayerNames(remote.inactivePlayers??[]);
+      if(active)inactive.delete(player);
+      else inactive.add(player);
+      transaction.update(ref,{inactivePlayers:[...inactive],updatedAt:new Date().toISOString()});
+    });
+    if(!canEditTpSmartphoneAccess()||firebaseAuthUser.uid!==uid)return;
+    const inactive=tpInactivePlayerNames();
+    if(active)inactive.delete(player);
+    else inactive.add(player);
+    data.tournamentPlannerInactivePlayers=[...inactive];
+    save();
+    renderTpPlayersAdminList();
+    await tpRefreshPlayerMenu();
+  }catch(error){
+    showToast('Spielerstatus konnte nicht gespeichert werden: '+error.message,7000);
+  }finally{
+    button.disabled=false;
+  }
+}
+
 function renderTpPlayersAdminList(){
   const el=document.getElementById('tpPlayersAdminList');if(!el)return;
-  const players=tpPlayers().filter(p=>p!=='X');
+  const players=tpPlayers(true).filter(p=>p!=='X');
+  const inactive=tpInactivePlayerNames();
   const aliases=tpPlayerAliases();
   const showPasswordStatus=canEditTpSmartphoneAccess();
   el.innerHTML=players.length?players.map(p=>{
     const old=Object.keys(aliases).filter(a=>tpResolvePlayerName(a)===p);
-    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(showPasswordStatus?'<div class="small" hidden data-player-password-status="'+esc(p)+'"></div>':'')+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'')+'</div></div>';
+    const active=!inactive.has(p);
+    const statusButton=showPasswordStatus?'<button type="button" onclick="tpSetPlayerActive(this,'+jsArg(p)+','+!active+')">'+(active?'Deaktivieren':'Aktivieren')+'</button>':'';
+    return '<div class="list-item"><div><b>'+esc(p)+'</b><div class="small">'+(active?'Aktiv':'Inaktiv')+'</div>'+(showPasswordStatus?'<div class="small" hidden data-player-password-status="'+esc(p)+'"></div>':'')+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'') +statusButton+'</div></div>';
   }).join(''):'<div class="small">Keine Spieler vorhanden.</div>';
   if(showPasswordStatus&&players.length)void tpShowPasswordStatus([...el.querySelectorAll('[data-player-password-status]')]);
 }
@@ -4427,7 +4469,7 @@ async function tpAddPlayer(){
   if(isWhiteboardUser()){showToast('Keine Berechtigung');return;}
   const input=document.getElementById('tpNewPlayer'),name=(input?.value||'').trim();
   if(!name){showToast('Bitte Namen eingeben');return;}
-  if(tpPlayers().includes(name)||tpPlayerAliases()[name]){showToast('Spieler oder Alias bereits vorhanden');return;}
+  if(tpPlayers(true).includes(name)||tpPlayerAliases()[name]){showToast('Spieler oder Alias bereits vorhanden');return;}
   if(!Array.isArray(data.tournamentPlannerPlayers)||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
   data.tournamentPlannerPlayers.push(name);
   try{await tpSaveCentralPlayerList();if(input)input.value='';showToast('Spieler zentral gespeichert');}
@@ -4440,7 +4482,7 @@ async function tpAddPlayerAlias(player){
   if(raw===null)return;
   const alias=raw.trim();
   if(!alias||alias===player)return;
-  if(tpPlayers().includes(alias)&&alias!==player){showToast('Dieser Name gehört bereits zu einem Spieler');return;}
+  if(tpPlayers(true).includes(alias)&&alias!==player){showToast('Dieser Name gehört bereits zu einem Spieler');return;}
   const previous=tpPlayerAliases()[alias];
   if(previous&&tpResolvePlayerName(alias)!==player){showToast('Alias ist bereits einem anderen Spieler zugeordnet');return;}
   tpPlayerAliases()[alias]=player;
@@ -4454,7 +4496,7 @@ async function tpRenamePlayer(oldName){
   if(raw===null)return;
   const newName=raw.trim();
   if(!newName||newName===oldName)return;
-  if(tpPlayers().includes(newName)&&newName!==oldName){showToast('Diesen Namen gibt es bereits');return;}
+  if(tpPlayers(true).includes(newName)&&newName!==oldName){showToast('Diesen Namen gibt es bereits');return;}
   if(!Array.isArray(data.tournamentPlannerPlayers)||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
   data.tournamentPlannerPlayers=data.tournamentPlannerPlayers.map(p=>p===oldName?newName:p);
   const aliases=tpPlayerAliases();
@@ -7589,7 +7631,7 @@ function ecwReservationImportNames(el){
 function ecwReservationCompare(){
  const input=document.getElementById('ecwReservationNames');const target=document.getElementById('ecwReservationCompareResult');if(!input||!target)return;
  const normalize=x=>String(x||'').normalize('NFKC').toLocaleLowerCase('de').replace(/[;,]/g,' ').replace(/\s+/g,' ').trim();
- const list=typeof tpPlayers==='function'?tpPlayers():[];
+ const list=typeof tpPlayers==='function'?tpPlayers(true):[];
  const known=new Map();list.forEach(n=>{if(normalize(n)!=='x')known.set(normalize(n),n)});
  const lines=input.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const entries=lines.map(x=>x.includes(';')?x.split(';').filter(Boolean).join(' '):x).filter(Boolean);
