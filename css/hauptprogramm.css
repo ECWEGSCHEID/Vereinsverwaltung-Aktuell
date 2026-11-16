@@ -1810,3 +1810,24 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   }
   #tournamentPlanner > .bottom button { min-height: 38px; padding: 4px 10px; font-size: 13px; }
 }
+
+/* Den Zeitraum oberhalb der scrollenden Veranstaltungslisten halten. */
+#tournamentPlanner > .tp-toolbar { flex-shrink: 0; }
+#tpSub-events > .tp-events-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  background: #1b1d24;
+  border-bottom: 1px solid #ffffff28;
+}
+#tpSub-events .tp-events-header h3 { margin: 0 0 4px; }
+#tpSub-events .tp-toolbar { gap: 4px 8px; margin: 0; }
+#tpSub-events .tp-toolbar label { margin: 0; }
+#tpSub-events #tpAdminPeriodFilter { box-sizing: border-box; min-width: 0; max-width: 100%; }
+@media (max-width: 900px) {
+  #admin #adminMain:has(#tpSub-events.tp-events-active) {
+    overflow: visible;
+  }
+}
