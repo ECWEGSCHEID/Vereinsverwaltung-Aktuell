@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.13.161126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.14.161126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -4612,6 +4612,11 @@ function renderTournamentPlanner(){
   // #tpContent ist der tatsächliche Scroll-Container (.tp-list {overflow:auto}).
   // Deshalb dessen scrollTop sichern – NICHT window.scrollY.
   const previousListScrollTop=el.scrollTop;
+  const compact=window.matchMedia('(max-width:1100px), (orientation:portrait) and (max-width:1400px), (pointer:coarse) and (max-width:1366px)').matches;
+  const expandedParticipants=new Set(Array.from(
+    el.querySelectorAll('.tp-card:has(.tp-participants[open])'),
+    card=>card.dataset.tpId
+  ));
 
   const loginNote=document.getElementById('tpLoginNote');
   if(loginNote){
@@ -4650,10 +4655,13 @@ function renderTournamentPlanner(){
     return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
       +'<div class="tp-name'+(nameWraps?' tp-name-wrap':'')+'">'+esc(x.name)+'</div>'
       +'<div class="tp-meta">'
-      +'<div class="tp-date"><div>'+(tpDayLabel(x.date)?esc(tpDayLabel(x.date))+' · ':'')+esc(tpFormatDate(x.date))+'</div>'+(x.time?'<div>'+esc(x.time)+' Uhr</div>':'<div>&nbsp;</div>')+'</div>'
+      +'<div class="tp-date"><div>'+(tpDayLabel(x.date)?esc(tpDayLabel(x.date))+' · ':'')+esc(tpFormatDate(x.date))+'</div>'+(x.time?'<div>'+esc(x.time)+' Uhr</div>':compact?'':'<div>&nbsp;</div>')+'</div>'
       +'<span class="tp-type-locked-value">'+esc(tpCanonicalType(x.type)||'– keine –')+'</span>'
       +(x.location?'<div class="tp-loc">📍 '+esc(x.location)+'</div>':'')
       +'</div>'
+      +(allowsPlayers && compact
+        ? '<details class="tp-participants"'+(expandedParticipants.has(String(x.id))?' open':'')+'><summary>Teilnehmer'+(players.some(Boolean)?' · '+players.filter(Boolean).length:'')+'</summary>'
+        : '')
       +(allowsPlayers?('<div class="tp-fields">'
       +'<div class="tp-fields-row">'
       +(isWhiteboardUser()
@@ -4662,6 +4670,7 @@ function renderTournamentPlanner(){
       +playerFields
       +'</div>'
       +'</div>'):'')
+      +(allowsPlayers&&compact?'</details>':'')
       +'</div>';
   }).join('');
   // renderTournamentPlanner() darf grundsätzlich NIE selbst zum aktuellen
