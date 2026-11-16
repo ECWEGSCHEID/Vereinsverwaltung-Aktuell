@@ -1666,7 +1666,7 @@ function shRender(){
    const x=document.createElement('a');x.className='shbtn app-disabled';x.href='#';x.textContent=String(b?.t||'Link');x.onclick=ev=>ev.preventDefault();els.push(x);
   }
  });
- const whiteboardLayout=!grp&&(isWhiteboardUser()||isPublicWhiteboardMode());
+ const whiteboardLayout=!grp;
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
  if(whiteboardLayout){
   let regularIndex=0;
@@ -4375,14 +4375,46 @@ async function tpEditSmartphoneAccess(button,player){
   }
 }
 
+async function tpShowPasswordStatus(labels){
+  const adminUid=firebaseAuthUser.uid;
+  const current=()=>canEditTpSmartphoneAccess()&&firebaseAuthUser.uid===adminUid;
+  try{
+    const [directory, confirmations]=await Promise.all([
+      firestoreDb.doc('smartphoneAnmeldung/mitglieder').get({source:'server'}),
+      firestoreDb.collection('smartphonePasswortstatus').get({source:'server'})
+    ]);
+    if(!current())return;
+    const members=directory.data()?.members;
+    if(!Array.isArray(members))throw Error('Anmeldeverzeichnis fehlt');
+    const confirmed=new Set(confirmations.docs.filter(item=>item.data()?.confirmedAt).map(item=>item.id));
+    for(const label of labels){
+      if(!label.isConnected)continue;
+      const matches=members.filter(member=>typeof member?.name==='string'&&tpResolvePlayerName(member.name)===label.dataset.playerPasswordStatus);
+      if(matches.length===0){label.textContent='Kein Smartphone-Konto';continue;}
+      if(matches.length!==1||!/^[a-f0-9]{32}$/.test(matches[0].alias||'')){
+        label.textContent='Kontozuordnung prüfen';continue;
+      }
+      const uid=matches[0].name==='Stadler Martin'
+        ?'n9MpiKXZNLap8wsbRcP4fVjrT4D2':'ecw-mobile-'+matches[0].alias;
+      label.textContent=confirmed.has(uid)?'Neues Passwort bestätigt':'Passwortstatus nicht bestätigt';
+    }
+  }catch(error){
+    if(current())for(const label of labels){
+      if(label.isConnected)label.textContent='Passwortstatus nicht abrufbar';
+    }
+  }
+}
+
 function renderTpPlayersAdminList(){
   const el=document.getElementById('tpPlayersAdminList');if(!el)return;
   const players=tpPlayers().filter(p=>p!=='X');
   const aliases=tpPlayerAliases();
+  const showPasswordStatus=canEditTpSmartphoneAccess();
   el.innerHTML=players.length?players.map(p=>{
     const old=Object.keys(aliases).filter(a=>tpResolvePlayerName(a)===p);
-    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'')+'</div></div>';
+    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(showPasswordStatus?'<div class="small" data-player-password-status="'+esc(p)+'">Passwortstatus wird geladen …</div>':'')+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'')+'</div></div>';
   }).join(''):'<div class="small">Keine Spieler vorhanden.</div>';
+  if(showPasswordStatus&&players.length)void tpShowPasswordStatus([...el.querySelectorAll('[data-player-password-status]')]);
 }
 async function tpAddPlayer(){
   if(isWhiteboardUser()){showToast('Keine Berechtigung');return;}
