@@ -52,7 +52,12 @@ function menuSync(){
 async function save(){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}
 function htmlPublic(){const c=selected?state.categories.find(x=>x.id===selected):null;
  let html='<div class="ecw-doc-card"><p>PDF-Dokumente ansehen oder direkt den Druckdialog öffnen. Dort Drucker, Farbe und Papierformat einstellen. <b>Bitte nur 1 Exemplar drucken.</b> Die Kopienanzahl kann im Browser nicht technisch gesperrt werden.</p>';
- if(!c){html+='<h2>Bereich auswählen</h2><div class="ecw-doc-tiles">'+state.categories.map(x=>'<button type="button" data-doc-cat="'+esc(x.id)+'">'+esc(x.title)+'</button>').join('')+'</div>';}
+ if(!c){html+='<h2>Bereich auswählen</h2><div class="ecw-doc-tiles">'+state.categories.map((x,i)=>{
+   const [wideRow,wideColumn]=shStaggeredPosition(i,state.categories.length,4);
+   const [narrowRow,narrowColumn]=shStaggeredPosition(i,state.categories.length,2);
+   const position='--doc-row-wide:'+wideRow+';--doc-column-wide:'+wideColumn+';--doc-row-narrow:'+narrowRow+';--doc-column-narrow:'+narrowColumn;
+   return '<button type="button" style="'+position+'" data-doc-cat="'+esc(x.id)+'">'+esc(x.title)+'</button>';
+  }).join('')+'</div>';}
  else {html+='<h2>'+esc(c.title)+'</h2><button type="button" data-doc-cat="">← Alle Bereiche</button><div class="ecw-doc-list">';
  const files=state.files.filter(x=>x.category===selected);
  html+=files.length?files.map(f=>'<div class="ecw-doc-file"><span>📄 '+esc(f.title)+'</span><div><button type="button" data-doc-open="'+esc(f.id)+'">PDF öffnen</button> <button type="button" data-doc-print="'+esc(f.id)+'">Drucken</button> <button type="button" data-doc-hall="'+esc(f.id)+'">Über Hallendrucker drucken</button></div></div>').join(''):'<p>Hier sind noch keine PDF-Dokumente hinterlegt.</p>';
