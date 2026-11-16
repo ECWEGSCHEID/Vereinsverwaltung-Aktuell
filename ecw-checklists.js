@@ -11,7 +11,9 @@ function openECWChecklists() {
   }
 
   const ref = firestoreDb.collection('adminChecklists').doc('state');
-  const statuses = ['Offen', 'In Arbeit', 'Nachprüfung'];
+  // Bestehende Einträge behalten ihre Statusnummern. „In Arbeit“ zählt zu „Offen“.
+  const statuses = new Map([[0, 'Offen'], [2, 'Nachprüfung'], [3, 'Fertig']]);
+  const displayStatus = value => statuses.has(Number(value)) ? Number(value) : 0;
   const listNames = {topics: 'To-do-Liste', tests: 'Testliste'};
   let busy = false;
   const active = () => content.isConnected && firebaseAuth.currentUser?.uid === account
@@ -70,7 +72,7 @@ function openECWChecklists() {
             }
             const items = imported[kind].map(({title, description, status}) => {
               if (typeof title !== 'string' || !title.trim() || title.length > 120 ||
-                  typeof description !== 'string' || description.length > 600 || !statuses[status]) {
+                  typeof description !== 'string' || description.length > 600 || ![0, 1, 2, 3].includes(Number(status))) {
                 throw new Error('Ungültiger Eintrag.');
               }
               return {id: crypto.randomUUID(), title, description, status: Number(status)};
@@ -120,27 +122,40 @@ function openECWChecklists() {
 
       const board = element('div', '', section);
       board.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px';
-      const lanes = statuses.map(status => {
+      const lanes = new Map();
+      for (const [status, label] of statuses) {
         const lane = element('section', '', board);
-        element('h4', status, lane);
-        return lane;
-      });
+        element('h4', label, lane);
+        lanes.set(status, lane);
+      }
       for (const item of data[kind]) {
-        const card = element('article', '', lanes[item.status]);
+        const card = element('article', '', lanes.get(displayStatus(item.status)));
         card.className = 'card';
         card.style.overflowWrap = 'anywhere';
         element('strong', item.title, card);
         if (item.description) element('p', item.description, card);
-        const select = element('select', '', card);
-        select.setAttribute('aria-label', 'Status für ' + item.title);
-        statuses.forEach((status, index) => select.add(new Option(status, index)));
-        select.value = item.status;
-        select.onchange = () => {
-          const status = Number(select.value);
-          select.value = item.status;
-          void updateList(kind, items => items.map(entry =>
-            entry.id === item.id ? {...entry, status} : entry));
-        };
+        const controls = element('div', '', card);
+        controls.className = 'row';
+        controls.style.cssText = 'flex-wrap:wrap;gap:6px 12px;margin:.5rem 0';
+        controls.setAttribute('role', 'group');
+        controls.setAttribute('aria-label', 'Status für ' + item.title);
+        let currentChoice;
+        for (const [status, label] of statuses) {
+          const option = element('label', '', controls);
+          option.style.cssText = 'display:inline-flex;align-items:center;gap:5px;cursor:pointer';
+          const input = element('input', '', option);
+          input.type = 'radio';
+          input.name = 'ecw-check-' + kind + '-' + item.id;
+          input.checked = status === displayStatus(item.status);
+          if (input.checked) currentChoice = input;
+          input.style.cssText = 'width:auto;margin:0;accent-color:#d43f47';
+          element('span', label, option);
+          input.onchange = () => {
+            if (currentChoice) currentChoice.checked = true;
+            void updateList(kind, items => items.map(entry =>
+              entry.id === item.id ? {...entry, status} : entry));
+          };
+        }
         const remove = element('button', 'Löschen', card);
         remove.type = 'button';
         remove.onclick = () => {
