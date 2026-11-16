@@ -131,6 +131,8 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <div><dt>Vereinsheim</dt><dd id="vereinsheim">–</dd></div>
 </dl>
 <p class="hint" id="temperature-status" role="status"></p>
+<p><button type="button" id="ecwMemberTemperatureDetailsButton" aria-controls="ecwMemberTemperatureDetailsPanel" aria-expanded="false">Messwerte im Detail anzeigen</button></p>
+<div id="ecwMemberTemperatureDetailsPanel" hidden role="region" aria-label="Temperaturdetails"></div>
 </div>
 <div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
 </section>
@@ -422,8 +424,13 @@ moduleBack.addEventListener('click', () => {
 results.querySelectorAll('button').forEach(button => {
   button.addEventListener('click', () => {
     const result = button.dataset.result;
+    if (button.dataset.cup) {
+      const table = new URL('ecw-mobile-results.html?v=20261114-repair4', location.href);
+      table.searchParams.set('cup', button.dataset.cup);
+      showModule(button.textContent, table, false, true);
+      return;
+    }
     const url = new URL('turnierauswertung.html?v=mobile-results-1&mode=mobile-results&seite=' + result, administrationUrl);
-    if (button.dataset.cup) url.searchParams.set("cup", button.dataset.cup);
     showModule(button.textContent, url, true);
   });
 });
@@ -693,8 +700,15 @@ menu.querySelectorAll('nav button').forEach(button => {
     selectedButton = button;
     detailTitle.textContent = button.firstChild.textContent.trim();
     const title = detailTitle.textContent;
-    if (title === 'Reservierungssystem' || title === 'Spiele') {
-      showModule(title, reservationAddress(title === 'Spiele'));
+    if (title === 'Spiele') {
+      const day = reservationAddress(true).href;
+      const tab = window.open(day, '_blank');
+      if (tab) tab.opener = null;
+      else window.location.assign(day);
+      return;
+    }
+    if (title === 'Reservierungssystem') {
+      showModule(title, reservationAddress());
       return;
     }
     if (title === 'Solo Pyramide') {
@@ -737,5 +751,6 @@ document.getElementById('logout').addEventListener('click', async () => {
   }
 });
 </script>
+<script src="js/ecw-smartphone-hall-details.js?v=20261114-repair4"></script>
 </body>
 </html>
