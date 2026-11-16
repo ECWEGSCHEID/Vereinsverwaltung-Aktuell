@@ -5,7 +5,7 @@ window.ecwLocalUrl=function(value){try{const u=new URL(value,location.href);if(u
 })();
 
 /* Gemeinsamer Versionsstand der aktiven Vereinsverwaltung. version.json führt denselben Stand für den Update-Check. */
-window.ECW_APP_VERSION = '3.1.1.161126';
+window.ECW_APP_VERSION = '3.1.2.161126';
 (function () {
   const page = location.pathname.split('/').pop();
   if (/^START_VEREINSVERWALTUNG_|^ecw-versammlungen-v295[56]\.html$/.test(page)) return;
@@ -17,6 +17,12 @@ window.ECW_APP_VERSION = '3.1.1.161126';
       ? document.title.replace(versionText, label)
       : document.title + ' · ' + label;
 
+    const memberVersion = document.getElementById('versionLabel');
+    if (memberVersion) {
+      memberVersion.textContent = window.ECW_APP_VERSION;
+      return;
+    }
+
     const labels = Array.from(document.querySelectorAll(
       '#appVersion, .tournament-version, .tp-header-version, .version-badge, .version, .badge'
     )).filter(node => /^\s*(?:Version\s+|V(?=\d))\d+\.\d+\.\d+/i.test(node.textContent));
@@ -26,6 +32,14 @@ window.ECW_APP_VERSION = '3.1.1.161126';
     const badge = document.createElement('small');
     badge.textContent = label;
     badge.style.cssText = 'position:fixed;left:6px;bottom:4px;z-index:20;padding:2px 5px;border-radius:4px;background:#18181be6;color:#fff;font:11px system-ui,sans-serif;pointer-events:none';
+    if (/^(?:ecw-reservierung-v2955|reservierung-(?:smartphone-test|kalender(?:-test)?|pilot))\.html$/.test(page)) {
+      const heading = document.querySelector('header h1, h1');
+      if (heading) {
+        badge.style.cssText = 'display:block;font:10px system-ui,sans-serif;opacity:.8;margin-top:2px';
+        heading.append(badge);
+        return;
+      }
+    }
     document.body.append(badge);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showRelease, {once:true});
