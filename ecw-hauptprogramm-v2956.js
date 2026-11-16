@@ -1,6 +1,6 @@
 
 const APP_VERSION='2.9.57';
-const APP_RELEASE='ECW Startseite V10';
+const APP_RELEASE='ECW Startseite V11';
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
   if(!/^https?:$/.test(location.protocol))return;
@@ -1565,7 +1565,7 @@ function shMakeBtn(b,idx){
   const a=document.createElement('a'),u=ecwRebaseLocalTournamentUrl(shSafeUrl(b.u));
   a.className='shbtn';a.textContent=String(b.t||'');
   const routePerm=(shInternalHash(u)||String(b.u||'')).replace(/^.*#/,'').split('?')[0];
-  const routeMap={'turnierliste':'tp','turniere-monatsuebersicht':'t','eigene-turniere':'o','nachrichten':'n','fotos':'p','fotos-sponsoren':'sp','mitglieder':'mv','mannschaften':'m','links':'lk'};
+  const routeMap={'turnierliste':'tp','turniere-monatsuebersicht':'t','eigene-turniere':'o','nachrichten':'n','fotos':'p','fotos-sponsoren':'sp','mitglieder':'mv','mannschaften':'m','links':'lk','ecw-utility-links':'lk'};
   const pk=routeMap[routePerm];
   if(pk&&!canViewApp(pk)){
    a.classList.add('app-disabled');a.setAttribute('aria-disabled','true');
@@ -1576,6 +1576,7 @@ function shMakeBtn(b,idx){
    a.href='#ecw-ergebnisse';a.classList.add('hassub');
    a.onclick=e=>{e.preventDefault();if(window.ecwResults)window.ecwResults.open(false);else showToast('Ergebnisbereich fehlt. Bitte alle Update-Dateien hochladen.');};return a;
   }
+  if(String(b.u||'').endsWith('#ecw-utility-links')){a.href='#ecw-utility-links';a.classList.add('hassub');a.onclick=e=>{e.preventDefault();window.ecwUtility.open('links')};return a;}
   if(String(b.u||'').endsWith('#ecw-nuetzliches-links')){a.href='#ecw-nuetzliches-links';a.classList.add('hassub');a.onclick=e=>{e.preventDefault();window.ecwUtility.open()};return a;}
   if(idx>=0&&Array.isArray(b.sub)&&b.sub.length){
    a.classList.add('hassub');a.href='#';
@@ -1674,9 +1675,11 @@ function shRender(){
  if(whiteboardLayout){
   let regularIndex=0;
   const occupied=new Set();
+  const linksIndex=grp?-1:items.findIndex(button=>String(button.u).endsWith('#ecw-utility-links'));
+  if(linksIndex>=0)occupied.add(1);
   items.forEach((button,i)=>{
-   const slot=button.whiteboardSlot;
-   const reserved=!grp&&(slot===1||slot===2)&&!occupied.has(slot);
+   const slot=i===linksIndex?1:button.whiteboardSlot;
+   const reserved=i===linksIndex||(!grp&&(slot===1||slot===2)&&!occupied.has(slot));
    const [row,column]=reserved?shWhiteboardPosition(0,slot):shWhiteboardPosition(regularIndex++);
    if(reserved)occupied.add(slot);
    els[i].style.setProperty('--sh-tile-row',row);
