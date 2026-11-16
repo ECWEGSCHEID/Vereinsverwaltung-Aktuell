@@ -1510,3 +1510,59 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
 }
 
 #druckdokumente .ecw-doc-tiles > button { white-space: pre-line; }
+
+/* Diese Titel gehören zur Ansicht, nicht zur gefilterten Kopfzeile. */
+.ecw-side-title-view > .ecw-diagonal-title-strip {
+  color: #fff;
+  line-height: 1.08;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 7px #240007;
+  pointer-events: none;
+}
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  .ecw-side-title-view > .ecw-diagonal-title-strip {
+    --title-art-width: max(100vw, 177.7778vh);
+    --title-art-height: max(56.25vw, 100vh);
+    position: fixed;
+    left: calc((100vw - var(--title-art-width)) * .3 + var(--title-art-width) * .1126);
+    top: calc((100vh - var(--title-art-height)) * .6 + var(--title-art-height) * .2307);
+    inline-size: min(26vw, 390px);
+    margin: 0;
+    font-size: clamp(23px, min(3.125vw, 5.1dvh), 56px);
+    font-weight: 500;
+    transform: translate(-50%, -50%) rotate(-52deg);
+  }
+  #ecwUtilityDialog .utility-hex-shell > .ecw-diagonal-title,
+  #ecwResultsDialog .ecw-results-menu-heading > .ecw-diagonal-title {
+    inline-size: min(26vw, 390px);
+    font-size: clamp(22px, min(3.05vw, 4.9dvh), 53px);
+  }
+}
+@media (min-width: 1000px) and (min-aspect-ratio: 19/10) {
+  .ecw-side-title-view > .ecw-diagonal-title-strip {
+    left: calc((100vw - var(--title-art-width)) * .3 + var(--title-art-width) * .104);
+    top: calc((100vh - var(--title-art-height)) * .6 + var(--title-art-height) * .275);
+    inline-size: min(23vw, 35dvh, 390px);
+    font-size: clamp(21px, min(2.3vw, 5dvh), 52px);
+  }
+}
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  .ecw-side-title-view > .ecw-diagonal-title-strip {
+    align-self: flex-start;
+    inline-size: min(60vw, 265px);
+    margin: 9px 0 16px;
+    padding: 10px 4px;
+    font-size: clamp(18px, 4.7vw, 30px);
+    transform: rotate(-16deg);
+  }
+  #sponsorPhotos > .header {
+    min-height: 0;
+    padding-inline-start: 20px;
+  }
+  #ecwUtilityDialog .utility-hex-shell > .ecw-diagonal-title,
+  #ecwResultsDialog .ecw-results-menu-heading > .ecw-diagonal-title {
+    font-size: clamp(18px, 4.5vw, 30px);
+  }
+}
