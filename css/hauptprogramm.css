@@ -886,11 +886,20 @@ body.tv-preview-open{overflow:hidden!important}
 .ecw-tp-homepage input[type=checkbox]{width:auto}
 
 
+/* Die Fuge wird senkrecht zur jeweiligen Wabenkante gemessen. */
+:root {
+  --hex-gap: 8px;
+  --hex-diagonal-row-gap: calc(var(--hex-gap) * .8661);
+  --hex-row-height-factor: .8399;
+  --hex-row-overhang-factor: .2951;
+}
+
 /* Metallfacetten und gebürstete Flächen der Menükacheln. */
 #startseite #shGrid.sh-whiteboard-hex {
   filter: drop-shadow(0 .38em .28em #130000db);
 }
 :is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button) {
+  box-sizing: border-box;
   position: relative;
   clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
   border: 0;
@@ -936,6 +945,7 @@ body.tv-preview-open{overflow:hidden!important}
     linear-gradient(118deg, #ffebd4bb, #ff61423d 34%, transparent 62%),
     linear-gradient(166deg, #e41508 8%, #bf0c02 48%, #8f0903 76%, #500200 100%);
 }
+:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):hover { transform: none; }
 :is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):hover::before { filter: brightness(1.14); }
 :is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):focus-visible::before { filter: brightness(1.38); }
 
@@ -972,9 +982,9 @@ body.tv-preview-open{overflow:hidden!important}
     right: 1.5%;
     top: var(--sh-menu-top);
     bottom: var(--sh-menu-bottom);
-    width: calc(var(--sh-hex-width) * 5.85);
+    width: calc((var(--sh-hex-width) + var(--hex-gap)) * 5.5);
     grid-template-columns: repeat(11, minmax(0, 1fr));
-    grid-auto-rows: calc(var(--sh-hex-width) * .96);
+    grid-auto-rows: calc(var(--sh-hex-width) * var(--hex-row-height-factor) + var(--hex-diagonal-row-gap));
     gap: 0;
     padding: 0;
     overflow: auto;
@@ -1014,14 +1024,16 @@ body.tv-preview-open{overflow:hidden!important}
     inset: auto;
     width: min(100%, 840px);
     margin: 12px auto 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    --sh-compact-width: min(clamp(124px, 26vw, 180px), calc((100% - var(--hex-gap)) / 2));
+    grid-template-columns: repeat(2, minmax(0, var(--sh-compact-width)));
     grid-auto-rows: auto;
-    gap: 10px;
+    justify-content: center;
+    gap: var(--hex-gap);
     overflow: visible;
   }
   #startseite.active #shGrid.sh-whiteboard-hex > .shbtn {
     justify-self: center;
-    width: min(100%, clamp(124px, 26vw, 180px));
+    width: 100%;
     aspect-ratio: 1 / 1.135;
     min-height: 0;
     padding-inline: 12px;
@@ -1201,7 +1213,7 @@ body.tv-preview-open{overflow:hidden!important}
   margin-block-end: auto;
 }
 #teamsGrid .team-group + .team-group {
-  margin-block-start: calc(var(--team-hex-width) * -.175);
+  margin-block-start: calc(var(--hex-diagonal-row-gap) - var(--team-hex-width) * var(--hex-row-overhang-factor));
 }
 #teamsGrid {
   --team-hex-width: calc(min(var(--submenu-hex-width), (100cqi - 42px) / 5.5) * .9);
@@ -1209,11 +1221,11 @@ body.tv-preview-open{overflow:hidden!important}
 #teamsGrid .team-group-grid {
   display: flex;
   justify-content: safe center;
-  gap: 7px;
+  gap: var(--hex-gap);
 }
 #teamsGrid .team-group:nth-child(odd) .team-group-grid:has(> :last-child:nth-child(even)),
 #teamsGrid .team-group:nth-child(even) .team-group-grid:has(> :last-child:nth-child(odd)) {
-  padding-inline-start: calc(var(--team-hex-width) + 7px);
+  padding-inline-start: calc(var(--team-hex-width) + var(--hex-gap));
 }
 #teamsGrid .team-group-grid > .gbtn {
   flex: 0 0 var(--team-hex-width);
@@ -1224,7 +1236,7 @@ body.tv-preview-open{overflow:hidden!important}
 #ecwResultsDialog .er-public-grid {
   --er-hex-columns: var(--er-cols, 3);
   --er-hex-tracks: calc(var(--er-hex-columns) * 2 + 1);
-  --er-hex-half-pitch: min(calc((var(--submenu-hex-width) + 8px) / 2), calc(100% / var(--er-hex-tracks)));
+  --er-hex-half-pitch: min(calc((var(--submenu-hex-width) + var(--hex-gap)) / 2), calc(100% / var(--er-hex-tracks)));
   grid-template-columns: repeat(var(--er-hex-tracks), minmax(0, var(--er-hex-half-pitch)));
   grid-auto-rows: auto;
   justify-content: center;
@@ -1233,8 +1245,8 @@ body.tv-preview-open{overflow:hidden!important}
 }
 #ecwResultsDialog .er-public-grid > .er-tile {
   grid-column: auto / span 2;
-  width: calc(100% - 8px);
-  margin-bottom: calc((100% - 8px) * -.175);
+  width: calc(100% - var(--hex-gap));
+  margin-bottom: calc(var(--hex-diagonal-row-gap) - (100% - var(--hex-gap)) * var(--hex-row-overhang-factor));
   padding-inline: .65em;
 }
 @media (min-width: 901px) {
@@ -1258,32 +1270,32 @@ body.tv-preview-open{overflow:hidden!important}
     --internal-edge: calc(var(--sh-ribbon-height) + 26px);
     --sh-hex-width: min(
       calc(min(var(--sh-menu-width) / 5.85, var(--sh-menu-height) / 4.015) * .96),
-      calc((var(--submenu-area-width) - 16px) / 4.5),
-      calc((100dvh - 2 * var(--internal-edge) - 12px) / (var(--centered-submenu-rows) * .96 + .175))
+      calc((var(--submenu-area-width) - 16px) / 4.5 - var(--hex-gap)),
+      calc((100dvh - 2 * var(--internal-edge) - 12px - (var(--centered-submenu-rows) - 1) * var(--hex-diagonal-row-gap)) / (var(--centered-submenu-rows) * var(--hex-row-height-factor) + var(--hex-row-overhang-factor)))
     );
     left: var(--submenu-area-left);
     right: var(--submenu-area-right);
     top: var(--internal-edge);
     bottom: var(--internal-edge);
     width: auto;
-    grid-template-columns: repeat(9, calc(var(--sh-hex-width) / 2));
+    grid-template-columns: repeat(9, calc((var(--sh-hex-width) + var(--hex-gap)) / 2));
     place-content: center;
-    padding-bottom: calc(var(--sh-hex-width) * .175);
+    padding-bottom: calc(var(--sh-hex-width) * var(--hex-row-overhang-factor) - var(--hex-diagonal-row-gap));
     overflow: visible;
   }
 }
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 8/5) {
   #startseite.active #shGrid.sh-centered-submenu-hex {
-    --internal-hex-width: min(calc(clamp(124px, 26vw, 180px) * .96), calc((100% - 20px) / 2.5));
-    grid-template-columns: repeat(5, minmax(0, calc(var(--internal-hex-width) / 2 + 4px)));
+    --internal-hex-width: min(calc(clamp(124px, 26vw, 180px) * .96), calc((100% - 20px) / 2.5 - var(--hex-gap)));
+    grid-template-columns: repeat(5, minmax(0, calc((var(--internal-hex-width) + var(--hex-gap)) / 2)));
     justify-content: center;
     gap: 0;
     padding-bottom: 28px;
   }
   #startseite.active #shGrid.sh-centered-submenu-hex > .shbtn {
     grid-column: auto / span 2;
-    width: calc(100% - 8px);
-    margin-bottom: calc((100% - 8px) * -.175);
+    width: calc(100% - var(--hex-gap));
+    margin-bottom: calc(var(--hex-diagonal-row-gap) - (100% - var(--hex-gap)) * var(--hex-row-overhang-factor));
   }
   #startseite.active #shGrid.sh-centered-submenu-hex > .shbtn:nth-child(4n + 3) {
     grid-column: 2 / span 2;
@@ -1338,12 +1350,12 @@ body.tv-preview-open{overflow:hidden!important}
   text-shadow: 0 2px 4px #000;
 }
 #ecwUtilityDialog .utility-hex-grid {
-  --utility-hex-width: min(186px, calc((var(--submenu-area-width) - 36px) / (var(--utility-columns) + .5) - 6px), calc((100dvh - 2 * var(--utility-edge) - 9px) / 3.055));
+  --utility-hex-width: min(186px, calc((var(--submenu-area-width) - 36px) / (var(--utility-columns) + .5) - var(--hex-gap)), calc((100dvh - 2 * var(--utility-edge) - 2 * var(--hex-diagonal-row-gap)) / (3 * var(--hex-row-height-factor) + var(--hex-row-overhang-factor))));
   grid-area: 2 / 1;
-  padding-bottom: calc(var(--utility-hex-width) * .175);
+  padding-bottom: calc(var(--utility-hex-width) * var(--hex-row-overhang-factor) - var(--hex-diagonal-row-gap));
   display: grid;
-  grid-template-columns: repeat(calc(var(--utility-columns) * 2 + 1), calc((var(--utility-hex-width) + 6px) / 2));
-  grid-auto-rows: calc(var(--utility-hex-width) * .96 + 3px);
+  grid-template-columns: repeat(calc(var(--utility-columns) * 2 + 1), calc((var(--utility-hex-width) + var(--hex-gap)) / 2));
+  grid-auto-rows: calc(var(--utility-hex-width) * var(--hex-row-height-factor) + var(--hex-diagonal-row-gap));
   place-content: center;
   align-self: stretch;
   filter: drop-shadow(0 4px 4px #130000c9);
@@ -1383,8 +1395,8 @@ body.tv-preview-open{overflow:hidden!important}
 /* Bereichsauswahl in der Dokumentenansicht. */
 #druckdokumente .ecw-doc-tiles {
   --doc-columns: 4;
-  --doc-hex-width: min(186px, calc((100% - 28px) / (var(--doc-columns) + .5)));
-  grid-template-columns: repeat(calc(var(--doc-columns) * 2 + 1), minmax(0, calc((var(--doc-hex-width) + 6px) / 2)));
+  --doc-hex-width: min(186px, calc(100% / (var(--doc-columns) + .5) - var(--hex-gap)));
+  grid-template-columns: repeat(calc(var(--doc-columns) * 2 + 1), minmax(0, calc((var(--doc-hex-width) + var(--hex-gap)) / 2)));
   justify-content: center;
   gap: 0;
 }
@@ -1394,10 +1406,10 @@ body.tv-preview-open{overflow:hidden!important}
   grid-column: var(--doc-column-wide) / span 2;
   justify-self: center;
   align-self: start;
-  width: calc(100% - 6px);
+  width: calc(100% - var(--hex-gap));
   min-height: 0;
   aspect-ratio: 1 / 1.135;
-  margin-bottom: calc((100% - 6px) * -.15);
+  margin-bottom: calc(var(--hex-diagonal-row-gap) - (100% - var(--hex-gap)) * var(--hex-row-overhang-factor));
   padding: .5em;
   font-size: clamp(12px, 1.45vw, 21px);
   overflow-wrap: anywhere;
