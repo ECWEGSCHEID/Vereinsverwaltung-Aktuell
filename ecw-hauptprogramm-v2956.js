@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.23.171126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.24.171126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -110,7 +110,10 @@ function openTournamentSection(kind){
 }
 function openTournamentMonthsOverview(){window.__adminPreviewMode=false;tCollection='tournaments';currentMonth=null;currentPage=0;adminTournamentPage=0;showView('tournamentMonths');}
 function tpOpenTournamentPlannerView(scrollToCurrent=true){
-  // Navigation bewusst vom Rendern trennen.
+  // Beim Öffnen immer den Standardzeitraum wählen. Aktualisierungen behalten die manuelle Auswahl.
+  tpPopulatePeriodFilter('tpPeriodFilter','upcoming');
+  const period=document.getElementById('tpPeriodFilter');
+  if(period)period.value='upcoming';
   showView('tournamentPlanner');
 
   if(scrollToCurrent){
@@ -2556,7 +2559,6 @@ function updateWhiteboardScreenControls(){
  // Auch am Whiteboard muss der Ausweichlink erreichbar sein, wenn eine
  // fremde Webseite die iframe-Einbettung per Sicherheitsheader blockiert.
  const newTab=document.getElementById('externalNewTab');if(newTab)newTab.hidden=!!document.getElementById('externalPage')?.classList.contains('ecw-tournament-embed');
- const note=document.getElementById('externalEmbedNote');if(note)note.textContent='Falls die Seite leer bleibt oder das Einbetten verhindert: „In neuem Tab öffnen“ verwenden.';
 }
 async function startWhiteboardFullscreen(){await enterPresentationFullscreen();updateWhiteboardScreenControls();}
 document.addEventListener('fullscreenchange',updateWhiteboardScreenControls);
@@ -2836,8 +2838,13 @@ async function openExternalPage(value,title){
  document.getElementById('externalPrevious').hidden=isReservationApp||externalPreviousView==='admin'||(externalPreviousView==='startseite'&&externalPreviousSubmenu<0);
  document.getElementById('externalTitle').textContent=String(title||'Externe Webseite').replace(/\n/g,' ');
  let frameUrl=url;
+ if(isReservationApp){
+   const reservationUrl=new URL(url);
+   reservationUrl.searchParams.set('v',APP_RELEASE);
+   frameUrl=reservationUrl.href;
+ }
  if (isWhiteboardReservationLink(url)) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=13&ansicht=whiteboard', location.href).href;
+   frameUrl = new URL('reservierung-smartphone-test.html?v=3.1.24.171126&ansicht=whiteboard', location.href).href;
    page?.classList.add('ecw-reservation-embed');
  }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
@@ -4626,8 +4633,7 @@ function renderTournamentPlanner(){
     else{loginNote.style.display='block';loginNote.innerHTML='🔒 Nur Ansicht – zum Bearbeiten bitte anmelden. <button type="button" onclick="tpRequestLogin()">Anmelden</button>';}
   }
   tpMigrateTypes();
-  const tpDefaultPeriod=isWhiteboardUser()?'y'+String(new Date().getFullYear()):'upcoming';
-  tpPopulatePeriodFilter('tpPeriodFilter',tpDefaultPeriod);
+  tpPopulatePeriodFilter('tpPeriodFilter','upcoming');
   tpPopulateTypeFilter('tpTypeFilter');
   tpRenderStats();
   const filter=document.getElementById('tpPeriodFilter')?.value||'upcoming';
@@ -7694,7 +7700,7 @@ function ecwReservationAdmin(){
  '<div class="card"><p>Das Reservierungssystem wird aus dem Verwaltungsordner geladen. Melde dich dort mit deinen bisherigen Zugangsdaten an und öffne den Admin-Bereich. Die Anmeldung bleibt eigenständig.</p>'+ 
  '<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" onclick="ecwReservationReload()">Reservierung neu laden</button>'+
  '<a href="ecw-reservierung-v2955.html" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">In neuem Tab öffnen ↗</a></div>'+
- '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="ecw-reservierung-v2955.html?v=2.9.55" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
+ '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="ecw-reservierung-v2955.html?v=3.1.24.171126" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
  '<p class="small">Die lokale Kopie funktioniert beim Öffnen über einen Webserver zuverlässig; Firebase benötigt eine Internetverbindung. Für den produktiven Betrieb die enthaltenen Dateien mit auf GitHub Pages hochladen.</p></div>'+ 
  '<div class="card"><h3>Mitglieder mit Spielerliste vergleichen (Test)</h3>'+
  '<p>Füge die Namen aus dem Reservierungssystem ein – ein Name pro Zeile, oder importiere eine CSV-/TXT-Datei. Der Vergleich verwendet die vorhandene Terminplaner-Spielerliste. Er verändert keine Daten.</p>'+
@@ -7704,7 +7710,7 @@ function ecwReservationAdmin(){
  '<div id="ecwReservationCompareResult" style="margin-top:14px"></div>'+
  '<p class="small">Hinweis: Ein automatischer Firebase-Abgleich ist erst möglich, wenn Datenstruktur und Berechtigungen des Reservierungssystems geprüft sind. Keine automatische Zusammenführung anhand ähnlicher Namen.</p></div>';
 }
-function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src='ecw-reservierung-v2955.html?v=2.9.55';}
+function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src='ecw-reservierung-v2955.html?v=3.1.24.171126';}
 function ecwReservationImportNames(el){
  const f=el?.files?.[0];if(!f)return;
  if(f.size>1024*1024){showToast('Datei zu groß (max. 1 MB)');return;}

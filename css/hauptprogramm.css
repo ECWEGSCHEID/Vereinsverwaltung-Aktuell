@@ -425,7 +425,6 @@ transition:transform .18s,box-shadow .18s,background .18s}
 }
 #ecwExternalHomeBar strong{display:none}
 #externalPage.ecw-tournament-embed .external-toolbar{display:none}
-#externalPage.ecw-tournament-embed .external-note{display:none}
 #externalPage.ecw-tournament-embed .menu-return{display:none}
 #externalPage.ecw-tournament-embed .external-bottom-space{display:none}
 #externalPage.ecw-tournament-embed #externalFrame{height:100vh;flex:none}
@@ -434,7 +433,6 @@ transition:transform .18s,box-shadow .18s,background .18s}
 .external-toolbar a{padding:10px 16px;border:1px solid rgba(255,255,255,.35);border-radius:10px;background:rgba(255,255,255,.1);color:#fff;text-decoration:none;font:inherit;cursor:pointer}
 .external-toolbar a:hover{background:rgba(255,255,255,.22)}
 .external-title{flex:1;min-width:150px;overflow-wrap:anywhere}
-.external-note{margin:0;padding:8px 16px;font-size:12px;color:#eee;background:#2b0b0e}
 .menu-return{position:fixed;flex-direction:column;align-items:flex-end;gap:8px}
 .menu-return[hidden],.menu-return button[hidden]{display:none!important}
 .menu-return button{min-width:210px;box-shadow:0 3px 12px rgba(0,0,0,.35)}
@@ -776,22 +774,48 @@ body.tv-preview-open{overflow:hidden!important}
 #startseite.active #shGear:not([hidden]){display:block;right:16px;bottom:16px;width:auto;min-width:180px;height:48px;padding:0 17px;border-radius:10px;background:rgba(90,7,16,.96);border:2px solid rgba(255,255,255,.7);box-shadow:0 4px 20px rgba(0,0,0,.65);font-size:15px;font-weight:700;opacity:1;z-index:100;}
 #shGear[hidden]{display:none!important}
 
-/* V2.9.16: Sichtbarer Rueckweg ueber der eingebetteten Reservierungsseite.
-   Die Wochenansicht/Uhrzeitspalte der Reservierungs-App bleibt unveraendert. */
-#externalPage.ecw-reservation-embed #ecwExternalHomeBar{
- display:block!important;position:fixed;right:20px;bottom:18px;left:auto;
- z-index:2147483000;max-width:calc(100vw - 40px);pointer-events:auto;
+/* Reservierung: Navigation in einer Kopfzeile, Kalender bis zum unteren Rand. */
+#externalPage.ecw-reservation-embed.active {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #210709;
 }
-#externalPage.ecw-reservation-embed #ecwExternalHomeBar button{
- display:block!important;visibility:visible!important;cursor:pointer;
- background:#b91c1c;color:#fff;border:2px solid #fff;border-radius:10px;
- padding:12px 18px;min-height:48px;font-weight:700;
+#externalPage.ecw-reservation-embed #ecwExternalHomeBar {
+  display: block;
+  position: static;
+  padding: 3px 0 3px max(6px, env(safe-area-inset-left, 0px));
+  align-self: center;
 }
-@media(max-width:600px){
- #externalPage.ecw-reservation-embed #ecwExternalHomeBar{right:10px;bottom:10px;max-width:calc(100vw - 20px)}
- #externalPage.ecw-reservation-embed #ecwExternalHomeBar button{min-width:0;font-size:13px;padding:10px 12px}
+#externalPage.ecw-reservation-embed #ecwExternalHomeBar button,
+#externalPage.ecw-reservation-embed .external-toolbar a {
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 9px;
+  font-size: clamp(11px, 2vw, 14px);
 }
-
+#externalPage.ecw-reservation-embed .external-toolbar {
+  justify-content: end;
+  gap: 4px 8px;
+  padding: 3px max(6px, env(safe-area-inset-right, 0px)) 3px 6px;
+  border: 0;
+  background: none;
+}
+#externalPage.ecw-reservation-embed :is(.external-title, .menu-return, .external-bottom-space) { display: none; }
+#externalPage.ecw-reservation-embed #externalFrame {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
 /* V2.9.22 Smartphone: vorhandene Zurück-Schaltfläche am Display fixieren. */
 @media(max-width:800px) and (pointer:coarse){
  .btn-startmenu-fixed,#globalStartMenuBtn,.external-back-btn{position:fixed!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;right:14px!important;z-index:10050!important;max-width:calc(100vw - 28px)!important}

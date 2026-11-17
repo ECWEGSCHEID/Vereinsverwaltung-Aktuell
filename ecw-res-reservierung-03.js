@@ -433,7 +433,7 @@
 
                     container.innerHTML += `
                         <div class="space-y-1.5 mb-3">
-                            <div class="${headerBadgeClass} px-3 py-1 rounded font-bold text-xs uppercase tracking-wide">
+                            <div class="${headerBadgeClass} reservation-day-title px-3 py-1 rounded font-bold">
                                 📅 ${prettyDateName}
                             </div>
                             <div class="space-y-1 pl-1" id="day-group-${dateStr}"></div>
@@ -491,21 +491,21 @@
                 });
 
                 let matrixHtml = `
-                    <div class="overflow-auto w-full max-h-[70vh]">
-                        <table class="w-full border-collapse text-center min-w-[1300px]">
+                    <div class="reservation-week-scroll overflow-auto w-full" role="region" aria-label="Wochenkalender" tabindex="0">
+                        <table class="reservation-week w-full border-collapse text-center">
                             <thead>
-                                <tr class="bg-zinc-950 border-b border-zinc-700 text-zinc-300 font-bold text-[11px] sticky top-0 z-25">
+                                <tr class="bg-zinc-950 border-b border-zinc-700 text-zinc-300 font-bold">
                                     <th class="p-1.5 border-r border-zinc-800 w-16 bg-zinc-950 sticky left-0 z-30">Uhrzeit</th>`;
 
                 weekDates.forEach((dateStr, dIndex) => {
                     let isToday = dateStr === getTodayFormatted();
                     let headerColor = isToday ? "bg-red-950 text-red-200 border-red-700" : "bg-zinc-900 text-zinc-200";
                     let colspan = hasClubhouseOnDay[dateStr] ? 5 : 4;
-                    matrixHtml += `<th colspan="${colspan}" class="p-1.5 text-xs ${headerColor} border-r-2 border-zinc-600">${dayNames[dIndex]} (${formatDateDE(dateStr)})</th>`;
+                    matrixHtml += `<th scope="colgroup" colspan="${colspan}" class="reservation-column-heading ${headerColor} border-r-2 border-zinc-600"><div class="reservation-heading-size"><div><span>${dayNames[dIndex]}</span><time datetime="${dateStr}">${formatDateDE(dateStr)}</time></div></div></th>`;
                 });
 
                 matrixHtml += `</tr>
-                                <tr class="bg-zinc-900 border-b border-zinc-700 text-zinc-400 font-semibold text-[10px] sticky top-[29px] z-20">
+                                <tr class="bg-zinc-900 border-b border-zinc-700 text-zinc-400 font-semibold">
                                     <th class="border-r border-zinc-800 bg-zinc-950 sticky left-0 z-30"></th>`;
 
                 weekDates.forEach((dateStr) => {
@@ -515,7 +515,7 @@
                     dayRes.forEach((res, rIndex) => {
                         let borderClass = (rIndex === dayRes.length - 1) ? "week-day-divider" : "week-lane-divider";
                         if (res === "Vereinsheim") {
-                            matrixHtml += `<th data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} text-blue-400 font-bold vertical-text h-16 align-bottom pb-1" title="Vereinsheim">Vereinsheim</th>`;
+                            matrixHtml += `<th data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} text-blue-400 font-bold" title="Vereinsheim">Vereins<wbr>heim</th>`;
                         } else {
                             matrixHtml += `<th data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} text-red-400">${res}</th>`;
                         }
@@ -529,7 +529,7 @@
                     let rowBg = isCore ? "bg-zinc-900/40" : "bg-zinc-950/20";
                     let timeBg = isCore ? "bg-zinc-900 text-zinc-200 font-bold" : "bg-zinc-950 text-zinc-500";
 
-                    matrixHtml += `<tr class="${rowBg} hover:bg-zinc-800/40">`;
+                    matrixHtml += `<tr data-time="${t}" class="${rowBg} hover:bg-zinc-800/40">`;
                     matrixHtml += `<td class="p-1 border-r border-zinc-800 font-semibold ${timeBg} sticky left-0 z-10 text-[10px]">${t}</td>`;
 
                     weekDates.forEach((dateStr) => {
@@ -565,8 +565,11 @@
                 container.innerHTML = matrixHtml;
 
                 requestAnimationFrame(() => {
-                    const scrollContainer = container.querySelector('.overflow-auto');
-                    if(scrollContainer) { scrollContainer.scrollTop = 16 * 29; }
+                    const viewport = container.querySelector('.reservation-week-scroll');
+                    const afternoon = viewport?.querySelector('[data-time="15:00"]');
+                    if (!afternoon) return;
+                    const table = afternoon.closest('table');
+                    viewport.scrollTop = afternoon.getBoundingClientRect().top - table.getBoundingClientRect().top - table.tHead.offsetHeight;
                 });
             }
         }

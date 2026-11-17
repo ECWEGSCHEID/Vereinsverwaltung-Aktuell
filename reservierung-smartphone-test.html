@@ -254,16 +254,6 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 <style id="ecwReservationPhoneStyles">
 /* Smartphone: calendar must not collapse inside nested flex containers. */
 @media(max-width:768px){
- html{height:100%;overflow-y:auto}
- body{height:auto!important;min-height:100vh;min-height:100dvh;overflow-y:auto!important;overflow-x:hidden}
- body>header>div{grid-template-columns:auto 1fr auto;gap:6px}
- body>header h1{font-size:12px;line-height:1.25;min-width:0}
- body>nav>div{flex-wrap:wrap;gap:6px}
- body>main{flex:1 0 auto!important;min-height:calc(100vh - 150px);min-height:calc(100dvh - 150px);overflow:visible!important}
- #tabBooking{flex:1 0 auto!important;min-height:60vh;min-height:60dvh;overflow:visible!important}
- #tabBooking>div:last-child{flex:1 0 auto!important;min-height:55vh;min-height:55dvh;overflow:visible!important}
- #savedBookingsContainer{min-height:50vh;min-height:50dvh;overflow:visible!important}
- #savedBookingsContainer>.overflow-auto{max-height:70vh;max-height:70dvh;min-height:45vh;min-height:45dvh;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
  #bookingModal,#bookingActionModal{height:100%;height:100dvh;box-sizing:border-box;overflow-y:auto;align-items:flex-start;padding:8px}
  #bookingModal>div,#bookingActionModal>div{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box;margin:auto}
  #bookingModal input,#bookingModal select,#bookingModal textarea{font-size:16px!important;min-height:38px}
@@ -272,16 +262,17 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 }
 </style><style>
 #userLoginButton,#logoutBtn,[onclick^="openBookingModal("],button[onclick="openClubhouseModal()"],#navAdmin,#navMembers{display:none!important}
-</style><script src="ecw-site-base.js"></script>
+</style><script src="ecw-site-base.js?v=3.1.24.171126"></script>
+<link rel="stylesheet" href="css/reservierung-layout.css?v=3.1.24.171126">
 </head>
-<body class="bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
-<p id="shared-session-status" role="status" style="margin:0;padding:10px;color:white;background:#2e2528">Smartphone-Anmeldung wird geprüft …</p>
+<body class="reservation-shared-session bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header mit zentriertem Titel -->
+    <div class="reservation-topbar">
+    <!-- Header und Kalenderbedienung -->
     <header class="bg-zinc-900 border-b border-red-800 text-white shadow-sm shrink-0">
         <div class="container mx-auto px-3 py-1.5 grid grid-cols-3 items-center">
             <div class="flex items-center gap-2">
-                <button type="button" onclick="location.reload()" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-2 py-1 rounded font-semibold transition cursor-pointer text-xs flex items-center gap-1">🔄 Aktualisieren</button>
+                <button type="button" onclick="location.reload()" aria-label="Aktualisieren" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-2 py-1 rounded font-semibold transition cursor-pointer text-xs flex items-center gap-1"><span aria-hidden="true">🔄</span><span class="reservation-refresh-label">Aktualisieren</span></button>
             </div>
             <h1 class="text-sm font-bold tracking-wide text-center">
                 EC Wegscheid Reservierungssystem
@@ -296,12 +287,24 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
     <!-- Navigation & Wochenumschaltung -->
     <nav class="bg-zinc-900 border-b border-zinc-800 shrink-0">
         <div class="container mx-auto px-3 flex items-center text-xs py-1 gap-3">
-            <div class="flex items-center space-x-2 bg-zinc-800/90 px-2.5 py-1 rounded border border-zinc-700 shadow-sm">
+            <div id="reservationWeekNav" class="flex items-center bg-zinc-800/90 rounded border border-zinc-700 shadow-sm">
                 <button type="button" onclick="shiftWeek(-1)" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-1.5 py-0.5 rounded font-bold cursor-pointer" title="Vorherige Woche">◀</button>
                 <input type="date" id="calendarDate" onchange="renderSavedBookings()" class="bg-zinc-900 border border-zinc-700 text-white px-1 py-0.5 rounded text-xs">
                 <span id="kwDisplayBadge" class="font-bold text-red-400 px-1 text-xs">KW --</span>
                 <button type="button" onclick="shiftWeek(1)" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-1.5 py-0.5 rounded font-bold cursor-pointer" title="Nächste Woche">▶</button>
                 <button type="button" onclick="setWeekToToday()" class="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 text-zinc-200 px-2 py-0.5 rounded font-semibold cursor-pointer">Heute</button>
+            </div>
+            <div id="reservationViewChoice" class="grid grid-cols-2 gap-1 bg-zinc-900 p-0.5 rounded font-semibold text-center border border-zinc-700">
+                <button type="button" onclick="changeView('day')" id="btnDay" class="px-3 py-0.5 text-zinc-300 rounded hover:bg-zinc-700 cursor-pointer text-xs">Tag</button>
+                <button type="button" onclick="changeView('week')" id="btnWeek" class="px-3 py-0.5 bg-red-700 text-white rounded cursor-pointer text-xs">Woche</button>
+            </div>
+            <div id="reservationBookingActions" class="flex items-center gap-1.5">
+                <button type="button" onclick="openClubhouseModal()" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1 rounded font-semibold cursor-pointer text-xs">🏠 Vereinsheim buchen</button>
+                <button type="button" onclick="openBookingModal('Bahn 1')" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded font-semibold cursor-pointer text-xs">Bahn Buchen</button>
+                <span id="slotSelectionHint" class="hidden items-center gap-2 bg-amber-900/70 border border-amber-600 text-amber-100 px-2 py-1 rounded text-[10px] font-semibold">
+                    <span id="slotSelectionHintText"></span>
+                    <button type="button" onclick="resetSlotSelection()" class="underline cursor-pointer">✕ Abbrechen</button>
+                </span>
             </div>
             <div class="flex space-x-2 items-center ml-auto">
                 <button type="button" onclick="switchTab('booking')" id="navBooking" class="navAdminOnly py-1 border-b-2 border-red-600 font-semibold text-white cursor-pointer">📅 Reservierung</button>
@@ -310,25 +313,13 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             </div>
         </div>
     </nav>
+    </div>
+    <p id="shared-session-status" role="status">Smartphone-Anmeldung wird geprüft …</p>
 
     <main class="max-w-[99%] mx-auto px-1 py-1 space-y-1 flex-grow overflow-hidden flex flex-col w-full">
         
         <!-- ================= TAB 1 ================= -->
         <div id="tabBooking" class="space-y-1 flex flex-col flex-grow overflow-hidden">
-            <div class="bg-zinc-800 p-2 rounded border border-zinc-700 flex justify-between items-center shrink-0">
-                <div class="flex items-center space-x-2">
-                    <button type="button" onclick="openClubhouseModal()" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1 rounded font-semibold cursor-pointer text-xs">🏠 Vereinheim Buchen</button>
-                    <button type="button" onclick="openBookingModal('Bahn 1')" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded font-semibold cursor-pointer text-xs">Bahn Buchen</button>
-                    <span id="slotSelectionHint" class="hidden items-center gap-2 bg-amber-900/70 border border-amber-600 text-amber-100 px-2 py-1 rounded text-[10px] font-semibold">
-                        <span id="slotSelectionHintText"></span>
-                        <button type="button" onclick="resetSlotSelection()" class="underline cursor-pointer">✕ Abbrechen</button>
-                    </span>
-                </div>
-                <div class="grid grid-cols-2 gap-1 bg-zinc-900 p-0.5 rounded font-semibold text-center border border-zinc-700">
-                    <button type="button" onclick="changeView('day')" id="btnDay" class="px-3 py-0.5 text-zinc-300 rounded hover:bg-zinc-700 cursor-pointer text-xs">Tag</button>
-                    <button type="button" onclick="changeView('week')" id="btnWeek" class="px-3 py-0.5 bg-red-700 text-white rounded cursor-pointer text-xs">Woche</button>
-                </div>
-            </div>
             <div class="bg-zinc-800 p-2 rounded border border-zinc-700 flex flex-col flex-grow overflow-hidden">
                 <div id="savedBookingsContainer" class="space-y-2 overflow-y-auto flex-grow pr-1"></div>
             </div>
@@ -1006,7 +997,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 
                     container.innerHTML += `
                         <div class="space-y-1.5 mb-3">
-                            <div class="${headerBadgeClass} px-3 py-1 rounded font-bold text-xs uppercase tracking-wide">
+                            <div class="${headerBadgeClass} reservation-day-title px-3 py-1 rounded font-bold">
                                 📅 ${prettyDateName}
                             </div>
                             <div class="space-y-1 pl-1" id="day-group-${dateStr}"></div>
@@ -1064,21 +1055,21 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 });
 
                 let matrixHtml = `
-                    <div class="overflow-auto w-full max-h-[70vh]">
-                        <table class="w-full border-collapse text-center min-w-[1300px]">
+                    <div class="reservation-week-scroll overflow-auto w-full" role="region" aria-label="Wochenkalender" tabindex="0">
+                        <table class="reservation-week w-full border-collapse text-center">
                             <thead>
-                                <tr class="bg-zinc-950 border-b border-zinc-700 text-zinc-300 font-bold text-[11px] sticky top-0 z-25">
+                                <tr class="bg-zinc-950 border-b border-zinc-700 text-zinc-300 font-bold">
                                     <th class="p-1.5 border-r border-zinc-800 w-16 bg-zinc-950 sticky left-0 z-30">Uhrzeit</th>`;
 
                 weekDates.forEach((dateStr, dIndex) => {
                     let isToday = dateStr === getTodayFormatted();
                     let headerColor = isToday ? "bg-red-950 text-red-200 border-red-700" : "bg-zinc-900 text-zinc-200";
                     let colspan = hasClubhouseOnDay[dateStr] ? 5 : 4;
-                    matrixHtml += `<th colspan="${colspan}" class="p-1.5 text-xs ${headerColor} border-r-2 border-zinc-600">${dayNames[dIndex]} (${formatDateDE(dateStr)})</th>`;
+                    matrixHtml += `<th scope="colgroup" colspan="${colspan}" class="reservation-column-heading ${headerColor} border-r-2 border-zinc-600"><div class="reservation-heading-size"><div><span>${dayNames[dIndex]}</span><time datetime="${dateStr}">${formatDateDE(dateStr)}</time></div></div></th>`;
                 });
 
                 matrixHtml += `</tr>
-                                <tr class="bg-zinc-900 border-b border-zinc-700 text-zinc-400 font-semibold text-[10px] sticky top-[29px] z-20">
+                                <tr class="bg-zinc-900 border-b border-zinc-700 text-zinc-400 font-semibold">
                                     <th class="border-r border-zinc-800 bg-zinc-950 sticky left-0 z-30"></th>`;
 
                 weekDates.forEach((dateStr) => {
@@ -1088,7 +1079,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                     dayRes.forEach((res, rIndex) => {
                         let borderClass = (rIndex === dayRes.length - 1) ? "week-day-divider" : "week-lane-divider";
                         if (res === "Vereinsheim") {
-                            matrixHtml += `<th data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} text-blue-400 font-bold vertical-text h-16 align-bottom pb-1" title="Vereinsheim">Vereinsheim</th>`;
+                            matrixHtml += `<th data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} text-blue-400 font-bold" title="Vereinsheim">Vereins<wbr>heim</th>`;
                         } else {
                             matrixHtml += `<th data-resource="${res}" data-date="${dateStr}" class="p-1 ${borderClass} text-red-400">${res}</th>`;
                         }
@@ -1102,7 +1093,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                     let rowBg = isCore ? "bg-zinc-900/40" : "bg-zinc-950/20";
                     let timeBg = isCore ? "bg-zinc-900 text-zinc-200 font-bold" : "bg-zinc-950 text-zinc-500";
 
-                    matrixHtml += `<tr class="${rowBg} hover:bg-zinc-800/40">`;
+                    matrixHtml += `<tr data-time="${t}" class="${rowBg} hover:bg-zinc-800/40">`;
                     matrixHtml += `<td class="p-1 border-r border-zinc-800 font-semibold ${timeBg} sticky left-0 z-10 text-[10px]">${t}</td>`;
 
                     weekDates.forEach((dateStr) => {
@@ -1140,8 +1131,11 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 container.innerHTML = matrixHtml;
 
                 requestAnimationFrame(() => {
-                    const scrollContainer = container.querySelector('.overflow-auto');
-                    if(scrollContainer) { scrollContainer.scrollTop = 16 * 29; }
+                    const viewport = container.querySelector('.reservation-week-scroll');
+                    const afternoon = viewport?.querySelector('[data-time="15:00"]');
+                    if (!afternoon) return;
+                    const table = afternoon.closest('table');
+                    viewport.scrollTop = afternoon.getBoundingClientRect().top - table.getBoundingClientRect().top - table.tHead.offsetHeight;
                 });
             }
         }
