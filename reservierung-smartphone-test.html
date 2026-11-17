@@ -19,10 +19,8 @@ const firebaseConfig={
   messagingSenderId:"558472054725",
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
-const app=initializeApp(firebaseConfig);
 import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=5';
-const db=getFirestore(app);
-const source=doc(db,'reservierungMigration','buchungen_20261112');
+import {getMemberSession} from './ecw-smartphone-session.mjs?v=3.1.25.171126';
 const status=document.getElementById('shared-session-status');
 const params=new URLSearchParams(location.search);
 const games=params.get('ansicht')==='tag';
@@ -41,7 +39,11 @@ if (whiteboard && window.parent !== window) {
     console.warn('Whiteboard-Sitzung konnte nicht übernommen werden.', error);
   }
 }
-const auth = parentAuth ?? initializeAuth(app,{persistence:browserLocalPersistence});
+const memberSession = whiteboard ? null : getMemberSession();
+const app = memberSession?.app ?? initializeApp(firebaseConfig);
+const auth = parentAuth ?? memberSession?.auth ?? initializeAuth(app,{persistence:browserLocalPersistence});
+const db = getFirestore(app);
+const source = doc(db,'reservierungMigration','buchungen_20261112');
 const raster=createRasterBooking(app,auth,{games,whiteboard,status,bookingCall,showRows:rows=>window.ecwShowReservationSnapshot(rows)});
 window.ecwRasterBuchung=raster;
 let version=0;
@@ -262,7 +264,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 }
 </style><style>
 #userLoginButton,#logoutBtn,[onclick^="openBookingModal("],button[onclick="openClubhouseModal()"],#navAdmin,#navMembers{display:none!important}
-</style><script src="ecw-site-base.js?v=3.1.24.171126"></script>
+</style><script src="ecw-site-base.js?v=3.1.25.171126"></script>
 <link rel="stylesheet" href="css/reservierung-layout.css?v=3.1.24.171126">
 </head>
 <body class="reservation-shared-session bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
