@@ -7,7 +7,7 @@
     const directCupNames = { duo: /duocup/, frauen: /frauencup|damencup/ };
     let directCupOpened = false;
 
-    function openDirectCupTable() {
+    function openDirectCupTable(dataLoaded = false) {
       if (directCupOpened || !Object.hasOwn(directCupNames, directCup)) return;
       if (!document.getElementById('view-main').classList.contains('active')) return;
 
@@ -16,7 +16,12 @@
         return directCupNames[directCup].test(name) && cupSortedGroups(tournament.groups).length > 0;
       });
       matches.sort(([idA], [idB]) => idB.localeCompare(idA, 'de', { numeric: true }));
-      if (!matches.length) return;
+      if (!matches.length) {
+        if (dataLoaded && document.documentElement.classList.contains('ecw-opening-cup')) {
+          document.getElementById('ecw-direct-target-status').textContent = 'Für den gewählten Cup ist keine Tabelle verfügbar.';
+        }
+        return;
+      }
 
       const [id, tournament] = matches[0];
       const [[group]] = cupSortedGroups(tournament.groups);
@@ -37,7 +42,7 @@
         tournaments = snapshot.val() || {};
         if(document.getElementById('adminSecPrint')?.style.display==='block' && typeof window.cupFinalLoad==='function') window.cupFinalLoad();
         renderMainButtons();
-        openDirectCupTable();
+        openDirectCupTable(true);
         if (document.getElementById('view-admin').classList.contains('active')) {
           refreshAdminTournamentLists();
           if (!document.getElementById('adminSelectTournament').value) {
@@ -187,6 +192,10 @@ setDefaultTeamsTemplate();
     function showView(id) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(id)?.classList.add('active');
+      const root = document.documentElement;
+      if (id !== 'view-home' && (!root.classList.contains('ecw-opening-cup') || id === 'view-table' || id === 'view-admin')) {
+        root.classList.remove('ecw-opening-target', 'ecw-opening-cup');
+      }
       const backBtn = document.getElementById('globalStartMenuBtn');
       // Nur die Cup-Ebenen verwenden den eigenen Zurueck-Button.
       // Bei Einbettung wird der Hauptmenue-Button vom Hauptprogramm angezeigt.

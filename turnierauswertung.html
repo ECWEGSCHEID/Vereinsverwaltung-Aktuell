@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="de">
-<head><script src="ecw-site-base.js"></script>
+<head>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const cup = params.get('cup');
+      const target = (params.get('seite') || location.hash.slice(1) || '').trim().toLowerCase();
+      if (/^(cup|cupauswertung|doppelko|doppel-ko|doppelkosystem|jahresmeisterschaft|zielschiessen|zielschießen|auslosung|turnierauslosung|stockdart|stockdartauswertung)$/.test(target)) {
+        const root = document.documentElement;
+        root.classList.add('ecw-opening-target');
+        if (/^(cup|cupauswertung)$/.test(target) && ['duo', 'frauen'].includes(cup) && params.get('bearbeiten') !== '1') {
+          root.classList.add('ecw-opening-cup');
+        }
+      }
+    })();
+  </script>
+  <script src="ecw-site-base.js?v=3.1.19.171126"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>EC Wegscheid Turnierauswertung – Version 2.9.27 · Vereinsverwaltung</title>
@@ -83,6 +98,12 @@
 
     .view { display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
     .view.active { display: flex; flex-direction: column; }
+
+    .ecw-opening-target #view-home,
+    .ecw-opening-cup :is(#view-main, #view-groups) { display: none !important; }
+    .ecw-opening-target #globalStartMenuBtn { visibility: hidden !important; }
+    #ecw-direct-target-status { display: none; }
+    .ecw-opening-target #ecw-direct-target-status { display: block; padding: 20px; text-align: center; }
 
     label { display: block; font-size: 0.8rem; margin-bottom: 2px; font-weight: bold; }
     select, input[type="text"], input[type="number"], textarea { width: 100%; padding: 6px 8px; font-size: 14px; background: rgba(26, 16, 18, 0.82); border: 1px solid var(--border-silver); color: var(--text); border-radius: 6px; margin-bottom: 6px; }
@@ -710,6 +731,18 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
  #playerMatchesContainer{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
  #playerMatchesList{overflow-y:auto!important;min-height:0!important;-webkit-overflow-scrolling:touch!important}
 }
+/* Die Rangliste hat auch bei abweichender Touch-Erkennung einen Scrollbereich. */
+@media (max-width:800px) {
+  body:has(#view-table.active) {
+    height:100vh!important; height:100dvh!important; min-height:0!important; overflow:hidden!important;
+  }
+  body > .container:has(> #view-table.active) { height:auto!important; min-height:0!important; overflow:hidden!important; }
+  body > .container > #view-table.active { flex:1 1 0; min-height:0; }
+  #view-table.active > .table-container {
+    flex:1 1 auto; min-height:0; overflow:auto!important; touch-action:pan-y pinch-zoom;
+  }
+  html.cup-in-verwaltung #view-table.active { padding-bottom:76px; }
+}
 </style>
 
   <script type="module" src="ecw-auswertung-firebase-transfer.js?v=cup-skmr-4"></script>
@@ -796,6 +829,8 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div class="container">
 
+    <p id="ecw-direct-target-status" role="status">Gewählter Bereich wird geladen …</p>
+
     <!-- 1. EBENE: Turnierauswertung -->
     <div id="view-home" class="view active">
       <h2 style="margin-bottom: 6px; text-align: center; font-size: 1.05rem;">Bereich auswählen</h2>
@@ -871,7 +906,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
       <p style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-bottom: 4px;">Tippen Sie auf ein Team, um dessen Spiele & Ergebnisse anzuzeigen.</p>
       <div id="tableStatus" class="status-badge"></div>
       
-      <div class="table-container">
+      <div class="table-container" role="region" aria-labelledby="tableTitle" tabindex="0">
         <table>
           <thead>
             <tr>
@@ -1220,7 +1255,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div id="printArea"></div>
 
-  <script src="js/auswertung-teil-02.js?v=2.9.29"></script>
+  <script src="js/auswertung-teil-02.js?v=3.1.19.171126"></script>
 
   <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
   <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
