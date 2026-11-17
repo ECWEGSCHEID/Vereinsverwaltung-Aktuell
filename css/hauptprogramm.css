@@ -1585,10 +1585,6 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
     font-size: clamp(18px, 4.7vw, 30px);
     transform: rotate(-16deg);
   }
-  #sponsorPhotos > .header {
-    min-height: 0;
-    padding-inline-start: 20px;
-  }
   #ecwUtilityDialog .utility-hex-shell > .ecw-diagonal-title,
   #ecwResultsDialog .ecw-results-menu-heading > .ecw-diagonal-title {
     font-size: clamp(18px, 4.5vw, 30px);
@@ -2045,4 +2041,53 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   #startseite #ecwTemperatures .ecw-ribbon-humidity { align-self: center; }
   #startseite #ecwTemperatures button span { font-size: 9px; }
   #startseite #ecwTemperatures button strong { font-size: 13px; }
+}
+
+/* Sponsorenfotos füllen den Platz zwischen Beschriftung und Navigation. */
+#sponsorPhotos.active {
+  height: 100dvh;
+  gap: clamp(4px, 1dvh, 12px);
+  padding: clamp(8px, 1.25vw, 20px);
+}
+#sponsorPhotos > .header {
+  flex: none;
+  min-height: 0;
+  padding: 6px 12px;
+}
+#sponsorPhotoContent { overflow: auto; }
+#sponsorPhotoContent.photo-stage { overflow: hidden; }
+#sponsorPhotoContent .photo-carousel-track {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  overflow: hidden;
+}
+#sponsorPhotoContent .photo-carousel-item.center {
+  left: 14%;
+  top: 0;
+  width: 72%;
+  height: 100%;
+}
+#sponsorPhotoContent .photo-carousel-item.side { width: 12%; }
+#sponsorPhotoContent .photo-carousel-item.left { left: 1%; }
+#sponsorPhotoContent .photo-carousel-item.right { left: 87%; }
+#sponsorPhotoContent .photo-carousel-item img {
+  max-width: 100%;
+  max-height: 100%;
+}
+#sponsorPhotoNav {
+  position: static;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+@media (min-width: 1000px) and (min-aspect-ratio: 8/5) {
+  #sponsorPhotos.active { padding-inline-start: 23vw; }
+}
+@media (max-width: 650px) {
+  #sponsorPhotoContent .photo-carousel-item.center { left: 0; width: 100%; }
+  #sponsorPhotoContent .photo-carousel-item.side { opacity: 0; }
+  #sponsorPhotoNav { gap: 4px; }
+  #sponsorPhotoNav button { padding: 7px 9px; font-size: 13px; }
 }
