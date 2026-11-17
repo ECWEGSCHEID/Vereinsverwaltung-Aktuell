@@ -36,6 +36,34 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .readings div{background:#2c292d;border:1px solid #4c4248;border-radius:10px;padding:10px 5px;text-align:center}
 .readings dt{font-size:clamp(11px,3vw,14px);color:#e9d7db}
 .readings dd{margin:6px 0 0;font-size:clamp(14px,4vw,20px);font-weight:750;white-space:nowrap}
+main:has(#detail:not([hidden]) > #hall-panel:not([hidden])){
+  padding:8px 10px 10px;
+}
+main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
+  margin-bottom:8px;
+}
+#detail:has(> #hall-panel:not([hidden])){
+  padding:10px;
+}
+#detail:has(> #hall-panel:not([hidden])) > h1{
+  margin:0 0 8px;
+  font-size:clamp(20px,5vw,26px);
+}
+#hall-panel .hall-status{padding:6px 9px}
+#hall-panel .temperature-title{margin:8px 0 5px;font-size:16px}
+#hall-panel .readings{gap:4px}
+#hall-panel .readings div{padding:5px 3px}
+#hall-panel .readings dd{margin-top:3px}
+#hall-panel .readings .hall-humidity{
+  font-size:clamp(10px,3vw,13px);
+  font-weight:500;
+  white-space:normal;
+}
+#hall-panel > p{margin:6px 0 0}
+#hall-panel #ecwMemberTemperatureDetailsButton{min-height:40px;padding:6px 8px}
+@media (max-height:420px){
+  main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{display:none}
+}
 #detail{margin-bottom:calc(74px + env(safe-area-inset-bottom, 0px))}
 .detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
 #back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
@@ -161,7 +189,7 @@ main:has(#menu:not([hidden])){
 #invitation-prev{margin:0 0 10px;background:#302529;border-color:#6f626b}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.31.171126"></script>
+<script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=3.1.25.171126"></script>
 </head>
 <body>
