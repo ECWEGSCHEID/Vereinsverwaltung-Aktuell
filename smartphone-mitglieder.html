@@ -42,11 +42,15 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
 #back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
 #module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
-#module.has-result-options{inset:0 0 auto;height:100vh;height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-#module.has-result-options > #module-results{flex:none}
-#module.has-result-options > #result-reader{flex:1 1 0;min-height:0;min-width:0}
-#module.has-result-options > #result-reader{overflow-y:auto;touch-action:pan-y pinch-zoom;-webkit-overflow-scrolling:touch}
-#module.has-result-options > .module-nav{flex:none}
+html:has(#module.has-result-options:not([hidden])){overflow-y:auto}
+body:has(#module.has-result-options:not([hidden])) main{max-width:none;padding:0}
+body:has(#module.has-result-options:not([hidden])) main > header{display:none}
+#module.has-result-options{position:static;display:block;min-height:100dvh;box-shadow:none}
+#module.has-result-options #result-reader{overflow:visible;max-width:760px;margin:auto}
+#result-options{position:sticky;top:0;z-index:6;background:#202023}
+#result-options .result-selector{padding:3px 6px 6px}
+#result-options select{min-height:38px;padding:5px 8px}
+#module.has-result-options > .module-nav{position:sticky;bottom:0;z-index:5}
 #module-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:max(6px,env(safe-area-inset-top)) 6px 6px;background:#202023;border-bottom:1px solid #51434b}
 #module-results button{min-width:0;min-height:42px;padding:4px;font-size:clamp(11px,3.2vw,14px);line-height:1.15;overflow-wrap:anywhere}
 #module-results button[aria-pressed="true"]{background:#752231;border-color:#db727b;color:#fff}
@@ -59,8 +63,6 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 #result-reader table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(11px,3.1vw,15px)}
 #result-reader th,#result-reader td{padding:6px 2px;border-bottom:1px solid #4c4248;text-align:center;overflow-wrap:anywhere;vertical-align:top}
 #result-reader th{background:#63202a}
-#result-reader .result-selector{position:sticky;top:0;z-index:2;background:#151517;padding:4px 0 6px}
-#result-reader .result-selector select{min-height:42px;padding:6px 8px}
 #result-reader #result-table section{padding:8px;border-radius:8px;margin-top:8px}
 #result-reader #result-table h2{margin:0 0 6px;font-size:16px}
 #result-reader :is(th,td):nth-child(2){width:32%;text-align:left}
@@ -76,8 +78,8 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .planner-event dd{margin:0;font-size:14px}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.15.161126"></script>
-<script src="ecw-cup-results.js?v=3.1.15.161126"></script>
+<script src="ecw-site-base.js?v=3.1.16.171126"></script>
+<script src="ecw-cup-results.js?v=3.1.16.171126"></script>
 </head>
 <body>
 <main>
@@ -152,7 +154,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
 </section>
 <section id="module" aria-label="Vereinsmodul" hidden>
-<nav id="module-results" aria-label="Ergebnisanzeige wählen" hidden></nav>
+<div id="result-options" hidden><nav id="module-results" aria-label="Ergebnisanzeige wählen"></nav><div id="cup-result-controls"></div></div>
 <iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 <div id="result-reader" hidden><h1 id="result-heading"></h1><p id="result-status" role="status"></p><div id="result-table"></div></div>
 <div class="module-nav">
@@ -316,6 +318,8 @@ let hallRequest;
 const results = document.getElementById('results');
 const modulePanel = document.getElementById('module');
 const moduleResults = document.getElementById('module-results');
+const resultOptions = document.getElementById('result-options');
+const cupControls = document.getElementById('cup-result-controls');
 moduleResults.append(...Array.from(results.children, button => button.cloneNode(true)));
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
@@ -395,6 +399,7 @@ async function readResults(signal, championship) {
 
 function closeResults() {
   resultRequest?.abort();
+  cupControls.replaceChildren();
   resultTable.replaceChildren();
 }
 
@@ -402,7 +407,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
   menu.hidden = true;
   detail.hidden = true;
   closeResults();
-  moduleResults.hidden = true;
+  resultOptions.hidden = true;
   modulePanel.classList.remove('has-result-options');
   modulePanel.classList.toggle('is-results', readOnly || embeddedPage);
   moduleFrame.hidden = readOnly;
@@ -426,7 +431,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
     resultRequest = new AbortController();
     const {signal} = resultRequest;
     const pending = cupMode
-      ? window.ecwRenderCupResults({content: resultTable, status: resultStatus, mode: cupMode, signal})
+      ? window.ecwRenderCupResults({content: resultTable, status: resultStatus, mode: cupMode, signal, controlsHost: cupControls})
       : readResults(signal, url.searchParams.get('seite') === 'jahresmeisterschaft');
     pending
       .catch(() => {
@@ -456,8 +461,9 @@ function selectResult(button) {
     const url = new URL('turnierauswertung.html?v=mobile-results-1&mode=mobile-results&seite=' + result, administrationUrl);
     showModule(title, url, true);
   }
-  moduleResults.hidden = false;
+  resultOptions.hidden = false;
   modulePanel.classList.add('has-result-options');
+  window.scrollTo(0, 0);
   for (const option of moduleResults.querySelectorAll('button')) {
     const selected = option.dataset.result === result && option.dataset.cup === cup;
     option.setAttribute('aria-pressed', String(selected));
