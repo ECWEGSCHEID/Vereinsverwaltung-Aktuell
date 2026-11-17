@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.24.171126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.25.171126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -2844,7 +2844,7 @@ async function openExternalPage(value,title){
    frameUrl=reservationUrl.href;
  }
  if (isWhiteboardReservationLink(url)) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=3.1.24.171126&ansicht=whiteboard', location.href).href;
+   frameUrl = new URL('reservierung-smartphone-test.html?v=3.1.25.171126&ansicht=whiteboard', location.href).href;
    page?.classList.add('ecw-reservation-embed');
  }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
@@ -7700,7 +7700,7 @@ function ecwReservationAdmin(){
  '<div class="card"><p>Das Reservierungssystem wird aus dem Verwaltungsordner geladen. Melde dich dort mit deinen bisherigen Zugangsdaten an und öffne den Admin-Bereich. Die Anmeldung bleibt eigenständig.</p>'+ 
  '<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" onclick="ecwReservationReload()">Reservierung neu laden</button>'+
  '<a href="ecw-reservierung-v2955.html" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">In neuem Tab öffnen ↗</a></div>'+
- '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="ecw-reservierung-v2955.html?v=3.1.24.171126" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
+ '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="ecw-reservierung-v2955.html?v=3.1.25.171126" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
  '<p class="small">Die lokale Kopie funktioniert beim Öffnen über einen Webserver zuverlässig; Firebase benötigt eine Internetverbindung. Für den produktiven Betrieb die enthaltenen Dateien mit auf GitHub Pages hochladen.</p></div>'+ 
  '<div class="card"><h3>Mitglieder mit Spielerliste vergleichen (Test)</h3>'+
  '<p>Füge die Namen aus dem Reservierungssystem ein – ein Name pro Zeile, oder importiere eine CSV-/TXT-Datei. Der Vergleich verwendet die vorhandene Terminplaner-Spielerliste. Er verändert keine Daten.</p>'+
@@ -7710,7 +7710,7 @@ function ecwReservationAdmin(){
  '<div id="ecwReservationCompareResult" style="margin-top:14px"></div>'+
  '<p class="small">Hinweis: Ein automatischer Firebase-Abgleich ist erst möglich, wenn Datenstruktur und Berechtigungen des Reservierungssystems geprüft sind. Keine automatische Zusammenführung anhand ähnlicher Namen.</p></div>';
 }
-function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src='ecw-reservierung-v2955.html?v=3.1.24.171126';}
+function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src='ecw-reservierung-v2955.html?v=3.1.25.171126';}
 function ecwReservationImportNames(el){
  const f=el?.files?.[0];if(!f)return;
  if(f.size>1024*1024){showToast('Datei zu groß (max. 1 MB)');return;}

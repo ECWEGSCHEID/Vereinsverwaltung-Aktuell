@@ -41,7 +41,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 #detail{margin-bottom:calc(74px + env(safe-area-inset-bottom, 0px))}
 .detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
 #back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
-#module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
+#module{position:fixed;inset:0 0 auto;height:100vh;height:100dvh;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
 #module.has-result-options{grid-template-rows:auto minmax(0,1fr) auto;bottom:auto;height:100vh;height:100dvh}
 #result-options{background:#202023}
 #result-options .result-selector{padding:3px 6px 6px}
@@ -71,10 +71,16 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .planner-event time,.planner-event dt{color:#e9d7db;font-size:12px}
 .planner-event dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin:0}
 .planner-event dd{margin:0;font-size:14px}
+#exit-member{margin-top:18px}
+#exit-member + #logout{margin-top:8px}
+#invitation-panel nav{gap:6px}
+#invitation-panel nav button{min-height:48px}
+.invitation-document{display:block;width:100%;height:auto;border-radius:6px;background:white}
+#invitation-prev{margin:0 0 10px;background:#302529;border-color:#6f626b}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.24.171126"></script>
-<script src="ecw-cup-results.js?v=3.1.24.171126"></script>
+<script src="ecw-site-base.js?v=3.1.25.171126"></script>
+<script src="ecw-cup-results.js?v=3.1.25.171126"></script>
 </head>
 <body>
 <main>
@@ -121,6 +127,7 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <button type="button" data-mobile-feature="tables">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="solo">Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
 </nav>
+<button type="button" class="secondary" id="exit-member">Beenden</button>
 <button type="button" class="secondary" id="logout">Abmelden</button>
 </section>
 <section id="detail" aria-labelledby="detail-title" hidden>
@@ -130,6 +137,11 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <button type="button" data-result="cup" data-cup="frauen">Frauencup</button>
 <button type="button" data-result="jahresmeisterschaft">Ziel Jahresmeisterschaft</button>
 </nav>
+<div id="invitation-panel" hidden>
+<button type="button" id="invitation-prev" hidden></button>
+<p id="invitation-status" class="hint" role="status"></p>
+<div id="invitation-content"></div>
+</div>
 <div id="planner-panel" hidden>
 <p id="planner-status" class="hint" role="status"></p>
 <div id="planner-list"></div>
@@ -146,31 +158,24 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 <p><button type="button" id="ecwMemberTemperatureDetailsButton" aria-controls="ecwMemberTemperatureDetailsPanel" aria-expanded="false">Messwerte im Detail anzeigen</button></p>
 <div id="ecwMemberTemperatureDetailsPanel" hidden role="region" aria-label="Temperaturdetails"></div>
 </div>
-<div class="detail-nav"><button type="button" id="back">← Zurück zum Hauptmenü</button></div>
+<div class="detail-nav"><button type="button" id="back">← Zurück zum Startmenü</button></div>
 </section>
 <section id="module" aria-label="Vereinsmodul" hidden>
 <div id="result-options" hidden><nav id="module-results" aria-label="Ergebnisanzeige wählen"></nav><div id="cup-result-controls"></div></div>
 <iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 <div id="result-reader" role="region" aria-labelledby="result-heading" tabindex="0" hidden><h1 id="result-heading"></h1><p id="result-status" role="status"></p><div id="result-table"></div></div>
 <div class="module-nav">
-<button type="button" id="module-back">← Zurück zum Hauptmenü</button>
+<button type="button" id="module-back">← Zurück zum Startmenü</button>
 <a id="module-external" target="_blank" rel="noopener">Separat öffnen ↗</a>
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=20261116-einladungen"></script>
+<script src="ecw-smartphone-einstellungen.js?v=3.1.25.171126"></script>
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { initializeAuth, browserLocalPersistence, signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-const firebaseConfig={
-  apiKey:"AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
-  authDomain:"ec-wegscheid-verwaltung-neu.firebaseapp.com",
-  projectId:"ec-wegscheid-verwaltung-neu",
-  storageBucket:"ec-wegscheid-verwaltung-neu.firebasestorage.app",
-  messagingSenderId:"558472054725",
-  appId:"1:558472054725:web:10145e2d8d6f168b056dac"
-};
-const app = initializeApp(firebaseConfig);
+import { signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getMemberSession, restoreMemberSession } from './ecw-smartphone-session.mjs?v=3.1.25.171126';
+
+const {app, auth} = getMemberSession();
 const pageParams = new URLSearchParams(location.search);
 const reservationTest = pageParams.get('reservierungTest') === '1';
 const namePilot = reservationTest && pageParams.get('namenTest') === '1';
@@ -178,9 +183,8 @@ const bookingPilot = reservationTest && pageParams.get('buchung') === '1';
 let nameLoginEnabled = namePilot;
 let activationCode = namePilot ? new URLSearchParams(location.hash.slice(1)).get('aktivierung') : null;
 if (activationCode) history.replaceState(null, '', location.pathname + location.search);
-const auth = initializeAuth(app, {persistence: browserLocalPersistence});
 const firestoreSdkUrl = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-const authReady = auth.authStateReady();
+const authReady = restoreMemberSession(auth);
 
 const login = document.getElementById('login');
 const sessionCheck = document.getElementById('session-check');
@@ -285,6 +289,130 @@ async function readSmartphoneSettings() {
   }
 }
 
+const invitationPanel = document.getElementById('invitation-panel');
+const invitationContent = document.getElementById('invitation-content');
+const invitationStatus = document.getElementById('invitation-status');
+const invitationPrev = document.getElementById('invitation-prev');
+let invitationRequest;
+
+function closeInvitations() {
+  invitationRequest?.abort();
+  invitationContent.replaceChildren();
+  invitationPrev.hidden = true;
+  invitationPrev.onclick = null;
+}
+
+function invitationImageSource(value) {
+  if (typeof value !== 'string') return '';
+  if (/^data:image\/(?:avif|bmp|gif|jpe?g|png|webp);base64,/i.test(value)) return value;
+  try {
+    const image = new URL(value);
+    return image.protocol === 'https:' && !image.username && !image.password ? image.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function invitationMonths(items, now = new Date()) {
+  const today = new Intl.DateTimeFormat('sv-SE', {timeZone:'Europe/Berlin'}).format(now);
+  const [year, month] = today.split('-').map(Number);
+  const labels = new Intl.DateTimeFormat('de-DE', {month:'long',year:'numeric',timeZone:'UTC'});
+  const months = Array.from({length:12}, (_,offset) => {
+    const start = new Date(Date.UTC(year, month - 1 + offset, 1));
+    return {key:start.toISOString().slice(0, 7), label:labels.format(start), items:[]};
+  });
+  const byKey = new Map(months.map(group => [group.key, group.items]));
+
+  for (const item of items) {
+    const list = byKey.get(item.month);
+    if (!list || (item.endDate && item.endDate < today)) continue;
+    const image = invitationImageSource(item.data);
+    if (image) list.push({
+      title: String(item.name || 'Einladung'),
+      image,
+      index: Number.isFinite(item.index) ? item.index : 0
+    });
+  }
+  for (const group of months) group.items.sort((a,b) => a.index - b.index);
+  return months;
+}
+
+function invitationButtons(entries, label, name, open) {
+  const nav = document.createElement('nav');
+  nav.setAttribute('aria-label', label);
+  for (const entry of entries) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = name(entry);
+    button.addEventListener('click', () => open(entry));
+    nav.append(button);
+  }
+  invitationContent.replaceChildren(nav);
+}
+
+function renderInvitationMonths(months) {
+  function showMonths() {
+    invitationPrev.hidden = true;
+    invitationPrev.onclick = null;
+    invitationStatus.textContent = '';
+    invitationButtons(months, 'Monat wählen', group =>
+      group.label + ' · ' + group.items.length +
+      (group.items.length === 1 ? ' Einladung' : ' Einladungen'), showMonth);
+  }
+  function showMonth(group) {
+    invitationPrev.hidden = false;
+    invitationPrev.textContent = '← Monatsübersicht';
+    invitationPrev.onclick = () => {
+      showMonths();
+      invitationContent.querySelector('button')?.focus();
+    };
+    invitationStatus.textContent = group.items.length ? group.label : 'Keine Einladungen im ' + group.label + '.';
+    invitationButtons(group.items, 'Einladungen im ' + group.label, item => item.title, item => showImage(group, item));
+    invitationPrev.focus();
+  }
+  function showImage(group, item) {
+    invitationPrev.textContent = '← Einladungen im ' + group.label;
+    invitationPrev.onclick = () => showMonth(group);
+    invitationStatus.textContent = item.title;
+    const image = document.createElement('img');
+    image.className = 'invitation-document';
+    image.src = item.image;
+    image.alt = item.title;
+    invitationContent.replaceChildren(image);
+    invitationPrev.focus();
+  }
+  showMonths();
+}
+
+async function openInvitations(title) {
+  closeInvitations();
+  invitationRequest = new AbortController();
+  const {signal} = invitationRequest;
+  const uid = auth.currentUser?.uid;
+  hallPanel.hidden = true;
+  plannerPanel.hidden = true;
+  results.hidden = true;
+  detailTitle.textContent = title;
+  menu.hidden = true;
+  invitationPanel.hidden = false;
+  detail.hidden = false;
+  detailTitle.focus();
+  invitationStatus.textContent = 'Turniereinladungen werden geladen …';
+
+  try {
+    const {getFirestore, collection, getDocs} = await import(firestoreSdkUrl);
+    if (signal.aborted || !uid || auth.currentUser?.uid !== uid) return;
+    const documents = await getDocs(collection(getFirestore(app), 'tournamentInvitations'));
+    if (signal.aborted || auth.currentUser?.uid !== uid) return;
+    renderInvitationMonths(invitationMonths(documents.docs.map(snapshot => snapshot.data())));
+  } catch (error) {
+    if (signal.aborted || auth.currentUser?.uid !== uid) return;
+    invitationStatus.textContent = error.code === 'permission-denied'
+      ? 'Turniereinladungen sind für dieses Konto nicht verfügbar.'
+      : 'Turniereinladungen konnten nicht geladen werden. Bitte erneut versuchen.';
+  }
+}
+
 async function loadPlanner(signal) {
   plannerList.replaceChildren();
   plannerStatus.textContent = 'Termine werden geladen …';
@@ -319,18 +447,17 @@ moduleResults.append(...Array.from(results.children, button => button.cloneNode(
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const legacyReservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=3.1.24.171126', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=3.1.25.171126', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 function reservationAddress(games = false) {
   const url = new URL(bookingPilot || bookingOperationActive
-    ? 'reservierung-smartphone-test.html?v=3.1.24.171126' : legacyReservationUrl, location.href);
+    ? 'reservierung-smartphone-test.html?v=3.1.25.171126' : legacyReservationUrl, location.href);
   if (games) url.searchParams.set('ansicht', 'tag');
   return url;
 }
 let bookingOperationActive = false;
 const administrationUrl = new URL('./', location.href);
 const soloUrl = new URL('solo-pyramide.html?v=2.9.32&mode=whiteboard', administrationUrl);
-const invitationsUrl = new URL('index.html?whiteboard=1&smartphoneAnsicht=1#turniere-monatsuebersicht', administrationUrl);
 
 const moduleExternal = document.getElementById('module-external');
 const resultReader = document.getElementById('result-reader');
@@ -461,7 +588,7 @@ function selectResult(button) {
   if (cup) {
     showModule(title, null, true, false, cup);
   } else {
-    const url = new URL('turnierauswertung.html?v=mobile-results-1&mode=mobile-results&seite=' + result, administrationUrl);
+    const url = new URL('turnierauswertung.html?v=3.1.25.171126&mode=mobile-results&seite=' + result, administrationUrl);
     showModule(title, url, true);
   }
   resultOptions.hidden = false;
@@ -601,6 +728,7 @@ function loginError(message) {
 }
 
 let authRevision = 0;
+await authReady;
 onAuthStateChanged(auth, async user => {
   const revision = ++authRevision;
   const stillCurrent = () => revision === authRevision &&
@@ -627,6 +755,10 @@ onAuthStateChanged(auth, async user => {
     menu.querySelector('nav').hidden = false;
     ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
       selectedButton = button;
+      if (ECWSmartphoneNavigation.isInvitationRoute(url)) {
+        openInvitations(title);
+        return;
+      }
       showModule(title, url, false, true);
     }, permissions);
     login.hidden = true;
@@ -638,6 +770,7 @@ onAuthStateChanged(auth, async user => {
   if (!stillCurrent()) return;
   hallRequest?.abort();
   plannerRequest?.abort();
+  closeInvitations();
   plannerList.replaceChildren();
   closeResults();
   stopCupPrefetch();
@@ -761,14 +894,12 @@ menu.querySelectorAll('nav button').forEach(button => {
     detailTitle.textContent = button.firstChild.textContent.trim();
     const title = detailTitle.textContent;
     if (button.dataset.mobileFeature === 'invitations') {
-      showModule(title, invitationsUrl, false, true);
+      openInvitations(title);
       return;
     }
     if (title === 'Spiele') {
-      const day = reservationAddress(true).href;
-      const tab = window.open(day, '_blank');
-      if (tab) tab.opener = null;
-      else window.location.assign(day);
+      const day = reservationAddress(true);
+      showModule(title, day, false, day.origin === location.origin);
       return;
     }
     if (title === 'Reservierungssystem') {
@@ -779,6 +910,7 @@ menu.querySelectorAll('nav button').forEach(button => {
       showModule(title, soloUrl, false, true);
       return;
     }
+    invitationPanel.hidden = true;
     hallPanel.hidden = title !== 'Halle';
     plannerPanel.hidden = title !== 'Terminplaner';
     if (title === 'Terminplaner') {
@@ -802,6 +934,7 @@ menu.querySelectorAll('nav button').forEach(button => {
 });
 
 document.getElementById('back').addEventListener('click', () => {
+  closeInvitations();
   stopCupPrefetch();
   hallRequest?.abort();
   plannerRequest?.abort();
@@ -809,6 +942,11 @@ document.getElementById('back').addEventListener('click', () => {
   detail.hidden = true;
   menu.hidden = false;
   selectedButton.focus();
+});
+
+document.getElementById('exit-member').addEventListener('click', () => {
+  window.close();
+  if (!window.closed) location.replace('about:blank');
 });
 
 document.getElementById('logout').addEventListener('click', async () => {

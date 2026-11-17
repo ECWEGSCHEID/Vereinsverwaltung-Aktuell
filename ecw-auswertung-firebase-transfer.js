@@ -6,6 +6,8 @@
       setPersistence, browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+    import { getMemberSession } from './ecw-smartphone-session.mjs?v=3.1.25.171126';
+
     const firebaseConfig = {
       apiKey: "AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
       authDomain: "ec-wegscheid-verwaltung-neu.firebaseapp.com",
@@ -52,9 +54,10 @@
     const CENTRAL_ADMIN_PARENT=!!(CENTRAL_PARENT && ECW_EMBEDDED_ADMIN);
     const CENTRAL_WHITEBOARD_PARENT=!!(CENTRAL_PARENT && ECW_FORCED_WHITEBOARD && !CENTRAL_ADMIN_PARENT);
 
-    const app = initializeApp(firebaseConfig);
+    const memberSession = urlParams.get('mode') === 'mobile-results' ? getMemberSession() : null;
+    const app = memberSession?.app ?? initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
+    const auth = memberSession?.auth ?? getAuth(app);
 
     window.db = db;
     window.firebaseAuth = auth;

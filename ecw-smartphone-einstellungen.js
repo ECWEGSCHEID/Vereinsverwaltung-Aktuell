@@ -43,12 +43,22 @@
     return Array.isArray(links) ? links : [];
   }
 
+  function isInvitationRoute(url) {
+    const target = new URL(url, location.href);
+    const base = new URL('index.html', location.href);
+    return target.origin === base.origin &&
+      [base.pathname, base.pathname.replace(/index\.html$/, '')].includes(target.pathname) &&
+      (['#turniere', '#turniere-monatsuebersicht'].includes(target.hash.toLowerCase()) ||
+        target.searchParams.get('turniere') === 'monatsuebersicht' ||
+        target.searchParams.get('seite') === 'turniere');
+  }
+
   function internalStartPage(url) {
     const target = new URL(url);
     const base = new URL('index.html', location.href);
     const routes = new Set(['turniere-monatsuebersicht','turniere','turnierliste','turnierplaner','eigene-turniere','nachrichten','fotos','fotos-sponsoren','mannschaften','links','mitglieder','zeitungsberichte','druckdokumente']);
     if (target.origin !== base.origin || ![base.pathname, base.pathname.replace(/index\.html$/, '')].includes(target.pathname)) return null;
-    if (!routes.has(target.hash.slice(1).toLowerCase())) return null;
+    if (!isInvitationRoute(target) && !routes.has(target.hash.slice(1).toLowerCase())) return null;
     target.searchParams.set('smartphoneAnsicht','1');
     return target;
   }
@@ -118,6 +128,7 @@
       if (!url || !item.title || item.visible === false) continue;
       if (group === 'members' && (
         permissions?.gesperrteLinks?.includes(memberLinkKey(item)) ||
+        (isInvitationRoute(url) && !memberFeatureAllowed(permissions, 'invitations')) ||
         (permissions?.reservierungenLesen === false && String(item.title).trim().toLocaleLowerCase('de-DE') === 'reservierungssystem')
       )) continue;
       const link = document.createElement('button');
@@ -455,5 +466,5 @@
   }
 
   window.tpEditSmartphoneAccess = tpEditSmartphoneAccess;
-  window.ECWSmartphoneNavigation = {documentName, settingsRef, applyMembers, applyAdmin, memberItems, memberFeatureAllowed, open};
+  window.ECWSmartphoneNavigation = {documentName, settingsRef, applyMembers, applyAdmin, isInvitationRoute, memberItems, memberFeatureAllowed, open};
 })();
