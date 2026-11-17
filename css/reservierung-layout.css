@@ -1,0 +1,147 @@
+/* Gemeinsamer Aufbau für die Reservierung und den Smartphone-Zugang. */
+html { height: 100%; }
+body.h-screen {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+.reservation-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0 6px;
+  flex: none;
+  background: rgba(24, 9, 12, .94);
+  border-bottom: 1px solid #72373c;
+}
+.reservation-topbar > :is(header, nav).bg-zinc-900 {
+  background: transparent !important;
+  border: 0;
+  backdrop-filter: none;
+}
+.reservation-topbar header > div,
+.reservation-topbar nav > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 6px;
+  gap: 4px 8px;
+}
+.reservation-topbar header h1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  font-size: clamp(13px, 1.1vw, 18px);
+  text-align: start;
+}
+.reservation-topbar nav { flex: 1 1 auto; max-width: 100%; }
+#reservationWeekNav {
+  max-width: 100%;
+  gap: 4px;
+  padding: 2px 5px;
+}
+#reservationViewChoice { display: flex; gap: 2px; }
+#reservationViewChoice button { padding-inline: 5px; }
+.reservation-topbar :is(button, #calendarDate) {
+  min-height: 30px;
+  font-size: max(.8rem, 12px);
+}
+#calendarDate { max-width: 100%; }
+body:not(:has(#tabBooking:not(.hidden))) :is(#reservationBookingActions, #reservationViewChoice),
+.reservation-shared-session #reservationBookingActions:not(:has(#slotSelectionHint:not(.hidden))) {
+  display: none;
+}
+#reservationBookingActions { flex-wrap: wrap; }
+#shared-session-status {
+  flex: none;
+  margin: 0;
+  padding: 2px 8px;
+  background: #2e2528;
+  color: #f0e8ea;
+  font-size: .75rem;
+  line-height: 1.25;
+}
+
+body > main.w-full {
+  flex: 1 1 0;
+  min-height: 0;
+  max-width: none;
+  padding: 3px;
+}
+#tabBooking:not(.hidden),
+#tabBooking > div,
+#savedBookingsContainer {
+  flex: 1 1 0;
+  min-height: 0;
+}
+#tabBooking > div { padding: 3px; }
+#savedBookingsContainer { padding: 0; }
+#savedBookingsContainer:has(> .reservation-week-scroll) {
+  display: flex;
+  overflow: hidden;
+}
+.reservation-week-scroll {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.reservation-week {
+  table-layout: fixed;
+  min-width: 74rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.reservation-week thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #18181b;
+}
+.reservation-week thead th { border-bottom: 1px solid #52525b; }
+.reservation-week thead tr:first-child > th:first-child { width: 4.25rem; font-size: .84rem; }
+.reservation-week thead tr:nth-child(2) > th { font-size: .72rem; line-height: 1.1; }
+.reservation-week thead tr:nth-child(2) > th[data-resource] { overflow-wrap: anywhere; }
+.reservation-week tbody :is(td, button) {
+  font-size: .9rem;
+  line-height: 1.25;
+}
+.reservation-week tbody td:first-child { font-size: .75rem; }
+.reservation-week tbody td { height: clamp(28px, 3.4dvh, 42px); }
+.reservation-column-heading { padding: 4px 3px; }
+.reservation-heading-size { container-type: inline-size; }
+.reservation-heading-size > div {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  font-size: clamp(.9rem, 11cqi, 1.75rem);
+  line-height: 1.05;
+}
+.reservation-heading-size time {
+  font-size: .83em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.reservation-day-title { font-size: clamp(.9rem, 1.8vw, 1.3rem); }
+#savedBookingsContainer:has(.reservation-day-title) { font-size: .9rem; }
+
+@media (max-width: 1000px) {
+  .reservation-refresh-label { display: none; }
+}
+@media (max-width: 620px) {
+  .reservation-topbar header > div { gap: 3px 6px; }
+  .reservation-topbar nav > div { gap: 3px 6px; }
+  #reservationWeekNav { gap: 3px; padding-inline: 3px; }
+  #calendarDate { width: 7.1rem; }
+  #kwDisplayBadge { padding-inline: 0; }
+  #reservationWeekNav button { padding-inline: 4px; }
+  .reservation-topbar :is(button, #calendarDate) { min-height: 34px; }
+}
