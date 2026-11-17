@@ -16,12 +16,12 @@ function standings(g){const stats=new Map();for(const team of (g.teams||[])){sta
  return arr.sort((a,b)=>Number(a.dq)-Number(b.dq)||Number(a.dnf)-Number(b.dnf)||b.points-a.points||b.sets-a.sets||b.quota-a.quota);
 }
 
-window.ecwRenderCupResults = async function ({content, status, mode = 'duo', signal}) {
+window.ecwRenderCupResults = async function ({content, status, mode = 'duo', signal, controlsHost = content}) {
 function render(tournaments){content.replaceChildren();const entries=Object.entries(tournaments).filter(([,v])=>v&&typeof v==='object');
 const filtered=entries.filter(([,t])=>new RegExp(mode==='frauen'?'frauen|damen':'duo','i').test(t.name||''));
 const candidates=filtered.length?filtered:entries;
 if(!candidates.length){status.textContent='Keine gespeicherten Cup-Ergebnisse vorhanden.';return;}
-const controls=node('div','',content);controls.className='result-selector';const select=node('select','',controls);select.setAttribute('aria-label','Turnier wählen');select.replaceChildren();for(const [id,t] of candidates){const option=document.createElement('option');option.value=id;option.textContent=t.name||id;select.append(option);}
+const controls=node('div','',controlsHost);controls.className='result-selector';const select=node('select','',controls);select.setAttribute('aria-label','Turnier wählen');select.replaceChildren();for(const [id,t] of candidates){const option=document.createElement('option');option.value=id;option.textContent=t.name||id;select.append(option);}
 const holder=node('div','',content);
 function display(){holder.replaceChildren();const selected=tournaments[select.value];if(!selected)return;
  for(const [gId,g] of Object.entries(selected.groups||{})){const box=node('section','',holder);node('h2',g.name||gId,box);const table=node('table','',box);const head=node('thead','',table),r=node('tr','',head);for(const h of ['Pl.','Mannschaft','Sp.','Pkt.','Stock','Quote','Satzpkt.'])node('th',h,r);
