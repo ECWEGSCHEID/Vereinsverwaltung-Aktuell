@@ -638,11 +638,6 @@
         try{window.applyFirebaseRole?.()}catch(e){console.error(e)}
         try{window.initFirebaseSync?.()}catch(e){console.error(e)}
 
-        const target=(urlParams.get('seite')||'home').toLowerCase();
-        if(target && target!=='home'){
-          setTimeout(()=>window.openWhiteboardTarget?.(),80);
-        }
-
         if(urlParams.get('migration')==='1'){
           setTimeout(()=>window.showLegacyMigration?.(),120);
         }
