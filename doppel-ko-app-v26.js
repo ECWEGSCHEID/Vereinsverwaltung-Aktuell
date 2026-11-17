@@ -17,7 +17,7 @@ const safeStorage={
 try{safeStorage.setItem('__ecw_probe__','1');safeStorage.removeItem('__ecw_probe__')}catch(e){__storageAvailable=false}
 
 const $=id=>document.getElementById(id);const STORE='ecw_doppel_ko_prototyp_v01';
-let state={size:16,name:'EC Wegscheid – Doppel KO',date:'',players:[],results:{},fastMode:false,withdrawn:[],venue:'Stocksporthalle EC Wegscheid',organizer:'EC Wegscheid',director:'EC Wegscheid',turns:{first:6,later:8,final:10},autoSheets:true,sheetPrompts:[]};let graph=null;let activeTab='winner';let editId=null;let correctionMode=false;let turnPlan=null;
+let state={size:16,name:'EC Wegscheid – Doppel KO',date:'',players:[],results:{},fastMode:false,withdrawn:[],venue:'Stocksporthalle EC Wegscheid',organizer:'EC Wegscheid',director:'EC Wegscheid',turns:{first:6,later:8,final:10},autoSheets:false,sheetPrompts:[]};let graph=null;let activeTab='winner';let editId=null;let correctionMode=false;let turnPlan=null;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const seedOrder=n=>{if(n===2)return[1,2];return seedOrder(n/2).flatMap(x=>[x,n+1-x])};
 // Der bewusst gewählte Turniermodus bestimmt die Feldgröße; fehlende Plätze sind Freilose.
@@ -184,19 +184,55 @@ function rankings(){let eliminated=[];for(let i=0;i<graph.lose.length;i++){let o
  else {rows.push({pos:'1.',name:'Noch offen',info:'Finale ausstehend'});rows.push({pos:'2.',name:'Noch offen',info:'Finale ausstehend'})}
  let active=n-eliminated.reduce((a,g)=>a+g.names.length,0);for(let i=eliminated.length-1;i>=0;i--){let g=eliminated[i];let place=n-eliminated.slice(0,i+1).reduce((a,v)=>a+v.names.length,0)+1;for(const name of g.names)rows.push({pos:place+'.',name,info:`Verliererbaum · Runde ${g.round}`})}
  return `<div class="ranking"><h2>Aktuelle Platzierungen</h2><p class="hint">Gleiche Platzierung für Teilnehmer, die in derselben Ausscheidungsrunde ausgeschieden sind. Endgültige Plätze 1 und 2 nach dem Finale.</p>${rows.map(r=>`<div class="rank-row"><div class="pos">${r.pos}</div><strong>${safe(r.name)}</strong><div class="detail">${r.info}</div></div>`).join('')}</div>`}
-function render(){calculate();planCurrent();metrics();$('tournamentName').value=state.name;$('tournamentDate').value=state.date;$('fieldSize').value=state.size;$('venue').value=state.venue||'Stocksporthalle EC Wegscheid';$('organizer').value=state.organizer||'EC Wegscheid';$('director').value=state.director||'EC Wegscheid';state.turns=normalizeTurns(state.turns);$('turnsFirst').value=state.turns.first;$('turnsLater').value=state.turns.later;$('turnsFinal').value=state.turns.final;$('autoSheets').checked=state.autoSheets!==false;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===activeTab));let html='';if(!state.players.length)html='<div class="empty-state"><strong>Turnier anlegen</strong>Teilnehmer eingeben und Turnier erstellen.</div>';else if(activeTab==='winner')html='<h2>Siegerbaum</h2><p class="match-note">Von links nach rechts: Gewinner werden automatisch in die nächste Runde gesetzt; Verlierer wechseln in den Verliererbaum.</p>'+bracketHtml(graph.win,'S');else if(activeTab==='loser')html='<h2>Verliererbaum</h2><p class="match-note">Nach der zweiten Niederlage scheidet ein Teilnehmer aus. Freilose werden sofort ohne Ergebnis übernommen und der Spieler direkt in die nächste Runde geschrieben.</p>'+bracketHtml(graph.lose,'V');else if(activeTab==='final')html='<h2 style="text-align:center">Großes Finale</h2><p class="info">Der Sieger des Siegerbaums trifft auf den Sieger des Verliererbaums. Gewinnt der bisher ungeschlagene Teilnehmer, steht der Sieger fest. Gewinnt der Teilnehmer aus dem Verliererbaum, gibt es ein zweites entscheidendes Finale.</p><div class="grand"><div><h3>Finale 1</h3>'+matchHtml(graph.gf)+'</div><div><h3>Entscheidungsfinale (falls nötig)</h3>'+matchHtml(graph.reset)+'</div></div>';else html=rankings();$('content').innerHTML=html;}
+function render(){calculate();planCurrent();metrics();$('tournamentName').value=state.name;$('tournamentDate').value=state.date;$('fieldSize').value=state.size;$('venue').value=state.venue||'Stocksporthalle EC Wegscheid';$('organizer').value=state.organizer||'EC Wegscheid';$('director').value=state.director||'EC Wegscheid';state.turns=normalizeTurns(state.turns);$('turnsFirst').value=state.turns.first;$('turnsLater').value=state.turns.later;$('turnsFinal').value=state.turns.final;$('autoSheets').checked=state.autoSheets===true;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===activeTab));let html='';if(!state.players.length)html='<div class="empty-state"><strong>Turnier anlegen</strong>Teilnehmer eingeben und Turnier erstellen.</div>';else if(activeTab==='winner')html='<h2>Siegerbaum</h2><p class="match-note">Von links nach rechts: Gewinner werden automatisch in die nächste Runde gesetzt; Verlierer wechseln in den Verliererbaum.</p>'+bracketHtml(graph.win,'S');else if(activeTab==='loser')html='<h2>Verliererbaum</h2><p class="match-note">Nach der zweiten Niederlage scheidet ein Teilnehmer aus. Freilose werden sofort ohne Ergebnis übernommen und der Spieler direkt in die nächste Runde geschrieben.</p>'+bracketHtml(graph.lose,'V');else if(activeTab==='final')html='<h2 style="text-align:center">Großes Finale</h2><p class="info">Der Sieger des Siegerbaums trifft auf den Sieger des Verliererbaums. Gewinnt der bisher ungeschlagene Teilnehmer, steht der Sieger fest. Gewinnt der Teilnehmer aus dem Verliererbaum, gibt es ein zweites entscheidendes Finale.</p><div class="grand"><div><h3>Finale 1</h3>'+matchHtml(graph.gf)+'</div><div><h3>Entscheidungsfinale (falls nötig)</h3>'+matchHtml(graph.reset)+'</div></div>';else html=rankings();$('content').innerHTML=html;}
 function openMatch(id){let m=graph.byId[id];if(!m||!m.ready||!['active','editable'].includes(matchAccess(m)))return;editId=id;$('modalTitle').textContent=id==='GF'?'Finale 1':id==='RESET'?'Entscheidungsfinale':'Ergebnis '+id;$('modalSub').textContent=state.name;$('leftName').textContent=m.a;$('rightName').textContent=m.b;$('scoreA').value=m.score?.[0]??'';$('scoreB').value=m.score?.[1]??'';$('removeScore').disabled=!m.score;$('modal').classList.remove('hidden');$('scoreA').focus()}
 function closeModal(){$('modal').classList.add('hidden');editId=null}
 function updateScore(remove=false){if(!editId)return;let m=graph.byId[editId];if(!['active','editable'].includes(matchAccess(m)))return;if(remove){delete state.results[editId]}else{let sa=Number($('scoreA').value),sb=Number($('scoreB').value);if($('scoreA').value===''||$('scoreB').value===''||!Number.isInteger(sa)||!Number.isInteger(sb)||sa<0||sb<0||sa>999||sb>999){alert('Bitte zwei gültige ganze Ergebnisse zwischen 0 und 999 eingeben.');return}if(sa===sb){alert('Im Doppel-KO muss es einen Sieger geben. Bitte ein entscheidendes Ergebnis eintragen.');return}state.results[editId]={a:m.a,b:m.b,sa,sb}}
  persist();closeModal();render();syncReleasedSheets(true);scheduleCloudSave(true)}
 
-// Stammliste ist aus der bestehenden Turnierauslosung übernommen (Stand der Testversion).
-// Keine direkte Firebase- oder Mitgliederverwaltungs-Abfrage in dieser lokalen Testdatei.
-const ECW_ROSTER=[];
+// Vereinsliste bleibt im Arbeitsspeicher. Nur ausgewählte Teilnehmer werden dem Turnier hinzugefügt.
+let roster=[];
 const rosterChecked=new Set();
 const playerKey=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('de-DE');
 const inputNames=()=> $('players').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
 function showRosterMessage(msg,error=false){const el=$('rosterFeedback');el.textContent=msg;el.classList.toggle('error',error)}
+async function loadRoster(){
+ const reload=$('rosterReload');
+ if(reload.disabled)return;
+ reload.disabled=true;
+ showRosterMessage('Aktuelle Spielerliste wird geladen …');
+ try{
+  const parent=window.parent;
+  if(parent===window||typeof parent.ecwDrawLoadPlayerList!=='function'){
+   throw Error('Bitte das Doppel-KO-System aus der angemeldeten Turnierauswertung öffnen.');
+  }
+  const rows=await parent.ecwDrawLoadPlayerList();
+  const names=new Map();
+  for(const row of rows){
+   const value=typeof row==='string'?row:row?.name;
+   if(typeof value!=='string')continue;
+   const name=value.trim().replace(/\s+/g,' ');
+   const key=playerKey(name);
+   if(key&&key!=='x'&&name.length<=200)names.set(key,name);
+  }
+  if(!names.size)throw Error('Die zentrale Spielerliste enthält keine verwendbaren Namen.');
+  const previous=new Set([...rosterChecked].map(playerKey));
+  roster=[...names.values()].sort((a,b)=>a.localeCompare(b,'de'));
+  rosterChecked.clear();
+  for(const name of roster)if(previous.has(playerKey(name)))rosterChecked.add(name);
+  showRosterMessage(roster.length+' Spieler aus der aktuellen Vereinsliste geladen.');
+ }catch(error){
+  roster=[];
+  rosterChecked.clear();
+  showRosterMessage(error.message+' Teilnehmer können direkt eingetragen werden.',true);
+ }finally{
+  reload.disabled=false;
+  renderRoster();
+ }
+}
+$('rosterReload').onclick=loadRoster;
+window.ecwDkoRefreshRoster=loadRoster;
+
 let lastRosterCount=null;
 function updateModeChoices(){
  const n=inputNames().length,sel=$('fieldSize'),eligible=[8,16,32].filter(size=>n>=2&&n<=size);
@@ -211,12 +247,12 @@ function updateModeChoices(){
 function updateRosterSlots(){const n=inputNames().length;$('rosterSlots').textContent=`${n} / 32 Spieler`;$('rosterSlots').style.color=n>32?'#ff9a9a':'#f3cb72';updateModeChoices();}
 function renderRoster(){
  const current=new Set(inputNames().map(playerKey)),query=playerKey($('rosterSearch').value);
- const visible=ECW_ROSTER.filter(name=>playerKey(name).includes(query));
+ const visible=roster.filter(name=>playerKey(name).includes(query));
  $('rosterGrid').innerHTML=visible.map(name=>{
   const added=current.has(playerKey(name)),checked=rosterChecked.has(name);
   return `<label class="roster-option ${added?'in-list':''}" title="${safe(name)}"><input type="checkbox" data-roster-name="${safe(name)}" ${checked?'checked':''} ${added?'disabled':''}><span>${safe(name)}${added?' ✓':''}</span></label>`;
  }).join('')||'<div style="padding:15px;color:#e5b8c0">Keine passenden Spieler gefunden.</div>';
- $('rosterCount').textContent=`${rosterChecked.size} angehakt · ${visible.length} Vorschläge sichtbar · ${ECW_ROSTER.length} insgesamt`;
+ $('rosterCount').textContent=`${rosterChecked.size} angehakt · ${visible.length} Vorschläge sichtbar · ${roster.length} insgesamt`;
  updateRosterSlots();renderPlayerManager();
 }
 function renderPlayerManager(){
@@ -258,15 +294,15 @@ $('rosterSearch').addEventListener('input',renderRoster);
 $('players').addEventListener('input',renderRoster);
 $('fieldSize').addEventListener('change',renderRoster);
 $('rosterGrid').addEventListener('change',e=>{const cb=e.target.closest('input[data-roster-name]');if(!cb)return;const name=cb.dataset.rosterName;if(cb.checked)rosterChecked.add(name);else rosterChecked.delete(name);renderRoster()});
-$('rosterAll').onclick=()=>{const query=playerKey($('rosterSearch').value),existing=new Set(inputNames().map(playerKey));ECW_ROSTER.filter(n=>playerKey(n).includes(query)&&!existing.has(playerKey(n))).forEach(n=>rosterChecked.add(n));renderRoster()};
+$('rosterAll').onclick=()=>{const query=playerKey($('rosterSearch').value),existing=new Set(inputNames().map(playerKey));roster.filter(n=>playerKey(n).includes(query)&&!existing.has(playerKey(n))).forEach(n=>rosterChecked.add(n));renderRoster()};
 $('rosterNone').onclick=()=>{rosterChecked.clear();renderRoster()};
-$('rosterAdd').onclick=()=>{addParticipants(ECW_ROSTER.filter(n=>rosterChecked.has(n)));rosterChecked.clear();renderRoster()};
+$('rosterAdd').onclick=()=>{addParticipants(roster.filter(n=>rosterChecked.has(n)));rosterChecked.clear();renderRoster()};
 function addGuest(){const input=$('guestName'),name=input.value.trim();if(!name){showRosterMessage('Bitte zuerst einen Namen eingeben.',true);input.focus();return}if(addParticipants([name]))input.value=''}
 $('guestAdd').onclick=addGuest;
 $('guestName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addGuest()}});
 
 function makeTournament(){let size=Number($('fieldSize').value),name=$('tournamentName').value.trim()||'Doppel KO',date=$('tournamentDate').value;let names=$('players').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(![8,16,32].includes(size)||names.length<2||names.length>size){alert('Bitte zuerst mindestens 2 Spieler auswählen und danach ein ausreichend großes Turnierfeld wählen.');return}if(new Set(names.map(s=>s.toLocaleLowerCase('de'))).size!==names.length){alert('Teilnehmernamen müssen eindeutig sein.');return}if(Object.keys(state.results).length&&!confirm('Alle bisherigen Ergebnisse zurücksetzen und Turnier neu erstellen?'))return;if(soloPrintCurrent)finishSoloPrint(false);soloPrintQueue.length=0;soloQueueStatus();state={size,name,date,players:names,results:{},fastMode:$('fastMode').checked,withdrawn:[],venue:$('venue').value.trim(),organizer:$('organizer').value.trim(),director:$('director').value.trim(),turns:normalizeTurns({first:$('turnsFirst').value,later:$('turnsLater').value,final:$('turnsFinal').value}),autoSheets:$('autoSheets').checked,sheetPrompts:[]};correctionMode=false;cloudEnsureId();persist();activeTab='winner';renderRoster();render();syncReleasedSheets(true);scheduleCloudSave(true);}
-$('create').onclick=makeTournament;$('example').onclick=()=>{const count=9;$('players').value=Array.from({length:count},(_,i)=>'Spieler '+(i+1)).join('\n');$('tournamentName').value='EC Wegscheid – Testturnier';renderRoster()};$('clear').onclick=()=>{if(!confirm('Turnier und alle lokalen Ergebnisse löschen?'))return;if(soloPrintCurrent)finishSoloPrint(false);soloPrintQueue.length=0;soloQueueStatus();state={size:16,name:'EC Wegscheid – Doppel KO',date:'',players:[],results:{},fastMode:false,withdrawn:[],venue:'Stocksporthalle EC Wegscheid',organizer:'EC Wegscheid',director:'EC Wegscheid',turns:{first:6,later:8,final:10},autoSheets:true,sheetPrompts:[]};correctionMode=false;cloudResetSelection();persist();$('players').value='';rosterChecked.clear();renderRoster();render()};$('fastMode').onchange=()=>{if(!state.players.length)return;const selected=$('fieldSize').value,enteredName=$('tournamentName').value,enteredDate=$('tournamentDate').value,enteredVenue=$('venue').value,enteredOrg=$('organizer').value,enteredDirector=$('director').value;state.fastMode=$('fastMode').checked;persist();render();$('fieldSize').value=selected;$('tournamentName').value=enteredName;$('tournamentDate').value=enteredDate;$('venue').value=enteredVenue;$('organizer').value=enteredOrg;$('director').value=enteredDirector;if(!$('wbView').classList.contains('hidden'))renderWhiteboard()};$('toggleSetup').onclick=()=>{let field=$('players').parentElement;field.classList.toggle('hidden');$('toggleSetup').textContent=field.classList.contains('hidden')?'Teilnehmer anzeigen':'Teilnehmer ausblenden'};
+$('create').onclick=makeTournament;$('example').onclick=()=>{const count=9;$('players').value=Array.from({length:count},(_,i)=>'Spieler '+(i+1)).join('\n');$('tournamentName').value='EC Wegscheid – Testturnier';renderRoster()};$('clear').onclick=()=>{if(!confirm('Turnier und alle lokalen Ergebnisse löschen?'))return;if(soloPrintCurrent)finishSoloPrint(false);soloPrintQueue.length=0;soloQueueStatus();state={size:16,name:'EC Wegscheid – Doppel KO',date:'',players:[],results:{},fastMode:false,withdrawn:[],venue:'Stocksporthalle EC Wegscheid',organizer:'EC Wegscheid',director:'EC Wegscheid',turns:{first:6,later:8,final:10},autoSheets:false,sheetPrompts:[]};correctionMode=false;cloudResetSelection();persist();$('players').value='';rosterChecked.clear();renderRoster();render()};$('fastMode').onchange=()=>{if(!state.players.length)return;const selected=$('fieldSize').value,enteredName=$('tournamentName').value,enteredDate=$('tournamentDate').value,enteredVenue=$('venue').value,enteredOrg=$('organizer').value,enteredDirector=$('director').value;state.fastMode=$('fastMode').checked;persist();render();$('fieldSize').value=selected;$('tournamentName').value=enteredName;$('tournamentDate').value=enteredDate;$('venue').value=enteredVenue;$('organizer').value=enteredOrg;$('director').value=enteredDirector;if(!$('wbView').classList.contains('hidden'))renderWhiteboard()};$('toggleSetup').onclick=()=>{let field=$('players').parentElement;field.classList.toggle('hidden');$('toggleSetup').textContent=field.classList.contains('hidden')?'Teilnehmer anzeigen':'Teilnehmer ausblenden'};
 // Ergebnis direkt in der jeweiligen Spielkarte speichern – auch im Whiteboard.
 function commitInline(id,container,remove=false){
  const m=graph.byId[id];if(!m||!m.ready||!m.a||!m.b||m.auto||m.void)return;
@@ -612,7 +648,7 @@ function printResultSheet(){
 }
 $('printResults').onclick=printResultSheet;
 
-$('export').onclick=()=>{let blob=new Blob([JSON.stringify({app:'ECW_DOPPEL_KO',version:1,...state},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`ECW_Doppel_KO_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};$('import').onclick=()=>$('importFile').click();$('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(x.app!=='ECW_DOPPEL_KO'||![8,16,32].includes(x.size)||!Array.isArray(x.players)||x.players.length<2||x.players.length>x.size||!x.results||typeof x.results!=='object')throw Error('Keine gültige Doppel-KO-Sicherung');if(!confirm('Vorhandenes Turnier durch die Sicherung ersetzen?'))return;state={size:x.size,name:String(x.name||'Doppel KO'),date:String(x.date||''),players:x.players.map(String),results:x.results,fastMode:!!x.fastMode,withdrawn:Array.isArray(x.withdrawn)?x.withdrawn:[],venue:x.venue||'Stocksporthalle EC Wegscheid',organizer:x.organizer||'EC Wegscheid',director:x.director||'EC Wegscheid',turns:normalizeTurns(x.turns),autoSheets:x.autoSheets!==false,sheetPrompts:Array.isArray(x.sheetPrompts)?x.sheetPrompts:[]};correctionMode=false;persist();$('players').value=state.players.filter((_,i)=>!(state.withdrawn||[]).includes(i)).join('\n');lastRosterCount=inputNames().length;render();renderRoster()}catch(err){alert('Import fehlgeschlagen: '+err.message)}finally{e.target.value=''}};
+$('export').onclick=()=>{let blob=new Blob([JSON.stringify({app:'ECW_DOPPEL_KO',version:1,...state},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`ECW_Doppel_KO_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};$('import').onclick=()=>$('importFile').click();$('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(x.app!=='ECW_DOPPEL_KO'||![8,16,32].includes(x.size)||!Array.isArray(x.players)||x.players.length<2||x.players.length>x.size||!x.results||typeof x.results!=='object')throw Error('Keine gültige Doppel-KO-Sicherung');if(!confirm('Vorhandenes Turnier durch die Sicherung ersetzen?'))return;state={size:x.size,name:String(x.name||'Doppel KO'),date:String(x.date||''),players:x.players.map(String),results:x.results,fastMode:!!x.fastMode,withdrawn:Array.isArray(x.withdrawn)?x.withdrawn:[],venue:x.venue||'Stocksporthalle EC Wegscheid',organizer:x.organizer||'EC Wegscheid',director:x.director||'EC Wegscheid',turns:normalizeTurns(x.turns),autoSheets:x.autoSheets===true,sheetPrompts:Array.isArray(x.sheetPrompts)?x.sheetPrompts:[]};correctionMode=false;persist();$('players').value=state.players.filter((_,i)=>!(state.withdrawn||[]).includes(i)).join('\n');lastRosterCount=inputNames().length;render();renderRoster()}catch(err){alert('Import fehlgeschlagen: '+err.message)}finally{e.target.value=''}};
 
 function whiteboardMatch(m){
  const done=m.score?'done':m.ready&&!m.done?'ready':m.auto?'auto':'';
@@ -740,7 +776,7 @@ function cloudApply(data){
  try{
   if(soloPrintCurrent)finishSoloPrint(false);
   soloPrintQueue.length=0;soloQueueStatus();
-  state={...data.state,turns:normalizeTurns(data.state.turns),sheetPrompts:Array.isArray(data.state.sheetPrompts)?data.state.sheetPrompts:[],autoSheets:data.state.autoSheets!==false};
+  state={...data.state,turns:normalizeTurns(data.state.turns),sheetPrompts:Array.isArray(data.state.sheetPrompts)?data.state.sheetPrompts:[],autoSheets:data.state.autoSheets===true};
   cloudId=data.id;cloudRevision=Number(data.revision||0);cloudDirty=false;
   safeStorage.setItem(STORE,JSON.stringify(state));safeStorage.setItem(STORE+'_id',cloudId);
   $('players').value=state.players.filter((_,i)=>!(state.withdrawn||[]).includes(i)).join('\n');
@@ -761,6 +797,7 @@ async function initCloud(){
  const api=cloudAPI();if(!api){cloudStatus('Nur lokale Datei · Firebase über Turnierauswertung verfügbar','error');return}
  // Das Modul kann vor Abschluss der Firebase-Anmeldung geladen werden.
  for(let i=0;i<24&&!api.ready();i++)await new Promise(r=>setTimeout(r,250));
+ void loadRoster();
  if(!api.ready()){cloudStatus('Nur lokal · Am Whiteboard für Firebase anmelden','error');$('cloudLogin').style.display='';return}
  $('cloudLogin').style.display='none';
  try{
@@ -786,8 +823,8 @@ $('cloudDelete').onclick=async()=>{
  if(!confirm('Dieses Turnier endgültig aus Firebase löschen?'))return;
  try{await api.remove(cloudId);cloudResetSelection();$('clear').click();await cloudRefreshList();cloudStatus('✓ Turnier aus Firebase gelöscht','ok')}catch(e){cloudStatus('✗ Löschen fehlgeschlagen: '+e.message,'error')}
 };
-try{let s=JSON.parse(safeStorage.getItem(STORE));if(s&&[8,16,32].includes(s.size)&&Array.isArray(s.players)&&s.results)state={...s,fastMode:!!s.fastMode,withdrawn:Array.isArray(s.withdrawn)?s.withdrawn:[],venue:s.venue||'Stocksporthalle EC Wegscheid',organizer:s.organizer||'EC Wegscheid',director:s.director||'EC Wegscheid',turns:normalizeTurns(s.turns),autoSheets:s.autoSheets!==false,sheetPrompts:Array.isArray(s.sheetPrompts)?s.sheetPrompts:[]}}catch(e){}$('players').value=state.players.filter((_,i)=>!(state.withdrawn||[]).includes(i)).join('\n');lastRosterCount=inputNames().length;render();renderRoster();initCloud();
+try{let s=JSON.parse(safeStorage.getItem(STORE));if(s&&[8,16,32].includes(s.size)&&Array.isArray(s.players)&&s.results)state={...s,fastMode:!!s.fastMode,withdrawn:Array.isArray(s.withdrawn)?s.withdrawn:[],venue:s.venue||'Stocksporthalle EC Wegscheid',organizer:s.organizer||'EC Wegscheid',director:s.director||'EC Wegscheid',turns:normalizeTurns(s.turns),autoSheets:s.players.length>0&&s.autoSheets===true,sheetPrompts:Array.isArray(s.sheetPrompts)?s.sheetPrompts:[]}}catch(e){}$('players').value=state.players.filter((_,i)=>!(state.withdrawn||[]).includes(i)).join('\n');lastRosterCount=inputNames().length;render();renderRoster();initCloud();
 
-if(__health){__health.style.background=__storageAvailable?'#143a2b':'#725019';__health.textContent='✓ V2.6: 69 Spielervorschläge geladen · Gastspieler und Turniererstellung bereit'+(__storageAvailable?'':' · Hinweis: Lokale Browserspeicherung blockiert (Firebase separat prüfen)');}
+if(__health){__health.style.background=__storageAvailable?'#143a2b':'#725019';__health.textContent='✓ Doppel-KO bereit · Teilnehmer können ausgewählt oder eingegeben werden'+(__storageAvailable?'':' · Hinweis: Lokale Browserspeicherung blockiert (Firebase separat prüfen)');}
 } catch(__dkoError) { __report(__dkoError); }
 })();
