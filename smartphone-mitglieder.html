@@ -42,15 +42,10 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .detail-nav{position:fixed;inset:auto 0 0;z-index:4;display:flex;justify-content:center;padding:8px max(12px,env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px,env(safe-area-inset-left, 0px));background:#202023;border-top:1px solid #51434b}
 #back{min-height:54px;max-width:450px;margin:0;background:#b91f2e;border-color:transparent}
 #module{position:fixed;inset:0;z-index:5;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:0;border:0;border-radius:0;background:#151517}
-html:has(#module.has-result-options:not([hidden])){overflow-y:auto}
-body:has(#module.has-result-options:not([hidden])) main{max-width:none;padding:0}
-body:has(#module.has-result-options:not([hidden])) main > header{display:none}
-#module.has-result-options{position:static;display:block;min-height:100dvh;box-shadow:none}
-#module.has-result-options #result-reader{overflow:visible;max-width:760px;margin:auto}
-#result-options{position:sticky;top:0;z-index:6;background:#202023}
+#module.has-result-options{grid-template-rows:auto minmax(0,1fr) auto;bottom:auto;height:100vh;height:100dvh}
+#result-options{background:#202023}
 #result-options .result-selector{padding:3px 6px 6px}
 #result-options select{min-height:38px;padding:5px 8px}
-#module.has-result-options > .module-nav{position:sticky;bottom:0;z-index:5}
 #module-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:max(6px,env(safe-area-inset-top)) 6px 6px;background:#202023;border-bottom:1px solid #51434b}
 #module-results button{min-width:0;min-height:42px;padding:4px;font-size:clamp(11px,3.2vw,14px);line-height:1.15;overflow-wrap:anywhere}
 #module-results button[aria-pressed="true"]{background:#752231;border-color:#db727b;color:#fff}
@@ -58,7 +53,7 @@ body:has(#module.has-result-options:not([hidden])) main > header{display:none}
 .module-nav{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px max(8px,env(safe-area-inset-bottom));background:#202023;border-top:1px solid #51434b}
 .module-nav button{min-height:52px}
 #module.is-results .module-nav{grid-template-columns:minmax(0,1fr)}
-#result-reader{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;padding:12px max(8px,env(safe-area-inset-right,0px)) 16px max(8px,env(safe-area-inset-left,0px))}
+#result-reader{width:100%;max-width:760px;justify-self:center;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;touch-action:pan-y pinch-zoom;padding:12px max(8px,env(safe-area-inset-right,0px)) 16px max(8px,env(safe-area-inset-left,0px))}
 #result-reader h1{font-size:clamp(18px,5vw,26px);margin:0 0 12px}
 #result-reader table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(11px,3.1vw,15px)}
 #result-reader th,#result-reader td{padding:6px 2px;border-bottom:1px solid #4c4248;text-align:center;overflow-wrap:anywhere;vertical-align:top}
@@ -78,8 +73,8 @@ body:has(#module.has-result-options:not([hidden])) main > header{display:none}
 .planner-event dd{margin:0;font-size:14px}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.17.171126"></script>
-<script src="ecw-cup-results.js?v=3.1.17.171126"></script>
+<script src="ecw-site-base.js?v=3.1.18.171126"></script>
+<script src="ecw-cup-results.js?v=3.1.18.171126"></script>
 </head>
 <body>
 <main>
@@ -156,7 +151,7 @@ body:has(#module.has-result-options:not([hidden])) main > header{display:none}
 <section id="module" aria-label="Vereinsmodul" hidden>
 <div id="result-options" hidden><nav id="module-results" aria-label="Ergebnisanzeige wählen"></nav><div id="cup-result-controls"></div></div>
 <iframe id="module-frame" title="Vereinsmodul" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-<div id="result-reader" hidden><h1 id="result-heading"></h1><p id="result-status" role="status"></p><div id="result-table"></div></div>
+<div id="result-reader" role="region" aria-labelledby="result-heading" tabindex="0" hidden><h1 id="result-heading"></h1><p id="result-status" role="status"></p><div id="result-table"></div></div>
 <div class="module-nav">
 <button type="button" id="module-back">← Zurück zum Hauptmenü</button>
 <a id="module-external" target="_blank" rel="noopener">Separat öffnen ↗</a>
@@ -417,7 +412,6 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
   if (readOnly) {
     resultHeading.textContent = title;
     resultStatus.textContent = 'Tabelle wird geladen …';
-    resultReader.scrollTop = 0;
     moduleFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
   } else {
     moduleFrame.removeAttribute('sandbox');
@@ -426,7 +420,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
   if (cupMode) moduleFrame.removeAttribute('src');
   else moduleFrame.src = url;
   modulePanel.hidden = false;
-  moduleBack.focus();
+  if (!readOnly) moduleBack.focus();
   if (readOnly) {
     resultRequest = new AbortController();
     const {signal} = resultRequest;
@@ -463,7 +457,7 @@ function selectResult(button) {
   }
   resultOptions.hidden = false;
   modulePanel.classList.add('has-result-options');
-  window.scrollTo(0, 0);
+  resultReader.scrollTop = 0;
   for (const option of moduleResults.querySelectorAll('button')) {
     const selected = option.dataset.result === result && option.dataset.cup === cup;
     option.setAttribute('aria-pressed', String(selected));
