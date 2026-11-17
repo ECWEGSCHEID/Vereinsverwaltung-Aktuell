@@ -619,7 +619,7 @@ const map={
     function openDoppelKo() {
       if(!requireRole(['admin','whiteboard','turnierauswertung'],'Doppel KO System'))return;
       const frame=document.getElementById('doppelKoFrame');
-      if(frame && !frame.dataset.loaded){frame.src='doppel-ko.html?v=3.1.30.171126';frame.dataset.loaded='1';}
+      if(frame && !frame.dataset.loaded){frame.src='doppel-ko.html?v=3.1.31.171126';frame.dataset.loaded='1';}
       else frame?.contentWindow?.ecwDkoRefreshRoster?.();
       showView('view-doppelko');
     }
