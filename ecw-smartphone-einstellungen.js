@@ -272,7 +272,9 @@
         legend.textContent = group.title;
         box.append(legend);
         const entry = document.createElement('a');
-        entry.href = new URL(group.entry, location.href).href;
+        const target = new URL(group.entry, location.href);
+        if (window.ECW_APP_VERSION) target.searchParams.set('v', window.ECW_APP_VERSION);
+        entry.href = target.href;
         entry.textContent = entry.href;
         entry.target = '_blank';
         entry.rel = 'noopener';
