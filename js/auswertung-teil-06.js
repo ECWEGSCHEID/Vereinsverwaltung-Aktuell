@@ -498,7 +498,7 @@
         }
       }catch(e){ console.warn('Iframe-Rolle:',e); }
     }
-    window.applyFirebaseRole=function(){
+    window.applyFirebaseRole=function({openTargetImmediately=false}={}){
       const r=window.getEffectiveRole ? window.getEffectiveRole() : String(window.currentRole||'guest').trim().toLowerCase(), u=window.currentFirebaseUser;
       const wb=!!window.isForcedWhiteboardView?.();
       const embedded=!!window.ECW_EMBEDDED_ADMIN;
@@ -565,7 +565,8 @@ const map={
         const target=getWhiteboardTarget();
         if(target && window._ecwOpenedTarget!==target){
           window._ecwOpenedTarget=target;
-          setTimeout(()=>openWhiteboardTarget(),120);
+          if (openTargetImmediately) openWhiteboardTarget();
+          else setTimeout(()=>openWhiteboardTarget(),120);
         }
       }
     };
