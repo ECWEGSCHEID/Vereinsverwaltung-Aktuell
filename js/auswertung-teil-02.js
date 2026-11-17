@@ -2,6 +2,7 @@
     const ADMIN_PASS = null; // Firebase-Rollen ersetzen das alte Admin-Passwort
 
     let tournaments = {};
+    let cupLoadState = 'loading';
     let activeId = null;
     const directCup = new URLSearchParams(window.location.search).get('cup');
     const directCupNames = { duo: /duocup/, frauen: /frauencup|damencup/ };
@@ -39,6 +40,7 @@
       if (!window.db || !window.fbRef || !window.fbOnValue) return;
       const tRef = window.fbRef(window.db, 'cup/public/tournaments');
       window.fbOnValue(tRef, (snapshot) => {
+        cupLoadState = 'ready';
         tournaments = snapshot.val() || {};
         if(document.getElementById('adminSecPrint')?.style.display==='block' && typeof window.cupFinalLoad==='function') window.cupFinalLoad();
         renderMainButtons();
@@ -54,16 +56,18 @@
           else if (document.getElementById('view-table').classList.contains('active') && activeGroup) openGroupTable(activeGroup);
           else if (document.getElementById('view-ko').classList.contains('active') && activeKoStage) renderKoMatches(activeKoStage);
         }
-      }, (err) => {
-        console.error(err);
-        console.warn("Firebase ist zu diesem Zeitpunkt noch nicht initialisiert.");
+      }, error => {
+        console.error('Cupturniere konnten nicht geladen werden:', error);
+        if (cupLoadState === 'ready') return;
+        cupLoadState = 'failed';
+        renderMainButtons();
+        if (document.documentElement.classList.contains('ecw-opening-cup')) {
+          document.getElementById('ecw-direct-target-status').textContent = 'Turniere konnten nicht geladen werden.';
+        }
       });
     };
 
-    window.addEventListener('load', () => {
-setDefaultTeamsTemplate();
-      if (window.initFirebaseSync) window.initFirebaseSync();
-    });
+    window.addEventListener('DOMContentLoaded', setDefaultTeamsTemplate);
 
     function switchAdminTab(tab) {
       const tabs = ['new','matchEdit','history','print','edit'];
@@ -197,9 +201,13 @@ setDefaultTeamsTemplate();
         root.classList.remove('ecw-opening-target', 'ecw-opening-cup');
       }
       const backBtn = document.getElementById('globalStartMenuBtn');
-      // Nur die Cup-Ebenen verwenden den eigenen Zurueck-Button.
-      // Bei Einbettung wird der Hauptmenue-Button vom Hauptprogramm angezeigt.
-      const cupLevel = ['view-main','view-groups','view-table','view-match','view-ko','view-admin'].includes(id) && !(window.ECW_EMBEDDED_ADMIN && (id==='view-main'||id==='view-admin'));
+      // In der Turnierauswahl führt nur der äußere Button zum Hauptmenü.
+      const embedded = root.classList.contains('cup-in-verwaltung');
+      const target = typeof getWhiteboardTarget === 'function' ? getWhiteboardTarget() : '';
+      const usesOuterBack = id === 'view-main' && (embedded || ['cup', 'cupauswertung'].includes(target));
+      const embeddedAdminView = window.ECW_EMBEDDED_ADMIN && (id === 'view-main' || id === 'view-admin');
+      const cupLevel = ['view-main','view-groups','view-table','view-match','view-ko','view-admin'].includes(id)
+        && !usesOuterBack && !embeddedAdminView;
       document.documentElement.classList.toggle('cup-navigation-visible',cupLevel);
       if (backBtn) backBtn.style.display = cupLevel ? 'block' : 'none';
       if (backBtn) {
@@ -276,7 +284,12 @@ setDefaultTeamsTemplate();
       c.innerHTML = '';
       const ids = Object.keys(tournaments);
       if (!ids.length) {
-        c.innerHTML = '<p style="color:var(--text-muted);text-align:center;">Keine Turniere vorhanden.</p>';
+        const message = {
+          loading: 'Turniere werden geladen …',
+          ready: 'Keine Turniere vorhanden.',
+          failed: 'Turniere konnten nicht geladen werden.'
+        }[cupLoadState];
+        c.innerHTML = '<p role="status" style="color:var(--text-muted);text-align:center;">' + message + '</p>';
         return;
       }
       ids.forEach(id => {

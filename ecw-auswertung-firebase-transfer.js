@@ -5,11 +5,6 @@
       getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
       setPersistence, browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import {
-      getDatabase as getLegacyDatabase,
-      ref as legacyRef,
-      get as legacyGet
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDmK54G30_JK8ma8tJ7YWyza-OrdrUC24I",
@@ -635,7 +630,7 @@
         const ov=document.getElementById('loginOverlay');
         if(ov)ov.style.display='none';
 
-        try{window.applyFirebaseRole?.()}catch(e){console.error(e)}
+        try{window.applyFirebaseRole?.({openTargetImmediately:true})}catch(e){console.error(e)}
         try{window.initFirebaseSync?.()}catch(e){console.error(e)}
 
         if(urlParams.get('migration')==='1'){
