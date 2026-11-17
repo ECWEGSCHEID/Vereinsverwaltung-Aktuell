@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.21.171126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.22.171126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -7442,12 +7442,6 @@ function publicWhiteboardFirebaseError(context,e){
   }
 }
 
-function ecwPublicLoading(show,text){
-  const el=document.getElementById('ecwPublicWhiteboardLoading');
-  if(!el)return;
-  el.style.display=show?'flex':'none';
-  if(text)el.textContent=text;
-}
 async function ecwWaitForFirebasePublic(maxMs=12000){
   const started=Date.now();
   while(Date.now()-started<maxMs){
@@ -7456,85 +7450,90 @@ async function ecwWaitForFirebasePublic(maxMs=12000){
   }
   return !!(firebaseReady&&firestoreDb);
 }
-async function ecwLoadPublicStartPageStrict(){
-  if(!firestoreDb)throw new Error('Firestore nicht initialisiert');
-  let snap=null;
+const ECW_PUBLISHED_START_PAGE_KEY='ecw-startseite-veroeffentlicht-v1';
+
+function ecwReadPublishedStartPage(){
   try{
-    snap=await firestoreDb.collection('appSettings').doc('startseite').get({source:'server'});
-  }catch(e){
-    // Fallback auf normalen Firestore-Cache nur wenn Server-Lesen fehlschlägt.
-    snap=await firestoreDb.collection('appSettings').doc('startseite').get();
-  }
-  if(!snap.exists)throw new Error('appSettings/startseite fehlt');
-  const x=snap.data()||{};
-  const cfg=x.config||x.startseite||x;
-  const clean=shSane(cfg);
-  if(!clean || !Array.isArray(clean.buttons) || clean.buttons.length===0){
-    throw new Error('Startseite enthält keine Schaltflächen');
-  }
-  SH=clean;
-  shFirebaseUpdatedAt=x.updatedAt||'';
-  shFirebaseUpdatedBy=x.updatedBy||'';
-  shFirebaseDirty=false;
-  // Nicht in einen leeren lokalen Zustand zurückschreiben, bevor Firebase erfolgreich war.
-  shSave(false);
-  shRender();
-  return true;
+    const config=JSON.parse(localStorage.getItem(ECW_PUBLISHED_START_PAGE_KEY));
+    if(Array.isArray(config?.buttons)&&config.buttons.length)return shSane(config);
+  }catch(e){console.warn('Lokale veröffentlichte Startseite:',e);}
+  return shSane({});
 }
+
 async function publicWhiteboardBootstrap(){
   if(!isPublicWhiteboardMode())return false;
-  ecwPublicLoading(true,'Vereinsinformation wird geladen …');
+
+  SH=ecwReadPublishedStartPage();
+  window.__adminPreviewMode=false;
+  currentUser=null;
+  appPermissions={whiteboard:true,shView:true,tpView:true,tView:true,oView:true,nView:true,pView:true,spView:true,mView:true,lkView:true,mvView:true};
+  window.appPermissions=appPermissions;
+
+  const params=new URLSearchParams(location.search);
+  if(location.hash || params.get('seite') || params.get('turniere'))window.__directRouteV1248();
+  if(!document.querySelector('.view.active'))showView('startseite');
+  updateWhiteboardKioskUI();
+  try{enterPresentationFullscreen()}catch(e){}
+
+  let noticeShown=false;
+  const notifyUnavailable=()=>{
+    if(noticeShown)return;
+    noticeShown=true;
+    showToast('Vereinsdaten sind gerade nicht erreichbar. Die Navigation bleibt verfügbar.',7000);
+  };
+  const noticeTimer=setTimeout(notifyUnavailable,8000);
 
   try{
-    const ready=await ecwWaitForFirebasePublic(12000);
-    if(!ready)throw new Error('Firebase konnte nicht initialisiert werden');
+    if(!await ecwWaitForFirebasePublic())throw new Error('Firebase konnte nicht initialisiert werden');
 
-    // 1. Startseite und Whiteboard-Freigaben zuerst direkt aus Firebase laden.
-    await ecwLoadPublicStartPageStrict();
-    await loadWhiteboardResultPermissions();
-
-    // 2. Erst jetzt die sichtbare Startseite öffnen.
-    window.__adminPreviewMode=false;
-    currentUser=null;
-    appPermissions={whiteboard:true,shView:true,tpView:true,tView:true,oView:true,nView:true,pView:true,spView:true,mView:true,lkView:true,mvView:true};
-    window.appPermissions=appPermissions;
-    showView('startseite');
-    updateWhiteboardKioskUI();
-
-    // 3. Restliche öffentliche Daten unabhängig nachladen.
-    await Promise.allSettled([
-      centralLoadNavigation(),
-      loadExternalLinkPreferences(),
-      autoLoadPublicFirebaseDataV1245(),
-      firestoreDb.collection('teams').get().then(snap=>centralApplyTeams(snap)),
-      tpLoadEvalExclusions(),
-      tpLoadNameAliases()
-    ]);
-
-    const watch=(query,label,apply)=>{
+    const watch=(query,label,apply,onError=(e=>publicWhiteboardFirebaseError(label,e)))=>{
       try{
         return query.onSnapshot(
-          snap=>{try{apply(snap)}catch(e){console.error(label+' anwenden:',e)}},
-          e=>publicWhiteboardFirebaseError(label,e)
+          snap=>{try{apply(snap)}catch(e){console.error(label+' anwenden:',e);}},
+          onError
         );
       }catch(e){
-        publicWhiteboardFirebaseError(label,e);
+        onError(e);
         return null;
       }
     };
 
     watch(firestoreDb.collection('appSettings').doc('startseite'),'Startseite',snap=>{
-      if(!snap.exists)return;
-      const x=snap.data()||{},cfg=x.config||x.startseite||x;
-      const clean=shSane(cfg);
-      if(!clean||!Array.isArray(clean.buttons)||clean.buttons.length===0)return;
-      SH=clean;
+      if(snap.metadata?.hasPendingWrites)return;
+      const x=snap.exists?(snap.data()||{}):{};
+      const cfg=x.config||x.startseite||x;
+      if(!Array.isArray(cfg.buttons)||!cfg.buttons.length){
+        if(!snap.metadata?.fromCache){
+          clearTimeout(noticeTimer);
+          notifyUnavailable();
+        }
+        return;
+      }
+      clearTimeout(noticeTimer);
+      SH=shSane(cfg);
       shFirebaseUpdatedAt=x.updatedAt||'';
       shFirebaseUpdatedBy=x.updatedBy||'';
       shFirebaseDirty=false;
-      shSave(false);
+      try{localStorage.setItem(ECW_PUBLISHED_START_PAGE_KEY,JSON.stringify(SH));}
+      catch(e){console.warn('Veröffentlichte Startseite lokal speichern:',e);}
       shRender();
+    },error=>{
+      console.warn('Veröffentlichte Startseite konnte nicht geladen werden:',error);
+      clearTimeout(noticeTimer);
+      notifyUnavailable();
     });
+
+    // Inhalte nachladen, ohne Navigation oder Direktaufrufe abzuwarten.
+    window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();
+    await Promise.allSettled([
+      centralLoadNavigation(),
+      loadExternalLinkPreferences(),
+      window.__publicLoadPromise,
+      firestoreDb.collection('teams').get().then(snap=>centralApplyTeams(snap)),
+      tpLoadEvalExclusions(),
+      tpLoadNameAliases()
+    ]);
+
     watch(firestoreDb.collection('tournamentPlanner'),'Turnierplaner',centralApplyTournamentPlanner);
     watch(firestoreDb.collection('tournamentInvitations'),'Turniereinladungen',s=>centralApplyTournamentInvitations(s,false));
     watch(firestoreDb.collection('ownTournamentInvitations'),'Eigene Turniere',s=>centralApplyTournamentInvitations(s,true));
@@ -7562,20 +7561,15 @@ async function publicWhiteboardBootstrap(){
       try{shRender()}catch(e){}
     });
 
-    // Direkt-Hash erst nach vollständigem Start ausführen.
-    if(location.hash && location.hash!=='#whiteboard' && window.__directRouteV1248){
-      try{window.__directRouteV1248()}catch(e){}
-    }
-
-    ecwPublicLoading(false);
-    try{enterPresentationFullscreen()}catch(e){}
     return true;
   }catch(e){
     console.error('Öffentlicher Whiteboard-Start:',e);
-    ecwPublicLoading(true,'Vereinsinformation konnte nicht geladen werden. Bitte Internet/Firebase prüfen und erneut laden.');
+    clearTimeout(noticeTimer);
+    notifyUnavailable();
     return false;
   }
 }
+
 // V2.5.2: Direktaufruf sofort ausführen (nicht erst nach dem Firebase-Laden), damit keine Übersichtsseite dazwischen erscheint.
 // Die Anzeigen aktualisieren sich selbst, sobald die Firebase-Daten geladen sind (siehe autoLoadPublicFirebaseDataV1245).
 try{ if(!isPublicWhiteboardMode() && !ecwShouldRestoreAdminView() && window.__directRouteV1248) window.__directRouteV1248(); }catch(e){ console.error('Direktaufruf:',e); }
@@ -7684,8 +7678,11 @@ setTimeout(()=>{
   }
 },9000);
 
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250));
-else setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250);
+if(!isPublicWhiteboardMode()){
+  const loadPublicData=()=>setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadPublicData,{once:true});
+  else loadPublicData();
+}
 
 
 /* V2.9.43 – Reservierungssystem-Verwaltung: Einbettung der bestehenden App.
