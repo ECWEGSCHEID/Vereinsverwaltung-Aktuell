@@ -5,7 +5,7 @@ window.ecwLocalUrl=function(value){try{const u=new URL(value,location.href);if(u
 })();
 
 /* Gemeinsamer Versionsstand der aktiven Vereinsverwaltung. version.json führt denselben Stand für den Update-Check. */
-window.ECW_APP_VERSION = '3.1.16.171126';
+window.ECW_APP_VERSION = '3.1.17.171126';
 (function () {
   const page = location.pathname.split('/').pop();
   if (/^START_VEREINSVERWALTUNG_|^ecw-versammlungen-v295[56]\.html$/.test(page)) return;
@@ -63,3 +63,33 @@ window.ecwTileLabel = function (title, menu) {
   }
   return title;
 };
+
+/* Auch gespeicherte Smartphone-Direktlinks auf neue Releases prüfen. */
+(function () {
+  if (!/\/(smartphone-mitglieder|mobile-zugang)\.html$/.test(location.pathname) ||
+      !/^https?:$/.test(location.protocol)) return;
+
+  async function checkMobileRelease() {
+    const openedUrl = location.href;
+    try {
+      const manifest = new URL('version.json', window.ECW_SITE_BASE);
+      manifest.searchParams.set('check', String(Date.now()));
+      const response = await fetch(manifest, {cache: 'no-store'});
+      if (!response.ok) return;
+      const {version: latest} = await response.json();
+      if (!/^\d+\.\d+\.\d+\.\d{6}$/.test(latest) ||
+          latest === window.ECW_APP_VERSION ||
+          openedUrl !== location.href ||
+          document.activeElement?.matches('input, select, textarea')) return;
+      const target = new URL(openedUrl);
+      if (target.searchParams.get('v') === latest) return;
+      target.searchParams.set('v', latest);
+      location.replace(target.href);
+    } catch {}
+  }
+
+  void checkMobileRelease();
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) void checkMobileRelease();
+  });
+})();

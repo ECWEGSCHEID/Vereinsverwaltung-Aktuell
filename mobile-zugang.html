@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="de">
-<head><script src="ecw-site-base.js"></script>
+<head><script src="ecw-site-base.js?v=3.1.17.171126"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#650000">
@@ -2588,7 +2588,7 @@ function renderQrMode(){
   u.hash='';
   const members = qs.get('zugang') === 'members';
   if (members) u.pathname = u.pathname.replace(/[^/]+$/, 'smartphone-mitglieder.html');
-  else u.searchParams.set('v','2.5.2');
+  u.searchParams.set('v',window.ECW_APP_VERSION || '2.5.2');
   $('mobileQrHeading').textContent = members ? 'QR-Code · Mitglieder' : 'QR-Code · Verwaltung';
   $('qrView').querySelector('.qr-list').hidden = true;
   $('qrUrl').value=u.href;
