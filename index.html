@@ -13,12 +13,12 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 .ecw-smartphone-view #routeDiagHome,
 .ecw-smartphone-view button[onclick^="returnToPowerPoint("] { display:none!important; }
 </style>
-<script src="ecw-site-base.js?v=3.1.28.171126"></script>
+<script src="ecw-site-base.js?v=3.1.29.171126"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vereins-Informationssystem – Version 3.1.28.171126</title>
+<title>Vereins-Informationssystem – Version 3.1.29.171126</title>
 <script src="js/ladefehler.js?v=2.9.29"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=3.1.28.171126">
+<link rel="stylesheet" href="css/hauptprogramm.css?v=3.1.29.171126">
 <link rel="stylesheet" href="css/dokumente-drucken.css?v=20261116-dokumente-ganzseite">
 <style>
 #startseite .ecw-temp-open{margin:0;width:100%;min-height:0;border:1px solid #86505a;cursor:pointer}
@@ -34,7 +34,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 </style>
 </head>
 <body data-ecw-build="ECW18-TEST">
-<div id="appVersion" class="app-version">Version 3.1.28.171126</div>
+<div id="appVersion" class="app-version">Version 3.1.29.171126</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -65,7 +65,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
   </div>
   <div class="external-toolbar">
     <strong id="externalTitle" class="external-title">Externe Webseite</strong>
-    <small class="version-badge external-version">Version 3.1.28.171126</small>
+    <small class="version-badge external-version">Version 3.1.29.171126</small>
     <a id="externalNewTab" href="about:blank" target="_blank" rel="noopener noreferrer">In neuem Tab öffnen</a>
   </div>
   <div class="bottom menu-return">
@@ -134,7 +134,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 </section>
 
 <section id="tournaments" class="view">
-  <div class="header tournament-header"><div class="tournament-version">Version 3.1.28.171126</div><div class="tournament-title" id="tTitle">Turniereinladungen</div><div id="tMonth" class="tournament-month"></div></div>
+  <div class="header tournament-header"><div class="tournament-version">Version 3.1.29.171126</div><div class="tournament-title" id="tTitle">Turniereinladungen</div><div id="tMonth" class="tournament-month"></div></div>
   <div id="tContent" class="tournament-pages"></div>
   <div id="tFooter" class="tournament-footer" style="display:none">Über eine Meldung würden wir uns freuen!</div>
   <div class="bottom tournament-bottom">
@@ -173,7 +173,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 </section>
 
 <section id="tournamentPlanner" class="view">
-  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Termin- und Turnierplaner</div><div class="tp-header-version">Version 3.1.28.171126</div></div>
+  <div class="header tp-header"><div class="tp-header-left">Terminplan EC Wegscheid</div><div class="tp-header-title">Termin- und Turnierplaner</div><div class="tp-header-version">Version 3.1.29.171126</div></div>
   <div id="tpStats" class="tp-stats"></div>
   <div id="tpLoginNote" class="small" style="padding:0 60px 6px;display:none"></div>
   <div class="tp-toolbar"><div class="tp-filters"><div class="tp-filter"><label for="tpPeriodFilter" style="margin:0">Zeitraum</label><select id="tpPeriodFilter" onchange="tpSyncStatsAndPeriod()"></select></div><div class="tp-filter"><label for="tpTypeFilter" style="margin:0">Veranstaltungsart</label><select id="tpTypeFilter" onchange="tpSyncStatsAndPeriod()"></select></div></div><div class="tp-actions"><button type="button" onclick="tpScrollToCurrentEntry()">Aktueller Termin</button><button type="button" id="tpRefreshBtn" onclick="tpRefreshFromFirebase(true)">Turnierliste aktualisieren</button><button type="button" class="tp-historie-btn" onclick="openTpHistory()">Historie</button><button type="button" class="tp-historie-btn" onclick="tpAnnualOpen()">Jahresauswertung</button><button type="button" onclick="openTpTournamentEvaluation()">Besuchte Turniere</button></div></div>
@@ -253,13 +253,13 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-functions-compat.js"></script>
 <script src="js/firebase-init.js?v=2.9.49"></script>
-<link rel="stylesheet" href="ecw-ergebnisse.css?v=3.1.28.171126">
+<link rel="stylesheet" href="ecw-ergebnisse.css?v=3.1.29.171126">
 <script src="ecw-ergebnisse-daten.js?v=20261105-2"></script>
-<script src="ecw-ergebnisse.js?v=3.1.28.171126"></script>
+<script src="ecw-ergebnisse.js?v=3.1.29.171126"></script>
 <script src="ecw-nuetzliches.js?v=3.1.25.171126"></script>
 <script src="js/ecw-homepage-test.js?v=22"></script>
 <script src="ecw-checklists.js?v=20261116-status"></script>
-<script src="ecw-hauptprogramm-v2956.js?v=3.1.25.171126"></script>
+<script src="ecw-hauptprogramm-v2956.js?v=3.1.29.171126"></script>
 <script src="js/dokumente-drucken.js?v=3.1.25.171126"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>

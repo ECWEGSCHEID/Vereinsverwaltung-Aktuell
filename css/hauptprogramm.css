@@ -2054,7 +2054,12 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   min-height: 0;
   padding: 6px 12px;
 }
-#sponsorPhotoContent { overflow: auto; }
+#sponsorPhotoContent {
+  overflow: auto;
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+}
 #sponsorPhotoContent.photo-stage { overflow: hidden; }
 #sponsorPhotoContent .photo-carousel-track {
   position: absolute;
@@ -2062,19 +2067,34 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   width: auto;
   height: auto;
   overflow: hidden;
+  container-type: size;
+}
+#sponsorPhotoContent .photo-carousel-item {
+  --sponsor-width: min(100cqw, calc(100cqh * var(--sponsor-image-ratio, 4)));
+  --sponsor-side-width: clamp(0px, calc((100cqw - var(--sponsor-width)) / 2 - 8px), 16cqw);
+  transition: opacity .35s ease;
 }
 #sponsorPhotoContent .photo-carousel-item.center {
-  left: 14%;
-  top: 0;
-  width: 72%;
-  height: 100%;
+  inset: 0;
+  width: auto;
+  height: auto;
 }
-#sponsorPhotoContent .photo-carousel-item.side { width: 12%; }
-#sponsorPhotoContent .photo-carousel-item.left { left: 1%; }
-#sponsorPhotoContent .photo-carousel-item.right { left: 87%; }
-#sponsorPhotoContent .photo-carousel-item img {
+#sponsorPhotoContent .photo-carousel-item.side {
+  top: 0;
+  width: var(--sponsor-side-width);
+  height: 100%;
+  opacity: .72;
+}
+#sponsorPhotoContent .photo-carousel-item.left { left: 0; }
+#sponsorPhotoContent .photo-carousel-item.right { left: auto; right: 0; }
+#sponsorPhotoContent .photo-carousel-single .side { display: none; }
+#sponsorPhotoContent .photo-carousel-item img,
+#sponsorPhotoContent .photo-item,
+#sponsorPhotoContent .photo-item img {
   max-width: 100%;
   max-height: 100%;
+  background: transparent;
+  box-shadow: none;
 }
 #sponsorPhotoNav {
   position: static;
@@ -2086,8 +2106,7 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   #sponsorPhotos.active { padding-inline-start: 23vw; }
 }
 @media (max-width: 650px) {
-  #sponsorPhotoContent .photo-carousel-item.center { left: 0; width: 100%; }
-  #sponsorPhotoContent .photo-carousel-item.side { opacity: 0; }
+  #sponsorPhotoContent .photo-carousel-item.side { display: none; }
   #sponsorPhotoNav { gap: 4px; }
   #sponsorPhotoNav button { padding: 7px 9px; font-size: 13px; }
 }
