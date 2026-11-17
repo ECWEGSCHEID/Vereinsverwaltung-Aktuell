@@ -16,7 +16,16 @@ function standings(g){const stats=new Map();for(const team of (g.teams||[])){sta
  return arr.sort((a,b)=>Number(a.dq)-Number(b.dq)||Number(a.dnf)-Number(b.dnf)||b.points-a.points||b.sets-a.sets||b.quota-a.quota);
 }
 
-window.ecwRenderCupResults = async function ({content, status, mode = 'duo', signal, controlsHost = content}) {
+async function loadCupTournaments(signal) {
+  const response = await fetch(endpoint, {cache:'no-store', signal});
+  if (!response.ok) throw new Error('Firebase HTTP ' + response.status);
+  const payload = await response.json();
+  return val(payload.fields?.tournaments) || {};
+}
+
+window.ecwLoadCupTournaments = loadCupTournaments;
+
+window.ecwRenderCupResults = async function ({content, status, mode = 'duo', signal, controlsHost = content, preloaded}) {
 function render(tournaments){content.replaceChildren();const entries=Object.entries(tournaments).filter(([,v])=>v&&typeof v==='object');
 const filtered=entries.filter(([,t])=>new RegExp(mode==='frauen'?'frauen|damen':'duo','i').test(t.name||''));
 const candidates=filtered.length?filtered:entries;
@@ -30,8 +39,14 @@ function display(){holder.replaceChildren();const selected=tournaments[select.va
 }select.onchange=display;display();status.textContent=filtered.length?'Veröffentlichte '+(mode==='frauen'?'Frauen-':'Duo-')+'Cup-Ergebnisse':'Passender Cup nicht eindeutig gefunden. Bitte Turnier auswählen.';
 }
 async function load(){if(mode==='jahresmeisterschaft'){status.textContent='Ziel-Jahresmeisterschaft: Datenquelle dieser Tabelle ist noch nicht für die mobile öffentliche Ansicht verbunden.';return;}
-try{const r=await fetch(endpoint,{cache:'no-store',signal});if(!r.ok)throw Error('Firebase HTTP '+r.status);const j=await r.json();if(signal?.aborted)return;const data=Object.fromEntries(Object.entries(j.fields||{}).map(([k,v])=>[k,val(v)]));render(data.tournaments||{});
-}catch(e){if(signal?.aborted)return;status.textContent='Ergebnisdaten konnten nicht geladen werden: '+e.message;}}
+try {
+  const prefetched = preloaded ? await preloaded : null;
+  if (signal?.aborted) return;
+  const tournaments = prefetched ?? await loadCupTournaments(signal);
+  if (!signal?.aborted) render(tournaments);
+} catch (error) {
+  if (!signal?.aborted) status.textContent = 'Ergebnisdaten konnten nicht geladen werden: ' + error.message;
+}}
 await load();
 };
 })();

@@ -73,8 +73,8 @@ nav button:hover,.reservation-link:hover{background:#42282e}
 .planner-event dd{margin:0;font-size:14px}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.19.171126"></script>
-<script src="ecw-cup-results.js?v=3.1.19.171126"></script>
+<script src="ecw-site-base.js?v=3.1.20.171126"></script>
+<script src="ecw-cup-results.js?v=3.1.20.171126"></script>
 </head>
 <body>
 <main>
@@ -338,6 +338,14 @@ const resultHeading = document.getElementById('result-heading');
 const resultStatus = document.getElementById('result-status');
 const resultTable = document.getElementById('result-table');
 let resultRequest;
+let cupDataRequest;
+let cupData;
+
+function stopCupPrefetch() {
+  cupDataRequest?.abort();
+  cupDataRequest = null;
+  cupData = null;
+}
 
 function resultTableCopy(source, championship) {
   const table = document.createElement('table');
@@ -425,7 +433,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
     resultRequest = new AbortController();
     const {signal} = resultRequest;
     const pending = cupMode
-      ? window.ecwRenderCupResults({content: resultTable, status: resultStatus, mode: cupMode, signal, controlsHost: cupControls})
+      ? window.ecwRenderCupResults({content: resultTable, status: resultStatus, mode: cupMode, signal, controlsHost: cupControls, preloaded: cupData})
       : readResults(signal, url.searchParams.get('seite') === 'jahresmeisterschaft');
     pending
       .catch(() => {
@@ -439,6 +447,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
 
 moduleBack.addEventListener('click', () => {
   closeResults();
+  stopCupPrefetch();
   modulePanel.hidden = true;
   moduleFrame.removeAttribute('src');
   menu.hidden = false;
@@ -596,14 +605,15 @@ onAuthStateChanged(auth, async user => {
   const revision = ++authRevision;
   const stillCurrent = () => revision === authRevision &&
     (auth.currentUser?.uid ?? null) === (user?.uid ?? null);
-  const operation = await readBookingOperation();
-  if (!stillCurrent()) return;
-  bookingOperationActive = operation.reservierungAktiv === true;
-  nameLoginEnabled = namePilot || operation.namensloginAktiv === true;
+  const operationReady = readBookingOperation().then(operation => {
+    if (!stillCurrent()) return;
+    bookingOperationActive = operation.reservierungAktiv === true;
+    nameLoginEnabled = namePilot || operation.namensloginAktiv === true;
+  });
   if (user) {
     let settings, permissions;
     try {
-      [settings, permissions] = await Promise.all([readSmartphoneSettings(), readMemberPermissions(user.uid)]);
+      [settings, permissions] = await Promise.all([readSmartphoneSettings(), readMemberPermissions(user.uid), operationReady]);
     } catch {
       if (!stillCurrent()) return;
       login.hidden = true;
@@ -624,10 +634,13 @@ onAuthStateChanged(auth, async user => {
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
     return;
   }
+  await operationReady;
+  if (!stillCurrent()) return;
   hallRequest?.abort();
   plannerRequest?.abort();
   plannerList.replaceChildren();
   closeResults();
+  stopCupPrefetch();
   modulePanel.hidden = true;
   moduleFrame.removeAttribute('src');
   detail.hidden = true;
@@ -773,7 +786,11 @@ menu.querySelectorAll('nav button').forEach(button => {
       void loadPlanner(plannerRequest.signal);
     }
     results.hidden = title !== 'Tabellen';
-    if (title === 'Tabellen') detailTitle.textContent = 'Ergebnisse Turniere Intern';
+    if (title === 'Tabellen') {
+      detailTitle.textContent = 'Ergebnisse Turniere Intern';
+      cupDataRequest = new AbortController();
+      cupData = window.ecwLoadCupTournaments(cupDataRequest.signal).catch(() => null);
+    }
     if (title === 'Halle') {
       hallRequest = new AbortController();
       void loadTemperatures(hallRequest.signal);
@@ -785,6 +802,7 @@ menu.querySelectorAll('nav button').forEach(button => {
 });
 
 document.getElementById('back').addEventListener('click', () => {
+  stopCupPrefetch();
   hallRequest?.abort();
   plannerRequest?.abort();
   plannerList.replaceChildren();
