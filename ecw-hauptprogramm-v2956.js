@@ -7068,9 +7068,22 @@ function renderPhotos(){
    const n=photos.length;
    c.innerHTML='<div class="photo-carousel-track"><div class="photo-carousel-item side left"><img></div><div class="photo-carousel-item center"><img></div><div class="photo-carousel-item side right"><img></div><div class="photo-carousel-item incoming"><img></div></div>';
    const items=[...c.querySelectorAll('.photo-carousel-item')];
+   const sponsorTrack=c.id==='sponsorPhotoContent'?c.querySelector('.photo-carousel-track'):null;
+   function sizeSponsorPreviews(){
+     const image=sponsorTrack?.querySelector('.center img');
+     if(!image?.naturalHeight)return;
+     sponsorTrack.style.setProperty('--sponsor-image-ratio',image.naturalWidth/image.naturalHeight);
+   }
+   if(sponsorTrack){
+     sponsorTrack.classList.toggle('photo-carousel-single',n===1);
+     sponsorTrack.addEventListener('load',event=>{
+       if(event.target.matches('.center img'))sizeSponsorPreviews();
+     },true);
+   }
    const setImg=(el,p)=>{el.querySelector('img').src=p.data;el.querySelector('img').alt=esc(p.name)};
    const paint=()=>{setImg(items[0],photos[(i-1+n)%n]);setImg(items[1],photos[i%n]);setImg(items[2],photos[(i+1)%n]);setImg(items[3],photos[(i+2)%n])};
    paint();
+   sizeSponsorPreviews();
    if(n>1){
      // Echtes 4-Element-Karussell: Die Elemente wechseln ihre Rollen.
      // Dadurch läuft die Bewegung nach jedem Intervall weiter und stoppt nicht
@@ -7090,6 +7103,7 @@ function renderPhotos(){
        oldLeft.className='photo-carousel-item leaving';
        oldCenter.className='photo-carousel-item side left';
        oldRight.className='photo-carousel-item center';
+       sizeSponsorPreviews();
        oldSpare.className='photo-carousel-item side right';
        setImg(oldSpare,photos[nextRight]);
        i=next;

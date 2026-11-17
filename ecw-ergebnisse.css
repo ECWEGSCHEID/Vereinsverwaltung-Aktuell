@@ -45,11 +45,15 @@
 }
 .er-gallery-mode .er-gallery {
   display: grid;
-  grid-template-columns: repeat(var(--er-gallery-columns, 1), minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--er-gallery-rows, 1), minmax(0, 1fr));
   gap: 6px;
 }
+.er-gallery-row {
+  display: flex;
+  min-height: 0;
+  gap: 6px;
+}
+.er-gallery-row > .er-gallery-slot { flex: 1; }
 .er-gallery-slot,
 .er-gallery-slot:hover,
 .er-gallery-slot:active,
