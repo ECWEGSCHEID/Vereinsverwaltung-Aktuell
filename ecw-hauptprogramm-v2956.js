@@ -1,5 +1,5 @@
 
-const APP_VERSION=window.ECW_APP_VERSION || '3.1.18.171126';
+const APP_VERSION=window.ECW_APP_VERSION || '3.1.19.171126';
 const APP_RELEASE=APP_VERSION;
 const APP_VERSION_URL='version.json';
 (function ecwVersionCheck(){
@@ -2619,7 +2619,7 @@ function ecwTournamentModeFromUrl(value){
      const mm=vv.match(/\?seite=(cup|jahresmeisterschaft|auslosung|stockdart|home)/i);
      if(mm)mode=mm[1].toLowerCase();
    }
-   return mode||'home';
+   return mode||(['duo','frauen'].includes(u.searchParams.get('cup'))?'cup':'home');
  }catch(e){return ''}
 }
 function isEcwTournamentAppUrl(value){
@@ -2848,6 +2848,8 @@ async function openExternalPage(value,title){
      normalized.searchParams.set('v',APP_RELEASE);
      const mode=ecwTournamentModeFromUrl(url);
      normalized.searchParams.set('seite',mode);
+     const directCup=new URL(url).searchParams.get('cup');
+     if(mode==='cup' && ['duo','frauen'].includes(directCup)) normalized.searchParams.set('cup',directCup);
      if(!isPublicWhiteboardMode() && appPermissions.admin===true){
        normalized.searchParams.set('mode','admin-embedded');
        if(mode==='cup' && new URL(url).searchParams.get('bearbeiten')==='1'){
