@@ -1526,7 +1526,7 @@ setTimeout(() => {
   <header>
     <div>
       <h1>EC Wegscheid – Turnierverwaltung</h1>
-      <div class="version">Version 2.9.38</div>
+      <div class="version">Version 2.9.39</div>
     <div id="userStatus"></div></div><div><button id="logoutBtn">Abmelden</button></div>
   </header>
 
@@ -1826,6 +1826,16 @@ setTimeout(() => {
         <p class="meta" id="dStatus" role="status">Bitte ein Turnier auswählen.</p>
         <div class="inline-actions"><button class="primary" id="dPrintBtn" disabled>Startliste drucken</button><button class="secondary" id="dWordBtn" disabled>Als Word-Datei herunterladen</button><button class="secondary" id="dPdfBtn" disabled>PDF herunterladen</button><button class="secondary" id="dPngBtn" disabled>PNG herunterladen</button></div>
         <p class="meta">A4 Hochformat · PDF und PNG direkt herunterladen. Mehrseitige PNGs werden als ZIP mit einer Datei pro Seite gespeichert. Maßstab 100 %, Browser-Kopf- und Fußzeilen ausschalten. Die Schriften der Word-Vorlagen werden verwendet, sofern sie auf dem Gerät installiert sind.</p>
+      </div>
+      <div id="dExternalInvitation" class="card hidden">
+        <label for="dExternalInvitationFile">Fertige Einladung als PDF auswählen</label>
+        <input id="dExternalInvitationFile" type="file" accept=".pdf,application/pdf">
+        <div class="inline-actions">
+          <button id="dExternalInvitationPreview" class="secondary" type="button">Ausgewählte PDF ansehen</button>
+          <button id="dExternalInvitationSave" class="primary" type="button">PDF als Einladung speichern</button>
+          <button id="dExternalInvitationReset" class="secondary" type="button">Interne Vorlage verwenden</button>
+        </div>
+        <p id="dExternalInvitationStatus" class="meta" role="status"></p>
       </div>
       <div id="dEditor" class="card document-controls hidden">
         <details open><summary>Einladung bearbeiten – Texte und Bilder</summary><p class="meta">Die festen Schriftgrößen bleiben erhalten. Texte lassen sich auch direkt in der Vorschau anklicken und ändern. Änderungen werden pro Turnier gespeichert.</p>
@@ -5663,14 +5673,14 @@ function publishHomepageTournament(t, force = false, reportedEntries) {
     invitation:config.invitation, startList:config.startList, invitationText, pdfMode:true,
     teams:config.startList ? entries.map(entry => [entry.vereinName,entry.teamZusatz].filter(Boolean).join(" · ")) : [],
   } : {key,remove:true};
-  const serialized = JSON.stringify([record,active ? [template,t.maxMannschaften,t.meldeUhrzeit,t.kategorie,entries] : null]);
+  const serialized = JSON.stringify([record,active ? [template,t.externalInvitation,t.maxMannschaften,t.meldeUhrzeit,t.kategorie,entries] : null]);
   const previous = lastHomepageTournament.get(key);
   if (!force && previous === serialized) return;
   lastHomepageTournament.set(key,serialized);
   const makePdfs = active ? async () => {
     const pdfs = {};
     if (config.invitation) {
-      pdfs.invitation = pagesToPdf(await renderExportPages(invitationHtml(t,{...DOC_DEFAULTS,...template})));
+      pdfs.invitation = await invitationPdf(t,{...DOC_DEFAULTS,...template});
     }
     if (config.startList) {
       const source = {...t,entries,vorlage:liveStartlistTemplateFor(t)};
@@ -6440,6 +6450,10 @@ function updateDraftStatus(){
   document.getElementById('dSaveBtn').disabled=!d || !d.dirty || busy || imageBusy || !navigator.onLine;
   document.getElementById('dWordBtn').disabled=!d || !dokumenteGeladen || imageBusy;
   for(const id of ['dPdfBtn','dPngBtn'])document.getElementById(id).disabled=!d || !dokumenteGeladen || imageBusy || exportBusy;
+  if(currentExternalInvitation()){
+    document.getElementById('dWordBtn').disabled=true;
+    document.getElementById('dPngBtn').disabled=true;
+  }
 }
 function setDocumentField(key,value){
   const d=currentDraft();if(!d)return;d.values[key]=value;d.dirty=true;
@@ -6472,6 +6486,7 @@ function fillDocumentEditor(){
 }
 function clearDocumentPreview(){
   dokumenteGeladen=false;dokumenteMeldungen=[];
+  document.getElementById('dExternalInvitation').classList.add('hidden');
   document.getElementById('dPrintBtn').disabled=true;document.getElementById('dWordBtn').disabled=true;
   for(const id of ['dPdfBtn','dPngBtn'])document.getElementById(id).disabled=true;
   document.getElementById('printArea').classList.add('hidden');document.getElementById('printArea').replaceChildren();
@@ -6529,11 +6544,98 @@ function startlistHtml(t,c){
   <table class="start-entries"><tbody id="${page===0?'printBody':'printBody_'+page}">${rows.map((m,i)=>`<tr><td>${page*14+i+1}.</td><td>${escapeHtml(m.vereinName||'')}${m.teamZusatz?' · '+escapeHtml(m.teamZusatz):''}</td><td>${m.anmeldedatum?'gem. am '+escapeHtml(formatDatum(m.anmeldedatum)):''}</td></tr>`).join('')}</tbody></table>${rows.length?'':'<p id="printEmpty">Noch keine Mannschaften gemeldet.</p>'}
   <p class="start-registration">${c.einschreibung==='auto'?'Meldung'+(registrationTime(t)?' ab '+escapeHtml(registrationTime(t)):' ½ Stunde vor Turnierbeginn'):'Meldung '+escapeHtml(c.einschreibung)}</p><p class="start-closing">${editable('startGruss',c)}</p></article>`).join('');
 }
+let externalInvitationBusy=false;
+const externalInvitationFile=document.getElementById('dExternalInvitationFile');
+const externalInvitationPreview=document.getElementById('dExternalInvitationPreview');
+const externalInvitationSave=document.getElementById('dExternalInvitationSave');
+const externalInvitationReset=document.getElementById('dExternalInvitationReset');
+const externalInvitationStatus=document.getElementById('dExternalInvitationStatus');
+function currentExternalInvitation(){
+  return document.getElementById('dDokumentArt').value==='einladung' && selectedTournament()?.externalInvitation;
+}
+function updateExternalInvitationControls(){
+  const visible=Boolean(dokumenteGeladen && selectedTournament() && document.getElementById('dDokumentArt').value==='einladung');
+  const saved=currentExternalInvitation();
+  document.getElementById('dExternalInvitation').classList.toggle('hidden',!visible);
+  externalInvitationFile.disabled=externalInvitationBusy;
+  externalInvitationPreview.disabled=!externalInvitationFile.files.length;
+  externalInvitationSave.disabled=externalInvitationBusy || !externalInvitationFile.files.length;
+  externalInvitationReset.disabled=externalInvitationBusy || !saved;
+  externalInvitationStatus.textContent=saved?'Gespeicherte Einladung: '+saved.name:'PDF bis 15 MB.';
+}
+async function validateInvitationPdf(file){
+  if(!file || !file.name.toLowerCase().endsWith('.pdf') || file.size>15*1024*1024 ||
+     await file.slice(0,5).text()!=='%PDF-'){
+    throw Error('Bitte eine gültige PDF-Datei bis 15 MB wählen.');
+  }
+}
+function showInvitationPdf(tab,pdf){
+  const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
+  tab.location.replace(url);
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+async function openInvitationPdf(load){
+  const tab=window.open('about:blank','_blank');
+  if(!tab){notify('Bitte Pop-ups erlauben, um die PDF zu öffnen.',true);return;}
+  tab.opener=null;
+  try{showInvitationPdf(tab,await load());}
+  catch(error){tab.close();notify('PDF konnte nicht geöffnet werden: '+error.message,true);}
+}
+function readExternalInvitation(invitation){
+  return getBlob(storageRef(archiveStorage,invitation.path),15*1024*1024);
+}
+async function invitationPdf(t,config){
+  if(t.externalInvitation)return readExternalInvitation(t.externalInvitation);
+  return pagesToPdf(await renderExportPages(invitationHtml(t,config)));
+}
+async function saveExternalInvitation(file){
+  const t=selectedTournament();
+  if(!t || externalInvitationBusy)return;
+  externalInvitationBusy=true;
+  updateExternalInvitationControls();
+  try{
+    if(!navigator.onLine)throw Error('Zum Speichern ist eine Internetverbindung nötig.');
+    let invitation=null;
+    if(file){
+      await validateInvitationPdf(file);
+      const path='turnierarchiv/'+t.id+'/einladung-'+crypto.randomUUID()+'.pdf';
+      await uploadBytes(storageRef(archiveStorage,path),file,{contentType:'application/pdf'});
+      invitation={path,name:file.name};
+    }
+    await ecwArchiveUpdate(t.id,{externalInvitation:invitation});
+    const latest=turniereCache.find(item=>item.id===t.id);
+    if(latest)latest.externalInvitation=invitation;
+    if(selectedTournament()?.id===t.id)externalInvitationFile.value='';
+    notify(invitation?'PDF als Einladung gespeichert.':'Interne Vorlage ausgewählt.');
+  }catch(error){notify('Einladung konnte nicht gespeichert werden: '+error.message,true);}
+  finally{externalInvitationBusy=false;renderDocumentPreview();updateExternalInvitationControls();}
+}
+externalInvitationFile.addEventListener('change',updateExternalInvitationControls);
+externalInvitationPreview.addEventListener('click',()=>openInvitationPdf(async()=>{
+  const file=externalInvitationFile.files[0];
+  await validateInvitationPdf(file);
+  return file;
+}));
+externalInvitationSave.addEventListener('click',()=>saveExternalInvitation(externalInvitationFile.files[0]));
+externalInvitationReset.addEventListener('click',()=>saveExternalInvitation(null));
 function renderDocumentPreview(){
   const t=selectedTournament(),d=currentDraft();if(!t||!dokumenteGeladen||!d)return;
   const kind=document.getElementById('dDokumentArt').value;
   document.getElementById('dAutoFields').textContent=[t.name,longDate(t.datum),reportTime(t),t.ort,t.maxMannschaften?'Maximal '+t.maxMannschaften+' Mannschaften':'Unbegrenzte Mannschaftszahl'].filter(Boolean).join(' · ');
-  const area=document.getElementById('printArea');area.innerHTML=kind==='einladung'?invitationHtml(t,d.values):startlistHtml(t,d.values);area.classList.remove('hidden');
+  updateExternalInvitationControls();
+  const external=currentExternalInvitation();
+  const area=document.getElementById('printArea');
+  if(external){
+    area.replaceChildren();
+    area.classList.add('hidden');
+    document.getElementById('dEditor').classList.add('hidden');
+    document.getElementById('dPrintBtn').textContent='PDF zum Drucken öffnen';
+    document.getElementById('dPrintBtn').disabled=false;
+    document.getElementById('dStatus').textContent='Die gespeicherte PDF wird als Einladung verwendet.';
+    updateDraftStatus();
+    return;
+  }
+  area.innerHTML=kind==='einladung'?invitationHtml(t,d.values):startlistHtml(t,d.values);area.classList.remove('hidden');
   area.querySelectorAll('[data-field]').forEach(el=>{
     el.addEventListener('input',()=>setDocumentField(el.dataset.field,el.innerText??el.textContent));
     el.addEventListener('paste',e=>{e.preventDefault();const text=e.clipboardData.getData('text/plain');document.execCommand('insertText',false,text);});
@@ -6542,7 +6644,11 @@ function renderDocumentPreview(){
   document.getElementById('dStatus').textContent='Vorlage geladen. Texte kannst du direkt in der Vorschau oder in den Eingabefeldern ändern.';
   document.getElementById('dEditor').classList.remove('hidden');updateDraftStatus();
 }
-document.getElementById('dTurnierSelect').addEventListener('change',loadDocumentMeldungen);
+document.getElementById('dTurnierSelect').addEventListener('change',()=>{
+  externalInvitationFile.value='';
+  loadDocumentMeldungen();
+  updateExternalInvitationControls();
+});
 document.getElementById('dDokumentArt').addEventListener('change',()=>{fillDocumentEditor();renderDocumentPreview();});
 document.getElementById('dEditTurnierBtn').addEventListener('click',()=>{const t=selectedTournament();if(t)openTurnier(t.id,t);});
 document.getElementById('dSaveBtn').addEventListener('click',()=>{
@@ -6593,7 +6699,7 @@ document.getElementById('dTitleImageInput')?.addEventListener('change',async e=>
 });
 document.getElementById('dOriginalImagesBtn').addEventListener('click',()=>{const d=currentDraft();if(!d)return;d.values.logo='';d.values.titelbild='';d.dirty=true;renderDocumentPreview();});
 async function waitForDocumentImages(){await Promise.all([...document.querySelectorAll('#printArea img')].map(img=>img.decode?.().catch(()=>{})||Promise.resolve()));await document.fonts?.ready;}
-document.getElementById('dPrintBtn').addEventListener('click',async()=>{if(!dokumenteGeladen||imageBusy)return;await waitForDocumentImages();window.print();});
+document.getElementById('dPrintBtn').addEventListener('click',async()=>{if(!dokumenteGeladen||imageBusy)return;const external=currentExternalInvitation();if(external){await openInvitationPdf(()=>readExternalInvitation(external));return;}await waitForDocumentImages();window.print();});
 
 // Word export uses the supplied DOCX packages and keeps their original run formatting.
 const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
@@ -6706,6 +6812,12 @@ async function exportCurrentDocument(format){
   exportBusy=true;updateDraftStatus();document.getElementById('dStatus').textContent='Export wird erstellt …';
   const kind=document.getElementById('dDokumentArt').value,name=documentBasename(t,kind),markup=document.getElementById('printArea').innerHTML;
   try {
+    const external=currentExternalInvitation();
+    if(external && format==='pdf'){
+      downloadBlob(await readExternalInvitation(external),name+'.pdf');
+      document.getElementById('dStatus').textContent='PDF-Einladung heruntergeladen.';
+      return;
+    }
     const pages=await renderExportPages(markup);
     if(format==='pdf')downloadBlob(pagesToPdf(pages),name+'.pdf');
     else if(pages.length===1)downloadBlob(await new Promise(r=>pages[0].toBlob(r,'image/png')),name+'.png');
@@ -6837,7 +6949,7 @@ async function prepareInvitationMail(action){
   const config={...DOC_DEFAULTS,...(t.einladungVorlage||{}),...(documentDrafts.get(t.id)?.values||{})};
   sendBusy=true;updateSendStatus();document.getElementById('sStatus').textContent='Einladung als PDF wird vorbereitet …';
   try{
-    const pdf=pagesToPdf(await renderExportPages(invitationHtml(t,config))),name=documentBasename(t,'einladung')+'.pdf';
+    const pdf=await invitationPdf(t,config),name=documentBasename(t,'einladung')+'.pdf';
     if(action==='pdf'){downloadBlob(pdf,name);document.getElementById('sStatus').textContent='PDF-Einladung heruntergeladen.';}
     else if(action==='gmail'){
       downloadBlob(pdf,name);
@@ -6998,7 +7110,7 @@ async function ecwGmailSendTest(){
   try{
     ecwGmailStatus('PDF wird erzeugt …');
     const config={...DOC_DEFAULTS,...(t.einladungVorlage||{}),...(documentDrafts.get(t.id)?.values||{})};
-    const pdf=pagesToPdf(await renderExportPages(invitationHtml(t,config)));
+    const pdf=await invitationPdf(t,config);
     if(pdf.size>18*1024*1024)throw Error('PDF ist für diesen Test zu groß (max. 18 MB).');
     const name=documentBasename(t,'einladung')+'.pdf';
     ecwGmailStatus('PDF fertig. Testmail wird an Gmail übertragen …');
