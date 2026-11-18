@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="edge" x2="0.8" y2="1">
+      <stop stop-color="#ff9e8b"/>
+      <stop offset=".52" stop-color="#e6402d"/>
+      <stop offset="1" stop-color="#310100"/>
+    </linearGradient>
+    <linearGradient id="face" x2="0.2" y2="1">
+      <stop stop-color="#ef5341"/>
+      <stop offset=".48" stop-color="#bf0c02"/>
+      <stop offset="1" stop-color="#500200"/>
+    </linearGradient>
+  </defs>
+  <polygon points="50,0 100,26 100,74 50,100 0,74 0,26" fill="url(#edge)"/>
+  <polygon points="50,5.2 94.2,28.5 94.2,71.5 50,94.8 5.8,71.5 5.8,28.5" fill="url(#face)"/>
+</svg>

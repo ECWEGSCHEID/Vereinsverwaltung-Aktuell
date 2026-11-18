@@ -922,9 +922,14 @@ body.tv-preview-open{overflow:hidden!important}
 #startseite #shGrid.sh-whiteboard-hex {
   filter: drop-shadow(0 .38em .28em #130000db);
 }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button) {
+#startseite #shGrid.sh-whiteboard-hex > .shbtn,
+#teamsGrid .team-group-grid > .gbtn,
+#ecwResultsDialog .er-public-grid > .er-tile,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile,
+#druckdokumente .ecw-doc-tiles > button {
   box-sizing: border-box;
   position: relative;
+  -webkit-clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
   clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
   border: 0;
   border-radius: 0;
@@ -958,20 +963,46 @@ body.tv-preview-open{overflow:hidden!important}
   border-width: 0 .095em .095em 0;
   transform: rotate(45deg);
 }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button)::before {
+#startseite #shGrid.sh-whiteboard-hex > .shbtn::before,
+#teamsGrid .team-group-grid > .gbtn::before,
+#ecwResultsDialog .er-public-grid > .er-tile::before,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile::before,
+#druckdokumente .ecw-doc-tiles > button::before {
   content: "";
   position: absolute;
   inset: 5.2% 5.8%;
   z-index: -1;
+  -webkit-clip-path: inherit;
   clip-path: inherit;
   background:
     repeating-linear-gradient(0deg, #ffdfbf12 0 1px, transparent 1px 3px, #23000019 3px 4px, transparent 4px 6px),
     linear-gradient(118deg, #ffebd4bb, #ff61423d 34%, transparent 62%),
     linear-gradient(166deg, #e41508 8%, #bf0c02 48%, #8f0903 76%, #500200 100%);
 }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):hover { transform: none; }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):hover::before { filter: brightness(1.14); }
-:is(#startseite #shGrid.sh-whiteboard-hex > .shbtn, #teamsGrid .team-group-grid > .gbtn, #ecwResultsDialog .er-public-grid > .er-tile, #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile, #druckdokumente .ecw-doc-tiles > button):focus-visible::before { filter: brightness(1.38); }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:hover,
+#teamsGrid .team-group-grid > .gbtn:hover,
+#ecwResultsDialog .er-public-grid > .er-tile:hover,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile:hover,
+#druckdokumente .ecw-doc-tiles > button:hover { transform: none; }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:hover::before,
+#teamsGrid .team-group-grid > .gbtn:hover::before,
+#ecwResultsDialog .er-public-grid > .er-tile:hover::before,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile:hover::before,
+#druckdokumente .ecw-doc-tiles > button:hover::before { filter: brightness(1.14); }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:focus-visible::before,
+#teamsGrid .team-group-grid > .gbtn:focus-visible::before,
+#ecwResultsDialog .er-public-grid > .er-tile:focus-visible::before,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile:focus-visible::before,
+#druckdokumente .ecw-doc-tiles > button:focus-visible::before { filter: brightness(1.38); }
+
+/* Bildbasierte Wabe für Browser ohne CSS-Polygon. */
+@supports not ((clip-path: polygon(0 0, 100% 0, 50% 100%)) or (-webkit-clip-path: polygon(0 0, 100% 0, 50% 100%))) {
+  #startseite #shGrid.sh-whiteboard-hex > .shbtn {
+    background: transparent url("../bilder/whiteboard-wabe.svg") center / 100% 100% no-repeat;
+    box-shadow: none;
+  }
+  #startseite #shGrid.sh-whiteboard-hex > .shbtn::before { content: none; }
+}
 
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5), (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
   #startseite.active:has(#shGrid.sh-whiteboard-hex) #shStage {
