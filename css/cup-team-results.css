@@ -1,0 +1,59 @@
+button.cup-team-results-trigger {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 1px;
+  border: 0;
+  background: transparent;
+  color: #ffd0d5;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.cup-team-results {
+  box-sizing: border-box;
+  width: min(92vw, 36rem);
+  max-height: 88vh;
+  max-height: 88dvh;
+  padding: 1rem;
+  border: 1px solid #9b5b65;
+  border-radius: 14px;
+  background: #231a1e;
+  color: #fff;
+}
+
+.cup-team-results[open] {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.cup-team-results::backdrop { background: #000b; }
+.cup-team-results h2 { margin: 0; overflow-wrap: anywhere; }
+
+.cup-team-results ul {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.cup-team-results li {
+  display: grid;
+  gap: .25rem;
+  padding: .65rem;
+  border-bottom: 1px solid #62474f;
+  overflow-wrap: anywhere;
+}
+
+.cup-team-results [data-outcome="win"] { color: #a5ebae; }
+.cup-team-results [data-outcome="loss"] { color: #ffa6ad; }
+.cup-team-results [data-outcome="draw"] { color: #ffde93; }
+.cup-team-results button { flex: none; min-height: 44px; }
