@@ -34,12 +34,17 @@ function createTeamResultsDialog(holder) {
     const teams = new Map((group.teams || []).map(entry => [String(entry.id), entry]));
     for (const match of Object.values(group.matches || {})) {
       const isA = String(match.teamA) === team.id;
-      if (!match.completed || (!isA && String(match.teamB) !== team.id)) continue;
+      if (!isA && String(match.teamB) !== team.id) continue;
       const opponent = teams.get(String(isA ? match.teamB : match.teamA));
       const opponentStatus = opponent?.dq ? ' · DSQ' : opponent?.dnf ? ' · DNF' : '';
       const leg = match.leg ? '[' + match.leg + '] ' : '';
       const item = node('li', '', list);
       node('strong', leg + 'gegen ' + (opponent?.name || (isA ? match.nameB : match.nameA) || 'Unbekannt') + opponentStatus, item);
+      if (!match.completed) {
+        const status = team.dq || opponent?.dq ? 'DSQ' : team.dnf || opponent?.dnf ? 'DNF' : 'Offen';
+        node('span', status, item);
+        continue;
+      }
       const ownPoints = N(isA ? match.pointsA : match.pointsB);
       const opposingPoints = N(isA ? match.pointsB : match.pointsA);
       const ownStocks = N(isA ? match.stocksA : match.stocksB);
@@ -47,7 +52,7 @@ function createTeamResultsDialog(holder) {
       const score = node('span', ownPoints + ':' + opposingPoints + ' Satzpkt. (' + ownStocks + ':' + opposingStocks + ' Stöcke)', item);
       score.dataset.outcome = ownPoints > opposingPoints ? 'win' : ownPoints < opposingPoints ? 'loss' : 'draw';
     }
-    if (!list.children.length) node('li', 'Für diese Mannschaft sind noch keine gespielten Ergebnisse vorhanden.', list);
+    if (!list.children.length) node('li', 'Für diese Mannschaft sind keine Spiele vorhanden.', list);
     dialog.showModal();
   };
 }
