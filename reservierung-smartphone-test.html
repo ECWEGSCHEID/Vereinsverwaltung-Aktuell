@@ -962,7 +962,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             container.innerHTML = '';
             let selectedDateInput = document.getElementById('calendarDate').value;
             let mondayStr = getMonday(selectedDateInput);
-            window.ecwRasterBuchung?.update(getWeekDates(mondayStr));
+            const visibleDates = getWeekDates(mondayStr, currentView === 'day' ? 14 : 7);
+            window.ecwRasterBuchung?.update(visibleDates);
             if(document.getElementById('calendarDate').value !== mondayStr) {
                 document.getElementById('calendarDate').value = mondayStr;
             }
@@ -975,7 +976,9 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 let todayStr = getTodayFormatted();
                 let currentTime = getCurrentTimeFormatted();
 
+                const visibleDateSet = new Set(visibleDates);
                 let filtered = bookingsList.filter(b => {
+                    if (!visibleDateSet.has(b.date)) return false;
                     if (b.date > todayStr) return true;
                     if (b.date === todayStr) { return b.timeTo >= currentTime; }
                     return false;
@@ -1142,12 +1145,12 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             }
         }
 
-        function getWeekDates(mondayStr) {
+        function getWeekDates(mondayStr, days = 7) {
             let monday = new Date(mondayStr);
             let week = [];
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < days; i++) {
                 let nextDay = new Date(monday);
-                nextDay.setDate(monday.getDate() + i);
+                nextDay.setUTCDate(monday.getUTCDate() + i);
                 week.push(nextDay.toISOString().split('T')[0]);
             }
             return week;
