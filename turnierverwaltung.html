@@ -1526,7 +1526,7 @@ setTimeout(() => {
   <header>
     <div>
       <h1>EC Wegscheid – Turnierverwaltung</h1>
-      <div class="version">Version 2.9.39</div>
+      <div class="version">Version 2.9.40</div>
     <div id="userStatus"></div></div><div><button id="logoutBtn">Abmelden</button></div>
   </header>
 
@@ -1836,6 +1836,7 @@ setTimeout(() => {
           <button id="dExternalInvitationReset" class="secondary" type="button">Interne Vorlage verwenden</button>
         </div>
         <p id="dExternalInvitationStatus" class="meta" role="status"></p>
+        <p id="dExternalInvitationSaveStatus" class="meta" role="status"></p>
       </div>
       <div id="dEditor" class="card document-controls hidden">
         <details open><summary>Einladung bearbeiten – Texte und Bilder</summary><p class="meta">Die festen Schriftgrößen bleiben erhalten. Texte lassen sich auch direkt in der Vorschau anklicken und ändern. Änderungen werden pro Turnier gespeichert.</p>
@@ -4638,7 +4639,7 @@ const firebaseConfig = {
   appId: "1:558472054725:web:10145e2d8d6f168b056dac"
 };
 
-import {getStorage,ref as storageRef,uploadBytes,getBlob,deleteObject} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import {getStorage,ref as storageRef,uploadBytes,uploadBytesResumable,getBlob,deleteObject} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 const app = initializeApp(firebaseConfig);
 
 // Eingebettet in die Vereinsverwaltung:
@@ -4795,6 +4796,7 @@ function onlineStatus() {
   updateKapazitaetsAnzeige(); updateVereineResetStatus();
   document.getElementById("dPrintBtn").disabled=!dokumenteGeladen || imageBusy;
   updateDraftStatus();
+  updateExternalInvitationControls();
 }
 window.addEventListener('offline',onlineStatus); window.addEventListener('online',onlineStatus);
 window.addEventListener('unhandledrejection',e => { e.preventDefault(); dbError(e.reason || {}); });
@@ -6451,6 +6453,7 @@ function updateDraftStatus(){
   document.getElementById('dWordBtn').disabled=!d || !dokumenteGeladen || imageBusy;
   for(const id of ['dPdfBtn','dPngBtn'])document.getElementById(id).disabled=!d || !dokumenteGeladen || imageBusy || exportBusy;
   if(currentExternalInvitation()){
+    document.getElementById('dSaveBtn').disabled=true;
     document.getElementById('dWordBtn').disabled=true;
     document.getElementById('dPngBtn').disabled=true;
   }
@@ -6504,7 +6507,13 @@ function updateDocumentOptions(){
 }
 function loadDocumentMeldungen(){
   if(dokumenteUnsub)dokumenteUnsub();dokumenteUnsub=null;clearDocumentPreview();
-  const t=selectedTournament();activeDocumentId=t?.id||'';if(!t)return;
+  const t=selectedTournament();
+  if(activeDocumentId!==(t?.id||'')){
+    externalInvitationFile.value='';
+    externalInvitationSaveStatus.textContent='';
+  }
+  activeDocumentId=t?.id||'';
+  if(!t)return;
   currentDraft();fillDocumentEditor();document.getElementById('dEditor').classList.remove('hidden');
   document.getElementById('dStatus').textContent='Dokumente werden geladen …';
   dokumenteUnsub=onSnapshot(query(collection(db,'meldungen'),where('turnierId','==',t.id)),snap=>{
@@ -6550,6 +6559,7 @@ const externalInvitationPreview=document.getElementById('dExternalInvitationPrev
 const externalInvitationSave=document.getElementById('dExternalInvitationSave');
 const externalInvitationReset=document.getElementById('dExternalInvitationReset');
 const externalInvitationStatus=document.getElementById('dExternalInvitationStatus');
+const externalInvitationSaveStatus=document.getElementById('dExternalInvitationSaveStatus');
 function currentExternalInvitation(){
   return document.getElementById('dDokumentArt').value==='einladung' && selectedTournament()?.externalInvitation;
 }
@@ -6559,8 +6569,8 @@ function updateExternalInvitationControls(){
   document.getElementById('dExternalInvitation').classList.toggle('hidden',!visible);
   externalInvitationFile.disabled=externalInvitationBusy;
   externalInvitationPreview.disabled=!externalInvitationFile.files.length;
-  externalInvitationSave.disabled=externalInvitationBusy || !externalInvitationFile.files.length;
-  externalInvitationReset.disabled=externalInvitationBusy || !saved;
+  externalInvitationSave.disabled=!visible || externalInvitationBusy || !navigator.onLine || !externalInvitationFile.files.length;
+  externalInvitationReset.disabled=!visible || externalInvitationBusy || !navigator.onLine || !saved;
   externalInvitationStatus.textContent=saved?'Gespeicherte Einladung: '+saved.name:'PDF bis 15 MB.';
 }
 async function validateInvitationPdf(file){
@@ -6588,27 +6598,72 @@ async function invitationPdf(t,config){
   if(t.externalInvitation)return readExternalInvitation(t.externalInvitation);
   return pagesToPdf(await renderExportPages(invitationHtml(t,config)));
 }
-async function saveExternalInvitation(file){
+async function uploadInvitationPdf(path,file,onProgress){
+  const storageAuth=getAuth(app);
+  await storageAuth.authStateReady();
+  if(!auth.currentUser || storageAuth.currentUser?.uid!==auth.currentUser.uid){
+    throw Error('Die Firebase-Anmeldung für den Dateiupload fehlt. Bitte neu anmelden.');
+  }
+  const task=uploadBytesResumable(storageRef(archiveStorage,path),file,{contentType:'application/pdf'});
+  const inactivityMs=45000;
+  let timer,timedOut=false,lastTransferred=-1;
+  const armTimeout=()=>{
+    clearTimeout(timer);
+    timer=setTimeout(()=>{
+      timedOut=true;
+      task.cancel();
+    },inactivityMs);
+  };
+  armTimeout();
+  const unsubscribe=task.on('state_changed',snapshot=>{
+    if(snapshot.bytesTransferred===lastTransferred)return;
+    lastTransferred=snapshot.bytesTransferred;
+    armTimeout();
+    onProgress(Math.floor(snapshot.bytesTransferred/snapshot.totalBytes*100));
+  });
+  try{await task;}
+  catch(error){
+    if(timedOut)throw Error('Der Upload reagiert nicht mehr. Bitte Verbindung prüfen und erneut versuchen.');
+    throw error;
+  }finally{clearTimeout(timer);unsubscribe();}
+}
+async function saveExternalInvitation(file,reset=false){
   const t=selectedTournament();
-  if(!t || externalInvitationBusy)return;
+  if(!t || externalInvitationBusy || (!file && !reset))return;
+  const report=message=>{
+    if(selectedTournament()?.id===t.id)externalInvitationSaveStatus.textContent=message;
+  };
   externalInvitationBusy=true;
   updateExternalInvitationControls();
+  report(file?'PDF wird geprüft …':'Interne Vorlage wird aktiviert …');
+  let slowSaveTimer;
   try{
     if(!navigator.onLine)throw Error('Zum Speichern ist eine Internetverbindung nötig.');
     let invitation=null;
     if(file){
       await validateInvitationPdf(file);
       const path='turnierarchiv/'+t.id+'/einladung-'+crypto.randomUUID()+'.pdf';
-      await uploadBytes(storageRef(archiveStorage,path),file,{contentType:'application/pdf'});
+      report('PDF wird hochgeladen …');
+      await uploadInvitationPdf(path,file,percent=>report('PDF wird hochgeladen … '+percent+' %'));
       invitation={path,name:file.name};
     }
+    report(file?'PDF wurde hochgeladen. Die Einladung wird dem Turnier zugeordnet …':'Interne Vorlage wird aktiviert …');
+    slowSaveTimer=setTimeout(()=>report('Firebase bestätigt die Änderung noch nicht. Bitte die Verbindung prüfen.'),15000);
     await ecwArchiveUpdate(t.id,{externalInvitation:invitation});
     const latest=turniereCache.find(item=>item.id===t.id);
     if(latest)latest.externalInvitation=invitation;
     if(selectedTournament()?.id===t.id)externalInvitationFile.value='';
-    notify(invitation?'PDF als Einladung gespeichert.':'Interne Vorlage ausgewählt.');
-  }catch(error){notify('Einladung konnte nicht gespeichert werden: '+error.message,true);}
-  finally{externalInvitationBusy=false;renderDocumentPreview();updateExternalInvitationControls();}
+    report(invitation?'PDF als Einladung gespeichert.':'Interne Vorlage ausgewählt.');
+  }catch(error){
+    const code=error.code?' ('+error.code+')':'';
+    report('Einladung konnte nicht gespeichert werden'+code+': '+error.message);
+  }finally{
+    clearTimeout(slowSaveTimer);
+    externalInvitationBusy=false;
+    renderDocumentPreview();
+    updateExternalInvitationControls();
+    updateSendStatus();
+  }
 }
 externalInvitationFile.addEventListener('change',updateExternalInvitationControls);
 externalInvitationPreview.addEventListener('click',()=>openInvitationPdf(async()=>{
@@ -6617,7 +6672,7 @@ externalInvitationPreview.addEventListener('click',()=>openInvitationPdf(async()
   return file;
 }));
 externalInvitationSave.addEventListener('click',()=>saveExternalInvitation(externalInvitationFile.files[0]));
-externalInvitationReset.addEventListener('click',()=>saveExternalInvitation(null));
+externalInvitationReset.addEventListener('click',()=>saveExternalInvitation(null,true));
 function renderDocumentPreview(){
   const t=selectedTournament(),d=currentDraft();if(!t||!dokumenteGeladen||!d)return;
   const kind=document.getElementById('dDokumentArt').value;
@@ -6645,14 +6700,13 @@ function renderDocumentPreview(){
   document.getElementById('dEditor').classList.remove('hidden');updateDraftStatus();
 }
 document.getElementById('dTurnierSelect').addEventListener('change',()=>{
-  externalInvitationFile.value='';
   loadDocumentMeldungen();
   updateExternalInvitationControls();
 });
 document.getElementById('dDokumentArt').addEventListener('change',()=>{fillDocumentEditor();renderDocumentPreview();});
 document.getElementById('dEditTurnierBtn').addEventListener('click',()=>{const t=selectedTournament();if(t)openTurnier(t.id,t);});
 document.getElementById('dSaveBtn').addEventListener('click',()=>{
-  const t=selectedTournament(),d=currentDraft();if(!t||!d || imageBusy)return;
+  const t=selectedTournament(),d=currentDraft();if(!t||!d || imageBusy || currentExternalInvitation())return;
   const values={...d.values};
   saveAction(document.getElementById('dSaveBtn'),async()=>{
     await updateDoc(doc(db,'turniere',t.id),{einladungVorlage:values});
@@ -6928,7 +6982,10 @@ function updateSendStatus(){
   document.getElementById('sMailtoBtn').disabled=sendBusy||!t||!recipients.length;
   document.getElementById('sGmailBtn').disabled=sendBusy||!t||!recipients.length;
   document.getElementById('sPdfBtn').disabled=sendBusy||!t;
-  document.getElementById('sEditBtn').disabled=!t;document.getElementById('sSelectNone').disabled=!selectedRecipients.size;document.getElementById('sClearPhaseSelection').disabled=!selectedRecipients.size;
+  const editButton=document.getElementById('sEditBtn');
+  editButton.disabled=!t;
+  editButton.textContent=t?.externalInvitation?'Gespeicherte PDF ansehen':'Einladung bearbeiten / Vorschau';
+  document.getElementById('sSelectNone').disabled=!selectedRecipients.size;document.getElementById('sClearPhaseSelection').disabled=!selectedRecipients.size;
 }
 function resetSend(){currentInvitePhase=1;currentInviteCategory='Alle';selectedRecipients.clear();document.getElementById('sSearch').value='';document.getElementById('sTurnierSelect').replaceChildren(new Option('– Turnier auswählen –',''));document.getElementById('sSubject').value='';document.getElementById('sMessage').value='';document.getElementById('sFrom').value='';document.getElementById('sStatus').textContent='';renderRecipients();}
 function setSendDefaults(){const t=sendTournament();document.getElementById('sSubject').value=t?'Einladung: '+(t.name||'Turnier')+' am '+formatDatum(t.datum):'';document.getElementById('sMessage').value=t?'Liebe Sportfreunde,\n\nanbei erhaltet ihr die Einladung zu unserem '+(t.name||'Turnier')+' am '+longDate(t.datum)+'.\nWir freuen uns auf eure Anmeldung.\n\nMit sportlichen Grüßen\nEC Wegscheid':'';document.getElementById('sStatus').textContent='';updateSendStatus();}
@@ -6937,7 +6994,7 @@ document.getElementById('sSearch').addEventListener('input',renderRecipients);
 document.getElementById('sSelectAll').addEventListener('click',()=>{document.querySelectorAll('#sRecipients input').forEach(el=>selectedRecipients.add(el.value));renderRecipients();});
 document.getElementById('sSelectNone').addEventListener('click',()=>{selectedRecipients.clear();renderRecipients();});
 document.getElementById('sClearPhaseSelection').addEventListener('click',()=>{selectedRecipients.clear();renderRecipients();document.getElementById('sPhaseInfo').textContent='Alle Empfänger abgewählt. Du kannst einzelne Adressen neu auswählen.';});
-document.getElementById('sEditBtn').addEventListener('click',()=>{const t=sendTournament();if(!t)return;document.getElementById('dTurnierSelect').value=t.id;document.getElementById('dDokumentArt').value='einladung';navigate('#dokumente');});
+document.getElementById('sEditBtn').addEventListener('click',()=>{const t=sendTournament();if(!t)return;if(t.externalInvitation){openInvitationPdf(()=>readExternalInvitation(t.externalInvitation));return;}document.getElementById('dTurnierSelect').value=t.id;document.getElementById('dDokumentArt').value='einladung';navigate('#dokumente');});
 function utf8Base64(text){const bytes=new TextEncoder().encode(text);let binary='';for(const b of bytes)binary+=String.fromCharCode(b);return btoa(binary);}
 function wrapBase64(text){return text.match(/.{1,76}/g)?.join('\r\n')||'';}
 async function attachmentBase64(blob){const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return wrapBase64(btoa(binary));}
