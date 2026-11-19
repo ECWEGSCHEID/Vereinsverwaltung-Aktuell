@@ -259,6 +259,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="♙" style="flex:1" data-app-perm="mv" onclick="adminSection('mv')">Mitgliederverwaltung</button><button style="flex:none;width:44px;padding:12px 0" data-app-perm="mv" title="Vorschau öffnen" onclick="adminPreviewOpen('mv')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="♙" style="flex:1" data-app-perm="m" onclick="adminSection('m')">Mannschaften</button><button style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" onclick="adminPreviewOpen('m')">👁</button></div>
       <div class="row" style="margin-bottom:8px;gap:6px"><button data-menu-icon="▤" style="flex:1" data-app-perm="sh" onclick="adminSection('docs')">Dokumente und Drucken</button><button type="button" style="flex:none;width:44px;padding:12px 0" data-app-perm="sh" title="Anzeigemodus öffnen" aria-label="Dokumente und Drucken: Ansicht öffnen" onclick="adminPreviewOpen('docs')">👁</button></div>
+      <div class="row" style="margin-bottom:8px;gap:6px"><button type="button" data-menu-icon="⚡" data-global-admin hidden style="flex:1" onclick="openECWHallActivity()">Aktivität Halle</button><button type="button" data-global-admin hidden style="flex:none;width:44px;padding:12px 0" title="Anzeigemodus öffnen" aria-label="Aktivität Halle: Ansicht öffnen" onclick="openECWHallActivity(true)">👁</button></div>
       <div class="row" id="vsAdminMenuRow" style="margin-bottom:8px;gap:6px;display:none"><button data-menu-icon="▤" style="flex:1" data-app-perm="vs" onclick="adminSection('vs')">Versammlungen und Arbeitseinsätze</button></div>
       <div class="row" id="twAdminMenuRow" style="margin-bottom:8px;gap:6px;display:none"><button data-menu-icon="▥" style="flex:1" data-app-perm="tw" onclick="adminSection('tw')">Turnierwirtschaftlichkeit und Helfer</button></div>
       <div class="row" data-global-admin style="margin-bottom:8px;gap:6px"><button data-menu-icon="▣" style="flex:1" onclick="adminSection('reservadmin')">Reservierungssystem</button></div>
@@ -589,5 +590,19 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 <script src="systemeinstellungen.js?v=2.9.29"></script>
 <script src="js/admin-menu-design.js?v=2.9.29"></script>
 <script src="js/versammlungen-firebase.js?v=2.9.54"></script><script src="ecw-vs-teilnahmen-bridge.js?v=1"></script><script src="ecw-vs-mobile-merge.js?v=auto-2"></script><script src="ecw-vs-mobile-inbox-bridge.js?v=auto-2"></script><script src="js/ecw-technik-config.js?v=20261112-tempfix1"></script><script src="js/ecw-technik-bridge.js?v=20261112-tempfix1"></script><script src="js/ecw-temperaturen.js?v=20261116-luftfeuchte"></script><script src="js/ecw-startleiste.js?v=20261116-kalender"></script><script src="js/ecw-qr-code.js?v=1"></script><script src="js/ecw-aktivierung.js?v=1"></script><script src="ecw-smartphone-einstellungen.js?v=3.1.25.171126"></script>
+<script>
+function openECWHallActivity(preview=false){
+  if(isWhiteboardUser() || appPermissions.admin!==true || (!firebaseAuthUser && currentUser!=='admin')){
+    showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);
+    return;
+  }
+  if(preview){openExternalPage(new URL('ecw-aktivitaet-halle.html?v=3.1.45.191126&ansicht=1',location.href).href,'Aktivität Halle – Testansicht');return;}
+  window.__adminBack=null;
+  try{unloadMvAdmin()}catch(e){}
+  const a=document.getElementById('adminMain');
+  a.classList.remove('mv-mode');
+  a.innerHTML='<h2>Aktivität Halle – Testansicht</h2><iframe src="ecw-aktivitaet-halle.html?v=3.1.45.191126" title="Aktivität Halle" style="display:block;width:100%;height:78vh;min-height:480px;border:0;border-radius:10px;background:#101114"></iframe>';
+}
+</script>
 </body>
 </html>
