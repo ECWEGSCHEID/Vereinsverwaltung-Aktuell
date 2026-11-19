@@ -995,13 +995,18 @@ body.tv-preview-open{overflow:hidden!important}
 #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile:focus-visible::before,
 #druckdokumente .ecw-doc-tiles > button:focus-visible::before { filter: brightness(1.38); }
 
-/* Bildbasierte Wabe für Browser ohne CSS-Polygon. */
-@supports not ((clip-path: polygon(0 0, 100% 0, 50% 100%)) or (-webkit-clip-path: polygon(0 0, 100% 0, 50% 100%))) {
-  #startseite #shGrid.sh-whiteboard-hex > .shbtn {
-    background: transparent url("../bilder/whiteboard-wabe.svg") center / 100% 100% no-repeat;
-    box-shadow: none;
-  }
-  #startseite #shGrid.sh-whiteboard-hex > .shbtn::before { content: none; }
+/* Die SVG-Wabe garantiert die Form auch auf Whiteboard-Browsern,
+   die CSS-Polygone melden, aber nicht richtig zeichnen. */
+#startseite #shGrid.sh-whiteboard-hex > .shbtn {
+  background: transparent url("../bilder/whiteboard-wabe.svg") center / 100% 100% no-repeat;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+}
+#startseite #shGrid.sh-whiteboard-hex > .shbtn::before { content: none; }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:not(.app-disabled):hover,
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:not(.app-disabled):focus-visible {
+  filter: brightness(1.14);
 }
 
 @media (min-width: 1000px) and (min-aspect-ratio: 8/5), (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
