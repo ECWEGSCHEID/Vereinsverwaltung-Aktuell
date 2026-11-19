@@ -4855,7 +4855,7 @@ async function tpGoogleToken(){
   const cfg=tpCalendarSettings();if(!cfg.clientId)throw new Error('Keine Google Client-ID eingetragen');
   await tpLoadGis();
   return new Promise((res,rej)=>{
-    google.accounts.oauth2.initTokenClient({client_id:cfg.clientId,scope:'https://www.googleapis.com/auth/calendar.events',
+    google.accounts.oauth2.initTokenClient({client_id:cfg.clientId,scope:'https://www.googleapis.com/auth/calendar.events',prompt:'',
       callback:r=>{if(r.error)return rej(new Error(r.error_description||r.error));tpGToken=r.access_token;tpGTokenExp=Date.now()+(Number(r.expires_in)||3000)*1000-60000;res(tpGToken)},
       error_callback:e=>rej(new Error(e&&e.type==='popup_closed'?'Anmeldung abgebrochen':(e&&e.type)||'Anmeldung fehlgeschlagen'))
     }).requestAccessToken();
