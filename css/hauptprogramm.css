@@ -997,15 +997,31 @@ body.tv-preview-open{overflow:hidden!important}
 
 /* Die SVG-Wabe garantiert die Form auch auf Whiteboard-Browsern,
    die CSS-Polygone melden, aber nicht richtig zeichnen. */
-#startseite #shGrid.sh-whiteboard-hex > .shbtn {
+#startseite #shGrid.sh-whiteboard-hex > .shbtn,
+#teamsGrid .team-group-grid > .gbtn,
+#ecwResultsDialog .er-public-grid > .er-tile,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile,
+#druckdokumente .ecw-doc-tiles > button {
   background: transparent url("../bilder/whiteboard-wabe.svg") center / 100% 100% no-repeat;
   box-shadow: none;
   border: 0;
   border-radius: 0;
 }
-#startseite #shGrid.sh-whiteboard-hex > .shbtn::before { content: none; }
+#startseite #shGrid.sh-whiteboard-hex > .shbtn::before,
+#teamsGrid .team-group-grid > .gbtn::before,
+#ecwResultsDialog .er-public-grid > .er-tile::before,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile::before,
+#druckdokumente .ecw-doc-tiles > button::before { content: none; }
 #startseite #shGrid.sh-whiteboard-hex > .shbtn:not(.app-disabled):hover,
-#startseite #shGrid.sh-whiteboard-hex > .shbtn:not(.app-disabled):focus-visible {
+#startseite #shGrid.sh-whiteboard-hex > .shbtn:not(.app-disabled):focus-visible,
+#teamsGrid .team-group-grid > .gbtn:not(.app-disabled):hover,
+#teamsGrid .team-group-grid > .gbtn:not(.app-disabled):focus-visible,
+#ecwResultsDialog .er-public-grid > .er-tile:not(.app-disabled):hover,
+#ecwResultsDialog .er-public-grid > .er-tile:not(.app-disabled):focus-visible,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile:not(.app-disabled):hover,
+#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile:not(.app-disabled):focus-visible,
+#druckdokumente .ecw-doc-tiles > button:not(.app-disabled):hover,
+#druckdokumente .ecw-doc-tiles > button:not(.app-disabled):focus-visible {
   filter: brightness(1.14);
 }
 
