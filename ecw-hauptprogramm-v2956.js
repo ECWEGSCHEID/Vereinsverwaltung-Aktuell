@@ -373,6 +373,7 @@ initFirebaseInfo();
 if(firebaseReady&&window.firebaseAuth){
  window.firebaseAuth.onAuthStateChanged(async user=>{
    firebaseAuthUser=user||null; window.firebaseAuthUser=firebaseAuthUser;
+   updateStartLoginStatus(firebaseAuthUser);
    if(window.__ecwVerifiedResultUid!==firebaseAuthUser?.uid){
      window.__ecwVerifiedResultUid=null;
      window.__ecwVerifiedWhiteboardUid=null;
@@ -903,7 +904,7 @@ function loadAppPermissions(user){
 }
 async function readAppPermissions(user){
   appPermissions={};
-  if(!user||!firestoreDb){window.appPermissions=appPermissions;applyAppPermissionsUI();return;}
+  if(!user||!firestoreDb){window.appPermissions=appPermissions;updateStartLoginStatus(user);applyAppPermissionsUI();return;}
   try{
     const ref=firestoreDb.collection('users').doc(user.uid);
     const snap=await ref.get();
@@ -916,7 +917,9 @@ async function readAppPermissions(user){
     }else appPermissions=snap.data()||{};
     if(appPermissions.admin)Object.keys(APP_PERMISSIONS).forEach(k=>appPermissions[k]=true);
   }catch(e){console.error('Berechtigungen konnten nicht geladen werden:',e);showToast('Berechtigungen konnten nicht geladen werden',5000)}
-  window.appPermissions=appPermissions;applyAppPermissionsUI();
+  window.appPermissions=appPermissions;
+  if(firebaseAuthUser?.uid===user.uid)updateStartLoginStatus(user,appPermissions);
+  applyAppPermissionsUI();
   // Only after the permissions have been loaded can the design configuration
   // be read reliably; otherwise an arbitrary timer may miss the admin login.
   if(appPermissions.admin===true && typeof ECWConfig!=='undefined'){
@@ -933,6 +936,22 @@ function hasAppPermission(k){
 const WHITEBOARD_KIOSK_EMAIL='informationssystem@ec-wegscheid.de';
 function isWhiteboardKioskAccount(){
  return String(firebaseAuthUser?.email||'').toLowerCase()===WHITEBOARD_KIOSK_EMAIL;
+}
+function updateStartLoginStatus(user,profile){
+ const value=document.getElementById('ecwHomeLoginName');
+ if(!value)return;
+ let name='Nicht angemeldet';
+ if(user){
+   if(String(user.email||'').toLowerCase()===WHITEBOARD_KIOSK_EMAIL)name='Informationssystem';
+   else {
+     const profileName=String(profile?.name||'').trim();
+     const authName=String(user.displayName||'').trim();
+     const fallback=String(user.email||'').split('@')[0].trim();
+     name=profileName||authName||(profile?.admin===true?'Administrator':fallback)||'Benutzer';
+   }
+ }
+ value.textContent=name;
+ value.parentElement.title=user?'Angemeldet als: '+name:'Nicht angemeldet';
 }
 function updateWhiteboardKioskUI(){
  const publicWb=isPublicWhiteboardMode();
