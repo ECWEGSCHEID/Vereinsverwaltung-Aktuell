@@ -947,7 +947,7 @@ function updateStartLoginStatus(user,profile){
      const profileName=String(profile?.name||'').trim();
      const authName=String(user.displayName||'').trim();
      const fallback=String(user.email||'').split('@')[0].trim();
-     name=profileName||authName||(profile?.admin===true?'Administrator':fallback)||'Benutzer';
+     name=profile?.admin===true?'Admin':(profileName||authName||fallback||'Benutzer');
    }
  }
  value.textContent=name;
