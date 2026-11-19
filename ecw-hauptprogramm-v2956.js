@@ -2789,7 +2789,8 @@ async function ecwVerifyResultUser(){
  }catch(e){window.__ecwVerifiedWhiteboardUid=null;console.error('Ergebnis-Berechtigung:',e);return false;}
 }
 function isWhiteboardReservationLink(value){
- if(!(isWhiteboardUser()||isWhiteboardKioskAccount()))return false;
+ // Auch der angemeldete Administrator nutzt dieselbe zentrale Buchungsansicht.
+ if(!(isWhiteboardUser()||isWhiteboardKioskAccount()||(firebaseAuthUser&&appPermissions.admin===true)))return false;
  const url=new URL(value,location.href);
  if(url.origin==='https://ecwegscheid.github.io' &&
     /^\/Reservierungssystem(?:\/index\.html|\/)?$/i.test(url.pathname))return true;
@@ -2864,7 +2865,7 @@ async function openExternalPage(value,title){
    frameUrl=reservationUrl.href;
  }
  if (isWhiteboardReservationLink(url)) {
-   frameUrl = new URL('reservierung-smartphone-test.html?v=3.1.38.181126&ansicht=whiteboard', location.href).href;
+   frameUrl = new URL('reservierung-smartphone-test.html?v='+encodeURIComponent(APP_RELEASE)+'&ansicht=whiteboard', location.href).href;
    page?.classList.add('ecw-reservation-embed');
  }
  // V2.5.2: Ein zentraler Aufruf fuer Startseite UND Verwaltung.
