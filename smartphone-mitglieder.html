@@ -610,6 +610,59 @@ function resultTableCopy(source, championship) {
   return table;
 }
 
+// Read the same standings as the whiteboard using the existing member session.
+function championshipRows(players) {
+  const rows = players.map(p => {
+    const rounds = Array.from({length: 6}, (_, i) => {
+      const round = p.r?.[i];
+      if (!round) return 0;
+      const scores = Array.isArray(round) ? round : round.__ecwNestedArrayV1;
+      if (!Array.isArray(scores) || !scores.every(Number.isFinite)) throw new Error('Ungültiges Ergebnis');
+      return scores.reduce((a, b) => a + b, 0);
+    });
+    const total = rounds.reduce((a, b) => a + b, 0);
+    const drop = Math.min(...rounds);
+    return {name: p.n, total, drop, result: total - drop};
+  }).sort((a, b) => b.result - a.result);
+  let rank = 0, previous = null;
+  rows.forEach((row, index) => {
+    if (row.result !== previous) rank = index + 1;
+    row.rank = rank;
+    previous = row.result;
+  });
+  return rows;
+}
+
+async function readChampionship(signal) {
+  const uid = auth.currentUser?.uid;
+  if (!uid || signal.aborted) return;
+  const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
+  if (signal.aborted || auth.currentUser?.uid !== uid) return;
+  const snapshot = await getDocFromServer(doc(getFirestore(app), 'turnierauswertung', 'jahresmeisterschaft'));
+  if (signal.aborted || auth.currentUser?.uid !== uid) return;
+  const players = snapshot.data()?.state?.players;
+  if (!Array.isArray(players)) throw new Error('Keine Daten');
+  const rows = championshipRows(players);
+  const table = document.createElement('table');
+  table.setAttribute('aria-labelledby', 'result-heading');
+  const header = table.createTHead().insertRow();
+  for (const label of ['Platz', 'Schütze', 'Gesamt', 'Streichresultat', 'Endergebnis']) {
+    const cell = document.createElement('th');
+    cell.scope = 'col';
+    cell.textContent = label;
+    header.append(cell);
+  }
+  const body = table.createTBody();
+  for (const row of rows) {
+    const tr = body.insertRow();
+    for (const value of [row.rank, row.name, row.total, row.drop, row.result]) {
+      tr.insertCell().textContent = value;
+    }
+  }
+  resultTable.replaceChildren(table);
+  resultStatus.textContent = rows.length ? '' : 'Keine Ergebnisse vorhanden.';
+}
+
 async function readResults(signal, championship) {
   let championshipLoaded = false;
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -648,7 +701,7 @@ function closeResults() {
   resultTable.replaceChildren();
 }
 
-function showModule(title, url, readOnly = false, embeddedPage = false, cupMode = '') {
+function showModule(title, url, readOnly = false, embeddedPage = false, cupMode = '', championship = false) {
   menu.hidden = true;
   detail.hidden = true;
   closeResults();
@@ -667,7 +720,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
     moduleFrame.removeAttribute('sandbox');
     moduleExternal.href = url;
   }
-  if (cupMode) moduleFrame.removeAttribute('src');
+  if (cupMode || championship) moduleFrame.removeAttribute('src');
   else moduleFrame.src = url;
   modulePanel.hidden = false;
   if (!readOnly) moduleBack.focus();
@@ -676,7 +729,7 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
     const {signal} = resultRequest;
     const pending = cupMode
       ? window.ecwRenderCupResults({content: resultTable, status: resultStatus, mode: cupMode, signal, controlsHost: cupControls, preloaded: cupData})
-      : readResults(signal, url.searchParams.get('seite') === 'jahresmeisterschaft');
+      : championship ? readChampionship(signal) : readResults(signal, false);
     pending
       .catch(() => {
         if (!signal.aborted) resultStatus.textContent = 'Die Tabelle konnte nicht geladen werden oder ist für dieses Konto nicht freigegeben.';
@@ -702,6 +755,8 @@ function selectResult(button) {
   const title = button.textContent;
   if (cup) {
     showModule(title, null, true, false, cup);
+  } else if (result === 'jahresmeisterschaft') {
+    showModule(title, null, true, false, '', true);
   } else {
     const url = new URL('turnierauswertung.html?v=3.1.25.171126&mode=mobile-results&seite=' + result, administrationUrl);
     showModule(title, url, true);
