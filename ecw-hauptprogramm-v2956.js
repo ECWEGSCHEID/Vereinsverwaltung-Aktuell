@@ -3049,7 +3049,7 @@ function showView(id){
    // Der Sprung "Aktueller Termin" ist ausschließlich eine bewusste
    // Benutzeraktion über tpOpenTournamentPlannerView().
    renderTournamentPlanner();
-   if(!centralFirebaseReady)tpRefreshFromFirebase(false)
+   tpRefreshFromFirebase(false)
      .then(ok=>{if(ok && document.getElementById('tournamentPlanner')?.classList.contains('active'))requestAnimationFrame(()=>tpScrollToCurrentEntry());})
      .catch(e=>console.error('Turnierplaner aktualisieren:',e));
  }
@@ -4693,8 +4693,8 @@ function renderTournamentPlanner(){
   const previousListScrollTop=el.scrollTop;
   const compact=window.matchMedia('(max-width:1100px), (orientation:portrait) and (max-width:1400px), (pointer:coarse) and (max-width:1366px)').matches;
   const expandedParticipants=new Set(Array.from(
-    el.querySelectorAll('.tp-card:has(.tp-participants[open])'),
-    card=>card.dataset.tpId
+    el.querySelectorAll('.tp-card .tp-participants[open]'),
+    details=>details.closest('.tp-card').dataset.tpId
   ));
 
   const loginNote=document.getElementById('tpLoginNote');
@@ -5738,8 +5738,11 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
   }
 }
 let tpPlannerLoadedFromCache=false;
-async function loadTournamentPlannerFromFirebase(forceServer=false){
-  if(!firebaseReady||!firestoreDb||(!firebaseAuthUser&&!isPublicWhiteboardMode()))return false;
+async function loadTournamentPlannerFromFirebase(forceServer=false, reportError=false){
+  if(!firebaseReady||!firestoreDb||(!firebaseAuthUser&&!isPublicWhiteboardMode())){
+    if(reportError)throw new Error('Firebase-Verbindung oder Anmeldung noch nicht bereit.');
+    return false;
+  }
   try{
     let snap;
     if(forceServer){
@@ -5768,6 +5771,7 @@ async function loadTournamentPlannerFromFirebase(forceServer=false){
     return true;
   }catch(e){
     console.warn('Firebase Turnierplaner:',e);
+    if(reportError)throw e;
     return false;
   }
 }
@@ -5779,7 +5783,7 @@ async function tpRefreshFromFirebase(showMessage=true){
   if(btn)btn.disabled=true;
   if(status)status.textContent='Turnierliste wird frisch aus Firebase geladen …';
   try{
-    const ok=await loadTournamentPlannerFromFirebase(true);
+    const ok=await loadTournamentPlannerFromFirebase(true,true);
     if(ok){
       renderTournamentPlanner();
       requestAnimationFrame(()=>{
@@ -5792,6 +5796,12 @@ async function tpRefreshFromFirebase(showMessage=true){
     }
     if(status)status.textContent='Termine konnten nicht geladen werden. Bitte Verbindung prüfen und erneut aktualisieren.';
     if(showMessage)showToast('Firebase-Laden fehlgeschlagen',5000);
+    return false;
+  }catch(error){
+    console.error('Terminplaner aktualisieren:',error);
+    const reason=error.code==='permission-denied'?'Keine Leseberechtigung für Termine.':String(error.message||error);
+    if(status)status.textContent='Terminplaner: '+reason;
+    if(showMessage)showToast(reason,5000);
     return false;
   }finally{
     if(btn)btn.disabled=false;
