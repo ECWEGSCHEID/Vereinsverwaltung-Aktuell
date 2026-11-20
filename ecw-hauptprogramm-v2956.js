@@ -534,9 +534,48 @@ function centralSetStatus(text,ok=true){
   setFirebaseStatus(text,ok);
 }
 
-function centralServerGet(collection){
-  const ref=firestoreDb.collection(collection);
-  return ref.get({source:'server'}).catch(()=>ref.get());
+function firestoreRestValue(value){
+  if('nullValue' in value)return null;
+  for(const key of ['stringValue','booleanValue','timestampValue','referenceValue','bytesValue'])if(key in value)return value[key];
+  for(const key of ['integerValue','doubleValue'])if(key in value)return Number(value[key]);
+  if(value.arrayValue)return (value.arrayValue.values||[]).map(firestoreRestValue);
+  if(value.mapValue)return firestoreRestFields(value.mapValue.fields||{});
+  if(value.geoPointValue)return value.geoPointValue;
+  return null;
+}
+function firestoreRestFields(fields){
+  return Object.fromEntries(Object.entries(fields).map(([key,value])=>[key,firestoreRestValue(value)]));
+}
+async function firestoreRestCollection(collection){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),20000);
+  try{
+    // Use the same Firebase user and security rules as the SDK; never a privileged key.
+    const user=firebaseAuth?.currentUser||null;
+    const token=user?await fbTimeout(user.getIdToken(),8000,'Anmeldung prüfen'):null;
+    const docs=[];
+    let pageToken='';
+    do{
+      const url=new URL('https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(firebaseConfig.projectId)+'/databases/(default)/documents/'+encodeURIComponent(collection));
+      url.searchParams.set('key',firebaseConfig.apiKey);
+      url.searchParams.set('pageSize','100');
+      if(pageToken)url.searchParams.set('pageToken',pageToken);
+      const response=await fetch(url,{signal:controller.signal,headers:token?{Authorization:'Bearer '+token}:{},cache:'no-store'});
+      const body=await response.json();
+      if(!response.ok){const error=new Error(body.error?.message||'Serverabruf fehlgeschlagen');error.code=response.status===403?'permission-denied':response.status===401?'unauthenticated':'unavailable';throw error;}
+      if((firebaseAuth?.currentUser?.uid||null)!==(user?.uid||null))throw new Error('Anmeldung wurde geändert.');
+      for(const item of body.documents||[]){const fields=firestoreRestFields(item.fields||{});docs.push({id:item.name.split('/').pop(),data:()=>fields});}
+      pageToken=body.nextPageToken||'';
+    }while(pageToken);
+    return {docs,size:docs.length,empty:docs.length===0,metadata:{fromCache:false},forEach:fn=>docs.forEach(fn)};
+  }finally{clearTimeout(timer);}
+}
+async function centralServerGet(collection){
+  try{return await fbTimeout(firestoreDb.collection(collection).get({source:'server'}),6000,'Vereinsdaten laden');}
+  catch(error){
+    if(['permission-denied','unauthenticated'].includes(error.code))throw error;
+    return firestoreRestCollection(collection);
+  }
 }
 
 function centralApplyTournamentInvitations(snap,own=false){
@@ -3281,7 +3320,7 @@ async function refreshInvitationOverview(){
  box.prepend(notice);
  try{
    if(!firestoreDb)throw new Error('Firebase-Verbindung noch nicht bereit.');
-   const snap=await fbTimeout(firestoreDb.collection('tournamentInvitations').get({source:'server'}),15000,'Einladungen laden');
+   const snap=await centralServerGet('tournamentInvitations');
    centralApplyTournamentInvitations(snap,false);
  }catch(error){
    if(tCollection!=='tournaments'||!document.getElementById('tournamentMonths')?.classList.contains('active'))return;
@@ -5774,7 +5813,7 @@ async function loadTournamentPlannerFromFirebase(forceServer=false, reportError=
   try{
     let snap;
     if(forceServer){
-      try{snap=await fbTimeout(firestoreDb.collection('tournamentPlanner').get({source:'server'}),12000,'Turnierliste laden');}
+      try{snap=await centralServerGet('tournamentPlanner');}
       catch(serverErr){
         console.warn('Firebase Server-Abruf nicht möglich, Fallback:',serverErr);
         snap=await fbTimeout(firestoreDb.collection('tournamentPlanner').get({source:'cache'}),3000,'Turnierliste aus Zwischenspeicher laden');
