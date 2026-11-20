@@ -2582,7 +2582,12 @@ function updateWhiteboardScreenControls(){
 }
 async function startWhiteboardFullscreen(){await enterPresentationFullscreen();updateWhiteboardScreenControls();}
 document.addEventListener('fullscreenchange',updateWhiteboardScreenControls);
-document.addEventListener('pointerdown',event=>{if(event.target.closest?.('a[target="_blank"]'))return;if(isWhiteboardUser()&&!document.fullscreenElement)enterPresentationFullscreen();},{capture:true});
+// Erst den Klick des Menüpunkts vollständig ausführen lassen. Ein Vollbildwechsel
+// bei pointerdown verändert die Touch-Zielposition und kann den Klick verschlucken.
+document.addEventListener('click',event=>{
+ if(event.target.closest?.('a[target="_blank"]'))return;
+ if(isWhiteboardUser()&&!document.fullscreenElement&&!document.webkitFullscreenElement)enterPresentationFullscreen();
+});
 
 let externalLinkPreferences={};
 function shouldEmbedExternal(value,title){

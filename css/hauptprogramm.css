@@ -241,7 +241,7 @@ transition:transform .18s,box-shadow .18s,background .18s}
 #shGrid{left:5vw;right:5vw;top:17%;grid-template-columns:repeat(2,minmax(0,1fr))}
 .shbtn{border-radius:calc(var(--u)*4)}}
 #startseite{padding:0;background:#120507}#shStage{z-index:1}#shGear,#shFs{z-index:5}
-.thumb button.rot{top:auto;bottom:4px;right:auto;left:4px}.thumb button.rot2{top:auto;bottom:4px;right:4px}.thumb button.rot3{top:auto;bottom:4px;right:36px}body:has(#startseite.active) #appVersion{display:none}
+.thumb button.rot{top:auto;bottom:4px;right:auto;left:4px}.thumb button.rot2{top:auto;bottom:4px;right:4px}.thumb button.rot3{top:auto;bottom:4px;right:36px}
 .sh-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px;margin-bottom:8px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04)}.sh-row .in{display:grid;gap:6px}.sh-row .acts{display:flex;flex-direction:column;gap:4px}.sh-row textarea{min-height:44px}.sh-sub{margin:-2px 0 12px 22px;padding-left:10px;border-left:3px solid #b40000}.sh-sub .sh-row{margin-bottom:6px}.sh-row button{padding:4px 10px}
 /* --- Turnierverwaltung (Verwaltungsmodus) --- */
 #tvRoot button{color:#222;box-shadow:none}
