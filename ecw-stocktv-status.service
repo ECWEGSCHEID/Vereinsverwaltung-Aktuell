@@ -1,0 +1,12 @@
+[Unit]
+Description=EC Wegscheid StockTV Netzwerkstatus
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=administrator
+WorkingDirectory=/home/administrator
+ExecStart=/usr/bin/python3 /home/administrator/ecw_stocktv_status.py --publish
+UMask=0077
+PrivateTmp=true
