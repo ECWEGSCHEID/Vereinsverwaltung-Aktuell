@@ -1002,7 +1002,7 @@ body.tv-preview-open{overflow:hidden!important}
 #ecwResultsDialog .er-public-grid > .er-tile,
 #ecwUtilityDialog .utility-hex-grid > .utility-hex-tile,
 #druckdokumente .ecw-doc-tiles > button {
-  background: transparent url("../bilder/whiteboard-wabe.svg") center / 100% 100% no-repeat;
+  background: transparent url("../bilder/whiteboard-wabe.svg?v=3.1.47.201126") center / 100% 100% no-repeat;
   box-shadow: none;
   border: 0;
   border-radius: 0;
