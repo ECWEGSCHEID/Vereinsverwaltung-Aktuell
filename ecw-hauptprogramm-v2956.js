@@ -3276,6 +3276,8 @@ async function refreshInvitationOverview(){
  const notice=document.createElement('p');
  notice.setAttribute('role','status');
  notice.textContent='Einladungen werden vom Server geladen …';
+ if(!Object.values(data.tournaments||{}).some(month=>Array.isArray(month)&&month.some(Boolean)))box.replaceChildren();
+ notice.style.gridColumn='1 / -1';
  box.prepend(notice);
  try{
    if(!firestoreDb)throw new Error('Firebase-Verbindung noch nicht bereit.');
@@ -3287,7 +3289,7 @@ async function refreshInvitationOverview(){
    retry.type='button';
    retry.textContent='Erneut laden';
    retry.onclick=()=>{notice.remove();void refreshInvitationOverview();};
-   notice.textContent='Einladungen konnten nicht abgerufen werden. '+(error.code||error.message||'Verbindung prüfen')+' ';
+   notice.textContent=error.code==='timeout'?'Der Server hat noch nicht geantwortet. ':'Einladungen konnten nicht abgerufen werden. '+(error.code||error.message||'Verbindung prüfen')+' ';
    notice.append(retry);
    box.prepend(notice);
  }
