@@ -661,6 +661,7 @@ function tpPatchVisiblePlannerValues(){
 }
 
 function centralApplyTournamentPlanner(snap){
+  if(snap.metadata?.fromCache && snap.empty)return;
   const previousList=Array.isArray(data.tournamentPlanner)?data.tournamentPlanner:[];
   const previousStructure=tpPlannerStructureSignature(previousList);
 
@@ -5736,19 +5737,24 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
     return {ok:false,error};
   }
 }
+let tpPlannerLoadedFromCache=false;
 async function loadTournamentPlannerFromFirebase(forceServer=false){
   if(!firebaseReady||!firestoreDb||(!firebaseAuthUser&&!isPublicWhiteboardMode()))return false;
   try{
     let snap;
     if(forceServer){
-      try{snap=await firestoreDb.collection('tournamentPlanner').get({source:'server'});}
+      try{snap=await fbTimeout(firestoreDb.collection('tournamentPlanner').get({source:'server'}),12000,'Turnierliste laden');}
       catch(serverErr){
         console.warn('Firebase Server-Abruf nicht möglich, Fallback:',serverErr);
-        snap=await firestoreDb.collection('tournamentPlanner').get();
+        snap=await fbTimeout(firestoreDb.collection('tournamentPlanner').get({source:'cache'}),3000,'Turnierliste aus Zwischenspeicher laden');
+        // Ein leerer Cache bestätigt keine leere Datenbank. Vorhandene Termine behalten.
+        if(snap.empty)throw serverErr;
       }
     }else{
-      snap=await firestoreDb.collection('tournamentPlanner').get();
+      snap=await fbTimeout(firestoreDb.collection('tournamentPlanner').get(),15000,'Turnierliste laden');
     }
+    if(snap.metadata?.fromCache && snap.empty)return false;
+    tpPlannerLoadedFromCache=!!snap.metadata?.fromCache;
     const list=[];
     snap.forEach(doc=>{const x=doc.data()||{};list.push({
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
@@ -5780,11 +5786,11 @@ async function tpRefreshFromFirebase(showMessage=true){
         const list=tpPlannerListEl();
         if(list)list.scrollTop=keepListScrollTop;
       });
-      if(status)status.textContent='✓ Turnierliste aktuell · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-      if(showMessage)showToast('Turnierliste aus Firebase aktualisiert ✓',3000);
+      if(status)status.textContent=tpPlannerLoadedFromCache?'Offline · gespeicherte Turnierliste angezeigt. Bitte erneut aktualisieren.':'✓ Turnierliste aktuell · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      if(showMessage)showToast(tpPlannerLoadedFromCache?'Gespeicherte Turnierliste angezeigt – Server nicht erreichbar.':'Turnierliste aus Firebase aktualisiert ✓',3000);
       return true;
     }
-    if(status)status.textContent='Turnierliste konnte nicht aus Firebase geladen werden.';
+    if(status)status.textContent='Termine konnten nicht geladen werden. Bitte Verbindung prüfen und erneut aktualisieren.';
     if(showMessage)showToast('Firebase-Laden fehlgeschlagen',5000);
     return false;
   }finally{
@@ -7593,17 +7599,8 @@ async function autoLoadPublicFirebaseDataV1245(){
   };
   const loadTP=async()=>{
     try{
-      const snap=await firestoreDb.collection('tournamentPlanner').get();
-      const list=[];
-      snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')})});
-      if(snap.size && currentUser!=='admin'){
-        data.tournamentPlanner=list;
-        save();
-        if(document.getElementById('tournamentPlanner')?.classList.contains('active')){
-          tpPatchVisiblePlannerValues();
-          if(tpWhiteboardEditHoldActive())tpKeepWhiteboardEditPosition();
-        }
-      }
+      const snap=await fbTimeout(firestoreDb.collection('tournamentPlanner').get(),15000,'Turnierliste laden');
+      if(currentUser!=='admin' && !(snap.metadata?.fromCache && snap.empty))centralApplyTournamentPlanner(snap);
     }catch(e){console.warn('Firebase Turnierplaner:',e);}
   };
   // Parallel laden, damit ein großer Foto-Datensatz die Navigation nicht blockiert.
@@ -7659,7 +7656,7 @@ async function publicWhiteboardBootstrap(){
     noticeShown=true;
     showToast('Vereinsdaten sind gerade nicht erreichbar. Die Navigation bleibt verfügbar.',7000);
   };
-  const noticeTimer=setTimeout(notifyUnavailable,8000);
+  const noticeTimer=setTimeout(notifyUnavailable,20000);
 
   try{
     if(!await ecwWaitForFirebasePublic())throw new Error('Firebase konnte nicht initialisiert werden');
@@ -7703,15 +7700,6 @@ async function publicWhiteboardBootstrap(){
 
     // Inhalte nachladen, ohne Navigation oder Direktaufrufe abzuwarten.
     window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();
-    await Promise.allSettled([
-      centralLoadNavigation(),
-      loadExternalLinkPreferences(),
-      window.__publicLoadPromise,
-      firestoreDb.collection('teams').get().then(snap=>centralApplyTeams(snap)),
-      tpLoadEvalExclusions(),
-      tpLoadNameAliases()
-    ]);
-
     watch(firestoreDb.collection('tournamentPlanner'),'Turnierplaner',centralApplyTournamentPlanner);
     watch(firestoreDb.collection('tournamentInvitations'),'Turniereinladungen',s=>centralApplyTournamentInvitations(s,false));
     watch(firestoreDb.collection('ownTournamentInvitations'),'Eigene Turniere',s=>centralApplyTournamentInvitations(s,true));
@@ -7738,6 +7726,16 @@ async function publicWhiteboardBootstrap(){
       }
       try{shRender()}catch(e){}
     });
+
+    await Promise.allSettled([
+      centralLoadNavigation(),
+      loadExternalLinkPreferences(),
+      window.__publicLoadPromise,
+      firestoreDb.collection('teams').get().then(snap=>centralApplyTeams(snap)),
+      tpLoadEvalExclusions(),
+      tpLoadNameAliases()
+    ]);
+
 
     return true;
   }catch(e){
