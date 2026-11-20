@@ -540,6 +540,7 @@ function centralServerGet(collection){
 }
 
 function centralApplyTournamentInvitations(snap,own=false){
+  if(snap.empty&&snap.metadata?.fromCache)return;
   const obj={};
   snap.forEach(doc=>{
     const x=doc.data()||{};
@@ -3023,7 +3024,10 @@ function showView(id){
    leavePresentationFullscreen();
  }
  if(['tournamentMonths','tournaments'].includes(id))updateTournamentTitles();
- if(id==='tournamentMonths')renderTournamentMonthOverview();
+ if(id==='tournamentMonths'){
+   renderTournamentMonthOverview();
+   if(tCollection==='tournaments')void refreshInvitationOverview();
+ }
  if(id==='tournaments'){hydrateMedia().then(()=>initTournaments()).catch(()=>initTournaments());}
  if(id==='news')renderNews();
  if(id==='startseite')shRender();
@@ -3265,6 +3269,28 @@ function presentationTournamentMonths(){
  if(tCollection!=='tournaments')return existingMonths();
  const st=tStore();
  return Object.keys(st).filter(k=>(st[k]||[]).some(tournamentInvitationVisible)).sort();
+}
+async function refreshInvitationOverview(){
+ const box=document.getElementById('tMonthOverview');
+ if(!box)return;
+ const notice=document.createElement('p');
+ notice.setAttribute('role','status');
+ notice.textContent='Einladungen werden vom Server geladen …';
+ box.prepend(notice);
+ try{
+   if(!firestoreDb)throw new Error('Firebase-Verbindung noch nicht bereit.');
+   const snap=await fbTimeout(firestoreDb.collection('tournamentInvitations').get({source:'server'}),15000,'Einladungen laden');
+   centralApplyTournamentInvitations(snap,false);
+ }catch(error){
+   if(tCollection!=='tournaments'||!document.getElementById('tournamentMonths')?.classList.contains('active'))return;
+   const retry=document.createElement('button');
+   retry.type='button';
+   retry.textContent='Erneut laden';
+   retry.onclick=()=>{notice.remove();void refreshInvitationOverview();};
+   notice.textContent='Einladungen konnten nicht abgerufen werden. '+(error.code||error.message||'Verbindung prüfen')+' ';
+   notice.append(retry);
+   box.prepend(notice);
+ }
 }
 function renderTournamentMonthOverview(){
  const el=document.getElementById('tMonthOverview');if(!el)return;
