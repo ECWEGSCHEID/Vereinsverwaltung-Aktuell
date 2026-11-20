@@ -671,7 +671,7 @@ function centralApplyTournamentPlanner(snap){
       ...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
-      location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,
+      location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,
       calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')
     });
   });
@@ -3718,6 +3718,7 @@ function tpUpdateFormPlayerState(){
   const reported=document.getElementById('tpReportedBy');
   if(reported){reported.disabled=!enabled;if(!enabled)reported.value='';}
   [0,1,2,3].forEach(i=>{const el=document.getElementById('tpPlayer'+i);if(el){el.disabled=!enabled;if(!enabled)el.value='';}});
+  tpRefreshContestForm();
 }
 function tpAddNewType(){
   const raw=(prompt('Neue Veranstaltungsart eingeben:')||'').trim();
@@ -4324,7 +4325,7 @@ function tpOpenWhiteboardPlayerPicker(id,field,idx,currentValue){
     grid.appendChild(clear);
 
     const names=tpPlayers()
-      .filter(Boolean)
+      .filter(n=>n&&(field!=='players'||tpEligiblePlayer(n,tpFindEvent(id)?.type,tpFindEvent(id)?.contestClass,tpFindEvent(id)?.players||[],idx)))
       .slice()
       .sort((a,b)=>String(a).localeCompare(String(b),'de'));
 
@@ -4417,9 +4418,40 @@ function tpPlayers(includeInactive=false){
   const inactive=tpInactivePlayerNames();
   return names.filter(n=>includeInactive||!inactive.has(n)).sort((a,b)=>a.localeCompare(b,'de'));
 }
-function tpPlayerOptionsHtml(selected){
+function tpContestClasses(type){return tpCanonicalType(type)==='Turnier'?['Herren','Damen','Mixed','Duo','Duo Mixed']:tpCanonicalType(type)==='Meisterschaft'?['Herren','Damen','Mixed']:[]}
+function tpGenderMap(){return data.tournamentPlannerPlayerGenders||(data.tournamentPlannerPlayerGenders={});}
+function tpGender(name){const n=tpResolvePlayerName(name);return tpGenderMap()[n]||Object.keys(tpGenderMap()).map(k=>tpResolvePlayerName(k)===n?tpGenderMap()[k]:'').find(Boolean)||'';}
+function tpContestSlots(c){return c==='Duo'||c==='Duo Mixed'?2:4;}
+function tpEligiblePlayer(name,type,c,players=[],idx=0){
+ if(!name||!c)return true;
+ name=tpResolvePlayerName(name);
+ if(idx>=tpContestSlots(c))return false;
+ const others=players.filter((_,i)=>i!==idx).map(tpResolvePlayerName).filter(Boolean);
+ if(name!=='X'&&others.includes(name))return false;
+ if(c==='Herren'&&tpCanonicalType(type)==='Turnier'||c==='Duo')return true;
+ const g=tpGender(name);
+ if(c==='Damen')return g==='Dame';
+ if(c==='Herren')return g==='Herr';
+ if(c==='Mixed'||c==='Duo Mixed')return (g==='Herr'||g==='Dame')&&others.filter(n=>tpGender(n)===g).length<(c==='Mixed'?2:1);
+ return true;
+}
+function tpContestOptions(type,selected){return '<option value="">– auswählen –</option>'+tpContestClasses(type).map(c=>'<option value="'+esc(c)+'" '+(c===selected?'selected':'')+'>'+esc(c)+'</option>').join('');}
+function tpRefreshContestForm(){
+ const type=document.getElementById('tpType')?.value||'',sel=document.getElementById('tpContestClass'),row=document.getElementById('tpContestRow');if(!sel||!row)return;
+ const current=sel.value,classes=tpContestClasses(type);row.hidden=!classes.length;sel.required=!!classes.length;sel.innerHTML=tpContestOptions(type,current);
+ const c=sel.value,players=[0,1,2,3].map(i=>document.getElementById('tpPlayer'+i)?.value||'');
+ [0,1,2,3].forEach(i=>{const e=document.getElementById('tpPlayer'+i);if(!e)return; e.disabled=!classes.length||!c||(i>=tpContestSlots(c)&&!players[i]);e.innerHTML=tpPlayerOptionsHtml(players[i],type,c,players,i);});
+}
+async function tpSetGender(name,value){
+ if(isWhiteboardUser()||!canEditTpSmartphoneAccess())return;
+ const map=tpGenderMap(),old=map[name];map[name]=value;
+ try{await tpSaveCentralPlayerList();showToast('Zuordnung gespeichert');}
+ catch(e){map[name]=old||'';showToast('Speichern fehlgeschlagen: '+e.message,6000);}
+ renderTpPlayersAdminList();
+}
+function tpPlayerOptionsHtml(selected,type='',contestClass='',players=[],idx=0){
   const chosen=tpResolvePlayerName(selected), opts=['<option value="">– auswählen –</option>'];
-  const list=tpPlayers();
+  const list=tpPlayers().filter(n=>tpEligiblePlayer(n,type,contestClass,players,idx));
   if(chosen&&!list.includes(chosen))list.push(chosen);
   opts.push(list.map(n=>'<option value="'+esc(n)+'" '+(n===chosen?'selected':'')+'>'+esc(n)+'</option>').join(''));
   return opts.join('');
@@ -4427,7 +4459,7 @@ function tpPlayerOptionsHtml(selected){
 async function tpSaveCentralPlayerList(){
   if(!save())throw Error('Lokales Speichern fehlgeschlagen');
   if(!firebaseReady||!firestoreDb||!firebaseAuthUser)throw Error('Keine Firebase-Verbindung. Die Liste wurde nur lokal gespeichert.');
-  const payload={players:tpPlayers(true).filter(n=>n!=='X'),aliases:{...tpPlayerAliases()},updatedAt:new Date().toISOString()};
+  const payload={players:tpPlayers(true).filter(n=>n!=='X'),aliases:{...tpPlayerAliases()},playerGenders:{...tpGenderMap()},updatedAt:new Date().toISOString()};
   await fbTimeout(firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).set(payload,{merge:true}),30000,'Spielerliste speichern');
   return true;
 }
@@ -4441,6 +4473,7 @@ async function tpLoadCentralPlayerList(fromPlayerMenu=false){
     const remote=doc.data();
     if(!Array.isArray(remote?.players)||!remote.players.length)return 'empty';
     data.tournamentPlannerPlayers=remote.players;
+    data.tournamentPlannerPlayerGenders=remote.playerGenders&&typeof remote.playerGenders==='object'?remote.playerGenders:{};
     data.tournamentPlannerInactivePlayers=Array.isArray(remote.inactivePlayers)?remote.inactivePlayers:[];
     if(remote.aliases&&typeof remote.aliases==='object')data.tournamentPlannerPlayerAliases=remote.aliases;
     save();
@@ -4565,8 +4598,9 @@ function renderTpPlayersAdminList(){
   el.innerHTML=players.length?players.map(p=>{
     const old=Object.keys(aliases).filter(a=>tpResolvePlayerName(a)===p);
     const active=!inactive.has(p);
+    const genderSelect=showPasswordStatus?'<label class="small">Zuordnung <select onchange="tpSetGender('+jsArg(p)+',this.value)">'+['','Herr','Dame'].map(g=>'<option value="'+g+'" '+(tpGender(p)===g?'selected':'')+'>'+(g||'Nicht zugeordnet')+'</option>').join('')+'</select></label>':'';
     const statusButton=showPasswordStatus?'<button type="button" onclick="tpSetPlayerActive(this,'+jsArg(p)+','+!active+')">'+(active?'Deaktivieren':'Aktivieren')+'</button>':'';
-    return '<div class="list-item"><div><b>'+esc(p)+'</b><div class="small">'+(active?'Aktiv':'Inaktiv')+'</div>'+(showPasswordStatus?'<div class="small" hidden data-player-password-status="'+esc(p)+'"></div>':'')+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'') +statusButton+'</div></div>';
+    return '<div class="list-item"><div><b>'+esc(p)+'</b><div class="small">'+(active?'Aktiv':'Inaktiv')+'</div>'+(showPasswordStatus?'<div class="small" hidden data-player-password-status="'+esc(p)+'"></div>':'')+genderSelect+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button>'+(canEditTpSmartphoneAccess()?'<button type="button" onclick="tpEditSmartphoneAccess(this,'+jsArg(p)+')">Smartphone-Freigaben</button>':'') +statusButton+'</div></div>';
   }).join(''):'<div class="small">Keine Spieler vorhanden.</div>';
   if(showPasswordStatus&&players.length)void tpShowPasswordStatus([...el.querySelectorAll('[data-player-password-status]')]);
 }
@@ -4685,21 +4719,21 @@ function renderTournamentPlanner(){
     const canEdit=tpCanEditPlanner();
     const allowsPlayers=tpAllowsPlayers(x.type);
     const playersDisabled=!canEdit;
-    const playerFields=allowsPlayers?[0,1,2,3].map(i=>{
+    const playerFields=allowsPlayers?[0,1,2,3].filter(i=>i<tpContestSlots(x.contestClass)).map(i=>{
       const label='<label>Spieler '+(i+1)+'</label>';
       if(isWhiteboardUser()){
         return '<div class="tp-row">'+label
           +'<button type="button" class="tp-wb-player-btn" data-tp-field="players" data-tp-player-index="'+i+'" data-tp-value="'+esc(players[i]||'')+'" onclick="tpOpenWhiteboardPlayerPicker('+jsArg(x.id)+',\'players\','+i+','+jsArg(players[i]||'')+')">'
           +esc(players[i]||'– auswählen –')+'</button></div>';
       }
-      return '<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'">'+label+'<select data-tp-field="players" data-tp-player-index="'+i+'" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i])+'</select></div>';
+      return '<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'">'+label+'<select data-tp-field="players" data-tp-player-index="'+i+'" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i],x.type,x.contestClass,players,i)+'</select></div>';
     }).join(''):'';
     const nameWraps=x.name&&x.name.trim().split(/\s+/).filter(Boolean).length>=2;
     return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
       +'<div class="tp-name'+(nameWraps?' tp-name-wrap':'')+'">'+esc(x.name)+'</div>'
       +'<div class="tp-meta">'
       +'<div class="tp-date"><div>'+(tpDayLabel(x.date)?esc(tpDayLabel(x.date))+' · ':'')+esc(tpFormatDate(x.date))+'</div>'+(x.time?'<div>'+esc(x.time)+' Uhr</div>':compact?'':'<div>&nbsp;</div>')+'</div>'
-      +'<span class="tp-type-locked-value">'+esc(tpCanonicalType(x.type)||'– keine –')+'</span>'
+      +'<span class="tp-type-locked-value">'+esc(tpCanonicalType(x.type)||'– keine –')+(x.contestClass?' · '+esc(x.contestClass):'')+'</span>'
       +(x.location?'<div class="tp-loc">📍 '+esc(x.location)+'</div>':'')
       +'</div>'
       +(allowsPlayers && compact
@@ -4759,9 +4793,11 @@ async function tpUpdateField(id,field,idx,value){
   }
   const oldPlayers=Array.isArray(item.players)?item.players.slice():['','','',''];
   const oldReportedBy=String(item.reportedBy||'');
+  if(field==='players'&&!tpEligiblePlayer(value,item.type,item.contestClass,oldPlayers,idx)){showToast('Spieler passt nicht zur Wettkampfklasse.',5000);renderTournamentPlanner();return;}
   if(field==='players'){item.players=(item.players&&item.players.length===4)?item.players:['','','',''];item.players[idx]=value}
   else{item[field]=value}
   save();
+  if(field==='players'&&!isWhiteboardUser()){const card=[...document.querySelectorAll('.tp-card[data-tp-id]')].find(c=>String(c.dataset.tpId)===String(id));card?.querySelectorAll('select[data-tp-player-index]').forEach(el=>{const i=Number(el.dataset.tpPlayerIndex);el.innerHTML=tpPlayerOptionsHtml(item.players[i],item.type,item.contestClass,item.players,i);});}
   // Spieler/Gemeldet-von verändern die Termin-Statistikkarten nicht.
   // Am Whiteboard deshalb KEIN Neuaufbau oberhalb der Liste.
   if(!isWhiteboardUser())tpRenderStats();
@@ -4830,7 +4866,7 @@ async function tpSyncEventToFirebase(item){
       ...(item.homepageFreigabe?{homepageFreigabe:item.homepageFreigabe}:{}),
       id:String(item.id),name:String(item.name||''),date:String(item.date||''),time:String(item.time||''),
       reportedBy:String(item.reportedBy||''),players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
-      location:String(item.location||''),type:String(item.type||''),internal:!!item.internal,calendarExported:!!item.calendarExported,googleEventId:String(item.googleEventId||''),googleEventCalendarId:String(item.googleEventCalendarId||''),calendarExportedBeforeChange:!!item.calendarExportedBeforeChange,googleEventUpdated:String(item.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(item.googleSyncedFields),updatedAt:String(item.updatedAt||new Date().toISOString())
+      location:String(item.location||''),type:String(item.type||''),contestClass:String(item.contestClass||''),internal:!!item.internal,calendarExported:!!item.calendarExported,googleEventId:String(item.googleEventId||''),googleEventCalendarId:String(item.googleEventCalendarId||''),calendarExportedBeforeChange:!!item.calendarExportedBeforeChange,googleEventUpdated:String(item.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(item.googleSyncedFields),updatedAt:String(item.updatedAt||new Date().toISOString())
     },{merge:true}),20000,'Firebase');
     return true;
   }catch(e){
@@ -5492,9 +5528,10 @@ function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spi
     +'<label>Veranstaltungsname</label><input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">'
     +'<div class="row"><div style="flex:1"><label>Datum (Pflichtfeld)</label><input id="tpDate" type="date"></div><div style="flex:1"><label>Uhrzeit (optional)</label><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></div></div>'
     +'<div class="row"><div style="flex:1"><label>Veranstaltungsart (Pflichtfeld)</label><select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></div><div style="flex:none;display:flex;align-items:flex-end"><button type="button" onclick="tpAddNewType()">+ Neue Art</button></div></div>'
+    +'<div id="tpContestRow" hidden><label>Wettkampfklasse (Pflichtfeld)</label><select id="tpContestClass" onchange="tpRefreshContestForm()"><option value="">– auswählen –</option></select></div>'
     +'<div id="tpTwOption" style="display:none;margin:12px 0;padding:10px;border:1px solid #a94455;border-radius:8px"><label><input type="checkbox" id="tpAddToTw"> Zur Turnierwirtschaftlichkeit hinzufügen</label><small>Nur bei „Turnier als Ausrichter“. Vorhandene Finanzdaten bleiben erhalten.</small></div>'
     +'<label>Gemeldet von</label><select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select>'
-    +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
+    +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" onchange="tpRefreshContestForm()" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
     +'<label>Veranstaltungsort</label><input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>'
     +tpHomepageFormHtml()
     +'<div class="row" style="margin-top:14px"><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
@@ -5514,6 +5551,8 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const missing=[];
   if(!(dateEl&&dateEl.value))missing.push('Datum');
   if(!(typeEl&&String(typeEl.value||'').trim()))missing.push('Veranstaltungsart');
+  const contestClass=document.getElementById('tpContestClass')?.value||'';
+  if(tpContestClasses(typeEl?.value).length&&!tpContestClasses(typeEl?.value).includes(contestClass))missing.push('Wettkampfklasse');
   if(missing.length){
     const text='Pflichtfeld fehlt: '+missing.join(' und ');
     const i=document.getElementById('firebaseTpInfo');if(i)i.textContent=text;
@@ -5527,6 +5566,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const allowPeople=(type==='Turnier'||type==='Meisterschaft');
   const reportedBy=allowPeople?(document.getElementById('tpReportedBy').value||''):'';
   const players=allowPeople?[0,1,2,3].map(i=>document.getElementById('tpPlayer'+i).value||''):['','','',''];
+  if(contestClass&&players.some((p,i)=>!tpEligiblePlayer(p,type,contestClass,players,i))){showToast('Spielerauswahl passt nicht zur Wettkampfklasse. Bitte korrigieren.',6000);return false;}
   const location=(document.getElementById('tpLocation').value||'').trim();
   const editId=document.getElementById('tpEditId').value;
   const homepageEnabled=!!document.getElementById('tpHomepageEnabled')?.checked;
@@ -5537,7 +5577,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   if(editId){
     const item=tpFindEvent(editId);
     if(item){
-      const changed=item.name!==name||item.date!==date||item.time!==time||item.location!==location||item.type!==type||item.reportedBy!==reportedBy||JSON.stringify(item.players||[])!==JSON.stringify(players);
+      const changed=item.name!==name||item.date!==date||item.time!==time||item.location!==location||item.type!==type||item.contestClass!==contestClass||item.reportedBy!==reportedBy||JSON.stringify(item.players||[])!==JSON.stringify(players);
       if(changed&&item.calendarExported){
         const mode=item.googleEventId?'Google Kalender: Beim nächsten Export wird derselbe Kalendereintrag aktualisiert.':'Ohne gespeicherte Google-Ereignis-ID oder bei .ics-Import muss der alte Kalendereintrag gegebenenfalls manuell entfernt werden.';
         if(!confirm('Dieser Termin wurde bereits in einen Kalender exportiert.\n\n'+mode+'\n\nÄnderungen speichern und für die Kalender-Aktualisierung freigeben?'))return false;
@@ -5545,11 +5585,11 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
         item.calendarExported=false;
       }
       if(changed)item.updatedAt=new Date().toISOString();
-      item.name=name;item.date=date;item.time=time;item.reportedBy=reportedBy;item.players=players;item.location=location;item.type=type;item.internal=(type==='Turnier intern');item.addToTurnierWirtschaftlichkeit=addToTw;
+      item.name=name;item.date=date;item.time=time;item.reportedBy=reportedBy;item.players=players;item.location=location;item.type=type;item.contestClass=contestClass;item.internal=(type==='Turnier intern');item.addToTurnierWirtschaftlichkeit=addToTw;
       if(homepageEnabled||item.homepageFreigabe)item.homepageFreigabe=homepageFreigabe;
     }
   }else{
-    data.tournamentPlanner.push({...(homepageEnabled?{homepageFreigabe}:{}),id:'tp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,date,time,reportedBy,players,location,type,internal:(type==='Turnier intern'),addToTurnierWirtschaftlichkeit:addToTw,updatedAt:new Date().toISOString()});
+    data.tournamentPlanner.push({...(homepageEnabled?{homepageFreigabe}:{}),id:'tp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,date,time,reportedBy,players,location,type,contestClass,internal:(type==='Turnier intern'),addToTurnierWirtschaftlichkeit:addToTw,updatedAt:new Date().toISOString()});
   }
   tpCancelEdit();
   renderTournamentPlannerAdminList();
@@ -5584,7 +5624,7 @@ function tpEditEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spiel
   if(timeSel)timeSel.innerHTML=tpTimeOptionsHtml(x.time||'');
   const reportedEl=document.getElementById('tpReportedBy');
   if(reportedEl)reportedEl.value=x.reportedBy||'';
-  [0,1,2,3].forEach(i=>{const el=document.getElementById('tpPlayer'+i);if(el)el.value=(x.players||[])[i]||''});
+  [0,1,2,3].forEach(i=>{const el=document.getElementById('tpPlayer'+i);if(el){const v=(x.players||[])[i]||'';el.innerHTML=tpPlayerOptionsHtml(v);el.value=v;}});
   const locEl=document.getElementById('tpLocation');if(locEl)locEl.value=x.location||'';
   const typeSel=document.getElementById('tpType');
   if(typeSel){
@@ -5595,6 +5635,7 @@ function tpEditEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spiel
     typeSel.value=current;
     typeSel.dataset.manual='1';
   }
+  const classEl=document.getElementById('tpContestClass');if(classEl){classEl.innerHTML=tpContestOptions(x.type,x.contestClass||'');classEl.value=x.contestClass||'';}
   const cancelBtn=document.getElementById('tpCancelBtn');if(cancelBtn)cancelBtn.style.display='inline-block';
   tpUpdateFormPlayerState();
   if(document.getElementById('tpAddToTw'))document.getElementById('tpAddToTw').checked=!!x.addToTurnierWirtschaftlichkeit;
@@ -5680,7 +5721,7 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
     let count=0;
     for(const x of (data.tournamentPlanner||[])){
       if(!x||!x.id)continue;
-      const payload={...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
+      const payload={...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
       await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(x.id)).set(payload),60000,'Firebase');
       count++;
     }
@@ -5712,7 +5753,7 @@ async function loadTournamentPlannerFromFirebase(forceServer=false){
     snap.forEach(doc=>{const x=doc.data()||{};list.push({
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
-      location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,
+      location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,
       calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')
     })});
     // Firebase ist für die Whiteboard-Ansicht die führende Quelle – auch eine leere Liste wird übernommen.
@@ -7554,7 +7595,7 @@ async function autoLoadPublicFirebaseDataV1245(){
     try{
       const snap=await firestoreDb.collection('tournamentPlanner').get();
       const list=[];
-      snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')})});
+      snap.forEach(doc=>{const x=doc.data()||{};list.push({id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||'')})});
       if(snap.size && currentUser!=='admin'){
         data.tournamentPlanner=list;
         save();
