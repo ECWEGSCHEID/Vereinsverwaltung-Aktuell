@@ -231,6 +231,8 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
       <option>Sitzung</option>
       <option>Feier</option>
     </select>
+    <div id="tpClassRow"><label for="tpClass">Wettkampfklasse *</label><select id="tpClass" required></select></div>
+    <div id="tpRoster"></div>
     <div class="actions"><button class="primary" id="savePlannerBtn" type="button">Termin speichern</button></div>
     <div id="plannerStatus" class="status"></div>
   </section>
@@ -2656,14 +2658,66 @@ async function saveNews(){
   }catch(e){console.error(e);setStatus('newsStatus','Speichern fehlgeschlagen: '+(e.message||e),'err')}
 }
 
+let plannerRoster = [], plannerGenders = {};
+function plannerClasses(){
+  const type=$('tpType').value;
+  if(type==='Turnier')return ['Herren','Damen','Mixed','Duo','Duo Mixed'];
+  return type==='Meisterschaft'?['Herren','Damen','Mixed']:[];
+}
+function resetPlannerClass(){
+  const classes=plannerClasses();
+  $('tpClassRow').hidden=!classes.length;
+  $('tpClass').required=!!classes.length;
+  $('tpClass').replaceChildren(new Option('– auswählen –',''),...classes.map(c=>new Option(c,c)));
+  renderPlannerPlayers([]);
+}
+function renderPlannerPlayers(selected){
+  const group=$('tpClass').value, box=$('tpRoster');
+  box.replaceChildren();
+  if(!group)return;
+  const duo=group==='Duo'||group==='Duo Mixed';
+  for(let i=0;i<(duo?2:4);i++){
+    const label=document.createElement('label'), field=document.createElement('select');
+    field.id='mobileTpPlayer'+i;
+    label.htmlFor=field.id;
+    label.textContent='Spieler '+(i+1);
+    field.add(new Option('– offen –',''));
+    const others=selected.filter((_,j)=>j!==i);
+    for(const name of plannerRoster){
+      if(others.includes(name))continue;
+      const gender=plannerGenders[name];
+      if(group==='Damen'&&gender!=='Dame')continue;
+      if(group==='Herren'&&$('tpType').value==='Meisterschaft'&&gender!=='Herr')continue;
+      if(group==='Mixed'||group==='Duo Mixed'){
+        if(!['Herr','Dame'].includes(gender)||others.filter(n=>plannerGenders[n]===gender).length>=(duo?1:2))continue;
+      }
+      field.add(new Option(name,name));
+    }
+    field.value=selected[i]||'';
+    field.onchange=()=>renderPlannerPlayers(Array.from(box.querySelectorAll('select'),e=>e.value));
+    box.append(label,field);
+  }
+}
+async function loadPlannerRoster(){
+  try{
+    const snap=await db.collection('appSettings').doc('playerList').get();
+    const roster=snap.data()||{};
+    plannerRoster=Array.isArray(roster.players)?roster.players:[];
+    plannerGenders=roster.playerGenders||{};
+    renderPlannerPlayers(Array.from($('tpRoster').querySelectorAll('select'),e=>e.value));
+  }catch(e){setStatus('plannerStatus','Spielerliste konnte nicht geladen werden.','err')}
+}
 async function savePlanner(){
   if(!can('tp'))return setStatus('plannerStatus','Keine Berechtigung.','err');
   const name=$('tpName').value.trim(),date=$('tpDate').value,time=$('tpTime').value;
   const locationText=$('tpLocation').value.trim(),type=$('tpType').value||'Turnier';
   if(!name||!date)return setStatus('plannerStatus','Bezeichnung und Datum sind Pflichtfelder.','err');
+  const contestClass=$('tpClass').value;
+  if(plannerClasses().length&&!plannerClasses().includes(contestClass))return setStatus('plannerStatus','Bitte die Wettkampfklasse auswählen.','err');
+  const players=Array.from({length:4},(_,i)=>$('mobileTpPlayer'+i)?.value||'');
   const id=makeId('mobile_tp');
   const payload={
-    id,name,date,time:time||'',reportedBy:'',players:['','','',''],
+    id,name,date,time:time||'',reportedBy:'',players,...(contestClass?{contestClass}:{}),
     location:locationText,type,internal:type==='Turnier intern',
     calendarExported:false,updatedAt:nowIso(),updatedBy:currentUser.uid
   };
@@ -2671,7 +2725,7 @@ async function savePlanner(){
   try{
     await db.collection('tournamentPlanner').doc(id).set(payload);
     setStatus('plannerStatus','Termin erfolgreich im Turnierplaner gespeichert ✓','ok');
-    $('tpName').value='';$('tpTime').value='';$('tpLocation').value='';$('tpType').value='Turnier';
+    $('tpName').value='';$('tpTime').value='';$('tpLocation').value='';$('tpType').value='Turnier';resetPlannerClass();
   }catch(e){console.error(e);setStatus('plannerStatus','Speichern fehlgeschlagen: '+(e.message||e),'err')}
 }
 
@@ -2785,9 +2839,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>{show('homeView');applyTiles()});
   $('tileTv').onclick=()=>{if(can('tv'))location.href='turnierverwaltung.html?v=2.5.2#mobil'};
   $('tileNews').onclick=()=>{if(can('n'))show('newsView')};
-  $('tilePlanner').onclick=()=>{if(can('tp')){show('plannerView');if(!$('tpDate').value)$('tpDate').value=todayIso()}};
+  $('tilePlanner').onclick=()=>{if(can('tp')){show('plannerView');void loadPlannerRoster();if(!$('tpDate').value)$('tpDate').value=todayIso()}};
   $('tileJm').onclick=()=>{if(can('jm')){show('jmView');loadJm()}};
   $('saveNewsBtn').onclick=saveNews;
+  $('tpType').onchange=resetPlannerClass;
+  $('tpClass').onchange=()=>renderPlannerPlayers([]);
+  resetPlannerClass();
   $('savePlannerBtn').onclick=savePlanner;
   $('jmPlayer').onchange=loadJmValues;
   $('jmPeriod').onchange=loadJmValues;
