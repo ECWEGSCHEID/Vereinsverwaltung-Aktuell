@@ -24,7 +24,7 @@ body:has(#tournamentPlanner.active) #appVersion{display:none}
 .tp-toolbar .tp-list-note{opacity:.85;white-space:nowrap}
 .menu{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;flex-wrap:nowrap;overflow:auto;padding:10px 0}
 .menu button{width:min(620px,92%);min-width:0;min-height:clamp(56px,11vh,90px);font-size:clamp(19px,2.4vw,26px);font-weight:700}
-.bottom{position:absolute;right:25px;bottom:20px;display:flex;gap:10px;z-index:20}.bottom.tournament-bottom{flex-direction:column;align-items:stretch;gap:8px}.bottom.tournament-bottom button{min-width:146px;width:146px;display:block}.app-version{position:fixed;left:12px;top:8px;z-index:3000;font-size:13px;font-weight:700;background:rgba(0,0,0,.55);padding:5px 9px;border-radius:7px;pointer-events:none}
+.bottom{position:absolute;right:25px;bottom:20px;display:flex;gap:10px;z-index:20}.bottom.tournament-bottom{flex-direction:column;align-items:stretch;gap:8px}.bottom.tournament-bottom button{min-width:146px;width:146px;display:block}.app-version{position:fixed;left:0;top:8px;z-index:3000;font-size:13px;font-weight:700;background:rgba(0,0,0,.55);padding:5px 9px;border-radius:7px;pointer-events:none}
 .content{flex:1;min-height:0;margin-top:18px;padding:18px;background:rgba(0,0,0,.36);border-radius:14px}
 .admin-grid{display:grid;grid-template-columns:340px 1fr;gap:18px;min-height:0;flex:1;margin-top:18px}
 .admin-side,.admin-main{background:rgba(10,10,10,.76);border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:18px;min-height:0;overflow:auto}

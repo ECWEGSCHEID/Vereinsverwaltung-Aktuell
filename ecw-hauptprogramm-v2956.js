@@ -1185,10 +1185,17 @@ async function changeUserPermission(uid,key,value){
   try{await saveUserPermissions(uid,{[key]:value});await loadUserRightsAdmin()}catch(e){alert('Recht konnte nicht gespeichert werden: '+(e.message||e))}
 }
 function showToast(s,ms){const t=document.getElementById('toast');t.textContent=s;t.style.display='block';clearTimeout(t._timer);t._timer=setTimeout(()=>t.style.display='none',ms||2800)}
+function presentationIsFullscreen(){
+ return !!(document.fullscreenElement||document.webkitFullscreenElement||document.webkitCurrentFullScreenElement||document.webkitIsFullScreen);
+}
 async function enterPresentationFullscreen(){
  try{
-  if(document.fullscreenElement)return;
-  if(document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({navigationUI:'hide'});
+  if(presentationIsFullscreen())return;
+  const root=document.documentElement;
+  // Samsung/Tizen-Versionen unterst체tzen teils nur die WebKit-Variante.
+  if(typeof root.requestFullscreen==='function')await root.requestFullscreen();
+  else if(typeof root.webkitRequestFullscreen==='function')await root.webkitRequestFullscreen();
+  else if(typeof root.webkitRequestFullScreen==='function')await root.webkitRequestFullScreen();
  }catch(e){console.log('Vollbildmodus konnte nicht aktiviert werden:',e)}
 }
 async function leavePresentationFullscreen(){
@@ -1755,7 +1762,7 @@ function shGo(h){/* Verwaltungskontext beim Wechsel in ein Startseiten-Untermen�
  if(window.__directRouteV1248)window.__directRouteV1248()}
 window.addEventListener('hashchange',()=>{try{if(window.__directRouteV1248)window.__directRouteV1248()}catch(e){}});
 function shUpdateBack(){const g=document.getElementById('shGear');if(g){const visible=!!(window.__ecwAdminHomeReturn&&firebaseAuthUser&&appPermissions.admin===true&&!isWhiteboardUser()&&!isPublicWhiteboardMode());g.style.display=visible?'block':'none';g.hidden=!visible;}}
-function shFullscreen(){if(isWhiteboardUser()){enterPresentationFullscreen();return;}const d=document,e=d.documentElement;if(d.fullscreenElement||d.webkitFullscreenElement)(d.exitFullscreen||d.webkitExitFullscreen).call(d);else(e.requestFullscreen||e.webkitRequestFullscreen).call(e)}
+function shFullscreen(){if(isWhiteboardUser()||isWhiteboardKioskAccount()){enterPresentationFullscreen();return;}const d=document,e=d.documentElement;if(d.fullscreenElement||d.webkitFullscreenElement)(d.exitFullscreen||d.webkitExitFullscreen).call(d);else(e.requestFullscreen||e.webkitRequestFullscreen).call(e)}
 function shImg(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{const s=Math.min(1,1920/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85))};im.src=r.result};r.readAsDataURL(file)})}
 function shLink(){return getBaseUrl()+'#startseite'}
 function shExternalLinksAdminHtml(){
@@ -2571,8 +2578,8 @@ window.addEventListener('message',e=>{
 });
 
 function updateWhiteboardScreenControls(){
- const wb=isWhiteboardUser();
- const full=!!(document.fullscreenElement||document.webkitFullscreenElement);
+ const wb=isWhiteboardUser()||isWhiteboardKioskAccount();
+ const full=presentationIsFullscreen();
  const fs=document.getElementById('shFs');if(fs)fs.hidden=wb||full;
  const prompt=document.getElementById('whiteboardFullscreenPrompt');
  if(prompt)prompt.hidden=!(wb&&!full&&document.documentElement.requestFullscreen);
@@ -2582,12 +2589,14 @@ function updateWhiteboardScreenControls(){
 }
 async function startWhiteboardFullscreen(){await enterPresentationFullscreen();updateWhiteboardScreenControls();}
 document.addEventListener('fullscreenchange',updateWhiteboardScreenControls);
-// Erst den Klick des Men체punkts vollst채ndig ausf체hren lassen. Ein Vollbildwechsel
-// bei pointerdown ver채ndert die Touch-Zielposition und kann den Klick verschlucken.
+// Der vollst채ndige click ist bereits auf sein Ziel festgelegt. In der
+// Capture-Phase bleibt die Nutzeraktivierung auch bei synchroner Navigation
+// oder stopPropagation im Men체befehl verf체gbar. Kein preventDefault.
+document.addEventListener('webkitfullscreenchange',updateWhiteboardScreenControls);
 document.addEventListener('click',event=>{
  if(event.target.closest?.('a[target="_blank"]'))return;
- if(isWhiteboardUser()&&!document.fullscreenElement&&!document.webkitFullscreenElement)enterPresentationFullscreen();
-});
+ if((isWhiteboardUser()||isWhiteboardKioskAccount())&&!presentationIsFullscreen())enterPresentationFullscreen();
+},{capture:true});
 
 let externalLinkPreferences={};
 function shouldEmbedExternal(value,title){
