@@ -46,7 +46,11 @@ const PRESENTATION_PERMISSIONS=['sh','tp','t','o','n','p','sp','m','lk','mv'];
 window.appPermissions=appPermissions;
 try{
   firebase.initializeApp(firebaseConfig);
-  firestoreDb=firebase.firestore(); window.firestoreDb=firestoreDb;
+  firestoreDb=firebase.firestore();
+  if (/SamsungBrowser\//i.test(navigator.userAgent)) {
+    firestoreDb.settings({experimentalForceLongPolling:true});
+  }
+  window.firestoreDb=firestoreDb;
   firebaseReady=true;
   firebaseAuth=firebase.auth(); window.firebaseAuth=firebaseAuth;
   // V2.5.2: Dauerhafte Anmeldung initialisieren und beim Start abwarten.
