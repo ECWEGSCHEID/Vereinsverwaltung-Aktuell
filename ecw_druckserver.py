@@ -141,6 +141,35 @@ def commit_status(token, d, status, detail):
     }]})
 
 
+# Der HP 178nw akzeptiert JPEG/URF, aber kein direktes PDF.
+MAX_PAGES = 50
+JPEG_DPI = 200
+
+
+def render_pdf_pages(filename, directory):
+    info = subprocess.run(
+        ['pdfinfo', filename], check=True, capture_output=True, text=True,
+        timeout=30, env={**os.environ, 'LC_ALL': 'C'})
+    m = re.search(r'^Pages:\s+(\d+)\s*$', info.stdout, re.MULTILINE)
+    if not m or not 1 <= int(m.group(1)) <= MAX_PAGES:
+        raise ValueError(f'PDF muss 1 bis {MAX_PAGES} Seiten enthalten')
+    count = int(m.group(1))
+    prefix = str(Path(directory) / 'page')
+    subprocess.run(
+        ['pdftoppm', '-f', '1', '-l', str(count), '-r', str(JPEG_DPI),
+         '-jpeg', '-jpegopt', 'quality=92', filename, prefix],
+        check=True, capture_output=True, text=True, timeout=180)
+    pages = sorted(Path(directory).glob('page-*.jpg'),
+                   key=lambda path: int(path.stem.rsplit('-', 1)[1]))
+    if len(pages) != count:
+        raise RuntimeError('Nicht alle PDF-Seiten konnten gerendert werden')
+    for page in pages:
+        with page.open('rb') as image:
+            if image.read(2) != b'\xff\xd8':
+                raise RuntimeError(f'JPEG-Konvertierung ungültig: {page.name}')
+    return pages
+
+
 def process_one(token, d, printer):
     name = d['name'].rsplit('/',1)[-1]
     if not JOB_PATTERN.fullmatch(name): raise ValueError('Ungültige Auftrags-ID')
@@ -152,15 +181,25 @@ def process_one(token, d, printer):
     print(f'PDF geprüft: {metadata_obj.get("title", pdfid)} ({len(pdf)} Bytes)')
     commit_status(token, d, 'in_bearbeitung', 'PDF validiert, Übergabe an CUPS wird vorbereitet')
     filename = None
+    submitted = False
     try:
         filename = write_pdf(pdf, name)
-        # LPR/CUPS accepts PDF; -d printer optional to use CUPS default.
-        cmd = ['lp'] + (['-d', printer] if printer else []) + ['-t', 'ECW-' + name, filename]
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=45)
-        # Update status. If this update fails, do NOT print again: state remains in_bearbeitung.
-        print('CUPS:', result.stdout.strip())
+        with tempfile.TemporaryDirectory(prefix='jpeg-', dir=Path(filename).parent) as folder:
+            pages = render_pdf_pages(filename, folder)
+            print(f'PDF in {len(pages)} JPEG-Seite(n) umgewandelt ({JPEG_DPI} dpi)')
+            receipts = []
+            for number, page in enumerate(pages, 1):
+                # Eine Kopie pro Seite; nur JPEG, niemals die PDF direkt senden.
+                cmd = ['lp'] + (['-d', printer] if printer else []) + [
+                    '-n', '1', '-o', 'media=A4', '-o', 'fit-to-page',
+                    '-t', f'ECW-{name}-{number}', str(page)]
+                submitted = True
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=45)
+                receipts.append(result.stdout.strip())
+                print('CUPS:', receipts[-1])
         current = doc('druckauftraege/' + name, token)
-        commit_status(token, current, 'an_cups', result.stdout.strip()[:250])
+        commit_status(token, current, 'an_cups',
+                      f'{len(receipts)} JPEG-Seite(n) an CUPS übergeben: ' + '; '.join(receipts))
     except Exception as exc:
         print('Druck/Status-Problem:', str(exc))
         # Best-effort only; never requeue automatically. Unknown state is deliberately manual.
@@ -168,7 +207,9 @@ def process_one(token, d, printer):
             # Need fresh Firestore update time for precondition.
             current = doc('druckauftraege/' + name, token)
             if field(current.get('fields', {}).get('status', {})) == 'in_bearbeitung':
-                commit_status(token, current, 'unklar', 'Manuelle Prüfung nötig; kein automatischer Wiederholungsdruck')
+                commit_status(token, current, 'unklar' if submitted else 'fehler',
+                              'Manuelle Prüfung nötig; kein automatischer Wiederholungsdruck' if submitted
+                              else ('PDF-Konvertierung fehlgeschlagen: ' + str(exc))[:250])
         except Exception as e:
             print('WARNUNG: Statusmeldung nicht möglich:', e)
         raise
