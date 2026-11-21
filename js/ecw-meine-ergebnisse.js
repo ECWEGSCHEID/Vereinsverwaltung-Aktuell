@@ -128,6 +128,16 @@ function pyramidEntry(state, name) {
   return {position: index + 1};
 }
 
+// Öffentliche Leseschnittstelle; liefert nur die Spielerreihenfolge (keine Passwörter).
+async function loadPyramidPublic(signal) {
+  const url = 'https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/soloPyramide/state?mask.fieldPaths=players';
+  const response = await fetch(url, {cache: 'no-store', signal});
+  if (!response.ok) throw new Error('Firebase HTTP ' + response.status);
+  const payload = await response.json();
+  const values = payload.fields?.players?.arrayValue?.values || [];
+  return {players: values.map(v => v.stringValue ?? '')};
+}
+
 // ---------- Anzeige (kompakt) ----------
 function el(tag, text, parent, className) {
   const node = document.createElement(tag);
@@ -226,5 +236,5 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, load
   };
 }
 
-root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, render, load, isoDate};
+root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, loadPyramidPublic, render, load, isoDate};
 })(typeof window !== 'undefined' ? window : globalThis);
