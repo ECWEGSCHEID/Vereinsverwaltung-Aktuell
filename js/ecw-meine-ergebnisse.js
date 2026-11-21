@@ -58,7 +58,8 @@ function participations(events, name, today = todayVienna()) {
     if (!x || typeof x !== 'object' || cancelled(x)) continue;
     const type = clean(x.effectiveType || x.type).toLowerCase();
     if (!['turnier', 'meisterschaft'].includes(type)) continue;
-    const players = (Array.isArray(x.players) ? x.players : []).map(p => typeof p === 'string' ? p : p?.name);
+    // Nur die vier Spielerplätze zählen – wer den Termin nur gemeldet hat ("Gemeldet von"), war nicht dabei.
+    const players = (Array.isArray(x.players) ? x.players : []).slice(0, 4).map(p => typeof p === 'string' ? p : p?.name);
     if (!players.some(p => sameName(p, name))) continue;
     const date = isoDate(x.date);
     if (!date) continue;
@@ -121,8 +122,6 @@ function championshipEntry(state, name) {
 
 // ---------- Solo Pyramide ----------
 function pyramidEntry(state, name) {
-  // Solange die Pyramide nicht gestartet ist (Admin-Menü: aktiv/nicht aktiv), nichts anzeigen.
-  if (state?.pyramidActive !== true) return null;
   const players = Array.isArray(state?.players) ? state.players : [];
   const index = players.findIndex(p => typeof p === 'string' && p !== 'FREI' && sameName(p, name));
   if (index < 0) return null;
