@@ -150,7 +150,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
       <div class="grid">
         <button class="tile" id="tileTv" type="button"><span class="ico">🏆</span><span><h2>Turnierverwaltung</h2><p>Mannschaften anmelden, bearbeiten und löschen.</p></span></button>
         <button class="tile" id="tileNews" type="button"><span class="ico">📢</span><span><h2>Vereinsnachrichten</h2><p>Neue Nachricht schnell in Firebase speichern.</p></span></button>
-        <button class="tile" id="tilePlanner" type="button"><span class="ico">📅</span><span><h2>Turnier / Termin anlegen</h2><p>Neuen Eintrag für den Termin-/Turnierplaner erfassen.</p></span></button>
+        <button class="tile" id="tilePlanner" type="button"><span class="ico">📅</span><span><h2>Turnier / Termin anlegen oder ändern</h2><p>Termine erfassen und bearbeiten.</p></span></button>
         <button class="tile hidden" id="tileTechnik" type="button" disabled><span class="ico" aria-hidden="true">⚙️</span><span><h2>Technik</h2><p>Temperaturen, StockTV und Druckaufträge.</p></span></button>
         <button class="tile" id="tileJm" type="button"><span class="ico">🎯</span><span><h2>Ziel Jahresmeisterschaft</h2><p>Ergebnis für Spieler und Wertungsblatt eingeben.</p></span></button>
       </div>
@@ -214,11 +214,13 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   </section>
 
   <section id="plannerView" class="panel hidden">
-    <div class="section-head"><h2>📅 Turnier / Termin anlegen</h2><button class="secondary back" data-home type="button">← Übersicht</button></div>
+    <div class="section-head"><h2>📅 Turnier / Termin anlegen oder ändern</h2><button class="secondary back" data-home type="button">← Übersicht</button></div>
+    <button type="button" id="tpBrowse">Vorhandenen Termin öffnen</button>
+    <select id="tpExisting" aria-label="Termin auswählen" hidden></select>
     <label>Bezeichnung *</label><input id="tpName" maxlength="220" placeholder="z. B. Herrenturnier Aicha">
     <div class="row">
       <div><label>Datum *</label><input id="tpDate" type="date"></div>
-      <div><label>Uhrzeit</label><input id="tpTime" type="time"></div>
+      <div><label>Uhrzeit</label><input id="tpTime" type="text" inputmode="numeric" placeholder="z. B. 1830" maxlength="5" enterkeyhint="done"></div>
     </div>
     <label>Ort</label><input id="tpLocation" maxlength="180" placeholder="Ort / Halle">
     <label>Veranstaltungsart</label>
@@ -2693,6 +2695,7 @@ function renderPlannerPlayers(selected){
       }
       field.add(new Option(name,name));
     }
+    if(selected[i]&&!Array.from(field.options).some(option=>option.value===selected[i]))field.add(new Option(selected[i],selected[i]));
     field.value=selected[i]||'';
     field.onchange=()=>renderPlannerPlayers(Array.from(box.querySelectorAll('select'),e=>e.value));
     box.append(label,field);
@@ -2707,15 +2710,57 @@ async function loadPlannerRoster(){
     renderPlannerPlayers(Array.from($('tpRoster').querySelectorAll('select'),e=>e.value));
   }catch(e){setStatus('plannerStatus','Spielerliste konnte nicht geladen werden.','err')}
 }
+let plannerEntries=new Map(), editingPlanner=null, editingPlannerId='';
+function plannerTime(value){
+  const raw=value.trim();
+  if(!raw)return '';
+  const match=raw.match(/^(\d{1,2})[:.]?(\d{2})$/);
+  if(!match||Number(match[1])>23||Number(match[2])>59)return null;
+  return match[1].padStart(2,'0')+':'+match[2];
+}
+function selectPlannerEntry(id){
+  editingPlannerId=id;
+  editingPlanner=plannerEntries.get(id)||null;
+  const item=editingPlanner||{};
+  $('tpName').value=item.name||'';
+  $('tpDate').value=item.date||todayIso();
+  $('tpTime').value=item.time||'';
+  $('tpLocation').value=item.location||'';
+  const type=item.type||'Turnier';
+  if(!Array.from($('tpType').options).some(o=>o.value===type))$('tpType').add(new Option(type,type));
+  $('tpType').value=type;
+  resetPlannerClass();
+  $('tpClass').value=item.contestClass||'';
+  renderPlannerPlayers(item.players||[]);
+  $('savePlannerBtn').textContent=editingPlanner?'Änderungen speichern':'Termin speichern';
+  $('tpExisting').value=id;
+}
+async function browsePlanner(){
+  if(!can('tp'))return;
+  const user=currentUser;
+  try{
+    const list=await db.collection('tournamentPlanner').get();
+    if(currentUser!==user||!can('tp'))return;
+    plannerEntries=new Map(list.docs.map(doc=>[doc.id,doc.data()]));
+    const sorted=[...plannerEntries].sort(([,a],[,b])=>String(b.date||'').localeCompare(String(a.date||'')));
+    const field=$('tpExisting');
+    field.replaceChildren(new Option('Neuen Termin anlegen',''),...sorted.map(([id,item])=>new Option((item.date||'').split('-').reverse().join('.')+' · '+(item.name||'Termin'),id)));
+    field.value=editingPlannerId;
+    field.hidden=false;
+    field.focus();
+  }catch(e){setStatus('plannerStatus','Terminliste konnte nicht geladen werden: '+e.message,'err')}
+}
 async function savePlanner(){
   if(!can('tp'))return setStatus('plannerStatus','Keine Berechtigung.','err');
-  const name=$('tpName').value.trim(),date=$('tpDate').value,time=$('tpTime').value;
+  const name=$('tpName').value.trim(),date=$('tpDate').value,time=plannerTime($('tpTime').value);
+  if(time===null)return setStatus('plannerStatus','Bitte eine gültige Uhrzeit eingeben, z. B. 1830 für 18:30 Uhr.','err');
   const locationText=$('tpLocation').value.trim(),type=$('tpType').value||'Turnier';
   if(!name||!date)return setStatus('plannerStatus','Bezeichnung und Datum sind Pflichtfelder.','err');
   const contestClass=$('tpClass').value;
-  if(plannerClasses().length&&!plannerClasses().includes(contestClass))return setStatus('plannerStatus','Bitte die Wettkampfklasse auswählen.','err');
+  if(plannerClasses().length&&!plannerClasses().includes(contestClass)&&!(editingPlanner&&!editingPlanner.contestClass&&editingPlanner.type===type))return setStatus('plannerStatus','Bitte die Wettkampfklasse auswählen.','err');
   const players=Array.from({length:4},(_,i)=>$('mobileTpPlayer'+i)?.value||'');
-  const id=makeId('mobile_tp');
+  const existing=editingPlanner;
+  const id=existing?editingPlannerId:makeId('mobile_tp');
   const payload={
     id,name,date,time:time||'',reportedBy:'',players,...(contestClass?{contestClass}:{}),
     location:locationText,type,internal:type==='Turnier intern',
@@ -2723,10 +2768,28 @@ async function savePlanner(){
   };
   setStatus('plannerStatus','Termin wird gespeichert …');
   try{
-    await db.collection('tournamentPlanner').doc(id).set(payload);
+    $('savePlannerBtn').disabled=true;
+    const ref=db.collection('tournamentPlanner').doc(id);
+    if(existing){
+      const patch={};
+      for(const [key,value] of Object.entries({name,date,time,location:locationText,type,contestClass})){
+        if(value!==(existing[key]||''))patch[key]=value;
+      }
+      if(patch.type)patch.internal=payload.internal;
+      if(contestClass&&JSON.stringify(players)!==JSON.stringify(Array.from({length:4},(_,i)=>existing.players?.[i]||'')))patch.players=players;
+      if(Object.keys(patch).length)await db.runTransaction(async tx=>{
+        const latest=await tx.get(ref);
+        if(!latest.exists)throw Error('Dieser Termin wurde gelöscht.');
+        for(const key of Object.keys(patch)){
+          if(JSON.stringify(latest.data()[key])!==JSON.stringify(existing[key]))throw Error('Dieser Termin wurde inzwischen geändert. Bitte erneut öffnen.');
+        }
+        tx.update(ref,{...patch,updatedAt:nowIso(),updatedBy:currentUser.uid});
+      });
+    }else await ref.set(payload);
     setStatus('plannerStatus','Termin erfolgreich im Turnierplaner gespeichert ✓','ok');
-    $('tpName').value='';$('tpTime').value='';$('tpLocation').value='';$('tpType').value='Turnier';resetPlannerClass();
+    selectPlannerEntry('');$('tpExisting').hidden=true;
   }catch(e){console.error(e);setStatus('plannerStatus','Speichern fehlgeschlagen: '+(e.message||e),'err')}
+  finally{$('savePlannerBtn').disabled=false;}
 }
 
 const NESTED='__ecwNestedArrayV1';
@@ -2845,6 +2908,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('tpType').onchange=resetPlannerClass;
   $('tpClass').onchange=()=>renderPlannerPlayers([]);
   resetPlannerClass();
+  $('tpBrowse').onclick=browsePlanner;
+  $('tpExisting').onchange=e=>selectPlannerEntry(e.target.value);
+  $('tpTime').onblur=e=>{const formatted=plannerTime(e.target.value);if(formatted!==null)e.target.value=formatted;};
+  $('tpTime').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}};
   $('savePlannerBtn').onclick=savePlanner;
   $('jmPlayer').onchange=loadJmValues;
   $('jmPeriod').onchange=loadJmValues;
