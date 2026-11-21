@@ -216,7 +216,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   <section id="plannerView" class="panel hidden">
     <div class="section-head"><h2>📅 Turnier / Termin anlegen oder ändern</h2><button class="secondary back" data-home type="button">← Übersicht</button></div>
     <button type="button" id="tpBrowse">Vorhandenen Termin öffnen</button>
-    <select id="tpExisting" aria-label="Termin auswählen" hidden></select>
+    <div id="tpExisting" role="group" aria-label="Termin auswählen" hidden style="max-height:45vh;overflow:auto"></div>
     <label>Bezeichnung *</label><input id="tpName" maxlength="220" placeholder="z. B. Herrenturnier Aicha">
     <div class="row">
       <div><label>Datum *</label><input id="tpDate" type="date"></div>
@@ -235,7 +235,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
     </select>
     <div id="tpClassRow"><label for="tpClass">Wettkampfklasse *</label><select id="tpClass" required></select></div>
     <div id="tpRoster"></div>
-    <div class="actions"><button class="primary" id="savePlannerBtn" type="button">Termin speichern</button></div>
+    <div class="actions"><button class="primary" id="savePlannerBtn" type="button">Termin speichern</button><button type="button" id="tpDelete" hidden>Termin löschen</button></div>
     <div id="plannerStatus" class="status"></div>
   </section>
 
@@ -2733,22 +2733,64 @@ function selectPlannerEntry(id){
   $('tpClass').value=item.contestClass||'';
   renderPlannerPlayers(item.players||[]);
   $('savePlannerBtn').textContent=editingPlanner?'Änderungen speichern':'Termin speichern';
-  $('tpExisting').value=id;
+  $('tpDelete').hidden=!editingPlanner;
+  $('tpExisting').hidden=true;
 }
 async function browsePlanner(){
-  if(!can('tp'))return;
-  const user=currentUser;
+  const box=$('tpExisting'), trigger=$('tpBrowse'), uid=currentUser?.uid;
+  box.hidden=false;
+  if(!can('tp')||!uid){box.textContent='Keine Berechtigung.';return;}
+  box.textContent='Terminliste wird geladen …';
+  trigger.disabled=true;
+  let timer;
   try{
-    const list=await db.collection('tournamentPlanner').get();
-    if(currentUser!==user||!can('tp'))return;
+    const list=await Promise.race([
+      db.collection('tournamentPlanner').get({source:'server'}),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Zeitüberschreitung. Bitte erneut öffnen.')),20000);})
+    ]);
+    if(currentUser?.uid!==uid||!can('tp')){box.replaceChildren();return;}
     plannerEntries=new Map(list.docs.map(doc=>[doc.id,doc.data()]));
-    const sorted=[...plannerEntries].sort(([,a],[,b])=>String(b.date||'').localeCompare(String(a.date||'')));
-    const field=$('tpExisting');
-    field.replaceChildren(new Option('Neuen Termin anlegen',''),...sorted.map(([id,item])=>new Option((item.date||'').split('-').reverse().join('.')+' · '+(item.name||'Termin'),id)));
-    field.value=editingPlannerId;
-    field.hidden=false;
-    field.focus();
-  }catch(e){setStatus('plannerStatus','Terminliste konnte nicht geladen werden: '+e.message,'err')}
+    const today=todayIso();
+    const sorted=[...plannerEntries].sort(([,a],[,b])=>{
+      const left=String(a.date||''),right=String(b.date||'');
+      if((left>=today)!==(right>=today))return left>=today?-1:1;
+      return left>=today?left.localeCompare(right):right.localeCompare(left);
+    });
+    box.replaceChildren();
+    function addChoice(id,label){
+      const button=document.createElement('button');
+      button.type='button';
+      button.style.cssText='display:block;width:100%;text-align:left';
+      button.textContent=label;
+      button.onclick=()=>{selectPlannerEntry(id);setStatus('plannerStatus','');$('tpName').focus();};
+      box.append(button);
+    }
+    addChoice('','Neuen Termin anlegen');
+    for(const [id,item] of sorted)addChoice(id,[String(item.date||'').split('-').reverse().join('.'),item.time,item.name||'Termin'].filter(Boolean).join(' · '));
+    if(!sorted.length)box.append('Keine Termine vorhanden.');
+  }catch(error){box.textContent='Terminliste konnte nicht geladen werden: '+error.message;}
+  finally{clearTimeout(timer);trigger.disabled=false;}
+}
+async function deletePlanner(){
+  const id=editingPlannerId,item=editingPlanner;
+  if(!id||!item||!can('tp'))return;
+  if(!window.confirm('„'+item.name+'“ vom '+String(item.date||'').split('-').reverse().join('.')+' wirklich löschen?'))return;
+  const button=$('tpDelete'),save=$('savePlannerBtn');
+  button.disabled=save.disabled=true;
+  try{
+    const ref=db.collection('tournamentPlanner').doc(id);
+    await db.runTransaction(async tx=>{
+      const latest=await tx.get(ref);
+      if(!latest.exists)return;
+      const stored=latest.data();
+      if(stored.updatedAt!==item.updatedAt||stored.name!==item.name||stored.date!==item.date)throw Error('Der Termin wurde inzwischen geändert. Bitte erneut öffnen.');
+      tx.delete(ref);
+    });
+    plannerEntries.delete(id);
+    if(editingPlannerId===id)selectPlannerEntry('');
+    setStatus('plannerStatus','Termin gelöscht.','ok');
+  }catch(error){setStatus('plannerStatus','Löschen fehlgeschlagen: '+error.message,'err');}
+  finally{button.disabled=save.disabled=false;}
 }
 async function savePlanner(){
   if(!can('tp'))return setStatus('plannerStatus','Keine Berechtigung.','err');
@@ -2878,6 +2920,7 @@ async function initApp(){
   if(QR_MODE){renderQrMode();return}
   firebase.initializeApp(firebaseConfig);
   auth=firebase.auth();db=firebase.firestore();
+  if(/SamsungBrowser\//i.test(navigator.userAgent))db.settings({experimentalForceLongPolling:true});
   await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
   auth.onAuthStateChanged(async user=>{
     currentUser=user||null;profile=null;
@@ -2909,7 +2952,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('tpClass').onchange=()=>renderPlannerPlayers([]);
   resetPlannerClass();
   $('tpBrowse').onclick=browsePlanner;
-  $('tpExisting').onchange=e=>selectPlannerEntry(e.target.value);
+  $('tpDelete').onclick=deletePlanner;
   $('tpTime').onblur=e=>{const formatted=plannerTime(e.target.value);if(formatted!==null)e.target.value=formatted;};
   $('tpTime').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}};
   $('savePlannerBtn').onclick=savePlanner;
