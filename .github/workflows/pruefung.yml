@@ -1,0 +1,25 @@
+name: Automatische Prüfung
+
+# Läuft bei jedem Pull Request und bei jeder Änderung am Hauptstand.
+# Bei Fehlern wird der Pull Request rot markiert; Details unter "Details" > "Prüfung".
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruefung:
+    name: Prüfung
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dateien, Verweise, Bilder und JavaScript prüfen
+        run: python3 tools/pruefung.py .

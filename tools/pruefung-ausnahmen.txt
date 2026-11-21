@@ -1,0 +1,5 @@
+# Dateien, die größer als 1 MB sein dürfen (eine Datei pro Zeile, Pfad ab Hauptordner).
+# Neue große Dateien bitte zuerst verkleinern und nur im Notfall hier eintragen.
+turnierverwaltung.html                                   # enthält Titelbild und Logos für Druck/PDF
+assets/hintergrund-carbon-rot.png                        # Original, verwendet wird die JPG-Version
+designvorlagen/schwarz-carbon-ec-wegscheid-original.png  # Original, verwendet wird die JPG-Version
