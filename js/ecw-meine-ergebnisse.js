@@ -142,21 +142,21 @@ function render(container, name, data) {
   container.replaceChildren();
   let shown = 0;
 
-  if (data.planner?.length) {
-    const past = data.planner.filter(x => !x.upcoming), next = data.planner.filter(x => x.upcoming);
-    const year = String(new Date().getFullYear());
+  // Nur bereits gespielte Turniere des laufenden Jahres; künftige Anmeldungen bleiben weg.
+  const year = String(new Date().getFullYear());
+  const played = (data.planner || []).filter(x => !x.upcoming && x.date.startsWith(year));
+  if (played.length) {
     const box = el('details', null, container, 'my-participations');
     const summary = el('summary', null, box);
     const text = el('div', null, summary, 'my-row-text');
-    el('strong', 'Turnierteilnahmen', text);
-    el('span', year + ': ' + past.filter(x => x.date.startsWith(year)).length +
-      (next.length ? ' · ' + next.length + ' angemeldet' : '') + ' · Einsätze anzeigen', text, 'my-row-detail');
-    el('span', past.length, summary, 'my-row-place');
+    el('strong', 'Turnierteilnahmen ' + year, text);
+    el('span', 'Antippen für die einzelnen Turniere', text, 'my-row-detail');
+    el('span', played.length, summary, 'my-row-place');
     const list = el('ul', null, box, 'my-list');
-    for (const x of [...next, ...past]) {
+    for (const x of played) {
       const item = el('li', null, list);
       el('time', deDate(x.date), item);
-      el('span', x.name + (x.location ? ' · ' + x.location : '') + (x.upcoming ? ' (angemeldet)' : ''), item);
+      el('span', x.name + (x.location ? ' · ' + x.location : ''), item);
     }
     shown++;
   }
