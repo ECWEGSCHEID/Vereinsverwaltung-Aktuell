@@ -119,6 +119,19 @@ function championshipEntry(state, name) {
     season: Number(state.seasonYear) || null, archived: !!state.archived} : null;
 }
 
+// ---------- Solo Pyramide ----------
+// Plätze werden von oben gezählt: Reihe 1 hat 1 Platz, Reihe 2 hat 2 Plätze usw.
+function pyramidEntry(state, name) {
+  const players = Array.isArray(state?.players) ? state.players : [];
+  const index = players.findIndex(p => typeof p === 'string' && p !== 'FREI' && sameName(p, name));
+  if (index < 0) return null;
+  const position = index + 1;
+  let rowNumber = 1, last = 1;
+  while (position > last) { rowNumber++; last += rowNumber; }
+  const active = players.filter(p => typeof p === 'string' && p.trim() && p !== 'FREI').length;
+  return {position, row: rowNumber, of: active};
+}
+
 // ---------- Anzeige (kompakt) ----------
 function el(tag, text, parent, className) {
   const node = document.createElement(tag);
@@ -180,13 +193,19 @@ function render(container, name, data) {
     shown++;
   }
 
+  const solo = data.pyramid;
+  if (solo) {
+    row(container, 'Solo Pyramide', 'Reihe ' + solo.row + ' · ' + solo.of + ' Spieler in der Pyramide', 'Platz ' + solo.position);
+    shown++;
+  }
+
   for (const message of data.errors || []) el('p', message, container, 'hint');
   if (!shown) el('p', 'Für ' + name + ' sind noch keine Ergebnisse oder Turnierteilnahmen eingetragen.', container, 'hint');
   return shown;
 }
 
 /* Lädt alle Quellen parallel. Eine fehlende Quelle blendet nur ihren Abschnitt aus. */
-async function load({name, signal, loadPlanner, loadCups, loadChampionship, standings}) {
+async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, standings}) {
   const errors = [];
   const attempt = async (label, task) => {
     try { return await task(); } catch (error) {
@@ -196,18 +215,20 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, stan
       return null;
     }
   };
-  const [events, tournaments, jmState] = await Promise.all([
+  const [events, tournaments, jmState, soloState] = await Promise.all([
     attempt('Der Terminplaner', loadPlanner),
     attempt('Die Cup-Ergebnisse', loadCups),
-    attempt('Die Ziel-Jahresmeisterschaft', loadChampionship)
+    attempt('Die Ziel-Jahresmeisterschaft', loadChampionship),
+    loadPyramid ? attempt('Die Solo Pyramide', loadPyramid) : null
   ]);
   return {
     planner: events ? participations(events, name) : [],
     cups: tournaments ? cupEntries(tournaments, name, standings) : [],
     championship: jmState ? championshipEntry(jmState, name) : null,
+    pyramid: soloState ? pyramidEntry(soloState, name) : null,
     errors
   };
 }
 
-root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, render, load, isoDate};
+root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, render, load, isoDate};
 })(typeof window !== 'undefined' ? window : globalThis);
