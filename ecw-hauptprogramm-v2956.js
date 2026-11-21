@@ -546,7 +546,7 @@ function firestoreRestValue(value){
 function firestoreRestFields(fields){
   return Object.fromEntries(Object.entries(fields).map(([key,value])=>[key,firestoreRestValue(value)]));
 }
-async function firestoreRestCollection(collection){
+async function firestoreRestCollection(collection, fields=[], documentId=''){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),20000);
   try{
@@ -558,13 +558,15 @@ async function firestoreRestCollection(collection){
     do{
       const url=new URL('https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(firebaseConfig.projectId)+'/databases/(default)/documents/'+encodeURIComponent(collection));
       url.searchParams.set('key',firebaseConfig.apiKey);
-      url.searchParams.set('pageSize','100');
+      if(documentId)url.pathname+='/'+encodeURIComponent(documentId);
+      else url.searchParams.set('pageSize','100');
+      for(const field of fields)url.searchParams.append('mask.fieldPaths',field);
       if(pageToken)url.searchParams.set('pageToken',pageToken);
       const response=await fetch(url,{signal:controller.signal,headers:token?{Authorization:'Bearer '+token}:{},cache:'no-store'});
       const body=await response.json();
       if(!response.ok){const error=new Error(body.error?.message||'Serverabruf fehlgeschlagen');error.code=response.status===403?'permission-denied':response.status===401?'unauthenticated':'unavailable';throw error;}
       if((firebaseAuth?.currentUser?.uid||null)!==(user?.uid||null))throw new Error('Anmeldung wurde geändert.');
-      for(const item of body.documents||[]){const fields=firestoreRestFields(item.fields||{});docs.push({id:item.name.split('/').pop(),data:()=>fields});}
+      for(const item of (documentId?[body]:body.documents||[])){const fields=firestoreRestFields(item.fields||{});docs.push({id:item.name.split('/').pop(),data:()=>fields});}
       pageToken=body.nextPageToken||'';
     }while(pageToken);
     return {docs,size:docs.length,empty:docs.length===0,metadata:{fromCache:false},forEach:fn=>docs.forEach(fn)};
@@ -3309,6 +3311,7 @@ function presentationTournamentMonths(){
  const st=tStore();
  return Object.keys(st).filter(k=>(st[k]||[]).some(tournamentInvitationVisible)).sort();
 }
+let invitationMonthIndex=null;
 async function refreshInvitationOverview(){
  const box=document.getElementById('tMonthOverview');
  if(!box)return;
@@ -3320,8 +3323,11 @@ async function refreshInvitationOverview(){
  box.prepend(notice);
  try{
    if(!firestoreDb)throw new Error('Firebase-Verbindung noch nicht bereit.');
-   const snap=await centralServerGet('tournamentInvitations');
-   centralApplyTournamentInvitations(snap,false);
+   const snap=await firestoreRestCollection('tournamentInvitations',['month','endDate','index','name']);
+   const months=Object.create(null);
+   snap.forEach(doc=>{const item=doc.data();if(item.month)(months[item.month]||=[]).push({...item,documentId:doc.id});});
+   invitationMonthIndex=months;
+   if(tCollection==='tournaments'&&document.getElementById('tournamentMonths')?.classList.contains('active'))renderTournamentMonthOverview();
  }catch(error){
    if(tCollection!=='tournaments'||!document.getElementById('tournamentMonths')?.classList.contains('active'))return;
    const retry=document.createElement('button');
@@ -3342,15 +3348,31 @@ function renderTournamentMonthOverview(){
      const count=(tStore()[k]||[]).filter(Boolean).length;
      return '<button type="button" class="month-tile '+(count?'has-items':'')+'" data-month="'+esc(k)+'"><b>'+esc(pressFolderLabel(k))+'</b><span>'+count+' Bericht'+(count===1?'':'e')+'</span></button>';
    }).join('');
-   el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month),{once:true}));
+   el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month)));
    return;
  }
  const now=new Date(),arr=[];
  for(let i=0;i<12;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);arr.push(monthKey(d))}
- el.innerHTML=arr.map(k=>{const count=(tStore()[k]||[]).filter(tournamentInvitationVisible).length;return '<button type="button" class="month-tile '+(count?'has-items':'')+'" data-month="'+esc(k)+'"><b>'+monthLabel(k)+'</b><span>'+(count?count+' Einladung'+(count===1?'':'en'):'keine Einladung')+'</span></button>'}).join('');
- el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month),{once:true}));
+ el.innerHTML=arr.map(k=>{const count=((tCollection==='tournaments'&&invitationMonthIndex?invitationMonthIndex:tStore())[k]||[]).filter(tournamentInvitationVisible).length;return '<button type="button" class="month-tile '+(count?'has-items':'')+'" data-month="'+esc(k)+'"><b>'+monthLabel(k)+'</b><span>'+(count?count+' Einladung'+(count===1?'':'en'):'keine Einladung')+'</span></button>'}).join('');
+ el.querySelectorAll('.month-tile').forEach(btn=>btn.addEventListener('click',()=>openTournamentMonth(btn.dataset.month)));
 }
-async function openTournamentMonth(k){currentMonth=String(k);currentPage=0;adminTournamentPage=0;await showView('tournaments')}
+async function openTournamentMonth(k){
+ if(tCollection==='tournaments'&&invitationMonthIndex){
+   const button=document.querySelector('#tMonthOverview [data-month="'+CSS.escape(k)+'"]');
+   if(button)button.disabled=true;
+   try{
+     const required=(invitationMonthIndex[k]||[]).filter(tournamentInvitationVisible);
+     const missing=required.filter(entry=>!tStore()[k]?.[entry.index||0]?.data);
+     const fetched=await Promise.all(missing.map(entry=>firestoreRestCollection('tournamentInvitations',[],entry.documentId)));
+     if(tCollection!=='tournaments'||!document.getElementById('tournamentMonths')?.classList.contains('active'))return;
+     for(const snapshot of fetched){
+       const doc=snapshot.docs[0],item=doc.data();
+       if(item.month===k&&item.data)(tStore()[k]||=[])[item.index||0]={...item,id:item.id||doc.id};
+     }
+   }catch(error){showToast('Einladung konnte nicht geladen werden. Bitte den Monat erneut antippen.',6000);return;}
+   finally{if(button)button.disabled=false;}
+ }
+ currentMonth=String(k);currentPage=0;adminTournamentPage=0;await showView('tournaments')}
 function initTournaments(){const ms=tCollection==='tournaments'?presentationTournamentMonths():existingMonths();currentMonth=currentMonth&&ms.includes(currentMonth)?currentMonth:(ms[0]||(tCollection==='pressReports'?PRESS_REPORTS_GROUP:monthKey()));currentPage=0;adminTournamentPage=0;renderTournaments()}
 function monthKeyOffset(offset){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);return monthKey(d)}
 function tournamentMonthOptions(){
