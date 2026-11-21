@@ -113,7 +113,7 @@ function publicTile(title,code){
 }
 function renderPublic(){
  const n=active(),d=element();
- const bg=path.length?'assets/hintergrund-carbon-rot.png':(SH.bg||'assets/startseite-standard.jpg');
+ const bg=path.length?'assets/hintergrund-carbon-rot.jpg':(SH.bg||'assets/startseite-standard.jpg');
  d.style.backgroundImage='url('+JSON.stringify(bg)+')';
  const gallery=!intermediate()&&n.links.length>0;
  const showTopHeading=gallery||path.length>=2;
