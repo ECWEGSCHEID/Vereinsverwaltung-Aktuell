@@ -55,6 +55,24 @@ function openECWChecklists() {
     });
   }
 
+  // Liest eine JSON-Datei im Format {topics: [...], tests: [...]} und prüft jeden Eintrag.
+  async function readImport(file) {
+    const imported = JSON.parse(await file.text());
+    return Object.fromEntries(Object.keys(listNames).map(kind => {
+      if (!Array.isArray(imported[kind]) || imported[kind].length > 100) {
+        throw new Error('Ungültige Liste.');
+      }
+      const items = imported[kind].map(({title, description, status}) => {
+        if (typeof title !== 'string' || !title.trim() || title.length > 120 ||
+            typeof description !== 'string' || description.length > 600 || ![0, 1, 2, 3].includes(Number(status))) {
+          throw new Error('Ungültiger Eintrag.');
+        }
+        return {id: crypto.randomUUID(), title: title.trim(), description: description.trim(), status: Number(status)};
+      });
+      return [kind, items];
+    }));
+  }
+
   function render(data) {
     content.replaceChildren();
     if (!data) {
@@ -65,20 +83,7 @@ function openECWChecklists() {
       input.onchange = async () => {
         if (!input.files.length) return;
         try {
-          const imported = JSON.parse(await input.files[0].text());
-          const lists = Object.fromEntries(Object.keys(listNames).map(kind => {
-            if (!Array.isArray(imported[kind]) || imported[kind].length > 100) {
-              throw new Error('Ungültige Liste.');
-            }
-            const items = imported[kind].map(({title, description, status}) => {
-              if (typeof title !== 'string' || !title.trim() || title.length > 120 ||
-                  typeof description !== 'string' || description.length > 600 || ![0, 1, 2, 3].includes(Number(status))) {
-                throw new Error('Ungültiger Eintrag.');
-              }
-              return {id: crypto.randomUUID(), title, description, status: Number(status)};
-            });
-            return [kind, items];
-          }));
+          const lists = await readImport(input.files[0]);
           await save(current => {
             if (current) throw new Error('Der Startbestand wurde bereits angelegt. Bitte öffne die Liste erneut.');
             return lists;
@@ -96,6 +101,41 @@ function openECWChecklists() {
       });
       return;
     }
+
+    // Weitere Punkte aus einer JSON-Datei ergänzen. Vorhandene Titel werden übersprungen.
+    const mergeLabel = element('label', 'Punkte aus JSON-Datei ergänzen', content);
+    mergeLabel.style.cssText = 'display:block;margin-bottom:12px';
+    const mergeInput = element('input', '', mergeLabel);
+    mergeInput.type = 'file';
+    mergeInput.accept = '.json,application/json';
+    mergeInput.onchange = async () => {
+      if (!mergeInput.files.length) return;
+      try {
+        const lists = await readImport(mergeInput.files[0]);
+        let added = 0;
+        await save(current => {
+          if (!current) throw new Error('Die Liste fehlt. Bitte öffne sie erneut.');
+          added = 0;
+          const next = {...current};
+          for (const kind of Object.keys(listNames)) {
+            const existing = Array.isArray(current[kind]) ? current[kind] : [];
+            const known = new Set(existing.map(item => item.title.trim().toLocaleLowerCase('de-DE')));
+            const fresh = lists[kind].filter(item => !known.has(item.title.toLocaleLowerCase('de-DE')));
+            if (existing.length + fresh.length > 100) throw new Error(listNames[kind] + ': mehr als 100 Punkte.');
+            added += fresh.length;
+            next[kind] = [...existing, ...fresh];
+          }
+          return next;
+        });
+        if (active() && message.textContent === 'Gespeichert.') {
+          message.textContent = added + ' Punkt(e) ergänzt.';
+        }
+      } catch (error) {
+        message.textContent = 'Import fehlgeschlagen. ' + error.message;
+      } finally {
+        mergeInput.value = '';
+      }
+    };
 
     for (const [kind, label] of Object.entries(listNames)) {
       const section = element('section', '', content);
