@@ -92,9 +92,18 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 .module-nav a{display:grid;place-items:center;color:#fff;padding-inline:10px;font-size:14px}
 #results button{text-align:left}
 #planner-list{display:grid;gap:8px}
-#myresults-content{display:grid;gap:8px}
-.my-results-section{display:grid;gap:8px;margin-top:6px}
-.my-results-heading{font-size:17px;margin:12px 0 0;color:#ffd7dc}
+#myresults-content{display:grid;gap:6px;margin-top:8px}
+.my-row,.my-participations>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#2c292d;border:1px solid #4c4248;border-radius:10px}
+.my-participations>summary{cursor:pointer;list-style:none}
+.my-participations>summary::-webkit-details-marker{display:none}
+.my-participations[open]>summary{border-radius:10px 10px 0 0}
+.my-row-text{display:grid;flex:1;min-width:0}
+.my-row-text strong{font-size:15px;overflow-wrap:anywhere}
+.my-row-detail{font-size:12px;color:#e9d7db}
+.my-row-place{font-size:17px;font-weight:bold;white-space:nowrap;color:#ffd7dc}
+.my-list{list-style:none;margin:0;padding:4px 10px 8px;background:#2c292d;border:1px solid #4c4248;border-top:0;border-radius:0 0 10px 10px;display:grid;gap:5px}
+.my-list li{display:grid;grid-template-columns:78px 1fr;gap:6px;font-size:13px}
+.my-list time{color:#e9d7db}
 #myresults-picker{display:grid;gap:8px;margin-top:10px}
 .planner-event{padding:10px 12px;background:#2c292d;border:1px solid #4c4248;border-radius:10px;overflow-wrap:anywhere}
 .planner-event h2{font-size:16px;margin:3px 0 7px}
@@ -195,7 +204,7 @@ main:has(#menu:not([hidden])){
 </style>
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
-<script src="js/ecw-meine-ergebnisse.js?v=1"></script>
+<script src="js/ecw-meine-ergebnisse.js?v=2-kompakt"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>

@@ -119,7 +119,7 @@ function championshipEntry(state, name) {
     season: Number(state.seasonYear) || null, archived: !!state.archived} : null;
 }
 
-// ---------- Anzeige ----------
+// ---------- Anzeige (kompakt) ----------
 function el(tag, text, parent, className) {
   const node = document.createElement(tag);
   if (text !== undefined && text !== null) node.textContent = String(text);
@@ -127,62 +127,56 @@ function el(tag, text, parent, className) {
   if (parent) parent.append(node);
   return node;
 }
-function card(parent, heading, lines, badge) {
-  const box = el('article', null, parent, 'planner-event my-result');
-  if (badge) el('time', badge, box);
-  el('h2', heading, box);
-  const list = el('dl', null, box);
-  for (const [label, value] of lines) {
-    const row = el('div', null, list);
-    el('dt', label, row);
-    el('dd', value === '' || value === null || value === undefined ? '–' : value, row);
-  }
-  return box;
+// Eine Zeile: links Wettbewerb und Details, rechts der Platz.
+function row(parent, title, detail, place) {
+  const line = el('div', null, parent, 'my-row');
+  const text = el('div', null, line, 'my-row-text');
+  el('strong', title, text);
+  if (detail) el('span', detail, text, 'my-row-detail');
+  el('span', place, line, 'my-row-place');
+  return line;
 }
-function placeText(place, of) {
-  return place > 0 ? place + '. von ' + of : '–';
-}
+const placeText = (place, of) => place > 0 ? place + '. von ' + of : '–';
 
 function render(container, name, data) {
   container.replaceChildren();
   let shown = 0;
-  const section = title => {
-    const s = el('section', null, container, 'my-results-section');
-    el('h2', title, s, 'my-results-heading');
-    return s;
-  };
 
   if (data.planner?.length) {
     const past = data.planner.filter(x => !x.upcoming), next = data.planner.filter(x => x.upcoming);
     const year = String(new Date().getFullYear());
-    const s = section('Turnierteilnahmen');
-    el('p', past.filter(x => x.date.startsWith(year)).length + ' Teilnahmen ' + year + ' · ' + past.length + ' insgesamt', s, 'hint');
-    for (const x of next) card(s, x.name, [['Ort', x.location], ['Art', x.type]], deDate(x.date) + ' · angemeldet');
-    for (const x of past) card(s, x.name, [['Ort', x.location], ['Art', x.type]], deDate(x.date));
-    shown++;
-  }
-
-  const cupTitles = {duo: 'Duo Cup', frauen: 'Frauencup', weitere: 'Weitere Cups'};
-  for (const kind of ['duo', 'frauen', 'weitere']) {
-    const rows = (data.cups || []).filter(x => x.kind === kind);
-    if (!rows.length) continue;
-    const s = section(cupTitles[kind]);
-    for (const x of rows) {
-      const status = x.dq ? ' (DSQ)' : x.dnf ? ' (DNF)' : '';
-      card(s, x.tournament, [['Platz', placeText(x.place, x.of) + status], ['Mannschaft', x.team],
-        ['Gruppe', x.group], ['Punkte', x.points], ['Spiele', x.played], ['Stöcke', x.stocks]]);
+    const box = el('details', null, container, 'my-participations');
+    const summary = el('summary', null, box);
+    const text = el('div', null, summary, 'my-row-text');
+    el('strong', 'Turnierteilnahmen', text);
+    el('span', year + ': ' + past.filter(x => x.date.startsWith(year)).length +
+      (next.length ? ' · ' + next.length + ' angemeldet' : '') + ' · Einsätze anzeigen', text, 'my-row-detail');
+    el('span', past.length, summary, 'my-row-place');
+    const list = el('ul', null, box, 'my-list');
+    for (const x of [...next, ...past]) {
+      const item = el('li', null, list);
+      el('time', deDate(x.date), item);
+      el('span', x.name + (x.location ? ' · ' + x.location : '') + (x.upcoming ? ' (angemeldet)' : ''), item);
     }
     shown++;
   }
 
+  const cupTitles = {duo: 'Duo Cup', frauen: 'Frauencup', weitere: 'Cup'};
+  for (const kind of ['duo', 'frauen', 'weitere']) {
+    for (const x of (data.cups || []).filter(c => c.kind === kind)) {
+      const status = x.dq ? ' · DSQ' : x.dnf ? ' · DNF' : '';
+      const title = kind === 'weitere' || !new RegExp(cupTitles[kind].replace(' ', '\\s*'), 'i').test(x.tournament)
+        ? cupTitles[kind] + ': ' + x.tournament : x.tournament;
+      row(container, title, x.group + ' · ' + x.points + ' Pkt. · ' + x.stocks + ' Stöcke' + status, placeText(x.place, x.of));
+      shown++;
+    }
+  }
+
   const jm = data.championship;
   if (jm) {
-    const s = section('Ziel-Jahresmeisterschaft');
     const done = jm.rounds.filter(v => v !== null).length;
-    card(s, jm.title + (jm.season ? ' ' + (jm.season - 1) + '/' + jm.season : ''), [
-      ['Platz', placeText(jm.rank, jm.of)], ['Endergebnis', jm.result],
-      ['Gesamt', jm.total], ['Streichresultat', jm.drop],
-      ['Durchgänge', jm.rounds.map(v => v ?? '–').join(' · ')], ['Abgegeben', done + ' von 6']]);
+    row(container, 'Ziel-Jahresmeisterschaft', jm.result + ' Pkt. · Streich ' + jm.drop + ' · ' + done + '/6 abgegeben',
+      placeText(jm.rank, jm.of));
     shown++;
   }
 
