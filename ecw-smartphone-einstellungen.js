@@ -7,7 +7,7 @@
       entry: 'smartphone-mitglieder.html',
       items: {
         reservation: 'Reservierungssystem', invitations: 'Turniereinladungen', planner: 'Terminplaner', hall: 'Halle',
-        games: 'Spiele', tables: 'Tabellen', solo: 'Solo Pyramide'
+        games: 'Spiele', tables: 'Tabellen', myresults: 'Meine Ergebnisse', solo: 'Solo Pyramide'
       }
     },
     admin: {
