@@ -19,7 +19,7 @@ const PRESETS={
   'silber-hell-mit-logo':{label:'Silber Hell – mit EC Wegscheid Logo',file:'designvorlagen/silber-hell-mit-logo.jpg',theme:'silver'},
   'silber-hell-ohne-logo':{label:'Silber Hell – ohne Logo',file:'designvorlagen/silber-hell-ohne-logo.jpg',theme:'silver'},
   'schwarz-silber-original-mit-logo':{label:'Schwarz Silber – bisherige verkleinerte Vorlage',file:'designvorlagen/schwarz-silber-original-mit-logo.jpg',theme:'blacksilver'},
-  'schwarz-carbon-original-mit-logo':{label:'Schwarz Carbon – EC Wegscheid (dein Originalbild)',file:'designvorlagen/schwarz-carbon-ec-wegscheid-original.png',theme:'blacksilver'}
+  'schwarz-carbon-original-mit-logo':{label:'Schwarz Carbon – EC Wegscheid (dein Originalbild)',file:'designvorlagen/schwarz-carbon-ec-wegscheid-original.jpg',theme:'blacksilver'}
 };
 function presetUrl(key){
   const file=PRESETS[key]?.file||'';

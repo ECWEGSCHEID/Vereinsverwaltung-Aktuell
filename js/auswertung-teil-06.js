@@ -649,7 +649,7 @@ const map={
         return;
       }
       if (!f.dataset.loaded) {
-        const carbonUrl = new URL('assets/hintergrund-carbon-rot.png', location.href).href;
+        const carbonUrl = new URL('assets/hintergrund-carbon-rot.jpg', location.href).href;
         const carbonStyle = '<style id="ecw-carbon-red-override">html,body{background-color:#650000!important;background-image:url("'+carbonUrl+'")!important;background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important;background-attachment:fixed!important;min-height:100%!important}body:before{content:none!important}</style>';
         f.srcdoc = JAHRESMEISTERSCHAFT_HTML.replace(/designvorlagen\/carbon-rot-ohne-logo\.jpg/g, carbonUrl).replace('</head>', carbonStyle+'</head>');
         f.dataset.loaded = '1';
