@@ -119,6 +119,16 @@ function championshipEntry(state, name) {
     season: Number(state.seasonYear) || null, archived: !!state.archived} : null;
 }
 
+// ---------- Solo Pyramide ----------
+function pyramidEntry(state, name) {
+  // Solange die Pyramide nicht gestartet ist (Admin-Menü: aktiv/nicht aktiv), nichts anzeigen.
+  if (state?.pyramidActive !== true) return null;
+  const players = Array.isArray(state?.players) ? state.players : [];
+  const index = players.findIndex(p => typeof p === 'string' && p !== 'FREI' && sameName(p, name));
+  if (index < 0) return null;
+  return {position: index + 1};
+}
+
 // ---------- Anzeige (kompakt) ----------
 function el(tag, text, parent, className) {
   const node = document.createElement(tag);
@@ -142,21 +152,21 @@ function render(container, name, data) {
   container.replaceChildren();
   let shown = 0;
 
-  if (data.planner?.length) {
-    const past = data.planner.filter(x => !x.upcoming), next = data.planner.filter(x => x.upcoming);
-    const year = String(new Date().getFullYear());
+  // Nur bereits gespielte Turniere des laufenden Jahres; künftige Anmeldungen bleiben weg.
+  const year = String(new Date().getFullYear());
+  const played = (data.planner || []).filter(x => !x.upcoming && x.date.startsWith(year));
+  if (played.length) {
     const box = el('details', null, container, 'my-participations');
     const summary = el('summary', null, box);
     const text = el('div', null, summary, 'my-row-text');
-    el('strong', 'Turnierteilnahmen', text);
-    el('span', year + ': ' + past.filter(x => x.date.startsWith(year)).length +
-      (next.length ? ' · ' + next.length + ' angemeldet' : '') + ' · Einsätze anzeigen', text, 'my-row-detail');
-    el('span', past.length, summary, 'my-row-place');
+    el('strong', 'Turnierteilnahmen ' + year, text);
+    el('span', 'Antippen für die einzelnen Turniere', text, 'my-row-detail');
+    el('span', played.length, summary, 'my-row-place');
     const list = el('ul', null, box, 'my-list');
-    for (const x of [...next, ...past]) {
+    for (const x of played) {
       const item = el('li', null, list);
       el('time', deDate(x.date), item);
-      el('span', x.name + (x.location ? ' · ' + x.location : '') + (x.upcoming ? ' (angemeldet)' : ''), item);
+      el('span', x.name + (x.location ? ' · ' + x.location : ''), item);
     }
     shown++;
   }
@@ -180,13 +190,19 @@ function render(container, name, data) {
     shown++;
   }
 
+  const solo = data.pyramid;
+  if (solo) {
+    row(container, 'Solo Pyramide', '', 'Platz ' + solo.position);
+    shown++;
+  }
+
   for (const message of data.errors || []) el('p', message, container, 'hint');
   if (!shown) el('p', 'Für ' + name + ' sind noch keine Ergebnisse oder Turnierteilnahmen eingetragen.', container, 'hint');
   return shown;
 }
 
 /* Lädt alle Quellen parallel. Eine fehlende Quelle blendet nur ihren Abschnitt aus. */
-async function load({name, signal, loadPlanner, loadCups, loadChampionship, standings}) {
+async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, standings}) {
   const errors = [];
   const attempt = async (label, task) => {
     try { return await task(); } catch (error) {
@@ -196,18 +212,20 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, stan
       return null;
     }
   };
-  const [events, tournaments, jmState] = await Promise.all([
+  const [events, tournaments, jmState, soloState] = await Promise.all([
     attempt('Der Terminplaner', loadPlanner),
     attempt('Die Cup-Ergebnisse', loadCups),
-    attempt('Die Ziel-Jahresmeisterschaft', loadChampionship)
+    attempt('Die Ziel-Jahresmeisterschaft', loadChampionship),
+    loadPyramid ? attempt('Die Solo Pyramide', loadPyramid) : null
   ]);
   return {
     planner: events ? participations(events, name) : [],
     cups: tournaments ? cupEntries(tournaments, name, standings) : [],
     championship: jmState ? championshipEntry(jmState, name) : null,
+    pyramid: soloState ? pyramidEntry(soloState, name) : null,
     errors
   };
 }
 
-root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, render, load, isoDate};
+root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, render, load, isoDate};
 })(typeof window !== 'undefined' ? window : globalThis);
