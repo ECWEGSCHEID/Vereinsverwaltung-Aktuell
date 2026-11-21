@@ -204,7 +204,7 @@ main:has(#menu:not([hidden])){
 </style>
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
-<script src="js/ecw-meine-ergebnisse.js?v=6-nur-spieler"></script>
+<script src="js/ecw-meine-ergebnisse.js?v=7-solo-fix"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -638,7 +638,17 @@ async function showMyResultsFor(name, signal) {
     loadPlanner: async () => (await getDocs(collection(db, 'tournamentPlanner'))).docs.map(entry => entry.data()),
     loadCups: () => window.ecwLoadCupTournaments(signal),
     loadChampionship: async () => (await getDocFromServer(doc(db, 'turnierauswertung', 'jahresmeisterschaft'))).data()?.state,
-    loadPyramid: async () => (await getDocFromServer(doc(db, 'soloPyramide', 'state'))).data()
+    loadPyramid: async () => {
+      // Erst mit der Mitglieder-Anmeldung lesen; klappt das nicht, über die
+      // öffentlich lesbare Schnittstelle (wie die Pyramiden-Seite selbst).
+      try {
+        const snapshot = await getDocFromServer(doc(db, 'soloPyramide', 'state'));
+        if (snapshot.exists() && Array.isArray(snapshot.data()?.players)) return snapshot.data();
+      } catch (error) {
+        console.warn('Solo Pyramide über Anmeldung nicht lesbar:', error.code || error);
+      }
+      return window.ECWMeineErgebnisse.loadPyramidPublic(signal);
+    }
   });
   if (signal.aborted || auth.currentUser?.uid !== uid) return;
   myResultsStatus.textContent = 'Ergebnisse für ' + name;
