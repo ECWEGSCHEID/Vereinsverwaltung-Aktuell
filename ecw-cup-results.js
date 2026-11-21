@@ -65,6 +65,7 @@ async function loadCupTournaments(signal) {
 }
 
 window.ecwLoadCupTournaments = loadCupTournaments;
+window.ecwCupStandings = standings;
 
 window.ecwRenderCupResults = async function ({content, status, mode = 'duo', signal, controlsHost = content, preloaded}) {
 function render(tournaments){content.replaceChildren();const entries=Object.entries(tournaments).filter(([,v])=>v&&typeof v==='object');

@@ -92,6 +92,10 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 .module-nav a{display:grid;place-items:center;color:#fff;padding-inline:10px;font-size:14px}
 #results button{text-align:left}
 #planner-list{display:grid;gap:8px}
+#myresults-content{display:grid;gap:8px}
+.my-results-section{display:grid;gap:8px;margin-top:6px}
+.my-results-heading{font-size:17px;margin:12px 0 0;color:#ffd7dc}
+#myresults-picker{display:grid;gap:8px;margin-top:10px}
 .planner-event{padding:10px 12px;background:#2c292d;border:1px solid #4c4248;border-radius:10px;overflow-wrap:anywhere}
 .planner-event h2{font-size:16px;margin:3px 0 7px}
 .planner-event time,.planner-event dt{color:#e9d7db;font-size:12px}
@@ -190,7 +194,8 @@ main:has(#menu:not([hidden])){
 [hidden]{display:none!important}
 </style>
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
-<script src="ecw-cup-results.js?v=3.1.37.181126"></script>
+<script src="ecw-cup-results.js?v=20261121-meine"></script>
+<script src="js/ecw-meine-ergebnisse.js?v=1"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -242,6 +247,7 @@ main:has(#menu:not([hidden])){
 <button type="button" data-mobile-feature="hall">Halle<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="games">Spiele<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="tables">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="myresults">Meine Ergebnisse<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="solo">Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
 </nav>
 </section>
@@ -260,6 +266,11 @@ main:has(#menu:not([hidden])){
 <div id="planner-panel" hidden>
 <p id="planner-status" class="hint" role="status"></p>
 <div id="planner-list"></div>
+</div>
+<div id="myresults-panel" hidden>
+<p id="myresults-status" class="hint" role="status"></p>
+<div id="myresults-picker" hidden></div>
+<div id="myresults-content"></div>
 </div>
 <div id="hall-panel" hidden>
 <div class="hall-status"><span>Hallenstatus</span><strong>Unbekannt</strong></div>
@@ -285,7 +296,7 @@ main:has(#menu:not([hidden])){
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=3.1.25.171126"></script>
+<script src="ecw-smartphone-einstellungen.js?v=20261121-meine"></script>
 <script type="module">
 import { signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getMemberSession, restoreMemberSession } from './ecw-smartphone-session.mjs?v=3.1.25.171126';
@@ -544,6 +555,102 @@ async function loadPlanner(signal) {
     plannerStatus.textContent = error.code === 'permission-denied'
       ? 'Der Terminplaner ist für dieses Konto nicht freigegeben.'
       : 'Termine konnten nicht geladen werden.';
+  }
+}
+// ---------- Meine Ergebnisse ----------
+const myResultsPanel = document.getElementById('myresults-panel');
+const myResultsStatus = document.getElementById('myresults-status');
+const myResultsPicker = document.getElementById('myresults-picker');
+const myResultsContent = document.getElementById('myresults-content');
+const myResultsNameKey = 'ecw-meine-ergebnisse-name';
+let myResultsRequest;
+
+// Liest die Namensliste der Smartphone-Anmeldung, ohne die Anmeldemaske zu verändern.
+async function readMemberDirectory() {
+  if (memberDirectory) return memberDirectory;
+  const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
+  const snapshot = await getDocFromServer(doc(getFirestore(app), 'smartphoneAnmeldung', 'mitglieder'));
+  const directory = new Map();
+  for (const entry of snapshot.data()?.members || []) {
+    if (typeof entry?.name === 'string' && entry.name.trim() && typeof entry.alias === 'string') {
+      directory.set(entry.name.trim(), entry.alias);
+    }
+  }
+  return directory;
+}
+
+async function ownMemberName() {
+  const user = auth.currentUser;
+  const alias = String(user?.email || '').toLowerCase().match(/^([a-f0-9]{32})@login\.ec-wegscheid\.de$/)?.[1]
+    || String(user?.uid || '').match(/^ecw-mobile-([a-f0-9]{32})$/)?.[1];
+  let directory = null;
+  try { directory = await readMemberDirectory(); } catch { directory = null; }
+  if (alias && directory) {
+    for (const [name, entry] of directory) if (entry === alias) return {name, fixed: true, directory};
+  }
+  let stored = '';
+  try { stored = localStorage.getItem(myResultsNameKey) || ''; } catch {}
+  if (stored && (!directory?.size || directory.has(stored))) return {name: stored, fixed: false, directory};
+  return {name: '', fixed: false, directory};
+}
+
+function showMyResultsPicker(directory, current, signal) {
+  myResultsPicker.replaceChildren();
+  if (!directory?.size) {
+    myResultsStatus.textContent = 'Dein Name konnte nicht ermittelt werden. Bitte melde dich mit deinem Namen an.';
+    return;
+  }
+  const label = document.createElement('label');
+  label.textContent = 'Für wen sollen die Ergebnisse angezeigt werden?';
+  const select = document.createElement('select');
+  select.add(new Option('Namen wählen …', ''));
+  for (const name of [...directory.keys()].sort((a, b) => a.localeCompare(b, 'de'))) select.add(new Option(name, name));
+  select.value = current || '';
+  label.append(select);
+  myResultsPicker.append(label);
+  myResultsPicker.hidden = false;
+  select.addEventListener('change', () => {
+    if (!select.value || signal.aborted) return;
+    try { localStorage.setItem(myResultsNameKey, select.value); } catch {}
+    void showMyResultsFor(select.value, signal);
+  });
+}
+
+async function showMyResultsFor(name, signal) {
+  const uid = auth.currentUser?.uid;
+  myResultsContent.replaceChildren();
+  myResultsStatus.textContent = 'Ergebnisse für ' + name + ' werden geladen …';
+  const {getFirestore, collection, getDocs, doc, getDocFromServer} = await import(firestoreSdkUrl);
+  if (signal.aborted || auth.currentUser?.uid !== uid) return;
+  const db = getFirestore(app);
+  const data = await window.ECWMeineErgebnisse.load({
+    name, signal,
+    standings: window.ecwCupStandings,
+    loadPlanner: async () => (await getDocs(collection(db, 'tournamentPlanner'))).docs.map(entry => entry.data()),
+    loadCups: () => window.ecwLoadCupTournaments(signal),
+    loadChampionship: async () => (await getDocFromServer(doc(db, 'turnierauswertung', 'jahresmeisterschaft'))).data()?.state
+  });
+  if (signal.aborted || auth.currentUser?.uid !== uid) return;
+  myResultsStatus.textContent = 'Ergebnisse für ' + name;
+  window.ECWMeineErgebnisse.render(myResultsContent, name, data);
+}
+
+async function loadMyResults(signal) {
+  myResultsContent.replaceChildren();
+  myResultsPicker.replaceChildren();
+  myResultsPicker.hidden = true;
+  myResultsStatus.textContent = 'Ergebnisse werden geladen …';
+  try {
+    const own = await ownMemberName();
+    if (signal.aborted) return;
+    if (!own.fixed) showMyResultsPicker(own.directory, own.name, signal);
+    if (!own.name) {
+      if (own.directory?.size) myResultsStatus.textContent = 'Bitte wähle deinen Namen aus.';
+      return;
+    }
+    await showMyResultsFor(own.name, signal);
+  } catch (error) {
+    if (!signal.aborted) myResultsStatus.textContent = 'Ergebnisse konnten nicht geladen werden.';
   }
 }
 const temperatureStatus = document.getElementById('temperature-status');
@@ -940,6 +1047,7 @@ onAuthStateChanged(auth, async user => {
   if (!stillCurrent()) return;
   hallRequest?.abort();
   plannerRequest?.abort();
+  myResultsRequest?.abort();
   closeInvitations();
   plannerList.replaceChildren();
   closeResults();
@@ -1083,6 +1191,11 @@ menu.querySelectorAll('nav button').forEach(button => {
     invitationPanel.hidden = true;
     hallPanel.hidden = title !== 'Halle';
     plannerPanel.hidden = title !== 'Terminplaner';
+    myResultsPanel.hidden = button.dataset.mobileFeature !== 'myresults';
+    if (button.dataset.mobileFeature === 'myresults') {
+      myResultsRequest = new AbortController();
+      void loadMyResults(myResultsRequest.signal);
+    }
     if (title === 'Terminplaner') {
       plannerRequest = new AbortController();
       void loadPlanner(plannerRequest.signal);
@@ -1108,6 +1221,7 @@ document.getElementById('back').addEventListener('click', () => {
   stopCupPrefetch();
   hallRequest?.abort();
   plannerRequest?.abort();
+  myResultsRequest?.abort();
   plannerList.replaceChildren();
   detail.hidden = true;
   menu.hidden = false;
