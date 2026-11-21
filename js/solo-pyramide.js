@@ -88,6 +88,8 @@ let vacations = {};
 let ruleLockHoursAfterGame = defaultRuleLockHoursAfterGame;
 let ruleChallengeDays = defaultRuleChallengeDays;
 let ruleWithdrawHours = defaultRuleWithdrawHours;
+// Erst wenn der Admin die Pyramide startet, erscheint der Platz unter "Meine Ergebnisse".
+let pyramidActive = false;
 
 let selected = null;
 let pending = null;
@@ -168,6 +170,7 @@ function applyData(data){
     if(data.ruleLockHoursAfterGame !== undefined) ruleLockHoursAfterGame = data.ruleLockHoursAfterGame;
     if(data.ruleChallengeDays !== undefined) ruleChallengeDays = data.ruleChallengeDays;
     if(data.ruleWithdrawHours !== undefined) ruleWithdrawHours = data.ruleWithdrawHours;
+    if(typeof data.pyramidActive === 'boolean') pyramidActive = data.pyramidActive;
   }
   checkLoginOrRender();
 }
@@ -179,7 +182,7 @@ function buildPayload(){
     players, passwords, hist, challengerLocks, opponentLocks, fixedChallenges,
     infoLines, customTitle, customSubtitle,
     currentMaxPlayers, vacations, ruleLockHoursAfterGame,
-    ruleChallengeDays, ruleWithdrawHours,
+    ruleChallengeDays, ruleWithdrawHours, pyramidActive,
     appVersion: '2.5.2',
     updatedAt: new Date().toISOString()
   };
@@ -692,6 +695,9 @@ function openAdminMenu(activeTab = 'general'){
     </div>
 
     <div id="tab_general" class="adminTabContent ${activeTab==='general'?'active':''}">
+      <label><b>Status der Pyramide:</b></label>
+      <p style="margin:4px 0 8px">${pyramidActive ? '🟢 Aktiv – Plätze werden unter „Meine Ergebnisse“ angezeigt.' : '⚪ Nicht aktiv – Pyramide noch nicht gestartet, Plätze werden nicht angezeigt.'}</p>
+      <button type="button" class="adminTabBtn active" style="margin-bottom:14px" onclick="togglePyramidActive()">${pyramidActive ? 'Auf „nicht aktiv“ setzen' : 'Pyramide starten (aktiv setzen)'}</button>
       <label><b>Anzahl der Pyramiden-Plätze anzeigen:</b></label>
       <select id="adminMaxPlayers" class="adminSelect">
         <option value="21" ${currentMaxPlayers===21?'selected':''}>21 Plätze (6 Reihen)</option>
@@ -842,6 +848,14 @@ window.resetAllData = function(){
   window.save();
   location.reload();
 }
+
+window.togglePyramidActive = function(){
+  const next = !pyramidActive;
+  if(!confirm(next ? 'Pyramide jetzt starten? Die Plätze werden dann unter „Meine Ergebnisse“ angezeigt.' : 'Pyramide auf „nicht aktiv“ setzen? Die Plätze werden dann nicht mehr angezeigt.')) return;
+  pyramidActive = next;
+  window.save();
+  openAdminMenu('general');
+};
 
 window.saveAdminSettings = function(){
   currentMaxPlayers = parseInt(document.getElementById('adminMaxPlayers').value, 10) || defaultPyramidSize;

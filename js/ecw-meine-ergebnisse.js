@@ -120,16 +120,13 @@ function championshipEntry(state, name) {
 }
 
 // ---------- Solo Pyramide ----------
-// Plätze werden von oben gezählt: Reihe 1 hat 1 Platz, Reihe 2 hat 2 Plätze usw.
 function pyramidEntry(state, name) {
+  // Solange die Pyramide nicht gestartet ist (Admin-Menü: aktiv/nicht aktiv), nichts anzeigen.
+  if (state?.pyramidActive !== true) return null;
   const players = Array.isArray(state?.players) ? state.players : [];
   const index = players.findIndex(p => typeof p === 'string' && p !== 'FREI' && sameName(p, name));
   if (index < 0) return null;
-  const position = index + 1;
-  let rowNumber = 1, last = 1;
-  while (position > last) { rowNumber++; last += rowNumber; }
-  const active = players.filter(p => typeof p === 'string' && p.trim() && p !== 'FREI').length;
-  return {position, row: rowNumber, of: active};
+  return {position: index + 1};
 }
 
 // ---------- Anzeige (kompakt) ----------
@@ -195,7 +192,7 @@ function render(container, name, data) {
 
   const solo = data.pyramid;
   if (solo) {
-    row(container, 'Solo Pyramide', 'Reihe ' + solo.row + ' · ' + solo.of + ' Spieler in der Pyramide', 'Platz ' + solo.position);
+    row(container, 'Solo Pyramide', '', 'Platz ' + solo.position);
     shown++;
   }
 
