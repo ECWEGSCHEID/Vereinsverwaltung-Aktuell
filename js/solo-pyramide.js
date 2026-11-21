@@ -853,8 +853,19 @@ window.togglePyramidActive = function(){
   const next = !pyramidActive;
   if(!confirm(next ? 'Pyramide jetzt starten? Die Plätze werden dann unter „Meine Ergebnisse“ angezeigt.' : 'Pyramide auf „nicht aktiv“ setzen? Die Plätze werden dann nicht mehr angezeigt.')) return;
   pyramidActive = next;
-  window.save();
-  openAdminMenu('general');
+  const payload = buildPayload();
+  // Direkt speichern und das Ergebnis prüfen: Ein abgelehnter Schreibzugriff
+  // (z. B. Firestore-Regeln) darf nicht stillschweigend als "aktiv" erscheinen.
+  centralWrite(payload).then(ok => {
+    if(!ok) throw new Error('Keine Verbindung zur zentralen Datenbank.');
+    localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(payload));
+    alert(next ? 'Pyramide ist jetzt aktiv.' : 'Pyramide ist jetzt nicht aktiv.');
+  }).catch(error => {
+    pyramidActive = !next;
+    console.error('Solo-Pyramide: Status nicht gespeichert:', error);
+    alert('Status wurde NICHT gespeichert: ' + (error?.code || error?.message || error) +
+      '\nVermutlich erlauben die Firestore-Regeln das Feld "pyramidActive" im Dokument soloPyramide/state noch nicht.');
+  }).finally(() => openAdminMenu('general'));
 };
 
 window.saveAdminSettings = function(){
