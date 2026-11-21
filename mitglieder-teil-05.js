@@ -1,1 +1,0 @@
-window.addEventListener("load",()=>{setTimeout(()=>window.ecwFirebaseRefresh?.(),300);});
