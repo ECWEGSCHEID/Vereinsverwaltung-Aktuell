@@ -116,7 +116,12 @@ const MOTIVATION = [
   'Die Bahn wartet auf dich. Ein Training, und du bist wieder mittendrin!',
   'Wer trainiert, trifft. Schau beim nächsten Training vorbei!',
   'Der beste Zeitpunkt zum Einsteigen ist jetzt – wir sehen uns beim Training!',
-  'Stocksport lebt von der Gemeinschaft. Komm zum Training und mach mit!'
+  'Stocksport lebt von der Gemeinschaft. Komm zum Training und mach mit!',
+  'Jeder Meister hat mal mit einem Trainingsschuss angefangen. Deiner wartet!',
+  'Ein guter Stock braucht eine sichere Hand – die holst du dir beim Training.',
+  'Training heute, Pokal morgen. Wir freuen uns auf dich!',
+  'Die Mannschaft ist nur so stark wie ihr Training. Sei dabei!',
+  'Nimm dir eine Stunde Zeit für dich und deinen Stock – wir sehen uns auf der Bahn beim Training!'
 ];
 function motivation(today) {
   const n = Number(today.replace(/-/g, '')) || 0;
@@ -130,24 +135,21 @@ function competitions(status, sources, name) {
   const cup = (key, kind, title) => {
     if (status?.[key] !== true) return;
     const entry = cups?.find(c => c.kind === kind);
-    out.push({title, countable: !!cups, joined: !!entry,
-      detail: entry ? (entry.place > 0 ? 'Platz ' + entry.place + ' von ' + entry.of : 'dabei') : cups ? 'nicht dabei' : 'nicht verfügbar'});
+    out.push({key, title, countable: !!cups, joined: !!entry});
   };
   cup('duoCup', 'duo', 'Duo Cup');
   cup('frauencup', 'frauen', 'Frauencup');
   if (status?.soloPyramide === true) {
     const p = sources.pyramid && M ? M.pyramidEntry(sources.pyramid, name) : null;
-    out.push({title: 'Solo Pyramide', countable: !!sources.pyramid, joined: !!p,
-      detail: p ? 'Platz ' + p.position : sources.pyramid ? 'nicht dabei' : 'nicht verfügbar'});
+    out.push({key: 'soloPyramide', title: 'Solo Pyramide', countable: !!sources.pyramid, joined: !!p});
   }
   if (status?.montagsSolo === true) {
     // Das Montags-Solo-Turnier wird noch erstellt; die Teilnahme kann noch nicht ausgewertet werden.
-    out.push({title: 'Montags Solo Turnier', countable: false, joined: false, detail: 'läuft'});
+    out.push({key: 'montagsSolo', title: 'Montags Solo Turnier', countable: false, joined: false});
   }
   if (status?.jahresmeisterschaft === true) {
     const j = sources.championship && M ? M.championshipEntry(sources.championship, name) : null;
-    out.push({title: 'Ziel-Jahresmeisterschaft', countable: !!sources.championship, joined: !!j,
-      detail: j ? 'Platz ' + j.rank + ' von ' + j.of : sources.championship ? 'nicht dabei' : 'nicht verfügbar'});
+    out.push({key: 'jahresmeisterschaft', title: 'Ziel-Jahresmeisterschaft', countable: !!sources.championship, joined: !!j});
   }
   return out;
 }
@@ -289,18 +291,18 @@ function render(host, name, data, today = viennaToday()) {
   const comps = data.competitions || [];
   if (comps.length) {
     label('LAUFENDE WETTBEWERBE');
+    const chip = (parent, c) => el('span', c.title, parent, 'ov-chip ov-chip-' + c.key);
+    const running = el('div', null, host, 'ov-chips');
+    for (const c of comps) chip(running, c);
     const countable = comps.filter(c => c.countable);
-    const joined = countable.filter(c => c.joined).length;
-    if (countable.length) {
-      el('div', joined ? 'Du bist in ' + joined + ' von ' + countable.length + (countable.length === 1 ? ' Wettbewerb' : ' Wettbewerben') + ' dabei.'
-        : 'Du bist derzeit in keinem Wettbewerb dabei.', host, 'ov-summary');
+    const joined = countable.filter(c => c.joined);
+    if (joined.length) {
+      const line = el('div', null, host, 'ov-chips ov-joined-line');
+      el('span', 'Du bist dabei (' + joined.length + ' von ' + countable.length + '):', line, 'ov-joined-label');
+      for (const c of joined) chip(line, c);
+    } else if (countable.length) {
+      el('div', motivation(today), host, 'ov-box ov-motivation');
     }
-    for (const c of comps) {
-      const row = el('div', null, host, 'ov-box ov-comp' + (c.joined ? ' ov-joined' : ''));
-      el('span', (c.joined ? '✓ ' : '') + c.title, row);
-      el('span', c.detail, row, 'ov-comp-detail');
-    }
-    if (countable.length && !joined) el('div', motivation(today), host, 'ov-box ov-motivation');
     shown++;
   }
 
