@@ -1044,6 +1044,61 @@ function loginError(message) {
 
 let authRevision = 0;
 await authReady;
+// Menü, Freigaben und Pyramiden-Status lesen und anwenden. Wird beim Anmelden und
+// danach automatisch erneut ausgeführt (Rückkehr zur App, jede Minute), damit
+// Änderungen in der Verwaltung ohne Ab- und Anmelden am Smartphone ankommen.
+async function refreshMemberMenu(user, stillCurrent, operationReady) {
+  let settings, permissions, soloActive;
+  try {
+    [settings, permissions, , soloActive] = await Promise.all([
+      readSmartphoneSettings(), readMemberPermissions(user.uid), operationReady, readPyramidActive()
+    ]);
+  } catch {
+    if (!stillCurrent()) return false;
+    login.hidden = true;
+    menu.hidden = false;
+    menu.querySelector('nav').hidden = true;
+    sessionCheck.textContent = 'Freigaben konnten nicht geladen werden. Bitte Seite neu laden.';
+    sessionCheck.hidden = false;
+    return false;
+  }
+  if (!stillCurrent()) return false;
+  menu.querySelector('nav').hidden = false;
+  sessionCheck.hidden = true;
+  menu.querySelector('nav [data-mobile-feature="solo"]')?.classList.toggle('solo-inactive', !soloActive);
+  ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
+    selectedButton = button;
+    if (ECWSmartphoneNavigation.isInvitationRoute(url)) {
+      openInvitations(title);
+      return;
+    }
+    showModule(title, url, false, true);
+  }, permissions);
+  return true;
+}
+
+let menuRefreshRunning = false;
+async function refreshMemberMenuNow() {
+  const user = auth.currentUser;
+  if (!user || menuRefreshRunning || document.visibilityState !== 'visible') return;
+  menuRefreshRunning = true;
+  const revision = authRevision;
+  const stillCurrent = () => revision === authRevision && auth.currentUser?.uid === user.uid;
+  try {
+    const operationReady = readBookingOperation().then(operation => {
+      if (!stillCurrent()) return;
+      bookingOperationActive = operation.reservierungAktiv === true;
+      nameLoginEnabled = namePilot || operation.namensloginAktiv === true;
+    });
+    await refreshMemberMenu(user, stillCurrent, operationReady);
+  } finally {
+    menuRefreshRunning = false;
+  }
+}
+document.addEventListener('visibilitychange', () => { void refreshMemberMenuNow(); });
+window.addEventListener('pageshow', event => { if (event.persisted) void refreshMemberMenuNow(); });
+setInterval(() => { void refreshMemberMenuNow(); }, 60000);
+
 onAuthStateChanged(auth, async user => {
   const revision = ++authRevision;
   const stillCurrent = () => revision === authRevision &&
@@ -1054,33 +1109,7 @@ onAuthStateChanged(auth, async user => {
     nameLoginEnabled = namePilot || operation.namensloginAktiv === true;
   });
   if (user) {
-    let settings, permissions;
-    try {
-      [settings, permissions] = await Promise.all([readSmartphoneSettings(), readMemberPermissions(user.uid), operationReady]);
-    } catch {
-      if (!stillCurrent()) return;
-      login.hidden = true;
-      menu.hidden = false;
-      menu.querySelector('nav').hidden = true;
-      sessionCheck.textContent = 'Freigaben konnten nicht geladen werden. Bitte Seite neu laden.';
-      sessionCheck.hidden = false;
-      return;
-    }
-    if (!stillCurrent()) return;
-    menu.querySelector('nav').hidden = false;
-    const soloButton = menu.querySelector('nav [data-mobile-feature="solo"]');
-    if (soloButton) soloButton.classList.add('solo-inactive');
-    void readPyramidActive().then(active => {
-      if (stillCurrent() && soloButton) soloButton.classList.toggle('solo-inactive', !active);
-    });
-    ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
-      selectedButton = button;
-      if (ECWSmartphoneNavigation.isInvitationRoute(url)) {
-        openInvitations(title);
-        return;
-      }
-      showModule(title, url, false, true);
-    }, permissions);
+    if (!(await refreshMemberMenu(user, stillCurrent, operationReady))) return;
     login.hidden = true;
     sessionCheck.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
