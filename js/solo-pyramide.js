@@ -390,6 +390,11 @@ window.returnToMainMenu = function(){
   if(confirm("Möchtest du das Programm beenden und zum Hauptmenü zurückkehren?")) {
     if(window.parent !== window){
       try{
+        // Smartphone-Mitgliederbereich: zurück ins Menü.
+        if(window.parent.location.origin === window.location.origin && typeof window.parent.ecwCloseModule === 'function'){
+          window.parent.ecwCloseModule();
+          return;
+        }
         if(window.parent.location.origin === window.location.origin && typeof window.parent.backExternalPrevious === 'function'){
           window.parent.backExternalPrevious();
           return;
