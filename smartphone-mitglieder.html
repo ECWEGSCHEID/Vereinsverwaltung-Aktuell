@@ -107,6 +107,7 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 .ov-mode-frauen{background:#7a2f6a}.ov-mode-solo{background:#2f5a7a}
 .ov-warn{background:#4a3410;border:1px solid #8a6420}.ov-warn .ov-title{color:#ffd98a}
 .ov-list{max-height:210px;overflow-y:auto}
+.ov-back{margin:0 0 10px;min-height:36px;padding:6px 12px;border-radius:10px}
 .my-row,.my-participations>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#2c292d;border:1px solid #4c4248;border-radius:10px}
 .my-participations>summary{cursor:pointer;list-style:none}
 .my-participations>summary::-webkit-details-marker{display:none}
@@ -219,7 +220,7 @@ main:has(#menu:not([hidden])){
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
 <script src="js/ecw-meine-ergebnisse.js?v=8-solo-status"></script>
-<script src="js/ecw-mein-ueberblick.js?v=1"></script>
+<script src="js/ecw-mein-ueberblick.js?v=2"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -709,7 +710,7 @@ async function loadMyResults(signal) {
 }
 // ---------- Mein Überblick (Startkarte) ----------
 const overview = document.getElementById('overview');
-let overviewLoadedAt = 0, overviewRunning = false;
+let overviewLoadedAt = 0;
 
 // Firestore-REST-Werte in normale Werte umwandeln (öffentlicher Lese-Weg).
 function restValue(v) {
@@ -748,56 +749,76 @@ async function overviewReservations(user, db, firestore, today) {
     const {getFunctions, httpsCallable} = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
     const call = httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
     const days = Array.from({length: 14}, (_, i) => ECWMeinUeberblick.addDays(today, i));
-    const results = await Promise.allSettled(days.map(date => call({action: 'list', date, view: 'reservierungen'})));
+    const results = await Promise.allSettled(days.map(date => withTimeout(call({action: 'list', date, view: 'reservierungen'}), 8000, null)));
     for (const result of results) {
-      if (result.status !== 'fulfilled') continue;
+      if (result.status !== 'fulfilled' || !result.value) continue;
       for (const b of result.value.data?.bookings || []) rows.push({...b, liveId: b.id});
     }
   } catch {}
   return rows;
 }
 
+// Jede Quelle höchstens 10 Sekunden; eine hängende Quelle blockiert den Überblick nicht.
+const withTimeout = (promise, ms, fallback) => Promise.race([
+  promise, new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+]);
+let overviewRequest = 0;
+
+function overviewTopBack() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ov-back';
+  button.textContent = '← Zurück';
+  button.addEventListener('click', () => document.getElementById('back').click());
+  return button;
+}
+
 async function loadOverview(force = false) {
   const user = auth.currentUser;
-  if (!user || overviewRunning || (!force && Date.now() - overviewLoadedAt < 60000)) return;
-  overviewRunning = true;
+  if (!user || (!force && Date.now() - overviewLoadedAt < 60000)) return;
+  const request = ++overviewRequest;
+  const current = () => request === overviewRequest && auth.currentUser?.uid === user.uid;
+  const showMessage = (text, greeting = 'Servus!') => {
+    overview.replaceChildren(overviewTopBack());
+    const hi = document.createElement('p');
+    hi.className = 'ov-hi';
+    hi.textContent = greeting;
+    const hint = document.createElement('p');
+    hint.className = 'ov-sub';
+    hint.textContent = text;
+    overview.append(hi, hint);
+  };
   try {
-    const own = await ownMemberName();
-    if (auth.currentUser?.uid !== user.uid) return;
+    const own = await withTimeout(ownMemberName(), 10000, {name: ''});
+    if (!current()) return;
     const name = own.name;
-    const today = ECWMeinUeberblick.viennaToday();
     if (!name) {
-      overview.replaceChildren();
-      const hi = document.createElement('p');
-      hi.className = 'ov-hi';
-      hi.textContent = 'Servus!';
-      const hint = document.createElement('p');
-      hint.className = 'ov-sub';
-      hint.textContent = 'Wähle unter „Meine Ergebnisse“ einmal deinen Namen, dann erscheint hier dein Überblick.';
-      overview.append(hi, hint);
+      showMessage('Wähle unter „Meine Ergebnisse“ einmal deinen Namen, dann erscheint hier dein Überblick.');
       return;
     }
+    const today = ECWMeinUeberblick.viennaToday();
     const firestore = await import(firestoreSdkUrl);
     const db = firestore.getFirestore(app);
     const [rows, planner, pyramid] = await Promise.all([
-      overviewReservations(user, db, firestore, today).catch(() => []),
-      firestore.getDocs(firestore.collection(db, 'tournamentPlanner'))
-        .then(snapshot => snapshot.docs.map(entry => ({id: entry.id, data: entry.data()}))).catch(() => []),
-      overviewPyramid(db, firestore).catch(() => null)
+      withTimeout(overviewReservations(user, db, firestore, today).catch(() => []), 10000, []),
+      withTimeout(firestore.getDocs(firestore.collection(db, 'tournamentPlanner'))
+        .then(snapshot => snapshot.docs.map(entry => ({id: entry.id, data: entry.data()}))).catch(() => []), 10000, []),
+      withTimeout(overviewPyramid(db, firestore).catch(() => null), 10000, null)
     ]);
-    if (auth.currentUser?.uid !== user.uid) return;
+    if (!current()) return;
     ECWMeinUeberblick.render(overview, name, {
       reservations: ECWMeinUeberblick.reservations(rows, name, today),
       challenge: pyramid ? ECWMeinUeberblick.openChallenge(pyramid, name) : null,
       tournaments: ECWMeinUeberblick.tournaments(planner, name, today)
     }, today);
+    overview.prepend(overviewTopBack());
     overviewLoadedAt = Date.now();
   } catch (error) {
     console.warn('Mein Überblick konnte nicht geladen werden:', error);
-  } finally {
-    overviewRunning = false;
+    if (current()) showMessage('Der Überblick konnte gerade nicht geladen werden. Bitte später erneut öffnen.');
   }
 }
+
 const temperatureStatus = document.getElementById('temperature-status');
 const temperatureFields = ['aussen', 'halle', 'vereinsheim'];
 const temperatureUrl = 'https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/sensors/temperatures';
@@ -1383,7 +1404,7 @@ menu.querySelectorAll('nav button').forEach(button => {
     myResultsPanel.hidden = button.dataset.mobileFeature !== 'myresults';
     overview.hidden = button.dataset.mobileFeature !== 'overview';
     if (button.dataset.mobileFeature === 'overview') {
-      overview.replaceChildren();
+      overview.replaceChildren(overviewTopBack());
       const loading = document.createElement('p');
       loading.className = 'hint';
       loading.textContent = 'Überblick wird geladen …';
