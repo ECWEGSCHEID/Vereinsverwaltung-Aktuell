@@ -40,6 +40,86 @@ function hasCentralAdminParent(){
   }
 }
 
+// ---------- Anmeldung ----------
+// Spieler: dieselbe Anmeldung wie im Smartphone-Mitgliederbereich (kein eigenes Passwort).
+// Informationssystem: mit E-Mail und Passwort eines Administrator-Kontos der Vereinsverwaltung.
+const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.8.0/';
+const INFO_EMAIL_KEY = 'soloPyramide_infosystem_email';
+let autoLoginTried = false;
+let memberLoginMessage = '';
+
+const nameKey = value => String(value ?? '').normalize('NFKC').toLocaleLowerCase('de-DE')
+  .replace(/[^\p{L}\p{N}\s-]/gu, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
+
+async function pyramidApp(){
+  const {initializeApp, getApps} = await import(FIREBASE_SDK + 'firebase-app.js');
+  return getApps().find(a => a.name === 'soloPyramideCentral') || initializeApp(CENTRAL_FIREBASE_CONFIG, 'soloPyramideCentral');
+}
+
+async function isAdminAccount(app, uid){
+  const {getFirestore, doc, getDoc} = await import(FIREBASE_SDK + 'firebase-firestore.js');
+  return (await getDoc(doc(getFirestore(app), 'users', uid))).data()?.admin === true;
+}
+
+function waitForPyramidData(ms = 8000){
+  return new Promise(resolve => {
+    const start = Date.now();
+    (function check(){ if(centralStateSeen || Date.now() - start > ms) resolve(); else setTimeout(check, 150); })();
+  });
+}
+
+// Angemeldetes Mitglied (Smartphone-Mitgliederbereich) -> Name aus der Namensanmeldung.
+async function memberNameFromPortal(){
+  const {getMemberSession, restoreMemberSession} = await import(new URL('ecw-smartphone-session.mjs', document.baseURI).href);
+  const {auth} = getMemberSession();
+  await restoreMemberSession(auth);
+  const user = auth.currentUser;
+  if(!user) return {loggedIn: false};
+  const alias = String(user.email || '').toLowerCase().match(/^([a-f0-9]{32})@login\.ec-wegscheid\.de$/)?.[1]
+    || String(user.uid || '').match(/^ecw-mobile-([a-f0-9]{32})$/)?.[1];
+  if(!alias) return {loggedIn: true};
+  const response = await fetch('https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/smartphoneAnmeldung/mitglieder', {cache: 'no-store'});
+  if(!response.ok) return {loggedIn: true};
+  const entries = (await response.json()).fields?.members?.arrayValue?.values || [];
+  for(const entry of entries){
+    const f = entry.mapValue?.fields || {};
+    if(f.alias?.stringValue === alias && f.name?.stringValue) return {loggedIn: true, name: f.name.stringValue.trim()};
+  }
+  return {loggedIn: true};
+}
+
+async function tryAutoLogin(){
+  if(autoLoginTried) return;
+  autoLoginTried = true;
+  try{
+    // 1) Informationssystem: bestehende Administrator-Anmeldung auf diesem Gerät.
+    const app = await pyramidApp();
+    const {getAuth} = await import(FIREBASE_SDK + 'firebase-auth.js');
+    const auth = getAuth(app);
+    await auth.authStateReady();
+    if(!currentSession && auth.currentUser && await isAdminAccount(app, auth.currentUser.uid)){
+      currentSession = {type: 'infosystem', name: null, adminAuth: true};
+      checkLoginOrRender();
+      return;
+    }
+  }catch(e){ console.warn('Solo-Pyramide: Admin-Anmeldung nicht prüfbar:', e); }
+  try{
+    // 2) Spieler: Anmeldung aus dem Smartphone-Mitgliederbereich übernehmen.
+    const member = await memberNameFromPortal();
+    if(currentSession) return;
+    if(!member.loggedIn){ memberLoginMessage = ''; return; }
+    if(!member.name){ memberLoginMessage = 'Dein Smartphone-Konto ist keinem Namen zugeordnet. Bitte mit dem Namen anmelden.'; showLoginScreen(); return; }
+    await waitForPyramidData();
+    if(currentSession) return;
+    const own = nameKey(member.name);
+    const pyramidName = players.find(p => p && p !== 'FREI' && nameKey(p) === own);
+    if(!pyramidName){ memberLoginMessage = member.name + ' steht nicht in der Solo Pyramide.'; showLoginScreen(); return; }
+    currentSession = {type: 'player', name: pyramidName, memberLogin: true};
+    persistSession();
+    checkLoginOrRender();
+  }catch(e){ console.warn('Solo-Pyramide: Mitglieder-Anmeldung nicht übernommen:', e); }
+}
+
 const ABSOLUTE_MAX_PLAYERS = 44;
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -102,7 +182,7 @@ try {
   const savedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
   if (savedSession) {
     const parsedSession = JSON.parse(savedSession);
-    if (parsedSession && parsedSession.type === 'player' && typeof parsedSession.name === 'string') {
+    if (parsedSession && parsedSession.type === 'player' && parsedSession.memberLogin === true && typeof parsedSession.name === 'string') {
       currentSession = parsedSession;
     }
   }
@@ -177,7 +257,7 @@ const LEGACY_RTDB_URL = 'https://solo-pyramide-wegscheid-2026-default-rtdb.europ
 function applyData(data){
   if(data){
     if(Array.isArray(data.players)) players = data.players;
-    if(data.passwords) passwords = data.passwords;
+    // Pyramiden-Passwörter werden nicht mehr verwendet (Anmeldung über den Mitgliederbereich).
     if(Array.isArray(data.hist)) hist = data.hist;
     if(data.challengerLocks) challengerLocks = data.challengerLocks;
     if(data.opponentLocks) opponentLocks = data.opponentLocks;
@@ -200,7 +280,7 @@ function buildPayload(){
   // Admin- und Informationssystem-Passwörter werden bewusst NICHT im öffentlich lesbaren
   // zentralen Solo-Dokument gespeichert. Der Adminzugang läuft über die Vereinsverwaltung.
   return {
-    players, passwords, hist, challengerLocks, opponentLocks, fixedChallenges,
+    players, passwords: {}, hist, challengerLocks, opponentLocks, fixedChallenges,
     infoLines, customTitle, customSubtitle,
     currentMaxPlayers, vacations, ruleLockHoursAfterGame,
     ruleChallengeDays, ruleWithdrawHours,
@@ -298,10 +378,9 @@ async function initCentralFirebase(){
 
     // Direkter Aufruf auf Smartphone/PC: gleiches zentrales Firebase-Projekt,
     // ohne zusätzliche Firebase-Anmeldung. Die Spieleranmeldung bleibt wie bisher.
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
     const { getFirestore, doc, onSnapshot, setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
     const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
-    const app = initializeApp(CENTRAL_FIREBASE_CONFIG, 'soloPyramideCentral');
+    const app = await pyramidApp();
     const db = getFirestore(app);
     dbRef = doc(db, CENTRAL_COLLECTION, CENTRAL_DOCUMENT);
     centralSetDoc = (ref,payload)=>setDoc(ref,payload);
@@ -426,6 +505,7 @@ function checkLoginOrRender(){
   }
   if(!currentSession){
     showLoginScreen();
+    void tryAutoLogin();
   } else {
     if(sideNavEl) sideNavEl.style.display = 'flex';
     if(adminNavBtn) adminNavBtn.style.display = currentSession.type === 'admin' ? 'block' : 'none';
@@ -434,15 +514,8 @@ function checkLoginOrRender(){
       infoSystemNavBadge.style.display = isInfoMode ? 'block' : 'none';
       infoSystemNavBadge.textContent = currentSession.type === 'whiteboard' ? 'Whiteboard' : 'Infostand';
     }
-    if(logoutNavBtn) logoutNavBtn.style.display = (currentSession.type === 'whiteboard' || currentSession.embeddedCentralAdmin) ? 'none' : 'block';
+    if(logoutNavBtn) logoutNavBtn.style.display = (currentSession.type === 'whiteboard' || currentSession.embeddedCentralAdmin || currentSession.memberLogin) ? 'none' : 'block';
     
-    if(currentSession.type === 'player'){
-      const pName = currentSession.name;
-      if(passwords[pName] === "1234"){
-        showPasswordChangeModal(pName, true);
-        return;
-      }
-    }
     closeM();
     render();
   }
@@ -467,38 +540,52 @@ function showLoginScreen(){
     <p class="hint">${INTEGRATED_HOSTED_MODE ? 'Wähle deinen Namen aus. Der Administrator öffnet die Solo Pyramide über die zentrale Vereinsverwaltung.' : 'Wähle deinen Namen aus, melde dich als Administrator an oder nutze das Informationssystem am Vereins-Whiteboard.'}</p>
     
     <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444; margin-bottom:12px;">
-      <h3 style="margin-top:0; font-size:14px; color:#ffd966;">Mitspieler Login</h3>
-      <label style="font-size:12px;">Name:</label>
-      <select id="loginPlayerSelect" class="adminSelect">${activePlayersOpts}</select>
-      <label style="font-size:12px;">Passwort:</label>
-      <input type="password" id="loginPlayerPw" class="adminInput" autocomplete="current-password" spellcheck="false" placeholder="Passwort (Standard: 1234)">
-      <button class="btn" style="background:#d48806; color:#000;" onclick="submitPlayerLogin()">Als Spieler anmelden</button>
-    </div>
-
-    <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444; margin-bottom:12px;">
-      <h3 style="margin-top:0; font-size:14px; color:#64b5f6;">Administrator Login</h3>
-      <label style="font-size:12px;">Admin-Passwort:</label>
-      <input type="password" id="loginAdminPw" class="adminInput" autocomplete="current-password" spellcheck="false" placeholder="Admin-Passwort">
-      <button class="btn" style="background:#1976d2; color:#fff;" onclick="submitAdminLogin()">Als Admin anmelden</button>
-      ${INTEGRATED_HOSTED_MODE ? '<div style="font-size:11px;color:#aaa;margin-top:6px;">Auf der veröffentlichten Vereinsseite erfolgt der Adminzugang ausschließlich über „Verwaltung → Solo Pyramide · Admin“.</div>' : ''}
+      <h3 style="margin-top:0; font-size:14px; color:#ffd966;">Mitspieler</h3>
+      <p style="font-size:13px; margin:0 0 8px;">Die Anmeldung erfolgt über den <b>Smartphone-Mitgliederbereich</b>. Bist du dort angemeldet, wirst du hier automatisch erkannt – ein eigenes Pyramiden-Passwort gibt es nicht mehr.</p>
+      ${memberLoginMessage ? `<p style="font-size:13px; color:#ffb3b3; margin:0 0 8px;">${escapeHtml(memberLoginMessage)}</p>` : ''}
+      <a class="btn" style="display:block; text-align:center; background:#d48806; color:#000; text-decoration:none;" href="smartphone-mitglieder.html">Zum Mitgliederbereich</a>
     </div>
 
     <div style="background:#141419; padding:12px; border-radius:8px; border:1px solid #444;">
       <h3 style="margin-top:0; font-size:14px; color:#81c784;">🖥️ Informationssystem (Vereins-Whiteboard)</h3>
-      <p style="font-size:12px; color:#ddd; margin:0;">Bitte über die angemeldete EC-Wegscheid-Vereinsverwaltung öffnen. Das Informationssystem benötigt hier kein zweites Passwort.</p>
+      <p style="font-size:12px; color:#ddd; margin:0 0 6px;">Mit E-Mail und Passwort eines Administrators der Vereinsverwaltung anmelden.</p>
+      <label style="font-size:12px;">Admin-E-Mail:</label>
+      <input type="email" id="loginInfoSystemEmail" class="adminInput" autocomplete="username" spellcheck="false" value="${escapeHtml(localStorage.getItem(INFO_EMAIL_KEY) || '')}">
+      <label style="font-size:12px;">Admin-Passwort:</label>
+      <input type="password" id="loginInfoSystemPw" class="adminInput" autocomplete="current-password" spellcheck="false">
+      <button class="btn" id="loginInfoSystemBtn" style="background:#2e7d32; color:#fff;" onclick="submitInfoSystemLogin()">Als Informationssystem anmelden</button>
     </div>
   `);
 }
 
-window.submitInfoSystemLogin = function(){
+window.submitInfoSystemLogin = async function(){
+  const emailInput = document.getElementById('loginInfoSystemEmail');
   const pwInput = document.getElementById('loginInfoSystemPw');
-  if(!pwInput) return;
-  if(pwInput.value === infoSystemPassword){
-    currentSession = { type: 'infosystem', name: null };
+  const button = document.getElementById('loginInfoSystemBtn');
+  if(!emailInput || !pwInput) return;
+  const email = emailInput.value.trim(), pw = pwInput.value;
+  if(!email || !pw){ alert('Bitte Admin-E-Mail und Passwort eingeben.'); return; }
+  if(button) button.disabled = true;
+  try{
+    const app = await pyramidApp();
+    const {getAuth, signInWithEmailAndPassword, signOut} = await import(FIREBASE_SDK + 'firebase-auth.js');
+    const auth = getAuth(app);
+    const credential = await signInWithEmailAndPassword(auth, email, pw);
+    if(!(await isAdminAccount(app, credential.user.uid))){
+      await signOut(auth);
+      alert('Dieses Konto ist kein Administrator der Vereinsverwaltung.');
+      return;
+    }
+    try{ localStorage.setItem(INFO_EMAIL_KEY, email); }catch(e){}
+    currentSession = { type: 'infosystem', name: null, adminAuth: true };
     persistSession();
     checkLoginOrRender();
-  } else {
-    alert("Falsches Passwort für das Informationssystem!");
+  }catch(error){
+    console.warn('Solo-Pyramide: Informationssystem-Anmeldung fehlgeschlagen:', error);
+    alert(['auth/invalid-credential','auth/wrong-password','auth/user-not-found','auth/invalid-email'].includes(error?.code)
+      ? 'E-Mail oder Passwort falsch.' : 'Anmeldung nicht möglich: ' + (error?.code || error?.message || error));
+  }finally{
+    if(button) button.disabled = false;
   }
 }
 
@@ -538,7 +625,13 @@ window.submitAdminLogin = function(){
 }
 
 window.logoutUser = function(){
-  if(currentSession?.embeddedCentralAdmin) return;
+  if(currentSession?.embeddedCentralAdmin || currentSession?.memberLogin) return;
+  if(currentSession?.adminAuth){
+    pyramidApp().then(async app => {
+      const {getAuth, signOut} = await import(FIREBASE_SDK + 'firebase-auth.js');
+      await signOut(getAuth(app));
+    }).catch(e => console.warn('Abmelden fehlgeschlagen:', e));
+  }
   currentSession = null;
   persistSession();
   selected = null;
@@ -728,7 +821,6 @@ function openAdminMenu(activeTab = 'general'){
       <button class="adminTabBtn ${activeTab==='general'?'active':''}" onclick="switchAdminTab('general')">Allgemeines</button>
       <button class="adminTabBtn ${activeTab==='rules'?'active':''}" onclick="switchAdminTab('rules')">Regeln</button>
       <button class="adminTabBtn ${activeTab==='players'?'active':''}" onclick="switchAdminTab('players')">Spieler</button>
-      <button class="adminTabBtn ${activeTab==='passwords'?'active':''}" onclick="switchAdminTab('passwords')">Passwörter</button>
       <button class="adminTabBtn ${activeTab==='vacation'?'active':''}" onclick="switchAdminTab('vacation')">Urlaub</button>
       <button class="adminTabBtn ${activeTab==='system'?'active':''}" onclick="switchAdminTab('system')">System</button>
     </div>
@@ -769,10 +861,7 @@ function openAdminMenu(activeTab = 'general'){
       <div class="playerGridAdmin">${playerRowsHtml}</div>
     </div>
 
-    <div id="tab_passwords" class="adminTabContent ${activeTab==='passwords'?'active':''}">
-      <label><b>Spieler-Passwörter einsehen & verwalten:</b></label>
-      <div style="max-height:250px; overflow-y:auto; padding-right:4px; margin-top:8px;">${passwordRowsHtml}</div>
-    </div>
+
 
     <div id="tab_vacation" class="adminTabContent ${activeTab==='vacation'?'active':''}">
       <label><b>Urlaubsverwaltung (Maximal 14 Tage gesamt pro Spieler):</b></label>
@@ -780,11 +869,8 @@ function openAdminMenu(activeTab = 'general'){
     </div>
 
     <div id="tab_system" class="adminTabContent ${activeTab==='system'?'active':''}">
-      <label><b>Administrator-Passwort ändern:</b></label>
-      <input type="password" id="adminNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="" placeholder="Leer lassen: bisheriges Kennwort beibehalten">
-      <label><b>Informationssystem-Passwort ändern:</b></label>
-      <input type="password" id="adminInfoSystemNewPw" class="adminInput" autocomplete="new-password" spellcheck="false" value="" placeholder="Leer lassen: bisheriges Kennwort beibehalten">
-      <br><br>
+      <p class="hint">Anmeldung: Spieler über den Smartphone-Mitgliederbereich, Informationssystem mit E-Mail und Passwort eines Administrators. Eigene Pyramiden-Passwörter gibt es nicht mehr.</p>
+
       <button class="btn btnDanger" onclick="resetAllData()">⚠️ Alle Spiele, Forderungen & Historie zurücksetzen</button>
     </div>
 
