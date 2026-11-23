@@ -97,7 +97,6 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 .ov-card{background:#2c292d;border:1px solid #4c4248;border-radius:14px;padding:12px;margin:0 0 12px}
 .ov-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .ov-hi{font-size:19px;font-weight:bold;margin:0}
-.ov-calendar{flex:0 0 auto;min-height:36px;padding:6px 12px;border-radius:10px;font-size:14px}
 .ov-label{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.3px;color:#e9d7db;margin:12px 0 5px}
 .ov-box{background:#3a2f33;border-radius:10px;padding:8px 10px;margin-bottom:6px;overflow-wrap:anywhere}
 .ov-title{display:flex;justify-content:space-between;gap:8px;font-size:15px;font-weight:bold}
@@ -106,8 +105,12 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 .ov-mode{flex:0 0 auto;align-self:center;font-size:11px;background:#8a1f2b;color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap}
 .ov-mode-frauen{background:#7a2f6a}.ov-mode-solo{background:#2f5a7a}
 .ov-warn{background:#4a3410;border:1px solid #8a6420}.ov-warn .ov-title{color:#ffd98a}
-.ov-list{max-height:210px;overflow-y:auto}
-.ov-back{margin:0 0 10px;min-height:36px;padding:6px 12px;border-radius:10px}
+.ov-calendar{display:block;width:100%;margin:8px 0 2px}
+.ov-summary{font-size:14px;font-weight:bold;margin:0 0 6px}
+.ov-comp{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.ov-comp-detail{color:#e9d7db;white-space:nowrap}
+.ov-joined{border:1px solid #3d6b3d}.ov-joined .ov-comp-detail{color:#bfe8bf}
+.ov-motivation{background:#24361f;border:1px solid #3d6b3d;color:#dff3d8;font-size:14px}
 .my-row,.my-participations>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#2c292d;border:1px solid #4c4248;border-radius:10px}
 .my-participations>summary{cursor:pointer;list-style:none}
 .my-participations>summary::-webkit-details-marker{display:none}
@@ -220,7 +223,7 @@ main:has(#menu:not([hidden])){
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
 <script src="js/ecw-meine-ergebnisse.js?v=8-solo-status"></script>
-<script src="js/ecw-mein-ueberblick.js?v=2"></script>
+<script src="js/ecw-mein-ueberblick.js?v=3"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -323,7 +326,7 @@ main:has(#menu:not([hidden])){
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=20261123-ueberblick"></script>
+<script src="ecw-smartphone-einstellungen.js?v=20261123-wettbewerbe"></script>
 <script type="module">
 import { signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getMemberSession, restoreMemberSession } from './ecw-smartphone-session.mjs?v=3.1.25.171126';
@@ -731,9 +734,19 @@ async function overviewPyramid(db, firestore) {
     const snapshot = await firestore.getDocFromServer(firestore.doc(db, 'soloPyramide', 'state'));
     if (snapshot.exists()) return snapshot.data();
   } catch {}
-  const response = await fetch('https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/soloPyramide/state?mask.fieldPaths=fixedChallenges', {cache: 'no-store'});
+  const response = await fetch('https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/soloPyramide/state?mask.fieldPaths=fixedChallenges&mask.fieldPaths=players', {cache: 'no-store'});
   if (!response.ok) return null;
-  return {fixedChallenges: restValue((await response.json()).fields?.fixedChallenges) || []};
+  const fields = (await response.json()).fields || {};
+  return {fixedChallenges: restValue(fields.fixedChallenges) || [], players: restValue(fields.players) || []};
+}
+
+async function readCompetitionStatus(firestore, db) {
+  const read = async id => {
+    try { return (await firestore.getDocFromServer(firestore.doc(db, 'smartphoneBetrieb', id))).data() || {}; }
+    catch { return {}; }
+  };
+  const [competitions, pyramid] = await Promise.all([read('wettbewerbe'), read('soloPyramide')]);
+  return {...competitions, soloPyramide: pyramid.aktiv === true};
 }
 
 async function overviewReservations(user, db, firestore, today) {
@@ -764,22 +777,13 @@ const withTimeout = (promise, ms, fallback) => Promise.race([
 ]);
 let overviewRequest = 0;
 
-function overviewTopBack() {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'ov-back';
-  button.textContent = '← Zurück';
-  button.addEventListener('click', () => document.getElementById('back').click());
-  return button;
-}
-
 async function loadOverview(force = false) {
   const user = auth.currentUser;
   if (!user || (!force && Date.now() - overviewLoadedAt < 60000)) return;
   const request = ++overviewRequest;
   const current = () => request === overviewRequest && auth.currentUser?.uid === user.uid;
   const showMessage = (text, greeting = 'Servus!') => {
-    overview.replaceChildren(overviewTopBack());
+    overview.replaceChildren();
     const hi = document.createElement('p');
     hi.className = 'ov-hi';
     hi.textContent = greeting;
@@ -799,19 +803,25 @@ async function loadOverview(force = false) {
     const today = ECWMeinUeberblick.viennaToday();
     const firestore = await import(firestoreSdkUrl);
     const db = firestore.getFirestore(app);
-    const [rows, planner, pyramid] = await Promise.all([
+    const [rows, planner, pyramid, status, cupTournaments, championship] = await Promise.all([
       withTimeout(overviewReservations(user, db, firestore, today).catch(() => []), 10000, []),
       withTimeout(firestore.getDocs(firestore.collection(db, 'tournamentPlanner'))
         .then(snapshot => snapshot.docs.map(entry => ({id: entry.id, data: entry.data()}))).catch(() => []), 10000, []),
-      withTimeout(overviewPyramid(db, firestore).catch(() => null), 10000, null)
+      withTimeout(overviewPyramid(db, firestore).catch(() => null), 10000, null),
+      withTimeout(readCompetitionStatus(firestore, db), 10000, {}),
+      withTimeout(window.ecwLoadCupTournaments().catch(() => null), 10000, null),
+      withTimeout(firestore.getDocFromServer(firestore.doc(db, 'turnierauswertung', 'jahresmeisterschaft'))
+        .then(snapshot => snapshot.data()?.state || null).catch(() => null), 10000, null)
     ]);
     if (!current()) return;
     ECWMeinUeberblick.render(overview, name, {
       reservations: ECWMeinUeberblick.reservations(rows, name, today),
       challenge: pyramid ? ECWMeinUeberblick.openChallenge(pyramid, name) : null,
-      tournaments: ECWMeinUeberblick.tournaments(planner, name, today)
+      tournaments: ECWMeinUeberblick.tournaments(planner, name, today),
+      competitions: ECWMeinUeberblick.competitions(status, {
+        cupTournaments, standings: window.ecwCupStandings, pyramid, championship
+      }, name)
     }, today);
-    overview.prepend(overviewTopBack());
     overviewLoadedAt = Date.now();
   } catch (error) {
     console.warn('Mein Überblick konnte nicht geladen werden:', error);
@@ -1404,7 +1414,7 @@ menu.querySelectorAll('nav button').forEach(button => {
     myResultsPanel.hidden = button.dataset.mobileFeature !== 'myresults';
     overview.hidden = button.dataset.mobileFeature !== 'overview';
     if (button.dataset.mobileFeature === 'overview') {
-      overview.replaceChildren(overviewTopBack());
+      overview.replaceChildren();
       const loading = document.createElement('p');
       loading.className = 'hint';
       loading.textContent = 'Überblick wird geladen …';

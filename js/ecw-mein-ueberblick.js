@@ -108,6 +108,50 @@ function tournaments(entries, name, today) {
   return out.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 }
 
+// ---------- 4. Laufende Wettbewerbe ----------
+// status: {duoCup, frauencup, jahresmeisterschaft, montagsSolo} aus smartphoneBetrieb/wettbewerbe,
+// soloPyramide aus smartphoneBetrieb/soloPyramide. Nur aktive Wettbewerbe werden gezeigt.
+const MOTIVATION = [
+  'Noch bei keinem Wettbewerb dabei? Komm zum Training – jeder Schuss bringt dich weiter!',
+  'Die Bahn wartet auf dich. Ein Training, und du bist wieder mittendrin!',
+  'Wer trainiert, trifft. Schau beim nächsten Training vorbei!',
+  'Der beste Zeitpunkt zum Einsteigen ist jetzt – wir sehen uns beim Training!',
+  'Stocksport lebt von der Gemeinschaft. Komm zum Training und mach mit!'
+];
+function motivation(today) {
+  const n = Number(today.replace(/-/g, '')) || 0;
+  return MOTIVATION[n % MOTIVATION.length];
+}
+function competitions(status, sources, name) {
+  const M = root.ECWMeineErgebnisse;
+  const out = [];
+  const cups = sources.cupTournaments && M && sources.standings
+    ? M.cupEntries(sources.cupTournaments, name, sources.standings) : null;
+  const cup = (key, kind, title) => {
+    if (status?.[key] !== true) return;
+    const entry = cups?.find(c => c.kind === kind);
+    out.push({title, countable: !!cups, joined: !!entry,
+      detail: entry ? (entry.place > 0 ? 'Platz ' + entry.place + ' von ' + entry.of : 'dabei') : cups ? 'nicht dabei' : 'nicht verfügbar'});
+  };
+  cup('duoCup', 'duo', 'Duo Cup');
+  cup('frauencup', 'frauen', 'Frauencup');
+  if (status?.soloPyramide === true) {
+    const p = sources.pyramid && M ? M.pyramidEntry(sources.pyramid, name) : null;
+    out.push({title: 'Solo Pyramide', countable: !!sources.pyramid, joined: !!p,
+      detail: p ? 'Platz ' + p.position : sources.pyramid ? 'nicht dabei' : 'nicht verfügbar'});
+  }
+  if (status?.montagsSolo === true) {
+    // Das Montags-Solo-Turnier wird noch erstellt; die Teilnahme kann noch nicht ausgewertet werden.
+    out.push({title: 'Montags Solo Turnier', countable: false, joined: false, detail: 'läuft'});
+  }
+  if (status?.jahresmeisterschaft === true) {
+    const j = sources.championship && M ? M.championshipEntry(sources.championship, name) : null;
+    out.push({title: 'Ziel-Jahresmeisterschaft', countable: !!sources.championship, joined: !!j,
+      detail: j ? 'Platz ' + j.rank + ' von ' + j.of : sources.championship ? 'nicht dabei' : 'nicht verfügbar'});
+  }
+  return out;
+}
+
 // ---------- Kalender (.ics) ----------
 function icsText(value) {
   return clean(value).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,');
@@ -192,11 +236,10 @@ function modeClass(mode) {
 }
 function render(host, name, data, today = viennaToday()) {
   host.replaceChildren();
-  const head = el('div', null, host, 'ov-head');
-  el('p', 'Servus' + (name ? ' ' + firstName(name) : '') + '!', head, 'ov-hi');
+  el('p', 'Servus' + (name ? ' ' + firstName(name) : '') + '!', host, 'ov-hi');
   const calendarCount = (data.reservations?.length || 0) + (data.tournaments?.length || 0);
   if (calendarCount) {
-    const button = el('button', 'In Kalender', head, 'ov-calendar');
+    const button = el('button', 'In privaten Kalender übertragen', host, 'ov-calendar');
     button.type = 'button';
     button.setAttribute('aria-label', 'Reservierungen und Turniere in den Kalender übernehmen');
     button.addEventListener('click', () => downloadIcs(buildIcs(data)));
@@ -209,7 +252,7 @@ function render(host, name, data, today = viennaToday()) {
   };
 
   if (data.reservations?.length) {
-    label('MEINE RESERVIERUNGEN', data.reservations.length);
+    label('MEINE RESERVIERUNGEN (DIE NÄCHSTEN 14 TAGE)', data.reservations.length);
     for (const r of data.reservations) {
       const box = el('div', null, host, 'ov-box');
       const top = el('div', null, box, 'ov-title');
@@ -232,7 +275,7 @@ function render(host, name, data, today = viennaToday()) {
   }
 
   if (data.tournaments?.length) {
-    label('MEINE TURNIERE (2 MONATE)', data.tournaments.length);
+    label('MEINE TURNIERE (DIE NÄCHSTEN 2 MONATE)', data.tournaments.length);
     const list = el('div', null, host, 'ov-list');
     for (const t of data.tournaments) {
       const box = el('div', null, list, 'ov-box');
@@ -243,9 +286,27 @@ function render(host, name, data, today = viennaToday()) {
     shown++;
   }
 
+  const comps = data.competitions || [];
+  if (comps.length) {
+    label('LAUFENDE WETTBEWERBE');
+    const countable = comps.filter(c => c.countable);
+    const joined = countable.filter(c => c.joined).length;
+    if (countable.length) {
+      el('div', joined ? 'Du bist in ' + joined + ' von ' + countable.length + (countable.length === 1 ? ' Wettbewerb' : ' Wettbewerben') + ' dabei.'
+        : 'Du bist derzeit in keinem Wettbewerb dabei.', host, 'ov-summary');
+    }
+    for (const c of comps) {
+      const row = el('div', null, host, 'ov-box ov-comp' + (c.joined ? ' ov-joined' : ''));
+      el('span', (c.joined ? '✓ ' : '') + c.title, row);
+      el('span', c.detail, row, 'ov-comp-detail');
+    }
+    if (countable.length && !joined) el('div', motivation(today), host, 'ov-box ov-motivation');
+    shown++;
+  }
+
   if (!shown) el('p', 'Aktuell steht nichts an.', host, 'ov-sub');
   return shown;
 }
 
-root.ECWMeinUeberblick = {reservations, openChallenge, tournaments, buildIcs, render, viennaToday, addDays, firstName};
+root.ECWMeinUeberblick = {reservations, openChallenge, tournaments, competitions, buildIcs, render, viennaToday, addDays, firstName};
 })(typeof window !== 'undefined' ? window : globalThis);
