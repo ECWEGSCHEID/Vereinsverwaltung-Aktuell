@@ -885,14 +885,17 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
   }
 }
 
-moduleBack.addEventListener('click', () => {
+function closeModule() {
   closeResults();
   stopCupPrefetch();
   modulePanel.hidden = true;
   moduleFrame.removeAttribute('src');
   menu.hidden = false;
-  selectedButton.focus();
-});
+  selectedButton?.focus();
+}
+moduleBack.addEventListener('click', closeModule);
+// Eingebettete Seiten (z. B. Solo Pyramide) kehren mit "Beenden" ins Menü zurück.
+window.ecwCloseModule = () => { if (!modulePanel.hidden) closeModule(); };
 
 function selectResult(button) {
   const result = button.dataset.result;
@@ -1300,9 +1303,30 @@ document.getElementById('back').addEventListener('click', () => {
   selectedButton.focus();
 });
 
+// Browser erlauben das Schließen nur bei Fenstern, die per Skript geöffnet wurden.
+// Sonst eine klare Abschlussseite statt einer leeren Seite zeigen.
 document.getElementById('exit-member').addEventListener('click', () => {
+  hallRequest?.abort();
+  plannerRequest?.abort();
+  myResultsRequest?.abort();
+  moduleFrame.removeAttribute('src');
   window.close();
-  if (!window.closed) location.replace('about:blank');
+  setTimeout(() => {
+    if (window.closed) return;
+    document.body.innerHTML = '';
+    const box = document.createElement('main');
+    box.style.cssText = 'min-height:100vh;display:grid;place-content:center;gap:16px;text-align:center;padding:24px';
+    const title = document.createElement('h1');
+    title.textContent = 'Mitgliederbereich beendet';
+    const hint = document.createElement('p');
+    hint.textContent = 'Du kannst die App bzw. den Browser-Tab jetzt schließen. Du bleibst angemeldet.';
+    const again = document.createElement('button');
+    again.type = 'button';
+    again.textContent = 'Wieder öffnen';
+    again.addEventListener('click', () => location.reload());
+    box.append(title, hint, again);
+    document.body.append(box);
+  }, 250);
 });
 
 document.getElementById('logout').addEventListener('click', async () => {
