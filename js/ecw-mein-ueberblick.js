@@ -241,7 +241,7 @@ function render(host, name, data, today = viennaToday()) {
   el('p', 'Servus' + (name ? ' ' + firstName(name) : '') + '!', host, 'ov-hi');
   const calendarCount = (data.reservations?.length || 0) + (data.tournaments?.length || 0);
   if (calendarCount) {
-    const button = el('button', 'In privaten Kalender übertragen', host, 'ov-calendar');
+    const button = el('button', 'Termine in privaten Kalender übertragen', host, 'ov-calendar');
     button.type = 'button';
     button.setAttribute('aria-label', 'Reservierungen und Turniere in den Kalender übernehmen');
     button.addEventListener('click', () => downloadIcs(buildIcs(data)));
