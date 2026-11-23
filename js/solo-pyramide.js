@@ -158,6 +158,13 @@ let pyramidStatusKnown = false;
 let pyramidStatusError = '';
 let statusWrite = null;
 
+// Eingebettet in die Vereinsverwaltung wird deren Firestore verwendet. Objekte aus
+// diesem iframe gelten dort nicht als "einfache Objekte" (anderes Fenster) und
+// werden von Firestore abgelehnt. Deshalb die Daten im Fenster der Verwaltung neu anlegen.
+function parentPlain(value){
+  try { return window.parent.JSON.parse(JSON.stringify(value)); } catch(e) { return value; }
+}
+
 function setPyramidStatus(active, known, error){
   pyramidActive = active === true;
   pyramidStatusKnown = known === true;
@@ -235,7 +242,7 @@ async function tryLegacyMigration(){
 async function centralWrite(payload){
   if(!useFirebase || !dbRef) return false;
   if(centralBackend === 'parent-compat'){
-    await dbRef.set(payload);
+    await dbRef.set(parentPlain(payload));
     return true;
   }
   if(centralBackend === 'module' && centralSetDoc){
@@ -271,7 +278,7 @@ async function initCentralFirebase(){
           dbRef = window.parent.firestoreDb.collection(CENTRAL_COLLECTION).doc(CENTRAL_DOCUMENT);
           centralBackend = 'parent-compat';
           const statusRef = window.parent.firestoreDb.collection(STATUS_COLLECTION).doc(STATUS_DOCUMENT);
-          statusWrite = value => statusRef.set(value);
+          statusWrite = async value => statusRef.set(parentPlain(value));
           statusRef.onSnapshot(
             snap => setPyramidStatus(snap.exists && snap.data().aktiv === true, true),
             err => { console.error('Solo-Pyramide: Status nicht lesbar:', err); setPyramidStatus(false, false, err); }
@@ -299,7 +306,7 @@ async function initCentralFirebase(){
     dbRef = doc(db, CENTRAL_COLLECTION, CENTRAL_DOCUMENT);
     centralSetDoc = (ref,payload)=>setDoc(ref,payload);
     const statusRef = doc(db, STATUS_COLLECTION, STATUS_DOCUMENT);
-    statusWrite = value => setDoc(statusRef, value);
+    statusWrite = async value => setDoc(statusRef, value);
     onSnapshot(statusRef,
       snap => setPyramidStatus(snap.exists() && snap.data().aktiv === true, true),
       err => { console.error('Solo-Pyramide: Status nicht lesbar:', err); setPyramidStatus(false, false, err); }

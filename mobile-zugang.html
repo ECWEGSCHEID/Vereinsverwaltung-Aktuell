@@ -2938,6 +2938,27 @@ async function initApp(){
     }
   });
 }
+// Freigaben und Smartphone-Einstellungen automatisch neu laden (Rückkehr zur App,
+// jede Minute), damit Änderungen ohne Ab- und Anmelden wirksam werden.
+let adminRefreshRunning=false;
+async function refreshAdminAccess(){
+  const user=auth?.currentUser;
+  if(!user||!profile||adminRefreshRunning||document.visibilityState!=='visible')return;
+  adminRefreshRunning=true;
+  try{
+    const [snap,settings]=await Promise.all([
+      db.collection('users').doc(user.uid).get(),
+      ECWSmartphoneNavigation.settingsRef(db).get().catch(()=>null)
+    ]);
+    if(auth.currentUser?.uid!==user.uid||!snap.exists)return;
+    profile=snap.data();
+    if(settings)smartphoneSettings=settings.data();
+    applyTiles();
+  }catch(e){console.warn('Freigaben konnten nicht aktualisiert werden:',e)}
+  finally{adminRefreshRunning=false}
+}
+document.addEventListener('visibilitychange',()=>{void refreshAdminAccess()});
+setInterval(()=>{void refreshAdminAccess()},60000);
 document.addEventListener('DOMContentLoaded',()=>{
   $('loginBtn').onclick=login;
   $('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
