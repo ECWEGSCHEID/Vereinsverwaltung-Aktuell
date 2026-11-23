@@ -1,0 +1,12 @@
+// Solo Pyramide: Status aktiv / nicht aktiv
+// In die vorhandenen Firestore-Regeln unter match /databases/{database}/documents einfügen.
+// isAdmin() stammt aus den bestehenden Projektregeln.
+// Lesen: für alle (Pyramiden-Seite und Smartphone lesen den Status auch ohne Anmeldung).
+// Schreiben: nur Administratoren, nur die zwei Felder.
+match /smartphoneBetrieb/soloPyramide {
+  allow read: if true;
+  allow write: if request.auth != null && isAdmin()
+    && request.resource.data.keys().hasOnly(['aktiv', 'geaendertAm'])
+    && request.resource.data.aktiv is bool
+    && request.resource.data.geaendertAm is string;
+}

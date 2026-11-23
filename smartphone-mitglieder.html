@@ -93,6 +93,7 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 #results button{text-align:left}
 #planner-list{display:grid;gap:8px}
 #myresults-content{display:grid;gap:6px;margin-top:8px}
+.solo-inactive{display:none!important}
 .my-row,.my-participations>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#2c292d;border:1px solid #4c4248;border-radius:10px}
 .my-participations>summary{cursor:pointer;list-style:none}
 .my-participations>summary::-webkit-details-marker{display:none}
@@ -204,7 +205,7 @@ main:has(#menu:not([hidden])){
 </style>
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
-<script src="js/ecw-meine-ergebnisse.js?v=7-solo-fix"></script>
+<script src="js/ecw-meine-ergebnisse.js?v=8-solo-status"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -411,6 +412,22 @@ async function readMemberPermissions(uid) {
     await new Promise(resolve => setTimeout(resolve, 400));
     if (auth.currentUser?.uid !== uid) throw error;
     return (await getDocFromServer(ref)).data();
+  }
+}
+
+// Solo Pyramide aktiv? Erst mit Anmeldung lesen, sonst öffentlich. Im Zweifel: nicht aktiv.
+async function readPyramidActive() {
+  try {
+    const {getFirestore, doc, getDocFromServer} = await import(firestoreSdkUrl);
+    const snapshot = await getDocFromServer(doc(getFirestore(app), 'smartphoneBetrieb', 'soloPyramide'));
+    return snapshot.data()?.aktiv === true;
+  } catch {}
+  try {
+    const response = await fetch('https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/smartphoneBetrieb/soloPyramide', {cache: 'no-store'});
+    if (!response.ok) return false;
+    return (await response.json()).fields?.aktiv?.booleanValue === true;
+  } catch {
+    return false;
   }
 }
 
@@ -639,6 +656,7 @@ async function showMyResultsFor(name, signal) {
     loadCups: () => window.ecwLoadCupTournaments(signal),
     loadChampionship: async () => (await getDocFromServer(doc(db, 'turnierauswertung', 'jahresmeisterschaft'))).data()?.state,
     loadPyramid: async () => {
+      if (!(await readPyramidActive())) return null;
       // Erst mit der Mitglieder-Anmeldung lesen; klappt das nicht, über die
       // öffentlich lesbare Schnittstelle (wie die Pyramiden-Seite selbst).
       try {
@@ -1050,6 +1068,11 @@ onAuthStateChanged(auth, async user => {
     }
     if (!stillCurrent()) return;
     menu.querySelector('nav').hidden = false;
+    const soloButton = menu.querySelector('nav [data-mobile-feature="solo"]');
+    if (soloButton) soloButton.classList.add('solo-inactive');
+    void readPyramidActive().then(active => {
+      if (stillCurrent() && soloButton) soloButton.classList.toggle('solo-inactive', !active);
+    });
     ECWSmartphoneNavigation.applyMembers(settings, (title, url, button) => {
       selectedButton = button;
       if (ECWSmartphoneNavigation.isInvitationRoute(url)) {

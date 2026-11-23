@@ -148,6 +148,23 @@ const CENTRAL_FIREBASE_CONFIG = {
 };
 const CENTRAL_COLLECTION = 'soloPyramide';
 const CENTRAL_DOCUMENT = 'state';
+// Status aktiv / nicht aktiv in einem eigenen Dokument (eigene Firestore-Regel,
+// siehe firebase-regelblock-solo-pyramide-status.txt). Nicht aktiv = noch nicht
+// gestartet: kein Platz unter "Meine Ergebnisse", kein Button im Smartphone-Menü.
+const STATUS_COLLECTION = 'smartphoneBetrieb';
+const STATUS_DOCUMENT = 'soloPyramide';
+let pyramidActive = false;
+let pyramidStatusKnown = false;
+let pyramidStatusError = '';
+let statusWrite = null;
+
+function setPyramidStatus(active, known, error){
+  pyramidActive = active === true;
+  pyramidStatusKnown = known === true;
+  pyramidStatusError = error ? String(error.code || error.message || error) : '';
+  const banner = document.getElementById('soloStatusBanner');
+  if(banner) banner.hidden = pyramidActive;
+}
 const LEGACY_RTDB_URL = 'https://solo-pyramide-wegscheid-2026-default-rtdb.europe-west1.firebasedatabase.app/pyramideData/state_v3.json';
 
 function applyData(data){
@@ -253,6 +270,12 @@ async function initCentralFirebase(){
         if(window.parent.location.origin === window.location.origin && window.parent.firestoreDb){
           dbRef = window.parent.firestoreDb.collection(CENTRAL_COLLECTION).doc(CENTRAL_DOCUMENT);
           centralBackend = 'parent-compat';
+          const statusRef = window.parent.firestoreDb.collection(STATUS_COLLECTION).doc(STATUS_DOCUMENT);
+          statusWrite = value => statusRef.set(value);
+          statusRef.onSnapshot(
+            snap => setPyramidStatus(snap.exists && snap.data().aktiv === true, true),
+            err => { console.error('Solo-Pyramide: Status nicht lesbar:', err); setPyramidStatus(false, false, err); }
+          );
           useFirebase = true;
           dbRef.onSnapshot(
             snap => handleCentralSnapshot(snap.exists, snap.exists ? snap.data() : null),
@@ -275,6 +298,12 @@ async function initCentralFirebase(){
     const db = getFirestore(app);
     dbRef = doc(db, CENTRAL_COLLECTION, CENTRAL_DOCUMENT);
     centralSetDoc = (ref,payload)=>setDoc(ref,payload);
+    const statusRef = doc(db, STATUS_COLLECTION, STATUS_DOCUMENT);
+    statusWrite = value => setDoc(statusRef, value);
+    onSnapshot(statusRef,
+      snap => setPyramidStatus(snap.exists() && snap.data().aktiv === true, true),
+      err => { console.error('Solo-Pyramide: Status nicht lesbar:', err); setPyramidStatus(false, false, err); }
+    );
     centralBackend = 'module';
     useFirebase = true;
     // Erst nach Wiederherstellung der bestehenden Firebase-Sitzung abonnieren.
@@ -297,6 +326,7 @@ async function initCentralFirebase(){
     return false;
   }
 }
+const soloStatusBanner=document.createElement('div');soloStatusBanner.id='soloStatusBanner';soloStatusBanner.textContent='Die Solo Pyramide ist noch nicht gestartet.';soloStatusBanner.style.cssText='background:#3a2a10;color:#ffd98a;text-align:center;font-weight:bold;padding:8px;border-radius:8px;margin:6px';document.body.prepend(soloStatusBanner);
 const soloWarning=document.createElement('div');soloWarning.id='soloDataError';soloWarning.style.cssText='color:#ffb3b3;text-align:center;font-weight:bold';document.body.prepend(soloWarning);
 await initCentralFirebase();
 
@@ -692,6 +722,12 @@ function openAdminMenu(activeTab = 'general'){
     </div>
 
     <div id="tab_general" class="adminTabContent ${activeTab==='general'?'active':''}">
+      <label><b>Status der Pyramide:</b></label>
+      <p style="margin:4px 0 8px">${!pyramidStatusKnown
+        ? '⚠️ Status konnte nicht gelesen werden' + (pyramidStatusError ? ' (' + pyramidStatusError + ')' : '') + '. Ist die Firestore-Regel für smartphoneBetrieb/soloPyramide eingefügt?'
+        : pyramidActive ? '🟢 Aktiv – Platz unter „Meine Ergebnisse“ und Button im Smartphone-Menü sichtbar.'
+        : '⚪ Nicht aktiv – noch nicht gestartet. Unter „Meine Ergebnisse“ und im Smartphone-Menü ausgeblendet.'}</p>
+      <button type="button" class="adminTabBtn active" style="margin-bottom:14px" onclick="togglePyramidActive()">${pyramidActive ? 'Auf „nicht aktiv“ setzen' : 'Pyramide starten (aktiv setzen)'}</button>
       <label><b>Anzahl der Pyramiden-Plätze anzeigen:</b></label>
       <select id="adminMaxPlayers" class="adminSelect">
         <option value="21" ${currentMaxPlayers===21?'selected':''}>21 Plätze (6 Reihen)</option>
@@ -842,6 +878,20 @@ window.resetAllData = function(){
   window.save();
   location.reload();
 }
+
+window.togglePyramidActive = function(){
+  const next = !pyramidActive;
+  if(!statusWrite){ alert('Keine Verbindung zur zentralen Datenbank.'); return; }
+  if(!confirm(next ? 'Pyramide jetzt starten? Platz und Smartphone-Button werden dann für alle Mitglieder sichtbar.' : 'Pyramide auf „nicht aktiv“ setzen? Platz und Smartphone-Button werden ausgeblendet.')) return;
+  statusWrite({aktiv: next, geaendertAm: new Date().toISOString()}).then(() => {
+    setPyramidStatus(next, true);
+    alert(next ? 'Pyramide ist jetzt aktiv.' : 'Pyramide ist jetzt nicht aktiv.');
+  }).catch(error => {
+    console.error('Solo-Pyramide: Status nicht gespeichert:', error);
+    alert('Status wurde NICHT gespeichert: ' + (error?.code || error?.message || error) +
+      '\nBitte die Firestore-Regel aus firebase-regelblock-solo-pyramide-status.txt einfügen und als Administrator angemeldet sein.');
+  }).finally(() => openAdminMenu('general'));
+};
 
 window.saveAdminSettings = function(){
   currentMaxPlayers = parseInt(document.getElementById('adminMaxPlayers').value, 10) || defaultPyramidSize;
