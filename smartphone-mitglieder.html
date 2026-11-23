@@ -264,8 +264,8 @@ main:has(#menu:not([hidden])){
 </section>
 <section id="menu" aria-labelledby="menu-title" hidden>
 <h1 id="menu-title" tabindex="-1">Hauptmenü</h1>
-<section id="overview" class="ov-card" aria-label="Mein Überblick" hidden></section>
 <nav aria-label="Hauptmenü">
+<button type="button" data-mobile-feature="overview">Mein Überblick<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="reservation">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="invitations">Turniereinladungen<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="planner">Terminplaner<span class="arrow" aria-hidden="true">›</span></button>
@@ -292,6 +292,7 @@ main:has(#menu:not([hidden])){
 <p id="planner-status" class="hint" role="status"></p>
 <div id="planner-list"></div>
 </div>
+<section id="overview" class="ov-card" aria-label="Mein Überblick" hidden></section>
 <div id="myresults-panel" hidden>
 <p id="myresults-status" class="hint" role="status"></p>
 <div id="myresults-picker" hidden></div>
@@ -321,7 +322,7 @@ main:has(#menu:not([hidden])){
 </div>
 </section>
 </main>
-<script src="ecw-smartphone-einstellungen.js?v=20261121-meine"></script>
+<script src="ecw-smartphone-einstellungen.js?v=20261123-ueberblick"></script>
 <script type="module">
 import { signInWithEmailAndPassword, verifyPasswordResetCode, confirmPasswordReset, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getMemberSession, restoreMemberSession } from './ecw-smartphone-session.mjs?v=3.1.25.171126';
@@ -774,7 +775,6 @@ async function loadOverview(force = false) {
       hint.className = 'ov-sub';
       hint.textContent = 'Wähle unter „Meine Ergebnisse“ einmal deinen Namen, dann erscheint hier dein Überblick.';
       overview.append(hi, hint);
-      overview.hidden = false;
       return;
     }
     const firestore = await import(firestoreSdkUrl);
@@ -791,7 +791,6 @@ async function loadOverview(force = false) {
       challenge: pyramid ? ECWMeinUeberblick.openChallenge(pyramid, name) : null,
       tournaments: ECWMeinUeberblick.tournaments(planner, name, today)
     }, today);
-    overview.hidden = false;
     overviewLoadedAt = Date.now();
   } catch (error) {
     console.warn('Mein Überblick konnte nicht geladen werden:', error);
@@ -974,7 +973,10 @@ function showModule(title, url, readOnly = false, embeddedPage = false, cupMode 
     moduleExternal.href = url;
   }
   if (cupMode || championship) moduleFrame.removeAttribute('src');
-  else moduleFrame.src = url;
+  else {
+    // Ohne neuen Verlaufseintrag laden, damit die Zurück-Taste eine Ebene zurück ins Menü führt.
+    try { moduleFrame.contentWindow.location.replace(String(url)); } catch { moduleFrame.src = url; }
+  }
   modulePanel.hidden = false;
   if (!readOnly) moduleBack.focus();
   if (readOnly) {
@@ -997,10 +999,10 @@ function closeModule() {
   closeResults();
   stopCupPrefetch();
   modulePanel.hidden = true;
+  try { moduleFrame.contentWindow.location.replace('about:blank'); } catch {}
   moduleFrame.removeAttribute('src');
   menu.hidden = false;
   selectedButton?.focus();
-  void loadOverview();
 }
 moduleBack.addEventListener('click', closeModule);
 // Eingebettete Seiten (z. B. Solo Pyramide) kehren mit "Beenden" ins Menü zurück.
@@ -1207,7 +1209,7 @@ async function refreshMemberMenuNow() {
     menuRefreshRunning = false;
   }
 }
-document.addEventListener('visibilitychange', () => { void refreshMemberMenuNow(); if (document.visibilityState === 'visible') void loadOverview(); });
+document.addEventListener('visibilitychange', () => { void refreshMemberMenuNow(); if (document.visibilityState === 'visible' && !overview.hidden && !detail.hidden) void loadOverview(); });
 window.addEventListener('pageshow', event => { if (event.persisted) void refreshMemberMenuNow(); });
 setInterval(() => { void refreshMemberMenuNow(); }, 60000);
 
@@ -1222,7 +1224,6 @@ onAuthStateChanged(auth, async user => {
   });
   if (user) {
     if (!(await refreshMemberMenu(user, stillCurrent, operationReady))) return;
-    void loadOverview(true);
     login.hidden = true;
     sessionCheck.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
@@ -1380,6 +1381,15 @@ menu.querySelectorAll('nav button').forEach(button => {
     hallPanel.hidden = title !== 'Halle';
     plannerPanel.hidden = title !== 'Terminplaner';
     myResultsPanel.hidden = button.dataset.mobileFeature !== 'myresults';
+    overview.hidden = button.dataset.mobileFeature !== 'overview';
+    if (button.dataset.mobileFeature === 'overview') {
+      overview.replaceChildren();
+      const loading = document.createElement('p');
+      loading.className = 'hint';
+      loading.textContent = 'Überblick wird geladen …';
+      overview.append(loading);
+      void loadOverview(true);
+    }
     if (button.dataset.mobileFeature === 'myresults') {
       myResultsRequest = new AbortController();
       void loadMyResults(myResultsRequest.signal);
@@ -1411,6 +1421,7 @@ document.getElementById('back').addEventListener('click', () => {
   plannerRequest?.abort();
   myResultsRequest?.abort();
   plannerList.replaceChildren();
+  overview.hidden = true;
   detail.hidden = true;
   menu.hidden = false;
   selectedButton.focus();
@@ -1418,7 +1429,28 @@ document.getElementById('back').addEventListener('click', () => {
 
 // Browser erlauben das Schließen nur bei Fenstern, die per Skript geöffnet wurden.
 // Sonst eine klare Abschlussseite statt einer leeren Seite zeigen.
-document.getElementById('exit-member').addEventListener('click', () => {
+const exitButton = document.getElementById('exit-member');
+const inSubView = () => !modulePanel.hidden || !detail.hidden;
+function backOneLevel() {
+  if (!modulePanel.hidden) { closeModule(); return true; }
+  if (!detail.hidden) { document.getElementById('back').click(); return true; }
+  return false;
+}
+// Beschriftung passend halten: in Unterseiten "Zurück", im Menü "Beenden".
+new MutationObserver(() => { exitButton.textContent = inSubView() ? 'Zurück' : 'Beenden'; })
+  .observe(document.body, {subtree: true, attributes: true, attributeFilter: ['hidden']});
+// Handy-Zurück-Taste: aus Unterseiten eine Ebene zurück ins Menü statt die App zu verlassen.
+let subViewHistory = false;
+new MutationObserver(() => {
+  if (inSubView() && !subViewHistory) { history.pushState({ecwSubView: true}, ''); subViewHistory = true; }
+  if (!inSubView() && subViewHistory && history.state?.ecwSubView) { subViewHistory = false; history.back(); }
+  else if (!inSubView()) subViewHistory = false;
+}).observe(document.body, {subtree: true, attributes: true, attributeFilter: ['hidden']});
+window.addEventListener('popstate', () => {
+  if (subViewHistory && inSubView()) { subViewHistory = false; backOneLevel(); }
+});
+exitButton.addEventListener('click', () => {
+  if (backOneLevel()) return;
   hallRequest?.abort();
   plannerRequest?.abort();
   myResultsRequest?.abort();
