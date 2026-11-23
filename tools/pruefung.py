@@ -194,6 +194,17 @@ def main():
     else:
         hinweise.append('node nicht gefunden – JavaScript-Syntax nicht geprüft')
 
+    # Versionsstand: version.json und ecw-site-base.js müssen übereinstimmen,
+    # sonst zeigen Handys eine falsche Version bzw. laden Änderungen nicht neu.
+    try:
+        vj = json.load(open(os.path.join(ROOT, 'version.json'), encoding='utf-8')).get('version')
+        sb = re.search(r"window\.ECW_APP_VERSION = '([^']*)'", open(os.path.join(ROOT, 'ecw-site-base.js'), encoding='utf-8').read())
+        if sb and vj and sb.group(1) != vj:
+            fehler.append(f'Versionsstand uneinheitlich: version.json {vj}, ecw-site-base.js {sb.group(1)} '
+                          '(tools/version-erhoehen.py verwenden)')
+    except FileNotFoundError:
+        pass
+
     for gruppe in hashes.values():
         if len(gruppe) > 1:
             hinweise.append('gleicher Inhalt: ' + ', '.join(sorted(gruppe)))

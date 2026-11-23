@@ -111,7 +111,7 @@ main:has(#overview:not([hidden])) > header{display:none}
 /* Mein Überblick: volle Bildschirmbreite nutzen, weniger Rand oben und seitlich. */
 main:has(#overview:not([hidden])){max-width:none;padding:10px 6px 0}
 main:has(#overview:not([hidden])) #detail-title{margin:0 0 8px 4px;font-size:22px}
-main:has(#overview:not([hidden])) #detail{padding:10px 6px;border-radius:14px}
+main:has(#overview:not([hidden])) #detail{padding:10px 6px;border-radius:14px;box-sizing:border-box;min-height:calc(100svh - 20px - 74px - env(safe-area-inset-bottom, 0px))}
 #detail .ov-card{background:none;border:0;border-radius:0;padding:0 2px;box-shadow:none}
 #overview .ov-calendar{min-height:38px;padding:6px 10px;font-size:14px;margin:6px 0 0}
 #overview .ov-hi{font-size:17px}
@@ -232,7 +232,7 @@ main:has(#menu:not([hidden])){
 #invitation-prev{margin:0 0 10px;background:#302529;border-color:#6f626b}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.32.171126"></script>
+<script src="ecw-site-base.js?v=3.1.56.231126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
 <script src="js/ecw-meine-ergebnisse.js?v=8-solo-status"></script>
 <script src="js/ecw-mein-ueberblick.js?v=7"></script>
