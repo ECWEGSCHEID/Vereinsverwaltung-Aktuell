@@ -313,6 +313,38 @@
         box.append(links, add);
         form.querySelector('#smartphone-settings-groups').append(box);
       }
+      // Laufende Wettbewerbe für "Mein Überblick" (Smartphone Mitglieder).
+      const competitionItems = {
+        duoCup: 'Duo Cup', frauencup: 'Frauencup', soloPyramide: 'Solo Pyramide',
+        montagsSolo: 'Montags Solo Turnier', jahresmeisterschaft: 'Ziel-Jahresmeisterschaft'
+      };
+      const statusCollection = firestoreDb.collection('smartphoneBetrieb');
+      const [competitionSnap, pyramidSnap] = await Promise.all([
+        statusCollection.doc('wettbewerbe').get({source:'server'}).catch(() => null),
+        statusCollection.doc('soloPyramide').get({source:'server'}).catch(() => null)
+      ]);
+      if (!form.isConnected || firebaseAuthUser?.uid !== uid) return;
+      const competitionState = {...(competitionSnap?.data() || {}), soloPyramide: pyramidSnap?.data()?.aktiv === true};
+      const competitionControls = {};
+      const competitionBox = document.createElement('fieldset');
+      const competitionLegend = document.createElement('legend');
+      competitionLegend.textContent = 'Laufende Wettbewerbe (Mitglieder · Mein Überblick)';
+      const competitionHint = document.createElement('p');
+      competitionHint.textContent = 'Angehakte Wettbewerbe laufen gerade. Mitglieder sehen unter „Mein Überblick“, bei welchen sie dabei sind. Die Solo Pyramide entspricht dem Schalter aktiv / nicht aktiv der Pyramide.';
+      competitionBox.append(competitionLegend, competitionHint);
+      for (const [id, title] of Object.entries(competitionItems)) {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:8px;margin:8px 0';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.style.width = 'auto';
+        checkbox.checked = competitionState[id] === true;
+        label.append(checkbox, title);
+        competitionBox.append(label);
+        competitionControls[id] = checkbox;
+      }
+      form.querySelector('#smartphone-settings-groups').append(competitionBox);
+
       status.textContent = '';
       save.disabled = false;
       form.addEventListener('submit', async event => {
@@ -342,13 +374,27 @@
             }
           }
           await ref.set(settings, {merge:true});
+          let competitionError = '';
+          try {
+            const changedAt = new Date().toISOString();
+            const competitions = {geaendertAm: changedAt};
+            for (const id of ['duoCup', 'frauencup', 'montagsSolo', 'jahresmeisterschaft']) competitions[id] = competitionControls[id].checked;
+            await statusCollection.doc('wettbewerbe').set(competitions);
+            if (competitionControls.soloPyramide.checked !== competitionState.soloPyramide) {
+              await statusCollection.doc('soloPyramide').set({aktiv: competitionControls.soloPyramide.checked, geaendertAm: changedAt});
+              competitionState.soloPyramide = competitionControls.soloPyramide.checked;
+            }
+          } catch (error) {
+            competitionError = ' Die laufenden Wettbewerbe wurden NICHT gespeichert (' + (error?.code || error?.message || error) +
+              ') – ist die Firestore-Regel für smartphoneBetrieb/wettbewerbe eingefügt?';
+          }
           for (const editor of Object.values(editors)) {
             for (const row of editor.querySelectorAll('[data-link-editor]')) {
               row.querySelector('summary').textContent = row.querySelector('[name="title"]').value.trim();
               row.open = false;
             }
           }
-          status.textContent = 'Gespeichert. Die Smartphonezugänge übernehmen die Auswahl beim nächsten Öffnen.';
+          status.textContent = 'Gespeichert. Die Smartphones übernehmen die Änderungen automatisch (spätestens nach einer Minute).' + competitionError;
         } catch {
           status.textContent = 'Die Einstellungen konnten nicht gespeichert werden.';
         } finally {
