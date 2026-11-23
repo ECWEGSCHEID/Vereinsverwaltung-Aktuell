@@ -253,6 +253,24 @@ function render(host, name, data, today = viennaToday()) {
     if (count) el('span', count, line);
   };
 
+  const comps = data.competitions || [];
+  if (comps.length) {
+    label('LAUFENDE WETTBEWERBE');
+    const chip = (parent, c) => el('span', c.title, parent, 'ov-chip ov-chip-' + c.key);
+    const running = el('div', null, host, 'ov-chips');
+    for (const c of comps) chip(running, c);
+    const countable = comps.filter(c => c.countable);
+    const joined = countable.filter(c => c.joined);
+    if (joined.length) {
+      const line = el('div', null, host, 'ov-chips ov-joined-line');
+      el('span', 'Du bist dabei (' + joined.length + ' von ' + countable.length + '):', line, 'ov-joined-label');
+      for (const c of joined) chip(line, c);
+    } else if (countable.length) {
+      el('div', motivation(today), host, 'ov-box ov-motivation');
+    }
+    shown++;
+  }
+
   if (data.reservations?.length) {
     label('MEINE RESERVIERUNGEN (DIE NÄCHSTEN 14 TAGE)', data.reservations.length);
     for (const r of data.reservations) {
@@ -284,24 +302,6 @@ function render(host, name, data, today = viennaToday()) {
       el('div', shortDate(t.date, today) + (t.time ? ' · ' + t.time : ''), box, 'ov-date');
       el('div', t.name, box, 'ov-title');
       el('div', [t.location, t.mates.length ? 'mit ' + t.mates.join(', ') : ''].filter(Boolean).join(' · '), box, 'ov-sub');
-    }
-    shown++;
-  }
-
-  const comps = data.competitions || [];
-  if (comps.length) {
-    label('LAUFENDE WETTBEWERBE');
-    const chip = (parent, c) => el('span', c.title, parent, 'ov-chip ov-chip-' + c.key);
-    const running = el('div', null, host, 'ov-chips');
-    for (const c of comps) chip(running, c);
-    const countable = comps.filter(c => c.countable);
-    const joined = countable.filter(c => c.joined);
-    if (joined.length) {
-      const line = el('div', null, host, 'ov-chips ov-joined-line');
-      el('span', 'Du bist dabei (' + joined.length + ' von ' + countable.length + '):', line, 'ov-joined-label');
-      for (const c of joined) chip(line, c);
-    } else if (countable.length) {
-      el('div', motivation(today), host, 'ov-box ov-motivation');
     }
     shown++;
   }
