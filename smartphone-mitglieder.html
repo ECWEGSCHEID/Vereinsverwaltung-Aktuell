@@ -94,6 +94,19 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 #planner-list{display:grid;gap:8px}
 #myresults-content{display:grid;gap:6px;margin-top:8px}
 .solo-inactive{display:none!important}
+.ov-card{background:#2c292d;border:1px solid #4c4248;border-radius:14px;padding:12px;margin:0 0 12px}
+.ov-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ov-hi{font-size:19px;font-weight:bold;margin:0}
+.ov-calendar{flex:0 0 auto;min-height:36px;padding:6px 12px;border-radius:10px;font-size:14px}
+.ov-label{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.3px;color:#e9d7db;margin:12px 0 5px}
+.ov-box{background:#3a2f33;border-radius:10px;padding:8px 10px;margin-bottom:6px;overflow-wrap:anywhere}
+.ov-title{display:flex;justify-content:space-between;gap:8px;font-size:15px;font-weight:bold}
+.ov-sub{font-size:13px;color:#e9d7db;margin-top:2px}
+.ov-date{font-size:13px;color:#ffd7dc;font-weight:bold}
+.ov-mode{flex:0 0 auto;align-self:center;font-size:11px;background:#8a1f2b;color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.ov-mode-frauen{background:#7a2f6a}.ov-mode-solo{background:#2f5a7a}
+.ov-warn{background:#4a3410;border:1px solid #8a6420}.ov-warn .ov-title{color:#ffd98a}
+.ov-list{max-height:210px;overflow-y:auto}
 .my-row,.my-participations>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#2c292d;border:1px solid #4c4248;border-radius:10px}
 .my-participations>summary{cursor:pointer;list-style:none}
 .my-participations>summary::-webkit-details-marker{display:none}
@@ -206,6 +219,7 @@ main:has(#menu:not([hidden])){
 <script src="ecw-site-base.js?v=3.1.32.171126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
 <script src="js/ecw-meine-ergebnisse.js?v=8-solo-status"></script>
+<script src="js/ecw-mein-ueberblick.js?v=1"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -250,6 +264,7 @@ main:has(#menu:not([hidden])){
 </section>
 <section id="menu" aria-labelledby="menu-title" hidden>
 <h1 id="menu-title" tabindex="-1">Hauptmenü</h1>
+<section id="overview" class="ov-card" aria-label="Mein Überblick" hidden></section>
 <nav aria-label="Hauptmenü">
 <button type="button" data-mobile-feature="reservation">Reservierungssystem<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="invitations">Turniereinladungen<span class="arrow" aria-hidden="true">›</span></button>
@@ -691,6 +706,99 @@ async function loadMyResults(signal) {
     if (!signal.aborted) myResultsStatus.textContent = 'Ergebnisse konnten nicht geladen werden.';
   }
 }
+// ---------- Mein Überblick (Startkarte) ----------
+const overview = document.getElementById('overview');
+let overviewLoadedAt = 0, overviewRunning = false;
+
+// Firestore-REST-Werte in normale Werte umwandeln (öffentlicher Lese-Weg).
+function restValue(v) {
+  if (!v || typeof v !== 'object') return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('timestampValue' in v) return v.timestampValue;
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(restValue);
+  if ('mapValue' in v) return Object.fromEntries(Object.entries(v.mapValue.fields || {}).map(([k, x]) => [k, restValue(x)]));
+  return null;
+}
+
+async function overviewPyramid(db, firestore) {
+  if (!(await readPyramidActive())) return null;
+  try {
+    const snapshot = await firestore.getDocFromServer(firestore.doc(db, 'soloPyramide', 'state'));
+    if (snapshot.exists()) return snapshot.data();
+  } catch {}
+  const response = await fetch('https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/soloPyramide/state?mask.fieldPaths=fixedChallenges', {cache: 'no-store'});
+  if (!response.ok) return null;
+  return {fixedChallenges: restValue((await response.json()).fields?.fixedChallenges) || []};
+}
+
+async function overviewReservations(user, db, firestore, today) {
+  const permission = await readMemberPermissions(user.uid).catch(() => null);
+  const registered = user.uid === 'n9MpiKXZNLap8wsbRcP4fVjrT4D2' || /^ecw-mobile-[a-f0-9]{32}$/.test(user.uid);
+  if ((permission?.reservierungenLesen ?? registered) !== true) return [];
+  const rows = [];
+  try {
+    const snapshot = await firestore.getDocFromServer(firestore.doc(db, 'reservierungMigration', 'buchungen_20261112'));
+    for (const row of snapshot.data()?.list || []) rows.push(row);
+  } catch {}
+  try {
+    const {getFunctions, httpsCallable} = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+    const call = httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
+    const days = Array.from({length: 14}, (_, i) => ECWMeinUeberblick.addDays(today, i));
+    const results = await Promise.allSettled(days.map(date => call({action: 'list', date, view: 'reservierungen'})));
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue;
+      for (const b of result.value.data?.bookings || []) rows.push({...b, liveId: b.id});
+    }
+  } catch {}
+  return rows;
+}
+
+async function loadOverview(force = false) {
+  const user = auth.currentUser;
+  if (!user || overviewRunning || (!force && Date.now() - overviewLoadedAt < 60000)) return;
+  overviewRunning = true;
+  try {
+    const own = await ownMemberName();
+    if (auth.currentUser?.uid !== user.uid) return;
+    const name = own.name;
+    const today = ECWMeinUeberblick.viennaToday();
+    if (!name) {
+      overview.replaceChildren();
+      const hi = document.createElement('p');
+      hi.className = 'ov-hi';
+      hi.textContent = 'Servus!';
+      const hint = document.createElement('p');
+      hint.className = 'ov-sub';
+      hint.textContent = 'Wähle unter „Meine Ergebnisse“ einmal deinen Namen, dann erscheint hier dein Überblick.';
+      overview.append(hi, hint);
+      overview.hidden = false;
+      return;
+    }
+    const firestore = await import(firestoreSdkUrl);
+    const db = firestore.getFirestore(app);
+    const [rows, planner, pyramid] = await Promise.all([
+      overviewReservations(user, db, firestore, today).catch(() => []),
+      firestore.getDocs(firestore.collection(db, 'tournamentPlanner'))
+        .then(snapshot => snapshot.docs.map(entry => ({id: entry.id, data: entry.data()}))).catch(() => []),
+      overviewPyramid(db, firestore).catch(() => null)
+    ]);
+    if (auth.currentUser?.uid !== user.uid) return;
+    ECWMeinUeberblick.render(overview, name, {
+      reservations: ECWMeinUeberblick.reservations(rows, name, today),
+      challenge: pyramid ? ECWMeinUeberblick.openChallenge(pyramid, name) : null,
+      tournaments: ECWMeinUeberblick.tournaments(planner, name, today)
+    }, today);
+    overview.hidden = false;
+    overviewLoadedAt = Date.now();
+  } catch (error) {
+    console.warn('Mein Überblick konnte nicht geladen werden:', error);
+  } finally {
+    overviewRunning = false;
+  }
+}
 const temperatureStatus = document.getElementById('temperature-status');
 const temperatureFields = ['aussen', 'halle', 'vereinsheim'];
 const temperatureUrl = 'https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/sensors/temperatures';
@@ -892,6 +1000,7 @@ function closeModule() {
   moduleFrame.removeAttribute('src');
   menu.hidden = false;
   selectedButton?.focus();
+  void loadOverview();
 }
 moduleBack.addEventListener('click', closeModule);
 // Eingebettete Seiten (z. B. Solo Pyramide) kehren mit "Beenden" ins Menü zurück.
@@ -1098,7 +1207,7 @@ async function refreshMemberMenuNow() {
     menuRefreshRunning = false;
   }
 }
-document.addEventListener('visibilitychange', () => { void refreshMemberMenuNow(); });
+document.addEventListener('visibilitychange', () => { void refreshMemberMenuNow(); if (document.visibilityState === 'visible') void loadOverview(); });
 window.addEventListener('pageshow', event => { if (event.persisted) void refreshMemberMenuNow(); });
 setInterval(() => { void refreshMemberMenuNow(); }, 60000);
 
@@ -1113,6 +1222,7 @@ onAuthStateChanged(auth, async user => {
   });
   if (user) {
     if (!(await refreshMemberMenu(user, stillCurrent, operationReady))) return;
+    void loadOverview(true);
     login.hidden = true;
     sessionCheck.hidden = true;
     if (detail.hidden && modulePanel.hidden) menu.hidden = false;
@@ -1125,6 +1235,9 @@ onAuthStateChanged(auth, async user => {
   myResultsRequest?.abort();
   closeInvitations();
   plannerList.replaceChildren();
+  overview.replaceChildren();
+  overview.hidden = true;
+  overviewLoadedAt = 0;
   closeResults();
   stopCupPrefetch();
   modulePanel.hidden = true;
