@@ -5686,6 +5686,11 @@ function publishHomepageTournament(t, force = false, reportedEntries) {
   }
   const entries = active && config.startList ? (reportedEntries ?? homepageTournamentEntries(t)) : [];
   const template = t.einladungVorlage || {};
+  // Einladung mit Vereinsvorgaben (Vorstand, Schriftführer, Meldung) wie in der Vorschau.
+  const invitationValues = withClubDefaults(template);
+  // Pflichtfeld Preise: ohne Auswahl keine Einladung auf der Homepage veröffentlichen.
+  const invitationReady = PRIZE_OPTIONS.includes(invitationValues.preise);
+  const publishInvitation = Boolean(config.invitation) && invitationReady;
   const invitationText = [
     template.einladungsTitel,
     template.startgeld && "Startgeld: " + template.startgeld,
@@ -5695,17 +5700,20 @@ function publishHomepageTournament(t, force = false, reportedEntries) {
   ].filter(Boolean).join("\n");
   const record = active ? {
     key, folder:config.folder, title:t.name, date:t.datum, time:t.uhrzeit, location:t.ort,
-    invitation:config.invitation, startList:config.startList, invitationText, pdfMode:true,
+    invitation:publishInvitation, startList:config.startList, invitationText, pdfMode:true,
     teams:config.startList ? entries.map(entry => [entry.vereinName,entry.teamZusatz].filter(Boolean).join(" · ")) : [],
   } : {key,remove:true};
-  const serialized = JSON.stringify([record,active ? [template,t.externalInvitation,t.maxMannschaften,t.meldeUhrzeit,t.kategorie,entries] : null]);
+  const serialized = JSON.stringify([record,active ? [invitationValues,t.externalInvitation,t.maxMannschaften,t.meldeUhrzeit,t.kategorie,entries] : null]);
   const previous = lastHomepageTournament.get(key);
   if (!force && previous === serialized) return;
   lastHomepageTournament.set(key,serialized);
+  if (active && config.invitation && !invitationReady) {
+    window.ecwHomepageTest.report(key,"Einladung nicht veröffentlicht: Bitte in der Turnier-Vorlage bei „Preise“ eine Auswahl treffen und speichern.");
+  }
   const makePdfs = active ? async () => {
     const pdfs = {};
-    if (config.invitation) {
-      pdfs.invitation = await invitationPdf(t,{...DOC_DEFAULTS,...template});
+    if (publishInvitation) {
+      pdfs.invitation = await invitationPdf(t,invitationValues);
     }
     if (config.startList) {
       const source = {...t,entries,vorlage:liveStartlistTemplateFor(t)};
@@ -6777,7 +6785,9 @@ document.getElementById('dSaveBtn').addEventListener('click',()=>{
       catch(err){console.warn('Vereinsvorgaben nicht gespeichert:',err);}
     }
     if(JSON.stringify(d.values)===JSON.stringify(values))d.dirty=false;
-    t.einladungVorlage=values;notify('Vorlage gespeichert. Vorstand, Schriftführer und Anmeldedaten gelten jetzt auch für neue Turniere.');
+    t.einladungVorlage=values;
+    if(t.homepageFreigabe?.enabled)publishHomepageTournament(t,true);
+    notify('Vorlage gespeichert. Vorstand, Schriftführer und Anmeldedaten gelten jetzt auch für neue Turniere.');
   }).finally(updateDraftStatus);
 });
 async function imageToData(file,key){
