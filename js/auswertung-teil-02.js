@@ -184,12 +184,15 @@
       reader.readAsText(file);
     }
 
-    function addHistoryEntry(tId, text) {
+    function addHistoryEntry(tId, text, extra) {
       if (!tournaments[tId]) return;
       tournaments[tId].history ||= [];
+      const now = new Date();
       tournaments[tId].history.unshift({
-        time: new Date().toLocaleString('de-DE'),
-        text
+        time: now.toLocaleString('de-DE'),
+        iso: now.toISOString(),
+        text,
+        ...(extra || {})
       });
     }
 
@@ -804,7 +807,8 @@
 
       const teamAObj = g.teams.find(x => x.id == valA);
       const teamBObj = g.teams.find(x => x.id == valB);
-      addHistoryEntry(activeId, `Ergebnis eingetragen: ${teamAObj.name} vs ${teamBObj.name} (${pA}:${pB} Satzpunkte, ${stA}:${stB} Stöcke)`);
+      addHistoryEntry(activeId, `Ergebnis eingetragen: ${teamAObj.name} vs ${teamBObj.name} (${pA}:${pB} Satzpunkte, ${stA}:${stB} Stöcke)`,
+        {kind: 'result', group: g.name || '', nameA: teamAObj.name, nameB: teamBObj.name, pointsA: pA, pointsB: pB, stocksA: stA, stocksB: stB});
 
       saveData();
       alert("Ergebnis übernommen. Die Firebase-Speicherung wird unten angezeigt.");
@@ -1132,7 +1136,10 @@
       m.stocksB = stB;
       m.completed = true;
 
-      addHistoryEntry(tId, `Spielkorrektur durchgeführt.`);
+      const grp = tournaments[tId].groups[gKey];
+      const nameOf = id => (grp.teams || []).find(x => String(x.id) === String(id))?.name || '';
+      addHistoryEntry(tId, `Spielkorrektur durchgeführt: ${nameOf(m.teamA) || m.nameA || 'Team A'} vs ${nameOf(m.teamB) || m.nameB || 'Team B'} (${pA}:${pB} Satzpunkte, ${stA}:${stB} Stöcke)`,
+        {kind: 'correction', group: grp.name || '', nameA: nameOf(m.teamA) || m.nameA || '', nameB: nameOf(m.teamB) || m.nameB || '', pointsA: pA, pointsB: pB, stocksA: stA, stocksB: stB});
       saveData();
       alert("Korrektur gespeichert!");
       document.getElementById('adminEditMatchForm').style.display = 'none';
