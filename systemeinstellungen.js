@@ -118,7 +118,24 @@ function applyTexts(d){
 }
 
 /* ---------- Farbe und Hintergrund ---------- */
+// Die Waben der Startseite sind ein rotes Bild – per Filter in die Akzentfarbe umfärben.
+function hexFilter(p){
+  const r=parseInt(p.slice(1,3),16)/255,g=parseInt(p.slice(3,5),16)/255,b=parseInt(p.slice(5,7),16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,dd=mx-mn;
+  let h=0;if(dd){h=mx===r?((g-b)/dd)%6:mx===g?(b-r)/dd+2:(r-g)/dd+4;h*=60;if(h<0)h+=360;}
+  const sat=dd?dd/(1-Math.abs(2*l-1)):0;
+  const ref=0.35; // Helligkeit des Standard-Rots #b30000
+  if(Math.abs(h)<8&&sat>0.85&&Math.abs(l-ref)<0.08)return '';
+  return 'hue-rotate('+Math.round(h)+'deg) saturate('+Math.max(0,sat).toFixed(2)+') brightness('+Math.min(2.2,Math.max(0.5,l/ref)).toFixed(2)+')';
+}
 function accentCss(p){
+  const f=hexFilter(p);
+  const hex='#startseite #shGrid.sh-whiteboard-hex > .shbtn,#teamsGrid .team-group-grid > .gbtn,#ecwResultsDialog .er-public-grid > .er-tile,#ecwUtilityDialog .utility-hex-grid > .utility-hex-tile,#druckdokumente .ecw-doc-tiles > button';
+  const hexHover=hex.split(',').map(x=>x+':not(.app-disabled):hover').join(',');
+  const hexCss=f?hex+'{filter:'+f+' !important;}'+hexHover+'{filter:'+f+' brightness(1.14) !important;}':'';
+  return hexCss+accentCssBase(p);
+}
+function accentCssBase(p){
   const mix=(a)=>'color-mix(in srgb,'+p+' '+a+'%,transparent)';
   return '#admin{--ecw-red:'+p+' !important;--ecw-red-bright:'+p+' !important;}'
    +'#admin>.header{border-left-color:'+p+' !important;}'
@@ -130,21 +147,25 @@ function accentCss(p){
    +'#startseite #ecwInfoRibbon{border-color:'+mix(45)+' !important;}'
    +'button.primary{background:'+p+' !important;border-color:'+p+' !important;}';
 }
-function apply(v){
-  if(!v)return;
-  const d=clean(v),style=el('ecw-config-style')||document.createElement('style');
-  style.id='ecw-config-style';
+function cssFor(d){
   const bg=d.backgroundImage||presetUrl(d.backgroundPreset);
   const startBackground=bg
     ? '#shArt{background-image:url("'+bg+'") !important;background-position:center !important;background-size:cover !important;}'
     : '';
-  style.textContent='body{background-color:'+d.background+' !important;'
+  const css='body{background-color:'+d.background+' !important;'
     +(bg?'background-image:url("'+bg+'") !important;':(d.colorOnly?'background-image:none !important;':''))
     +'background-position:center !important;background-size:cover !important;}'
     +'#shStage{background-color:'+d.background+' !important;}'
     +startBackground
     +(d.colorOnly?'#shArt{background-image:none !important;background-color:'+d.background+' !important;}':'')
     +accentCss(d.primary);
+  return css;
+}
+function apply(v){
+  if(!v)return;
+  const d=clean(v),style=el('ecw-config-style')||document.createElement('style');
+  style.id='ecw-config-style';
+  style.textContent=cssFor(d);
   if(!style.parentNode)document.head.appendChild(style);
   document.documentElement.dataset.ecwTheme=d.theme;
   applyTexts(d);
@@ -179,7 +200,32 @@ function previewBackground(){
   const def=appDefaultBackground();
   return def?def+' center/cover,'+draft.background:draft.background;
 }
+// Verkleinerte Kopie der echten Startseite mit den gewählten Farben.
+function buildStartMini(){
+  const host=el('ecwCfgStartMini');const src=el('startseite');if(!host||!src)return;
+  const root=host.shadowRoot||host.attachShadow({mode:'open'});
+  root.innerHTML='';
+  document.querySelectorAll('link[rel="stylesheet"],style').forEach(n=>{if(n.id!=='ecw-config-style'&&n.id!=='ecwCfgCss')root.appendChild(n.cloneNode(true));});
+  const w=window.innerWidth,h=window.innerHeight;
+  const frame=document.createElement('div');
+  frame.className='mini-frame';
+  frame.style.cssText='position:absolute;left:0;top:0;width:'+w+'px;height:'+h+'px;transform-origin:0 0;overflow:hidden;pointer-events:none;contain:layout paint';
+  const clone=src.cloneNode(true);
+  clone.classList.add('active');clone.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block';
+  clone.querySelectorAll('dialog,#shGear,#shFs,[data-user-password]').forEach(n=>n.remove());
+  frame.appendChild(clone);
+  const st=document.createElement('style');st.id='mini-draft';root.appendChild(st);
+  root.appendChild(frame);
+  const fit=()=>{const s=Math.min(1,(host.clientWidth||600)/w);frame.style.transform='scale('+s+')';host.style.height=Math.round(h*s)+'px';};
+  fit();host._fit=fit;
+}
+function updateStartMini(){
+  const host=el('ecwCfgStartMini');if(!host||!host.shadowRoot||!draft)return;
+  const st=host.shadowRoot.getElementById('mini-draft');if(st)st.textContent=cssFor(draft)+'.mini-frame{background:'+draft.background+'}';
+  host._fit?.();
+}
 function preview(){
+  updateStartMini();
   const p=el('ecwConfigPreview');if(!p||!draft)return;
   const a=draft.primary,mix=x=>'color-mix(in srgb,'+a+' '+x+'%,transparent)';
   p.style.background=previewBackground();
@@ -343,7 +389,8 @@ async function open(){
    +'<div id="ecwCfgTiles">'+tilesHtml()+'</div>'
    +'<div class="row"><div><label>Akzentfarbe (Buttons)</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe (sichtbar bei „Nur Farbe“)</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div>'
    +'<div class="row"><div><label>Eigenes Hintergrundbild (PNG/JPG/WebP)</label><input id="ecwCfgBg" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveBg">Eigenes Bild entfernen</button></div></div>'
-   +'<div id="ecwConfigPreview" style="padding:20px;min-height:150px;border-radius:12px;margin-top:12px"></div></div>'
+   +'<h4 style="margin:14px 0 6px">Vorschau Verwaltung</h4><div id="ecwConfigPreview" style="padding:20px;min-height:150px;border-radius:12px"></div>'
+   +'<h4 style="margin:14px 0 6px">Vorschau Startseite</h4><div id="ecwCfgStartMini" style="position:relative;width:100%;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.2);background:#000"></div></div>'
    +'<div class="card" style="margin-bottom:12px"><h3 style="margin-top:0">2 · Verein</h3>'
    +'<div class="row"><div><label>Vereinsname</label><input id="ecwCfgName" type="text" maxlength="120"></div><div><label>Vereinskürzel</label><input id="ecwCfgShort" type="text" maxlength="25"></div></div>'
    +'<p class="small">Der Vereinsname ersetzt „EC Wegscheid“ in allen Überschriften und Fenstertiteln.</p>'
@@ -385,6 +432,7 @@ async function open(){
   el('ecwCfgSave').onclick=save;
   el('ecwCfgStartPreview').onclick=startseiteVorschau;
   el('ecwCfgCancel').onclick=()=>open();
+  buildStartMini();
   preview();msg(docExists?'Aktuelle Einstellungen geladen.':'Noch keine Einstellungen gespeichert – bestehendes Design bleibt unverändert.');
 }
 window.ECWConfig={open,load};
