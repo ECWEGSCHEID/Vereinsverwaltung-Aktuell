@@ -3594,24 +3594,41 @@ function wbLiveStartlistVisible(x){
  const now=new Date(),today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
  return !date||date>=today;
 }
+let wbLivePanelKey='';
+function wbLiveDate(v){const p=String(v||'').split('-');return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):String(v||'')}
+function wbLiveCardHtml(x){
+ const entries=(Array.isArray(x.entries)?x.entries:[]).filter(e=>e&&!e.free&&(e.vereinName||e.teamZusatz));
+ const max=Math.max(0,Number(x.maxMannschaften)||0);
+ const free=max?Math.max(0,max-entries.length):0;
+ const when=[wbLiveDate(x.datum),x.uhrzeit?x.uhrzeit+' Uhr':''].filter(Boolean).join(' · ');
+ const count=max?entries.length+' von '+max+' Mannschaften':entries.length+' Mannschaften';
+ return '<section class="own-live-card">'
+  +'<button type="button" class="own-live-card-head" data-live-id="'+esc(x.id)+'" title="Startliste groß anzeigen">'
+  +'<span class="own-live-card-title">'+esc(x.name||'Turnier')+'</span>'
+  +'<span class="own-live-card-meta">'+esc(when)+(when?' · ':'')+esc(count)+(free?' · <b>'+free+' frei</b>':'')+'</span></button>'
+  +(entries.length?'<ol class="own-live-card-list'+(entries.length>8?' two-col':'')+'">'+entries.map(e=>'<li>'+esc(e.vereinName||'')+(e.teamZusatz?' '+esc(e.teamZusatz):'')+'</li>').join('')+'</ol>'
+   :'<div class="own-live-card-none">Noch keine Meldungen</div>')
+  +'</section>';
+}
+// Schrift so weit verkleinern, dass alle Startlisten ohne Scrollen in den Bereich passen.
+function wbFitLivePanel(){
+ const box=document.getElementById('ownLiveStartlistButtons');if(!box)return;
+ let size=16;box.style.fontSize=size+'px';
+ while(size>8&&box.scrollHeight>box.clientHeight+1){size-=.5;box.style.fontSize=size+'px';}
+}
 function wbRefreshLiveStartlistButtons(){
  const box=document.getElementById('ownLiveStartlistButtons');
  if(!box)return;
- const list=wbLiveStartlisten.filter(wbLiveStartlistVisible);
- if(!list.length){
-   box.innerHTML='<div class="own-live-empty">Noch keine Live-Startlisten vorhanden</div>'
-     +'<button type="button" class="own-live-turnier-btn" onclick="wbLoadLiveStartlistenPublic()">↻ Aktualisieren</button>';
-   return;
- }
- box.innerHTML=list.map(wbLiveStartlistButtonHtml).join('')
-   +'<button type="button" class="own-live-turnier-btn" style="opacity:.78" onclick="wbLoadLiveStartlistenPublic()">↻ Aktualisieren</button>';
- box.querySelectorAll('.own-live-turnier-btn').forEach(btn=>{
-   btn.addEventListener('click',e=>{
-     e.preventDefault();
-     e.stopPropagation();
-     openWhiteboardLiveStartlist(btn.dataset.liveId);
-   });
+ const list=wbLiveStartlisten.filter(wbLiveStartlistVisible).sort((a,b)=>String(a.datum||'9999').localeCompare(String(b.datum||'9999'))||String(a.name||'').localeCompare(String(b.name||'')));
+ const key=JSON.stringify(list.map(x=>[x.id,x.name,x.datum,x.uhrzeit,x.maxMannschaften,x.entries]));
+ if(key===wbLivePanelKey&&box.childElementCount)return;
+ wbLivePanelKey=key;
+ if(!list.length){box.innerHTML='<div class="own-live-empty">Noch keine Live-Startlisten vorhanden</div>';return;}
+ box.innerHTML=list.map(wbLiveCardHtml).join('');
+ box.querySelectorAll('[data-live-id]').forEach(btn=>{
+   btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openWhiteboardLiveStartlist(btn.dataset.liveId);});
  });
+ requestAnimationFrame(wbFitLivePanel);
 }
 function openWhiteboardLiveStartlist(id){
  const u=SH_B+'live-startlisten.html?v=2.5.2&turnier='+encodeURIComponent(id);
@@ -3625,9 +3642,11 @@ function renderOwnTournaments(){
  ['prevPageBtn','nextPageBtn','prevMonthBtn','nextMonthBtn','tMonthsBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display='none'});
  const c=document.getElementById('tContent');c.innerHTML='';
 
- // Maximal 6 Einladungen + genau ein Platzhalter in derselben A4-Größe.
- const totalSlots=items.length+1;
- const availableH=Math.max(200,c.clientHeight),availableW=Math.max(200,c.clientWidth),gap=6;
+ // Einladungen links in A4-Größe, rechts ein schmaler Bereich mit den Live-Startlisten.
+ const totalSlots=Math.max(1,items.length);
+ const fullH=Math.max(200,c.clientHeight),fullW=Math.max(200,c.clientWidth),gap=6;
+ const panelW=items.length?Math.max(260,Math.min(460,Math.round(fullW*0.3))):Math.min(900,fullW);
+ const availableH=fullH,availableW=Math.max(120,fullW-(items.length?panelW+gap:0));
  let best={cols:1,rows:totalSlots,w:0,h:0};
  for(let cols=1;cols<=totalSlots;cols++){
    const rows=Math.ceil(totalSlots/cols);
@@ -3636,17 +3655,19 @@ function renderOwnTournaments(){
    const w=Math.max(40,Math.min(slotW,Math.floor(slotH*(210/297))));
    if(w>best.w)best={cols,rows,w,h:Math.round(w*(297/210))};
  }
- c.style.gridTemplateColumns='repeat('+best.cols+','+best.w+'px)';
- c.style.gridTemplateRows='repeat('+best.rows+','+best.h+'px)';
+ c.style.gridTemplateColumns=items.length?'repeat('+best.cols+','+best.w+'px) '+panelW+'px':panelW+'px';
+ c.style.gridTemplateRows=items.length?'repeat('+best.rows+','+best.h+'px)':fullH+'px';
  c.style.alignContent='center';
  c.style.justifyContent='center';
  c.style.columnGap=gap+'px';
  c.style.rowGap=gap+'px';
 
  // Bestehende Einladungen unverändert anzeigen.
- items.forEach(x=>{
+ items.forEach((x,i)=>{
    const slot=document.createElement('div');
    slot.className='page-slot';
+   slot.style.gridColumn=String(i%best.cols+1);
+   slot.style.gridRow=String(Math.floor(i/best.cols)+1);
    const img=document.createElement('img');
    img.alt=x.name||'Turniereinladung';
    img.src=x.data||'';
@@ -3655,14 +3676,18 @@ function renderOwnTournaments(){
    c.appendChild(slot);
  });
 
- // Der letzte A4-Platz ist ausschließlich die Live-Startlisten-Auswahl.
+ // Rechts: Live-Startlisten direkt mit allen gemeldeten Mannschaften, ohne Scrollen.
  const live=document.createElement('div');
- live.className='page-slot own-live-startlist-tile';
+ live.className='own-live-startlist-tile';
+ live.style.gridColumn=items.length?String(best.cols+1):'1';
+ live.style.gridRow=items.length?'1 / span '+best.rows:'1';
+ live.style.height='100%';
  live.innerHTML='<div class="own-live-startlist-inner">'
    +'<div class="own-live-startlist-head">Live Startlisten</div>'
    +'<div id="ownLiveStartlistButtons" class="own-live-startlist-buttons"></div>'
    +'</div>';
  c.appendChild(live);
+ wbLivePanelKey='';
  wbRefreshLiveStartlistButtons();
  setTimeout(()=>{wbStartLiveStartlistenListener();wbRefreshLiveStartlistButtons();},900);
 }
@@ -6812,11 +6837,11 @@ function adminSection(s){
   renderOwnTournamentAdminList();
  }else if(s==='tp'){
   a.innerHTML='<h2>Termin- und Turnierplaner</h2>'
-   +'<div class="tp-toolbar" style="margin:0 0 16px">'
+   +'<div class="tp-toolbar tp-subnav" style="margin:0 0 16px">'
     +'<button type="button" id="tpSubBtn-plan" onclick="tpAdminSubSection(\'plan\')">Termin- und Turnierplaner</button>'
+    +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
     +'<button type="button" id="tpSubBtn-cal" onclick="tpAdminSubSection(\'cal\')">Kalendereinstellungen</button>'
     +'<button type="button" id="tpSubBtn-players" onclick="tpAdminSubSection(\'players\')">Spielerliste</button>'
-    +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
    +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings(true)">In Firebase speichern</button><button type="button" onclick="tpSaveCalendarSettings(true);tpGoogleConnect()">Mit Google verbinden und abgleichen</button><button type="button" onclick="tpGooglePullLinkedChanges(true)">Jetzt abgleichen</button></div><div id="tpCalendarSaveStatus" class="small" role="status" style="margin-top:8px">'+esc(tpCalendarCentralStatus)+'</div><div id="tpGooglePullStatus" class="small" style="margin-top:8px">Google-Abgleich: Nur heutige und zukünftige Termine aus dem Programm werden geprüft. Bei Abweichungen wählst du die Übertragungsrichtung. Nach Ablauf der Google-Anmeldung bitte erneut verbinden.</div><div id="tpGoogleConflictList"></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Neue Termine werden beim Speichern automatisch in Google Kalender angelegt, sofern die Verbindung eingerichtet ist und keine mögliche Dublette gefunden wird. Bei einer Änderung eines bereits verknüpften Termins wird derselbe Kalendereintrag aktualisiert. Der automatische Rückabgleich berücksichtigt ausschließlich eindeutig mit Google verknüpfte Termine. Unverknüpfte ältere Exporte werden nicht automatisch geändert. Bei Konflikten oder gelöschten Google-Terminen werden keine Daten stillschweigend überschrieben oder gelöscht.</div></div></div>'
