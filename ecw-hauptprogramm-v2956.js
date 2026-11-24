@@ -965,7 +965,7 @@ async function readAppPermissions(user){
   applyAppPermissionsUI();
   // Only after the permissions have been loaded can the design configuration
   // be read reliably; otherwise an arbitrary timer may miss the admin login.
-  if(appPermissions.admin===true && typeof ECWConfig!=='undefined'){
+  if(typeof ECWConfig!=='undefined'){
     try{await ECWConfig.load()}catch(e){console.warn('Design konnte nicht geladen werden',e)}
   }
 }
