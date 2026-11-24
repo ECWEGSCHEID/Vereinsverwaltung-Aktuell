@@ -55,7 +55,10 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
             legacyKey: typeof booking.legacyKey === 'string' ? booking.legacyKey : undefined,
             date: booking.date, resource: booking.resource, timeFrom: booking.timeFrom, timeTo: booking.timeTo,
             bookedBy: typeof booking.bookedBy === 'string' ? booking.bookedBy : '',
-            mode: booking.mode || 'Reserviert',
+            // Anzeige: Anlass mit Name, z. B. Geburtstagsfeier „Mustermann“; für "Ändern" bleiben beide getrennt.
+            mode: (booking.mode || 'Reserviert') + (typeof booking.note === 'string' && booking.note ? ' „' + booking.note + '“' : ''),
+            baseMode: booking.mode || 'Reserviert',
+            note: typeof booking.note === 'string' ? booking.note : '',
             homeTeam: Array.isArray(booking.homeTeam) ? booking.homeTeam : [],
             guestTeam: Array.isArray(booking.guestTeam) ? booking.guestTeam : []
           });
@@ -102,6 +105,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       pending = undefined;
       element('raster-booking-message').textContent = '';
       window.ecwOpenOriginalBookingForm(date, resource, time, options);
+      if (element('clubhouseNote')) element('clubhouseNote').value = '';
     } catch (error) {
       if (account === uid()) status.textContent = 'Buchungsmaske konnte nicht geöffnet werden: ' + (error.message || 'Dienst nicht erreichbar.');
     } finally {
@@ -126,6 +130,10 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       mode: element('modalTemplateSelect').value,
       homeTeam: selectedPlayers('home'), guestTeam: selectedPlayers('guest')
     };
+    if (values.resource === 'Vereinsheim') {
+      const note = (element('clubhouseNote')?.value || '').trim();
+      if (note) values.note = note;
+    }
     const message = element('raster-booking-message');
     if (whiteboard && options?.chooseBooker) {
       values.view = 'whiteboard';
@@ -195,7 +203,8 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     if (!options) return;
     editing = {id: booking.liveId, key: booking.legacyKey, date: booking.date};
     element('modalTimeTo').value = booking.timeTo;
-    element('modalTemplateSelect').value = booking.mode;
+    element('modalTemplateSelect').value = booking.baseMode || booking.mode;
+    if (element('clubhouseNote')) element('clubhouseNote').value = booking.note || '';
     window.onTemplateChange?.();
     for (const [side, team] of [['home', booking.homeTeam], ['guest', booking.guestTeam]]) {
       (team || []).forEach((name, index) => {

@@ -67,7 +67,7 @@ function reservations(rows, name, today) {
     seen.add(key);
     const mates = (inGuest ? guest : home).filter(p => !sameName(p, name));
     const rivals = inGuest ? home : inHome ? guest : [];
-    out.push({date, timeFrom: r.timeFrom, timeTo: r.timeTo, resource: clean(r.resource), mode: clean(r.mode) || 'Reserviert',
+    out.push({date, timeFrom: r.timeFrom, timeTo: r.timeTo, resource: clean(r.resource), mode: (clean(r.mode) || 'Reserviert') + (clean(r.note) ? ' „' + clean(r.note) + '“' : ''),
       booker, bookedBySelf, mates, rivals, uidKey: key});
   }
   return out.sort((a, b) => (a.date + a.timeFrom).localeCompare(b.date + b.timeFrom));

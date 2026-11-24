@@ -81,7 +81,10 @@ function details(input, snapshot, owner) {
   }
   const names = [...homeTeam, ...guestTeam].map(normalizedName);
   if (new Set(names).size !== names.length) throw new HttpsError('invalid-argument', 'Jeder Spieler kann nur einmal ausgewählt werden.');
-  return {mode, homeTeam, guestTeam};
+  // Vereinsheim: optionaler Name zum Anlass, z. B. Geburtstagsfeier „Mustermann“.
+  const note = clubhouse && typeof input.note === 'string' ? input.note.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+  if (note.length > 60) throw new HttpsError('invalid-argument', 'Der Name darf höchstens 60 Zeichen lang sein.');
+  return note ? {mode, homeTeam, guestTeam, note} : {mode, homeTeam, guestTeam};
 }
 
 function bookingList(snapshot, required = false) {
@@ -129,8 +132,8 @@ exports.ecwBahnreservierung = onCall({region: 'europe-west3', maxInstances: 2}, 
     const past = bookingList(history, true).filter(row => row.date === input.date);
     const canBook = rosterBooking || !!writer(profile);
     const admin = isAdmin(account);
-    const visible = ({date, resource, timeFrom, timeTo, bookedBy, mode, homeTeam, guestTeam}) =>
-      ({date, resource, timeFrom, timeTo, bookedBy, mode, homeTeam, guestTeam});
+    const visible = ({date, resource, timeFrom, timeTo, bookedBy, mode, homeTeam, guestTeam, note}) =>
+      ({date, resource, timeFrom, timeTo, bookedBy, mode, homeTeam, guestTeam, note: note || ''});
     return {canBook, admin, bookings: [
       ...past.map(row => admin ? {...visible(row), legacyKey: rowKey(row), own: true} : visible(row)),
       ...bookingList(saved).map(row => (canBook && row.ownerUid === uid) || admin
@@ -144,8 +147,8 @@ exports.ecwBahnreservierung = onCall({region: 'europe-west3', maxInstances: 2}, 
     const games = input.view === 'spiele';
     if (!canRead(grants, uid, games)) throw new HttpsError('permission-denied', 'Der Kalender ist für dieses Konto gesperrt.');
     const canBook = !games && !!writer(profile);
-    return {canBook, bookings: bookingList(saved).map(({id, date, resource, timeFrom, timeTo, ownerUid, bookedBy, mode, homeTeam, guestTeam}) => ({
-      id, date, resource, timeFrom, timeTo, bookedBy, mode: mode || 'Reserviert', homeTeam: homeTeam || [], guestTeam: guestTeam || [], own: canBook && ownerUid === uid
+    return {canBook, bookings: bookingList(saved).map(({id, date, resource, timeFrom, timeTo, ownerUid, bookedBy, mode, homeTeam, guestTeam, note}) => ({
+      id, date, resource, timeFrom, timeTo, bookedBy, mode: mode || 'Reserviert', note: note || '', homeTeam: homeTeam || [], guestTeam: guestTeam || [], own: canBook && ownerUid === uid
     }))};
   }
 
@@ -174,7 +177,7 @@ exports.ecwBahnreservierung = onCall({region: 'europe-west3', maxInstances: 2}, 
       const prior = bookings.find(booking => booking.id === id);
       if (prior) {
         if (prior.bookedBy !== name || prior.resource !== resource || prior.timeFrom !== timeFrom || prior.timeTo !== timeTo ||
-            (prior.mode ?? 'Freies Training (Standard)') !== selection.mode ||
+            (prior.mode ?? 'Freies Training (Standard)') !== selection.mode || (prior.note || '') !== (selection.note || '') ||
             JSON.stringify(prior.homeTeam || []) !== JSON.stringify(selection.homeTeam) ||
             JSON.stringify(prior.guestTeam || []) !== JSON.stringify(selection.guestTeam)) {
           throw new HttpsError('already-exists', 'Diese Buchungsanfrage wurde bereits verwendet.');
