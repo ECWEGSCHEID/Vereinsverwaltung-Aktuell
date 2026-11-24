@@ -2180,3 +2180,8 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
 /* Termin- und Turnierplaner: Hauptbereiche links, Einstellungen rechts und kleiner */
 .tp-subnav #tpSubBtn-cal{margin-left:auto}
 .tp-subnav #tpSubBtn-cal,.tp-subnav #tpSubBtn-players{font-size:.82em;padding:6px 10px;min-height:0;opacity:.9}
+
+/* Live-Startlisten: nur Buttons, alle sichtbar (Schrift passt sich an) */
+#tContent .own-live-startlist-buttons{display:flex;flex-direction:column;gap:.5em}
+#tContent .own-live-startlist-buttons .own-live-turnier-btn{min-height:0!important;padding:.55em .6em!important;font-size:1em!important;border-radius:8px!important}
+#tContent .own-live-startlist-buttons.two-col{display:grid;grid-template-columns:1fr 1fr;align-content:start}

@@ -849,8 +849,8 @@ body nav.ecw-six-nav>button .step{position:static!important;flex-shrink:0!import
 @media(max-width:500px){body nav.ecw-six-nav{grid-template-columns:1fr!important}}
 </style><style id="ecw2941-archive-back">body.ecw-archive-readonly #ecwArchivBack2941{display:block!important}body.ecw-archive-readonly #backToTurniere{display:none!important}</style><style>
 /* Menü in einer Zeile, etwas kompakter (Reihenfolge 01–08) */
-html body nav.ecw-six-nav{grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:auto!important;grid-auto-rows:auto!important;gap:4px!important;max-width:1600px!important;margin:4px auto!important;padding:4px!important}
-html body nav.ecw-six-nav>button{min-height:36px!important;height:auto!important;padding:4px 6px!important;font-size:.8rem!important;line-height:1.15!important;gap:4px!important;border-radius:8px!important}
+html body nav.ecw-six-nav{grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:auto!important;grid-auto-rows:auto!important;align-content:start!important;gap:4px!important;max-width:1600px!important;margin:4px auto!important;padding:4px!important;min-height:0!important;height:auto!important;max-height:none!important}
+html body nav.ecw-six-nav>button{min-height:38px!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:5px 6px!important;font-size:.8rem!important;line-height:1.2!important;gap:4px!important;border-radius:8px!important}
 html body nav.ecw-six-nav>button .step{margin-right:3px!important;font-size:.7rem!important}
 @media(max-width:1150px){html body nav.ecw-six-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 @media(max-width:560px){html body nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
@@ -1593,8 +1593,8 @@ setTimeout(() => {
 <div><label for="tStock_header">Briefkopf für StockApp</label><select id="tStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (gespeicherten Windows-Pfad verwenden)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (automatisch übernehmen)</option></select></div>
 <div><label for="tStock_headerPath">Bildpfad auf dem StockApp-Windows-PC (optional; beim Hallenbild einmal eintragen)</label><input id="tStock_headerPath" type="text" placeholder="C:\Bilder\Hallenbild.png"></div>
 <div><label><input type="checkbox" id="tStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
-</div></details><details class="ecw-stockapp-options tv-homepage-options" data-homepage="t"><summary>Veröffentlichung auf der Test-Homepage</summary>
- <button type="button" data-hp-connect>Test-Homepage verbinden</button>
+</div></details><details class="ecw-stockapp-options tv-homepage-options" data-homepage="t"><summary>Veröffentlichung auf der Homepage</summary>
+ <button type="button" data-hp-connect>Homepage verbinden</button>
  <p data-hp-status role="status"></p>
  <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>
  <label><input type="checkbox" data-hp-invitation> Einladung</label>
@@ -1657,8 +1657,8 @@ setTimeout(() => {
           </div>
           <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="danger" type="button" id="tdDeleteBtn" title="Turnier mit allen Mannschaftsmeldungen löschen">🗑️ Turnier löschen</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp-Datei speichern (.skmr)</button><span id="ecwStockExportStatus" role="status" aria-live="polite" class="meta" style="display:block;margin-top:8px"></span></div>
         </div>
-        <details class="ecw-stockapp-options tv-homepage-options" data-homepage="tdEdit"><summary>Veröffentlichung auf der Test-Homepage</summary>
- <button type="button" data-hp-connect>Test-Homepage verbinden</button>
+        <details class="ecw-stockapp-options tv-homepage-options" data-homepage="tdEdit"><summary>Veröffentlichung auf der Homepage</summary>
+ <button type="button" data-hp-connect>Homepage verbinden</button>
  <p data-hp-status role="status"></p>
  <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>
  <label><input type="checkbox" data-hp-invitation> Einladung</label>
@@ -4618,7 +4618,7 @@ var qrcode = function() {
 }));
 </script>
 <script src="js/turnier-historie-core.js?v=history-20261103-1"></script>
-<script src="js/ecw-homepage-test.js?v=22"></script>
+<script src="js/ecw-homepage-test.js?v=24"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
