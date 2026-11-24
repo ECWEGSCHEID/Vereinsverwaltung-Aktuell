@@ -6,7 +6,8 @@
       return;
     }
   } catch {}
-  const homepage = "https://ec-wegscheid-test-homepage.m-stadler1978.chatgpt.site";
+  const homepage = "https://ec-wegscheid.de/homepage-test";
+  const homepageOrigin = new URL(homepage).origin;
   const storeKey = "ecw19-homepage-test-outbox";
   const waiting = new Map();
   const recordStatus = new Map();
@@ -55,7 +56,7 @@
       },45000);
       waiting.get(request).timer = timer;
       status("Übertragung an die Test-Homepage läuft …",record.key);
-      target.postMessage({ecwHomepage:targetChannel, request, record, pdfs},homepage);
+      target.postMessage({ecwHomepage:targetChannel, request, record, pdfs},homepageOrigin);
     } catch (error) {
       clearTimeout(waiting.get(request)?.timer);
       waiting.delete(request);
@@ -82,7 +83,7 @@
 
   window.addEventListener("message", event => {
     const data = event.data;
-    if (event.origin !== homepage || event.source !== popup || data?.ecwHomepage !== channel) return;
+    if (event.origin !== homepageOrigin || event.source !== popup || data?.ecwHomepage !== channel) return;
     if (Array.isArray(data.folders)) {
       folders = data.folders;
       status("Mit der Test-Homepage verbunden.");
