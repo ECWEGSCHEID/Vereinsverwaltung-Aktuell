@@ -3599,18 +3599,9 @@ function wbLiveStartlistVisible(x){
 let wbLivePanelKey='';
 function wbLiveDate(v){const p=String(v||'').split('-');return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):String(v||'')}
 function wbLiveCardHtml(x){
- const entries=(Array.isArray(x.entries)?x.entries:[]).filter(e=>e&&!e.free&&(e.vereinName||e.teamZusatz));
- const max=Math.max(0,Number(x.maxMannschaften)||0);
- const free=max?Math.max(0,max-entries.length):0;
  const when=[wbLiveDate(x.datum),x.uhrzeit?x.uhrzeit+' Uhr':''].filter(Boolean).join(' · ');
- const count=max?entries.length+' von '+max+' Mannschaften':entries.length+' Mannschaften';
- return '<section class="own-live-card">'
-  +'<button type="button" class="own-live-card-head" data-live-id="'+esc(x.id)+'" title="Startliste groß anzeigen">'
-  +'<span class="own-live-card-title">'+esc(x.name||'Turnier')+'</span>'
-  +'<span class="own-live-card-meta">'+esc(when)+(when?' · ':'')+esc(count)+(free?' · <b>'+free+' frei</b>':'')+'</span></button>'
-  +(entries.length?'<ol class="own-live-card-list'+(entries.length>8?' two-col':'')+'">'+entries.map(e=>'<li>'+esc(e.vereinName||'')+(e.teamZusatz?' '+esc(e.teamZusatz):'')+'</li>').join('')+'</ol>'
-   :'<div class="own-live-card-none">Noch keine Meldungen</div>')
-  +'</section>';
+ return '<button type="button" class="own-live-turnier-btn" data-live-id="'+esc(x.id)+'" title="Startliste anzeigen">'
+  +'<span>'+esc(x.name||'Turnier')+'</span>'+(when?'<span class="own-live-date">'+esc(when)+'</span>':'')+'</button>';
 }
 // Schrift so weit verkleinern, dass alle Startlisten ohne Scrollen in den Bereich passen.
 function wbFitLivePanel(){
@@ -3626,6 +3617,7 @@ function wbRefreshLiveStartlistButtons(){
  if(key===wbLivePanelKey&&box.childElementCount)return;
  wbLivePanelKey=key;
  if(!list.length){box.innerHTML='<div class="own-live-empty">Noch keine Live-Startlisten vorhanden</div>';return;}
+ box.classList.toggle('two-col',list.length>7);
  box.innerHTML=list.map(wbLiveCardHtml).join('');
  box.querySelectorAll('[data-live-id]').forEach(btn=>{
    btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openWhiteboardLiveStartlist(btn.dataset.liveId);});
@@ -5619,10 +5611,10 @@ function tpResetCalendarExport(id){if(isWhiteboardUser()){showToast('Whiteboard:
   showToast('Exportstatus zurückgesetzt – vor erneutem Export Google Kalender auf vorhandene Einträge prüfen');
 }
 function tpHomepageFormHtml(){
-  return '<fieldset class="ecw-tp-homepage"><legend>Test-Homepage</legend>'
+  return '<fieldset class="ecw-tp-homepage"><legend>Homepage</legend>'
     +'<label><input id="tpHomepageEnabled" type="checkbox" onchange="tpHomepageFields()"> Auf Homepage veröffentlichen</label>'
     +'<label>Homepage-Unterordner <select id="tpHomepageFolder" disabled></select></label>'
-    +'<button type="button" onclick="window.ecwHomepageTest.connect()">Test-Homepage verbinden</button>'
+    +'<button type="button" onclick="window.ecwHomepageTest.connect()">Homepage verbinden</button>'
     +'<p id="tpHomepageStatus" class="small" role="status"></p></fieldset>';
 }
 function tpHomepageFields(selected){
@@ -6771,7 +6763,7 @@ function renderHomepageAdmin(){
  if(!box)return;
  const choices=[['5','5 Termine'],['10','10 Termine (Standard)'],['15','15 Termine'],['20','20 Termine'],['30','30 Termine'],['all','Alle kommenden Termine']];
  box.innerHTML='<h2>Homepage</h2><div class="card">'
-  +'<p>Homepage-Pflege und Vorschau der privaten Test-Homepage.</p>'
+  +'<p>Homepage-Pflege und Vorschau der privaten Homepage.</p>'
   +'<div class="row"><button type="button" onclick="openHomepagePreview()">👁 Homepage-Vorschau</button><button type="button" onclick="openHomepageEditor()">Homepage verwalten ↗</button></div>'
   +'<div class="row"><button type="button" onclick="openHomepageEditor(\'Hintergrund\')">Hintergrund ↗</button><button type="button" onclick="openHomepageEditor(\'Fotos\')">Fotos und Videos ↗</button><button type="button" onclick="openHomepageEditor(\'Links\')">Links ↗</button><button type="button" onclick="openHomepageEditor(\'Kontakt\')">Kontakt ↗</button><button type="button" onclick="openHomepageEditor(\'Gästebuch\')">Gästebuch ↗</button><button type="button" onclick="openHomepageEditor(\'Vorstand\')">Vorstand bearbeiten ↗</button></div>'
   +'<h3>Kalender – Anzahl der Termine</h3><label for="ecwHpCalendarCount">Anzahl anzeigen: </label>'

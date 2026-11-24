@@ -12,7 +12,7 @@
   const waiting = new Map();
   const recordStatus = new Map();
   const pdfFactories = new WeakMap();
-  let popup, channel, connectedOrigin, folders = [], message = "Test-Homepage noch nicht verbunden.";
+  let popup, channel, connectedOrigin, folders = [], message = "Homepage noch nicht verbunden.";
   let pending = {};
   try { pending = JSON.parse(localStorage.getItem(storeKey) || "{}") || {}; } catch {}
   let lastRevision = Math.max(0,...Object.values(pending).map(item => item?.revision || 0));
@@ -29,7 +29,7 @@
 
   async function send(record) {
     if (!folders.length || !popup || popup.closed || !connectedOrigin) {
-      status("Homepage-Übertragung vorgemerkt. Bitte die Test-Homepage verbinden.",record.key);
+      status("Homepage-Übertragung vorgemerkt. Bitte die Homepage verbinden.",record.key);
       return;
     }
     if ([...waiting.values()].some(item => item.record === record)) return;
@@ -50,13 +50,13 @@
         waiting.delete(request);
         return;
       }
-      if (target.closed) throw Error("Bitte die Test-Homepage erneut verbinden.");
+      if (target.closed) throw Error("Bitte die Homepage erneut verbinden.");
       const timer = setTimeout(() => {
         waiting.delete(request);
         status("Homepage-Übertragung unbestätigt. Bitte Verbindung erneut öffnen.",record.key);
       },45000);
       waiting.get(request).timer = timer;
-      status("Übertragung an die Test-Homepage läuft …",record.key);
+      status("Übertragung an die Homepage läuft …",record.key);
       target.postMessage({ecwHomepage:targetChannel, request, record, pdfs},targetOrigin);
     } catch (error) {
       clearTimeout(waiting.get(request)?.timer);
@@ -88,7 +88,7 @@
     if (Array.isArray(data.folders)) {
       connectedOrigin = event.origin;
       folders = data.folders;
-      status("Mit der Test-Homepage verbunden.");
+      status("Mit der Homepage verbunden.");
       Object.values(pending).forEach(send);
       return;
     }
@@ -103,7 +103,7 @@
       delete pending[sent.record.key];
       saveOutbox();
     }
-    status(sent.record.remove ? "Veröffentlichung zurückgenommen." : "Auf der Test-Homepage gespeichert.",sent.record.key);
+    status(sent.record.remove ? "Veröffentlichung zurückgenommen." : "Auf der Homepage gespeichert.",sent.record.key);
   });
 
   window.ecwHomepageTest = {
