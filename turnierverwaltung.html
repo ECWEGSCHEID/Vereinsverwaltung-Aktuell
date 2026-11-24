@@ -847,7 +847,15 @@ body nav.ecw-six-nav>button{position:static!important;display:flex!important;fle
 body nav.ecw-six-nav>button .step{position:static!important;flex-shrink:0!important;margin-right:8px!important}
 @media(max-width:950px){body nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:none!important;min-height:0!important}}
 @media(max-width:500px){body nav.ecw-six-nav{grid-template-columns:1fr!important}}
-</style><style id="ecw2941-archive-back">body.ecw-archive-readonly #ecwArchivBack2941{display:block!important}body.ecw-archive-readonly #backToTurniere{display:none!important}</style></head>
+</style><style id="ecw2941-archive-back">body.ecw-archive-readonly #ecwArchivBack2941{display:block!important}body.ecw-archive-readonly #backToTurniere{display:none!important}</style><style>
+/* Menü in einer Zeile, etwas kompakter (Reihenfolge 01–08) */
+html body nav.ecw-six-nav{grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:auto!important;grid-auto-rows:auto!important;gap:6px!important;max-width:1600px!important}
+html body nav.ecw-six-nav>button{min-height:52px!important;height:auto!important;padding:7px 6px!important;font-size:.86rem!important;line-height:1.2!important;gap:5px!important}
+html body nav.ecw-six-nav>button .step{margin-right:3px!important;font-size:.7rem!important}
+@media(max-width:1150px){html body nav.ecw-six-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:560px){html body nav.ecw-six-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+</head>
 <body>
 
 <!-- JSZip license
@@ -1534,12 +1542,12 @@ setTimeout(() => {
   <nav class="ecw-six-nav">
     <button id="navAnlegen" class="active"><span class="step">01</span>Turnier anlegen</button>
     <button id="navTurniere"><span class="step">02</span>Turnier verwalten</button>
-    <button id="navLiveStartliste"><span class="step">L</span>Live Startliste</button>
-    <button id="navArchiv"><span class="step">A</span>Archiv</button>
-    <button id="navVereine"><span class="step">03</span>Vereine organisieren</button>
-    <button id="navHistorie"><span class="step">04</span>Historie</button>
-    <button id="navDokumente"><span class="step">05</span>Einladungen / Startlisten erstellen</button>
-    <button id="navSenden"><span class="step">06</span>Einladungen senden</button>
+    <button id="navDokumente"><span class="step">03</span>Einladungen / Startlisten erstellen</button>
+    <button id="navLiveStartliste"><span class="step">04</span>Live Startliste</button>
+    <button id="navSenden"><span class="step">05</span>Einladungen senden</button>
+    <button id="navVereine"><span class="step">06</span>Vereine organisieren</button>
+    <button id="navArchiv"><span class="step">07</span>Archiv</button>
+    <button id="navHistorie"><span class="step">08</span>Historie</button>
   </nav>
 
   <main>

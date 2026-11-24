@@ -2177,3 +2177,6 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
 #tContent .own-live-card-list.two-col{column-count:2;column-gap:1.4em}
 #tContent .own-live-card-list li{break-inside:avoid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tContent .own-live-card-none{font-size:.85em;opacity:.75;font-style:italic}
+/* Termin- und Turnierplaner: Hauptbereiche links, Einstellungen rechts und kleiner */
+.tp-subnav #tpSubBtn-cal{margin-left:auto}
+.tp-subnav #tpSubBtn-cal,.tp-subnav #tpSubBtn-players{font-size:.82em;padding:6px 10px;min-height:0;opacity:.9}
