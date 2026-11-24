@@ -1,6 +1,6 @@
 (function(){'use strict';
 const STORE='ecw_session_archives_v1';
-const sections=[['Jahresversammlung','ecw_years_v1'],['Vorstandsbericht','ecw_gv15_html_vorstand'],['Schriftführerbericht','ecw_gv15_html_schrift'],['Arbeitseinsätze','ecw_work_v1'],['Mannschaftssitzung','ecw_mannschaft_v1'],['Vorstandssitzung','ecw_board_structured_v1']];
+const sections=[['Jahresversammlung','ecw_years_v1'],['Vorstandsbericht','ecw_gv15_html_vorstand'],['Schriftführerbericht','ecw_gv15_html_schrift'],['Arbeitseinsätze','ecw_work_v1'],['Mannschaftssitzung','ecw_mannschaft_v18'],['Vorstandssitzung','ecw_versammlungen_demo_v1']];
 function read(){try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return []}}
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function download(row){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([JSON.stringify(row,null,2)],{type:'application/json'}));a.href=url;a.download='ECW_Archiv_'+row.key+'_'+row.created.slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
@@ -8,7 +8,10 @@ function draw(){const host=document.getElementById('ecwSessionArchive');if(!host
  host.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>save(b.dataset.save));host.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>newSession(b.dataset.new));host.querySelectorAll('[data-download]').forEach(b=>b.onclick=()=>{const x=read().find(a=>a.id===b.dataset.download);if(x)download(x)});
 }
 function save(key){const value=localStorage.getItem(key);if(value===null){alert('Für diesen Bereich sind noch keine gespeicherten Daten vorhanden.');return false}const a=read();const row={id:Date.now()+'-'+Math.random().toString(36).slice(2),key,created:new Date().toISOString(),value};a.push(row);try{localStorage.setItem(STORE,JSON.stringify(a))}catch(e){alert('Archiv konnte nicht gespeichert werden: '+e.message);return false}draw();alert('Archiv gesichert. Die aktuelle Bearbeitung bleibt unverändert.');return true}
-function newSession(key){alert('Neue Sitzung für diesen Bereich: Die automatische Rücksetzung ist noch nicht freigeschaltet, damit keine vorhandenen Berichte oder Jahresdaten verloren gehen. Bitte zunächst die archivierte Sicherung prüfen.');}
+function newSession(key){
+ if(key==='ecw_versammlungen_demo_v1'&&typeof window.startNewSession==='function'){window.startNewSession();draw();return}
+ if(key==='ecw_mannschaft_v18'&&window.msApi?.startNewSession){window.msApi.startNewSession();draw();return}
+ alert('Für diesen Bereich gibt es keine Sitzungsfolge. Jahresversammlung, Berichte und Arbeitseinsätze werden über ihren Jahresabschluss bzw. das Jahresarchiv weitergeführt.');}
 function init(){if(document.getElementById('ecwSessionArchive'))return;const host=document.createElement('section');host.id='ecwSessionArchive';host.style.cssText='margin:20px auto;padding:16px;max-width:1000px;border:1px solid #999;border-radius:12px;background:#250909;color:#fff';host.innerHTML='<h2>Archiv je Bereich</h2><p>Aktuelle Bearbeitung sichern und archivierte Stände als JSON herunterladen. Bestehende Daten werden nicht überschrieben.</p><div id="ecwArchiveRows"></div>';document.body.appendChild(host);draw()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
