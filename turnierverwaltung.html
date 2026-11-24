@@ -4701,17 +4701,30 @@ function doc(a,b,c){
   if(arguments.length===1)return modDoc(a);
   return modDoc(a,b,c);
 }
+// Eingebettet in die Vereinsverwaltung schreibt deren Firestore. Der lehnt Objekte aus diesem
+// iframe ab ("kein einfaches Objekt" – anderes Fenster). Daten deshalb im Fenster der Verwaltung
+// neu anlegen; Firestore-Werte wie serverTimestamp() stammen bereits von dort und bleiben unverändert.
+function toParentRealm(value){
+  if(!embeddedInMain||value===null||typeof value!=='object')return value;
+  const P=window.parent;
+  if(value instanceof Date)return new P.Date(value.getTime());
+  if(Array.isArray(value)){const list=new P.Array();for(const item of value)list.push(toParentRealm(item));return list;}
+  if(Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null){
+    const out=new P.Object();for(const [key,item] of Object.entries(value))out[key]=toParentRealm(item);return out;
+  }
+  return value;
+}
 function addDoc(ref,data){
-  return embeddedInMain ? ref.add(data) : modAddDoc(ref,data);
+  return embeddedInMain ? ref.add(toParentRealm(data)) : modAddDoc(ref,data);
 }
 function deleteDoc(ref){
   return embeddedInMain ? ref.delete() : modDeleteDoc(ref);
 }
 function updateDoc(ref,data){
-  return embeddedInMain ? ref.update(data) : modUpdateDoc(ref,data);
+  return embeddedInMain ? ref.update(toParentRealm(data)) : modUpdateDoc(ref,data);
 }
 function setDoc(ref,data,opts){
-  return embeddedInMain ? ref.set(data,opts||{}) : modSetDoc(ref,data,opts);
+  return embeddedInMain ? ref.set(toParentRealm(data),toParentRealm(opts||{})) : modSetDoc(ref,data,opts);
 }
 function getDoc(ref){
   if(!embeddedInMain)return modGetDoc(ref);
@@ -4744,7 +4757,15 @@ function serverTimestamp(){
     : modServerTimestamp();
 }
 function writeBatch(a){
-  return embeddedInMain ? a.batch() : modWriteBatch(a);
+  if(!embeddedInMain)return modWriteBatch(a);
+  const batch=a.batch();
+  const wrapper={
+    set:(ref,data,opts)=>{batch.set(ref,toParentRealm(data),toParentRealm(opts||{}));return wrapper;},
+    update:(ref,data)=>{batch.update(ref,toParentRealm(data));return wrapper;},
+    delete:ref=>{batch.delete(ref);return wrapper;},
+    commit:()=>batch.commit()
+  };
+  return wrapper;
 }
 
 // Nur beim eigenständigen Aufruf eigene Browser-Persistenz initialisieren.
@@ -5422,6 +5443,7 @@ function startListeners() {
   listenHistoryMeldungen();
   listenHistoryBasis();
   listenLiveStartlistenSource();
+  void loadClubDocumentDefaults();
 }
 
 
@@ -6432,19 +6454,40 @@ const DOC_DEFAULTS={
   ausstellungsdatum:localToday(),einschreibung:'auto',startgeld:'40.- Euro pro Mannschaft',zahlung:'Meldung verpflichtet zur Zahlung',
   email:'',telefon:'',meldungLabel:'Meldung:',meldungEmailText:'per Mail an',meldungTelefonText:'oder per Telefon an',schiedsrichter:'wird vom EC-Wegscheid gestellt',
   durchfuehrung:'angelehnt an IER und ISPO (keine Passpflicht)',siegerehrung:'im Anschluss in der Stocksporthalle',
-  preise:'Die ersten Plätze erhalten Wertvolle Pokale oder Sachpreise',haftung:'für Unfälle jeglicher Art wird keine Haftung übernommen.',
+  preise:'Für die ersten Plätze Sachpreise',haftung:'für Unfälle jeglicher Art wird keine Haftung übernommen.',
   datenschutz:DEFAULT_PRIVACY,abschluss:'Wir würden uns freuen, euch bei unserem Turnier begrüßen zu dürfen und wünschen ihnen eine gute Anreise und viel sportlichen Erfolg.',
   gruss:'Mit sportlichen Grüßen',vorstandRolle:'1.Vorstand',vorstandName:'',vorstandEmail:'',
   schriftRolle:'Schriftführer',schriftName:'',schriftEmail:'',
   startGruss:'Der EC-Wegscheid wünscht viel Erfolg beim Turnier!',logo:'',titelbild:''
 };
 let documentDrafts=new Map(), activeDocumentId='',imageBusy=false;
-const DOC_FIELDS=[['einladungsTitel','Titel der Einladung (nur Einladung)','text'],['ausstellungsdatum','Ausstellungsdatum','date'],['einschreibung','Einschreibung','select'],['startgeld','Startgeld','text'],['zahlung','Hinweis zum Startgeld','text'],['meldungLabel','Beschriftung der Meldungszeile','text'],['meldungEmailText','Meldungszeile 1 – Text vor der E-Mail','text'],['email','Meldungszeile 1 – E-Mail-Adresse','email'],['meldungTelefonText','Meldungszeile 2 – Text vor der Telefonnummer','text'],['telefon','Meldungszeile 2 – Telefonnummer','text'],['schiedsrichter','Schiedsrichter','text'],['durchfuehrung','Durchführung','text'],['siegerehrung','Siegerehrung','text'],['preise','Preise','text'],['haftung','Haftung','text'],['datenschutz','Hinweis zu Daten und Fotos','textarea'],['abschluss','Abschlusstext Einladung','textarea'],['gruss','Grußformel','text'],['vorstandRolle','Vorstand – Funktion','text'],['vorstandName','Vorstand – Name','text'],['vorstandEmail','Vorstand – E-Mail-Adresse','email'],['schriftRolle','Schriftführer – Funktion','text'],['schriftName','Schriftführer – Name','text'],['schriftEmail','Schriftführer – E-Mail-Adresse','email'],['startGruss','Abschlusstext Startliste','text']];
+// Preise: feste Auswahl (ältere freie Texte bleiben als zusätzliche Option erhalten).
+const PRIZE_OPTIONS=['Für die ersten Plätze Sachpreise','Jede Mannschaft erhält einen Preis','Geldpreise für die ersten Mannschaften'];
+// Vereinsweite Vorgaben (Vorstand, Schriftführer, Anmeldedaten) für alle Turniere.
+const CLUB_DEFAULT_KEYS=['vorstandRolle','vorstandName','vorstandEmail','schriftRolle','schriftName','schriftEmail',
+  'meldungLabel','meldungEmailText','email','meldungTelefonText','telefon'];
+let clubDocumentDefaults={};
+async function loadClubDocumentDefaults(){
+  try{
+    const snap=await getDoc(doc(db,'einstellungen','dokumentVorgaben'));
+    const data=snap.exists()?snap.data():{};
+    clubDocumentDefaults=Object.fromEntries(CLUB_DEFAULT_KEYS.filter(k=>typeof data[k]==='string'&&data[k].trim()).map(k=>[k,data[k]]));
+    for(const [id,d] of documentDrafts)if(!d.dirty)documentDrafts.delete(id);
+    if(selectedTournament())fillDocumentEditor();
+  }catch(err){console.warn('Dokument-Vorgaben nicht geladen:',err);}
+}
+function withClubDefaults(template){
+  const values={...DOC_DEFAULTS,...clubDocumentDefaults,...(template||{})};
+  // Leere Felder einer alten Turniervorlage nehmen die Vereinsvorgabe.
+  for(const k of CLUB_DEFAULT_KEYS)if(!String(values[k]||'').trim()&&clubDocumentDefaults[k])values[k]=clubDocumentDefaults[k];
+  return values;
+}
+const DOC_FIELDS=[['einladungsTitel','Titel der Einladung (nur Einladung)','text'],['ausstellungsdatum','Ausstellungsdatum','date'],['einschreibung','Einschreibung','select'],['startgeld','Startgeld','text'],['zahlung','Hinweis zum Startgeld','text'],['meldungLabel','Beschriftung der Meldungszeile','text'],['meldungEmailText','Meldungszeile 1 – Text vor der E-Mail','text'],['email','Meldungszeile 1 – E-Mail-Adresse','email'],['meldungTelefonText','Meldungszeile 2 – Text vor der Telefonnummer','text'],['telefon','Meldungszeile 2 – Telefonnummer','text'],['schiedsrichter','Schiedsrichter','text'],['durchfuehrung','Durchführung','text'],['siegerehrung','Siegerehrung','text'],['preise','Preise','prizes'],['haftung','Haftung','text'],['datenschutz','Hinweis zu Daten und Fotos','textarea'],['abschluss','Abschlusstext Einladung','textarea'],['gruss','Grußformel','text'],['vorstandRolle','Vorstand – Funktion','text'],['vorstandName','Vorstand – Name','text'],['vorstandEmail','Vorstand – E-Mail-Adresse','email'],['schriftRolle','Schriftführer – Funktion','text'],['schriftName','Schriftführer – Name','text'],['schriftEmail','Schriftführer – E-Mail-Adresse','email'],['startGruss','Abschlusstext Startliste','text']];
 function selectedTournament(){return turniereCache.find(t=>t.id===document.getElementById('dTurnierSelect').value);}
 function safeDocumentImage(value,fallback){return typeof value==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)?value:fallback;}
 function currentDraft(){
   const t=selectedTournament();if(!t)return null;
-  if(!documentDrafts.has(t.id))documentDrafts.set(t.id,{values:{...DOC_DEFAULTS,...(t.einladungVorlage||{})},dirty:false});
+  if(!documentDrafts.has(t.id))documentDrafts.set(t.id,{values:withClubDefaults(t.einladungVorlage),dirty:false});
   return documentDrafts.get(t.id);
 }
 function updateDraftStatus(){
@@ -6468,11 +6511,12 @@ function initDocumentEditor(){
   DOC_FIELDS.forEach(([key,label,type])=>{
     const box=document.createElement('div');if(type==='textarea')box.className='wide';if(key==='einladungsTitel')box.id='dEinladungsTitelFeld';
     const lab=document.createElement('label');lab.htmlFor='edit_'+key;lab.textContent=label;box.appendChild(lab);
-    const field=document.createElement(type==='textarea'?'textarea':type==='select'?'select':'input');field.id='edit_'+key;
-    if(type==='select')field.innerHTML='<option value="auto">Aus Turnier übernehmen / 30 Minuten vorher</option><option value="15 Minuten vor Turnierbeginn">15 Minuten vor Turnierbeginn</option><option value="½ Stunde vor Turnierbeginn">½ Stunde vor Turnierbeginn</option><option value="1 Stunde vor Turnierbeginn">1 Stunde vor Turnierbeginn</option>';
-    else if(type!=='textarea')field.type=type;
+    const field=document.createElement(type==='textarea'?'textarea':type==='select'||type==='prizes'?'select':'input');field.id='edit_'+key;
+    if(type==='prizes'){for(const text of PRIZE_OPTIONS)field.add(new Option(text,text));field.required=true;}
+    else if(type==='select')field.innerHTML='<option value="auto">Aus Turnier übernehmen / 30 Minuten vorher</option><option value="15 Minuten vor Turnierbeginn">15 Minuten vor Turnierbeginn</option><option value="½ Stunde vor Turnierbeginn">½ Stunde vor Turnierbeginn</option><option value="1 Stunde vor Turnierbeginn">1 Stunde vor Turnierbeginn</option>';
+    else if(type!=='textarea'&&type!=='prizes')field.type=type;
     if(type==='textarea'){field.rows=key==='datenschutz'?5:3;field.maxLength=5000;}else field.maxLength=300;
-    if(['schiedsrichter','durchfuehrung','siegerehrung','preise'].includes(key))field.setAttribute('list','suggest_'+key);
+    if(['schiedsrichter','durchfuehrung','siegerehrung'].includes(key))field.setAttribute('list','suggest_'+key);
     if(key==='einladungsTitel')field.placeholder='Leer lassen = ursprünglicher Turniername';
     field.addEventListener('input',()=>{setDocumentField(key,field.value);renderDocumentPreview();});box.appendChild(field);editor.appendChild(box);
   });
@@ -6708,10 +6752,20 @@ document.getElementById('dEditTurnierBtn').addEventListener('click',()=>{const t
 document.getElementById('dSaveBtn').addEventListener('click',()=>{
   const t=selectedTournament(),d=currentDraft();if(!t||!d || imageBusy || currentExternalInvitation())return;
   const values={...d.values};
+  // Eingebaute Standardbilder nicht in Firebase speichern (zu groß, ein Dokument darf höchstens 1 MB haben).
+  if(values.titelbild===DEFAULT_TITLE_IMAGE)values.titelbild='';
+  if(values.logo===DEFAULT_INV_LOGO||values.logo===DEFAULT_START_LOGO)values.logo='';
+  const size=new Blob([JSON.stringify(values)]).size;
+  if(size>900000){notify('Die Vorlage ist zu groß ('+Math.round(size/1024)+' KB). Bitte ein kleineres Titelbild oder Logo wählen.',true);return;}
   saveAction(document.getElementById('dSaveBtn'),async()=>{
     await updateDoc(doc(db,'turniere',t.id),{einladungVorlage:values});
+    const club=Object.fromEntries(CLUB_DEFAULT_KEYS.filter(k=>String(values[k]||'').trim()).map(k=>[k,String(values[k]).trim()]));
+    if(Object.keys(club).length){
+      try{await setDoc(doc(db,'einstellungen','dokumentVorgaben'),club,{merge:true});Object.assign(clubDocumentDefaults,club);}
+      catch(err){console.warn('Vereinsvorgaben nicht gespeichert:',err);}
+    }
     if(JSON.stringify(d.values)===JSON.stringify(values))d.dirty=false;
-    t.einladungVorlage=values;notify('Dokumentvorlage für dieses Turnier gespeichert.');
+    t.einladungVorlage=values;notify('Vorlage gespeichert. Vorstand, Schriftführer und Anmeldedaten gelten jetzt auch für neue Turniere.');
   }).finally(updateDraftStatus);
 });
 async function imageToData(file){
@@ -6737,7 +6791,7 @@ document.getElementById('ecwDocImageChoice')?.addEventListener('change',e=>{
  const d=currentDraft();if(!d)return;
  const choice=e.target.value;
  if(choice==='original'){d.values.titelbild='';}
- else if(choice==='halle'){d.values.titelbild=DEFAULT_TITLE_IMAGE;}
+ else if(choice==='halle'){d.values.titelbild='';} // Standardbild – wird nicht gespeichert, sondern beim Anzeigen ergänzt
  else if(choice==='none'){d.values.titelbild='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';}
  else if(choice==='briefkopf'){d.values.titelbild='assets/briefkopf-asphalt.png';}
  else if(choice==='custom'){document.getElementById('dTitleImageInput')?.click();return;}
