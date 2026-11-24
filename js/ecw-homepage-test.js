@@ -7,12 +7,12 @@
     }
   } catch {}
   const homepage = "https://ec-wegscheid.de/homepage-test";
-  const homepageOrigin = new URL(homepage).origin;
+  const homepageOrigins = new Set([new URL(homepage).origin, "https://www.ec-wegscheid.de"]);
   const storeKey = "ecw19-homepage-test-outbox";
   const waiting = new Map();
   const recordStatus = new Map();
   const pdfFactories = new WeakMap();
-  let popup, channel, folders = [], message = "Test-Homepage noch nicht verbunden.";
+  let popup, channel, connectedOrigin, folders = [], message = "Test-Homepage noch nicht verbunden.";
   let pending = {};
   try { pending = JSON.parse(localStorage.getItem(storeKey) || "{}") || {}; } catch {}
   let lastRevision = Math.max(0,...Object.values(pending).map(item => item?.revision || 0));
@@ -28,7 +28,7 @@
   }
 
   async function send(record) {
-    if (!folders.length || !popup || popup.closed) {
+    if (!folders.length || !popup || popup.closed || !connectedOrigin) {
       status("Homepage-Übertragung vorgemerkt. Bitte die Test-Homepage verbinden.",record.key);
       return;
     }
@@ -38,6 +38,7 @@
     const request = crypto.randomUUID();
     const target = popup;
     const targetChannel = channel;
+    const targetOrigin = connectedOrigin;
     waiting.set(request,{record});
     try {
       let pdfs;
@@ -56,7 +57,7 @@
       },45000);
       waiting.get(request).timer = timer;
       status("Übertragung an die Test-Homepage läuft …",record.key);
-      target.postMessage({ecwHomepage:targetChannel, request, record, pdfs},homepageOrigin);
+      target.postMessage({ecwHomepage:targetChannel, request, record, pdfs},targetOrigin);
     } catch (error) {
       clearTimeout(waiting.get(request)?.timer);
       waiting.delete(request);
@@ -83,13 +84,15 @@
 
   window.addEventListener("message", event => {
     const data = event.data;
-    if (event.origin !== homepageOrigin || event.source !== popup || data?.ecwHomepage !== channel) return;
+    if (!homepageOrigins.has(event.origin) || event.source !== popup || data?.ecwHomepage !== channel) return;
     if (Array.isArray(data.folders)) {
+      connectedOrigin = event.origin;
       folders = data.folders;
       status("Mit der Test-Homepage verbunden.");
       Object.values(pending).forEach(send);
       return;
     }
+    if (event.origin !== connectedOrigin) return;
     const sent = waiting.get(data.request);
     if (!sent) return;
     clearTimeout(sent.timer);
@@ -107,6 +110,7 @@
     connect() {
       const opener = window;
       folders = [];
+      connectedOrigin = undefined;
       channel = crypto.randomUUID();
       for (const item of waiting.values()) clearTimeout(item.timer);
       waiting.clear();
