@@ -10,9 +10,12 @@ initializeApp();
 const db = getFirestore();
 const imported = db.doc('reservierungMigration/buchungen_20261112');
 const roster = db.doc('appSettings/playerList');
+// Anlässe für das Vereinsheim (ohne Spielerauswahl). "Vereinsheim" bleibt für ältere Buchungen gültig.
+const clubhouseModes = ['Vereinsfeier', 'Gremlins Heimspiel', 'Geburtstagsfeier', 'Turnier',
+  'Vorstandssitzung', 'Vereinsveranstaltung', 'Vereinsheim'];
 const modes = new Map([
   ['Freies Training (Standard)', 0], ['Cup-Spiel', 4], ['Solo Turnier', 1], ['Duo Cup', 2],
-  ['Frauencup', 2], ['Vereinsheim', 0],
+  ['Frauencup', 2], ...clubhouseModes.map(mode => [mode, 0]),
 ]);
 const informationssystemEmail = 'informationssystem@ec-wegscheid.de';
 const pilot = 'n9MpiKXZNLap8wsbRcP4fVjrT4D2';
@@ -67,7 +70,7 @@ function playerNames(snapshot) {
 function details(input, snapshot, owner) {
   const clubhouse = input.resource === 'Vereinsheim';
   const mode = input.mode ?? (clubhouse ? 'Vereinsheim' : 'Freies Training (Standard)');
-  if (clubhouse !== (mode === 'Vereinsheim')) throw new HttpsError('invalid-argument', 'Der Modus passt nicht zur Ressource.');
+  if (clubhouse !== clubhouseModes.includes(mode)) throw new HttpsError('invalid-argument', 'Der Modus passt nicht zur Ressource.');
   const limit = modes.get(mode);
   if (limit === undefined) throw new HttpsError('invalid-argument', 'Unbekannter Spielmodus.');
   const homeTeam = input.homeTeam ?? [];

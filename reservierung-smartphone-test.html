@@ -264,7 +264,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 }
 </style><style>
 #userLoginButton,#logoutBtn,[onclick^="openBookingModal("],button[onclick="openClubhouseModal()"],#navAdmin,#navMembers{display:none!important}
-</style><script src="ecw-site-base.js?v=3.1.58.241126"></script>
+</style><script src="ecw-site-base.js?v=3.1.59.241126"></script>
 <link rel="stylesheet" href="css/reservierung-layout.css?v=3.1.24.171126">
 </head>
 <body class="reservation-shared-session bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
@@ -814,13 +814,18 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             });
         }
 
+        // Anlässe für das Vereinsheim (gleiche Liste wie in der Server-Funktion).
+        const clubhouseModes = ['Vereinsfeier', 'Gremlins Heimspiel', 'Geburtstagsfeier', 'Turnier', 'Vorstandssitzung', 'Vereinsveranstaltung'];
+        const isClubhouseMode = value => value === 'Vereinsheim' || clubhouseModes.includes(value);
         function syncReservationResource() {
             const resource = document.getElementById('modalSelectedResource').value;
             const mode = document.getElementById('modalTemplateSelect');
             if (resource === 'Vereinsheim') {
-                mode.replaceChildren(new Option('Vereinsheim', 'Vereinsheim'));
+                if (!isClubhouseMode(mode.value) || mode.options.length !== clubhouseModes.length) {
+                    mode.replaceChildren(...clubhouseModes.map(name => new Option(name, name)));
+                }
                 onTemplateChange();
-            } else if (!mode.options.length || mode.value === 'Vereinsheim') {
+            } else if (!mode.options.length || isClubhouseMode(mode.value)) {
                 renderTemplatesUI();
             }
         }
@@ -830,8 +835,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         function onTemplateChange() {
             const select = document.getElementById('modalTemplateSelect');
             const selectedTemplateName = select.value;
-            const found = selectedTemplateName === 'Vereinsheim'
-                ? {name: 'Vereinsheim', players: 0}
+            const found = isClubhouseMode(selectedTemplateName)
+                ? {name: selectedTemplateName, players: 0}
                 : eventTemplates.find(t => t.name === selectedTemplateName);
             const hint = document.getElementById('gameModeHint');
             if (found && found.players !== undefined) {
