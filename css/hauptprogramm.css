@@ -2162,3 +2162,7 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   #sponsorPhotoNav { gap: 4px; }
   #sponsorPhotoNav button { padding: 7px 9px; font-size: 13px; }
 }
+
+/* Termin- und Turnierplaner: Hauptbereiche links, Einstellungen rechts und kleiner */
+.tp-subnav #tpSubBtn-cal{margin-left:auto}
+.tp-subnav #tpSubBtn-cal,.tp-subnav #tpSubBtn-players{font-size:.82em;padding:6px 10px;min-height:0;opacity:.9}
