@@ -7966,10 +7966,11 @@ function ecwReservationAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  if(appPermissions.admin!==true){showToast('Nur für Administratoren.');return;}
  a.innerHTML='<h2>Reservierungssystem</h2>'+
- '<div class="card"><p>Das Reservierungssystem wird aus dem Verwaltungsordner geladen. Melde dich dort mit deinen bisherigen Zugangsdaten an und öffne den Admin-Bereich. Die Anmeldung bleibt eigenständig.</p>'+ 
+ '<div class="card"><p>Neues Reservierungssystem mit deiner Verwaltungs-Anmeldung (Vollansicht wie am Informationssystem: alle Reservierungen, Buchen für andere Mitglieder).</p>'+
  '<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" onclick="ecwReservationReload()">Reservierung neu laden</button>'+
- '<a href="ecw-reservierung-v2955.html" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">In neuem Tab öffnen ↗</a></div>'+
- '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="ecw-reservierung-v2955.html?v=3.1.25.171126" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
+ '<button type="button" onclick="ecwReservationLoginAsInfosystem()">Zum Testen als Informationssystem anmelden</button>'+
+ '<a href="ecw-reservierung-v2955.html" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">Altes Reservierungssystem ↗</a></div>'+
+ '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="'+ecwReservationAdminUrl()+'" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
  '<p class="small">Die lokale Kopie funktioniert beim Öffnen über einen Webserver zuverlässig; Firebase benötigt eine Internetverbindung. Für den produktiven Betrieb die enthaltenen Dateien mit auf GitHub Pages hochladen.</p></div>'+ 
  '<div class="card"><h3>Mitglieder mit Spielerliste vergleichen (Test)</h3>'+
  '<p>Füge die Namen aus dem Reservierungssystem ein – ein Name pro Zeile, oder importiere eine CSV-/TXT-Datei. Der Vergleich verwendet die vorhandene Terminplaner-Spielerliste. Er verändert keine Daten.</p>'+
@@ -7979,7 +7980,24 @@ function ecwReservationAdmin(){
  '<div id="ecwReservationCompareResult" style="margin-top:14px"></div>'+
  '<p class="small">Hinweis: Ein automatischer Firebase-Abgleich ist erst möglich, wenn Datenstruktur und Berechtigungen des Reservierungssystems geprüft sind. Keine automatische Zusammenführung anhand ähnlicher Namen.</p></div>';
 }
-function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src='ecw-reservierung-v2955.html?v=3.1.25.171126';}
+function ecwReservationAdminUrl(){
+ // Neues System (Bestand seit 12.11. + Live-Buchungen) mit der Sitzung der Vereinsverwaltung.
+ const u=new URL('reservierung-smartphone-test.html',location.href);
+ u.searchParams.set('v',APP_RELEASE);u.searchParams.set('ansicht','whiteboard');
+ return u.href;
+}
+function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src=ecwReservationAdminUrl();}
+// Admin abmelden und die Anmeldung mit dem Konto des Informationssystems vorbereiten.
+async function ecwReservationLoginAsInfosystem(){
+ if(!confirm('Als Administrator abmelden und als Informationssystem anmelden?'))return;
+ await logout();
+ const email=document.getElementById('firebaseLoginEmail');
+ const pw=document.getElementById('firebaseLoginPassword');
+ if(email)email.value=WHITEBOARD_KIOSK_EMAIL;
+ if(pw){pw.value='';pw.focus();}
+ const hint=document.getElementById('loginHint');
+ if(hint)hint.textContent='Kennwort des Informationssystems eingeben. Danach auf der Startseite „Bahn Reservierung“ öffnen.';
+}
 function ecwReservationImportNames(el){
  const f=el?.files?.[0];if(!f)return;
  if(f.size>1024*1024){showToast('Datei zu groß (max. 1 MB)');return;}
