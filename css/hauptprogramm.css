@@ -2162,3 +2162,18 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   #sponsorPhotoNav { gap: 4px; }
   #sponsorPhotoNav button { padding: 7px 9px; font-size: 13px; }
 }
+
+/* ===== Eigene Turniere · Live-Startlisten als Liste ohne Scrollen ===== */
+#tContent .own-live-startlist-tile{border-radius:8px;overflow:hidden;min-width:0;min-height:0}
+#tContent .own-live-startlist-inner{padding:10px 12px;gap:8px}
+#tContent .own-live-startlist-head{font-size:clamp(14px,1.2vw,22px);padding-bottom:6px}
+#tContent .own-live-startlist-buttons{overflow:hidden;gap:.55em;line-height:1.2}
+#tContent .own-live-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.45em .6em;color:#fff}
+#tContent .own-live-card-head{display:block;width:100%;background:none;border:0;padding:0;margin:0 0 .3em;text-align:left;color:#fff;cursor:pointer;font:inherit}
+#tContent .own-live-card-title{display:block;font-weight:800;font-size:1.05em}
+#tContent .own-live-card-meta{display:block;font-size:.8em;opacity:.85}
+#tContent .own-live-card-meta b{color:#ffb3ba}
+#tContent .own-live-card-list{margin:0;padding-left:1.7em;font-size:.9em}
+#tContent .own-live-card-list.two-col{column-count:2;column-gap:1.4em}
+#tContent .own-live-card-list li{break-inside:avoid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tContent .own-live-card-none{font-size:.85em;opacity:.75;font-style:italic}
