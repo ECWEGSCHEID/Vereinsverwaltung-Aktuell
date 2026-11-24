@@ -1,10 +1,11 @@
 // „Letzte Ergebnisse“ für die Smartphone-Anbindung (Ergebnisse Turniere Intern).
 // Sammelt eingegebene Ergebnisse aus Duo Cup, Frauencup und Ziel-Jahresmeisterschaft
-// und zeigt die neuesten in zeitlicher Reihenfolge (alt → neu) mit Eingabedatum.
+// und zeigt die neuesten zuerst, jeweils mit Eingabedatum.
 (function () {
   'use strict';
 
-  const LIMIT = 15;
+  // Je Wettbewerb höchstens so viele Einträge, damit keiner von den anderen verdrängt wird.
+  const LIMIT_PER_SOURCE = 10;
 
   // „24.11.2026, 20:13:05“ (toLocaleString de-DE) oder ISO-Zeit
   function parseTime(entry) {
@@ -40,7 +41,7 @@
     for (const tournament of Object.values(tournaments || {})) {
       if (!tournament || typeof tournament !== 'object') continue;
       const key = cupKind(tournament.name);
-      if (!key || active[key] === false) continue;
+      if (!key) continue;
       const label = key === 'frauencup' ? 'Frauencup' : 'Duo Cup';
       for (const entry of Array.isArray(tournament.history) ? tournament.history : []) {
         const data = entry?.kind === 'result' || entry?.kind === 'correction'
@@ -78,7 +79,7 @@
   }
 
   function championshipEntries(state, active) {
-    if (!state || active.jahresmeisterschaft === false || state.archived) return [];
+    if (!state) return [];
     const rounds = championshipRounds(state.seasonYear);
     const rows = [];
     for (const player of Array.isArray(state.players) ? state.players : []) {
@@ -100,11 +101,15 @@
   }
 
   function collect({tournaments, championship, active = {}}) {
-    const rows = [...cupEntries(tournaments, active), ...championshipEntries(championship, active)];
-    // Datierte Einträge nach Eingabezeit; ältere Jahresmeisterschafts-Ergebnisse ohne Zeitstempel
-    // nach Beginn ihres Durchgangs. Neueste LIMIT Einträge, angezeigt von alt nach neu.
-    rows.sort((a, b) => a.date - b.date);
-    return rows.slice(-LIMIT);
+    const all = [...cupEntries(tournaments, active), ...championshipEntries(championship, active)];
+    // Neueste zuerst: datierte Einträge nach Eingabezeit, ältere Jahresmeisterschafts-Ergebnisse
+    // ohne Zeitstempel nach ihrem Durchgang (jüngster Durchgang zuerst).
+    const newestFirst = (a, b) => Number(b.dated) - Number(a.dated) || b.date - a.date;
+    const rows = [];
+    for (const source of ['duoCup', 'frauencup', 'jahresmeisterschaft']) {
+      rows.push(...all.filter(row => row.source === source).sort(newestFirst).slice(0, LIMIT_PER_SOURCE));
+    }
+    return rows.sort((a, b) => b.date - a.date);
   }
 
   function formatDate(row) {
@@ -115,9 +120,6 @@
 
   function render(container, rows) {
     container.replaceChildren();
-    const heading = document.createElement('h2');
-    heading.textContent = 'Letzte Ergebnisse';
-    container.append(heading);
     if (!rows.length) {
       const empty = document.createElement('p');
       empty.className = 'hint';

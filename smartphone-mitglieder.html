@@ -91,8 +91,11 @@ main:has(#detail:not([hidden]) > #hall-panel:not([hidden])) header{
 #result-reader :is(th,td):nth-child(2){padding-left:4px}
 .module-nav a{display:grid;place-items:center;color:#fff;padding-inline:10px;font-size:14px}
 #results button{text-align:left}
-#latest-results{margin-top:14px}
-#latest-results h2{font-size:17px;margin:0 0 8px}
+#latest-wrap{margin-top:22px;padding-top:16px;border-top:1px solid #4c4248}
+#latest-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;background:#2c292d;border:1px solid #6a5a60;border-radius:12px;min-height:52px;font-size:16px}
+#latest-toggle span{transition:transform .2s}
+#latest-toggle[aria-expanded="true"] span{transform:rotate(180deg)}
+#latest-results{margin-top:10px}
 .latest-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .latest-list li{background:#2c292d;border:1px solid #4c4248;border-left:5px solid #888;border-radius:10px;padding:7px 9px}
 .latest-list li.latest-duoCup{border-left-color:#2e86de}
@@ -243,11 +246,11 @@ main:has(#menu:not([hidden])){
 #invitation-prev{margin:0 0 10px;background:#302529;border-color:#6f626b}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.65.241126"></script>
+<script src="ecw-site-base.js?v=3.1.66.241126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
 <script src="js/ecw-meine-ergebnisse.js?v=8-solo-status"></script>
 <script src="js/ecw-mein-ueberblick.js?v=8"></script>
-<script src="js/ecw-letzte-ergebnisse.js?v=1"></script>
+<script src="js/ecw-letzte-ergebnisse.js?v=2"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
 </head>
 <body>
@@ -311,7 +314,10 @@ main:has(#menu:not([hidden])){
 <button type="button" data-result="cup" data-cup="frauen">Frauencup</button>
 <button type="button" data-result="jahresmeisterschaft">Ziel Jahresmeisterschaft</button>
 </nav>
+<div id="latest-wrap" hidden>
+<button type="button" id="latest-toggle" aria-expanded="false" aria-controls="latest-results">Letzte Ergebnisse<span aria-hidden="true">▾</span></button>
 <section id="latest-results" aria-live="polite" hidden></section>
+</div>
 <div id="invitation-panel" hidden>
 <button type="button" id="invitation-prev" hidden></button>
 <p id="invitation-status" class="hint" role="status"></p>
@@ -863,6 +869,14 @@ let selectedButton;
 let hallRequest;
 const results = document.getElementById('results');
 const latestResults = document.getElementById('latest-results');
+const latestWrap = document.getElementById('latest-wrap');
+const latestToggle = document.getElementById('latest-toggle');
+latestToggle.addEventListener('click', () => {
+  const open = latestToggle.getAttribute('aria-expanded') !== 'true';
+  latestToggle.setAttribute('aria-expanded', String(open));
+  latestResults.hidden = !open;
+  if (open) void loadLatestResults(cupData || window.ecwLoadCupTournaments().catch(() => null));
+});
 let latestRequest = 0;
 
 // „Letzte Ergebnisse“: Duo Cup, Frauencup und Ziel-Jahresmeisterschaft, von alt nach neu.
@@ -1490,12 +1504,13 @@ menu.querySelectorAll('nav button').forEach(button => {
       void loadPlanner(plannerRequest.signal);
     }
     results.hidden = title !== 'Tabellen';
-    latestResults.hidden = title !== 'Tabellen';
+    latestWrap.hidden = title !== 'Tabellen';
+    latestResults.hidden = true;
+    latestToggle.setAttribute('aria-expanded', 'false');
     if (title === 'Tabellen') {
       detailTitle.textContent = 'Ergebnisse Turniere Intern';
       cupDataRequest = new AbortController();
       cupData = window.ecwLoadCupTournaments(cupDataRequest.signal).catch(() => null);
-      void loadLatestResults(cupData);
     }
     if (title === 'Halle') {
       hallRequest = new AbortController();
