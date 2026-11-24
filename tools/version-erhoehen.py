@@ -45,6 +45,8 @@ def main():
             n = re.sub(r'ecw-site-base\.js\?v=[^"\']+', 'ecw-site-base.js?v=' + new, t)
             if f == 'index.html' and os.path.dirname(p) == ROOT:
                 n = n.replace(old, new)
+                # eingebettete Seiten ebenfalls neu laden lassen
+                n = re.sub(r'(data-src="[a-z0-9-]+\.html\?v=)[^"]+', r'\g<1>' + new, n)
             if n != t:
                 open(p, 'w', encoding='utf-8').write(n)
                 changed.append(os.path.relpath(p, ROOT))
