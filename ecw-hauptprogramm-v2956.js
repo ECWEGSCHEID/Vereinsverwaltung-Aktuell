@@ -2520,7 +2520,7 @@ function renderInternalCupAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  a.classList.remove('mv-mode');
  a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">'
-  +'<div><h2 style="margin:0">Interne Cup</h2><div class="small">Turnierauswertung zentral in der Vereinsverwaltung · keine zweite Anmeldung erforderlich.</div></div>'
+  +'<div><h2 style="margin:0">Interne Cups</h2><div class="small">Cupauswertung, Doppel KO System, Solo Pyramide und weitere Auswertungen zentral in der Vereinsverwaltung · keine zweite Anmeldung erforderlich.</div></div>'
   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
   +'<div class="card"><h3>Bereich auswählen</h3><div class="ovmenu">'
   +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung bearbeiten</button>'
@@ -2528,6 +2528,8 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openInternalCupAdmin(\'stockdart\')">Stockdartauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'auslosung\')">Turnierauslosung</button>'
+  +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide</button>'
+  +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
   +'<div class="card" style="margin-top:14px"><h3>Datenübernahme</h3>'
   +'<p class="small">Einmalige Übernahme der Daten aus dem bisherigen Firebase-Projekt der Turnierauswertung. Danach wird nur noch das zentrale Firebase-Projekt der Vereinsverwaltung verwendet.</p>'
@@ -6790,7 +6792,7 @@ function adminSection(s){
  try{document.getElementById('adminMain').classList.remove('mv-mode')}catch(e){}
  if(s==='reservadmin'){ecwReservationAdmin();return}
  if(s==='checklists'){openECWChecklists();return}
- if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
+ if(s==='players'){adminSection('tp');tpAdminSubSection('players');const am=document.getElementById('adminMain');const h=am?.querySelector('h2');if(h)h.textContent='Spielerliste';const tb=am?.querySelector('.tp-subnav');if(tb)tb.style.display='none';return}
  if(s==='docs'){ecwDocsAdmin();return}
  if(s==='homepage'){renderHomepageAdmin();return}
  if(s==='ergebnisse'){ecwResults.admin();return}
@@ -6841,7 +6843,6 @@ function adminSection(s){
     +'<button type="button" id="tpSubBtn-plan" onclick="tpAdminSubSection(\'plan\')">Termin- und Turnierplaner</button>'
     +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
     +'<button type="button" id="tpSubBtn-cal" onclick="tpAdminSubSection(\'cal\')">Kalendereinstellungen</button>'
-    +'<button type="button" id="tpSubBtn-players" onclick="tpAdminSubSection(\'players\')">Spielerliste</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
    +'<div id="tpSub-cal"><h3>Kalendereinstellungen</h3><div class="card"><label>Vereinsname (für Kalendereinträge)</label><input id="tpCalOrgName" type="text" value="'+esc((data.settings&&data.settings.tpCalendarOrgName)||'EC Wegscheid')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Standarddauer bei Veranstaltungen mit Uhrzeit (Stunden)</label><input id="tpCalDuration" type="number" min="1" max="24" value="'+esc(String((data.settings&&data.settings.tpCalendarDurationHours)||2))+'" onchange="tpSaveCalendarSettings()"><h4 style="margin-top:16px">Google Kalender</h4><label>Google Kalender-ID</label><input id="tpCalGoogleId" type="text" placeholder="primary oder abc123@group.calendar.google.com" value="'+esc((data.settings&&data.settings.tpGoogleCalendarId)||'')+'" onchange="tpSaveCalendarSettings()"><label style="margin-top:8px">Google Client-ID (OAuth, Web-Anwendung)</label><input id="tpCalGoogleClient" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" value="'+esc((data.settings&&data.settings.tpGoogleClientId)||'')+'" onchange="tpSaveCalendarSettings()"><div class="row" style="margin-top:10px"><button type="button" onclick="tpSaveCalendarSettings(true)">In Firebase speichern</button><button type="button" onclick="tpSaveCalendarSettings(true);tpGoogleConnect()">Mit Google verbinden und abgleichen</button><button type="button" onclick="tpGooglePullLinkedChanges(true)">Jetzt abgleichen</button></div><div id="tpCalendarSaveStatus" class="small" role="status" style="margin-top:8px">'+esc(tpCalendarCentralStatus)+'</div><div id="tpGooglePullStatus" class="small" style="margin-top:8px">Google-Abgleich: Nur heutige und zukünftige Termine aus dem Programm werden geprüft. Bei Abweichungen wählst du die Übertragungsrichtung. Nach Ablauf der Google-Anmeldung bitte erneut verbinden.</div><div id="tpGoogleConflictList"></div><div class="small" style="margin-top:8px">Ist eine Client-ID eingetragen, trägt 📅 Exportieren den Termin direkt in den Google Kalender ein (Kalender-ID leer = Hauptkalender). Ohne Client-ID wird wie bisher eine .ics-Datei heruntergeladen. Einrichtung: In der Google Cloud Console die „Google Calendar API“ aktivieren, eine OAuth-Client-ID (Typ Web) anlegen und die Adresse dieser Seite als „Autorisierten JavaScript-Ursprung“ eintragen.</div><div class="small" style="margin-top:8px">Neue Termine werden beim Speichern automatisch in Google Kalender angelegt, sofern die Verbindung eingerichtet ist und keine mögliche Dublette gefunden wird. Bei einer Änderung eines bereits verknüpften Termins wird derselbe Kalendereintrag aktualisiert. Der automatische Rückabgleich berücksichtigt ausschließlich eindeutig mit Google verknüpfte Termine. Unverknüpfte ältere Exporte werden nicht automatisch geändert. Bei Konflikten oder gelöschten Google-Terminen werden keine Daten stillschweigend überschrieben oder gelöscht.</div></div></div>'
