@@ -28,7 +28,7 @@ function presetUrl(key){
   return window.ECW_DESIGN_ASSETS?.[stem] || file;
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const base=()=>({name:'EC Wegscheid',shortName:'ECW',email:'',address:'',contact:'',theme:'carbon',primary:'#b30000',background:'#5b0000',logo:'',backgroundImage:'',backgroundPreset:'none',texts:{}});
+const base=()=>({name:'EC Wegscheid',shortName:'ECW',email:'',address:'',contact:'',theme:'carbon',primary:'#b30000',background:'#5b0000',logo:'',backgroundImage:'',backgroundPreset:'none',colorOnly:false,texts:{}});
 const CACHE_KEY='ecw-systemeinstellungen-cache-v1';
 const ORIGINAL_NAME='EC Wegscheid';
 // Überschriften der einzelnen Programme (ohne Vereinsname, der wird separat ersetzt).
@@ -55,6 +55,7 @@ function clean(v){
   for(const k of ['primary','background'])d[k]=/^#[0-9a-fA-F]{6}$/.test(x[k]||'')?x[k]:THEMES[d.theme][k];
   d.logo=safeImage(x.logo);d.backgroundImage=safeImage(x.backgroundImage);
   d.backgroundPreset=Object.hasOwn(PRESETS,x.backgroundPreset)?x.backgroundPreset:'none';
+  d.colorOnly=!!x.colorOnly&&d.backgroundPreset==='none'&&!d.backgroundImage;
   d.texts=cleanTexts(x.texts);
   return d;
 }
@@ -117,6 +118,18 @@ function applyTexts(d){
 }
 
 /* ---------- Farbe und Hintergrund ---------- */
+function accentCss(p){
+  const mix=(a)=>'color-mix(in srgb,'+p+' '+a+'%,transparent)';
+  return '#admin{--ecw-red:'+p+' !important;--ecw-red-bright:'+p+' !important;}'
+   +'#admin>.header{border-left-color:'+p+' !important;}'
+   +'#admin .admin-side h2,#admin .admin-main h2{border-bottom-color:'+p+' !important;}'
+   +'#admin .admin-side button[data-menu-icon]::before{background:'+mix(22)+' !important;border-color:'+mix(35)+' !important;color:#fff !important;}'
+   +'#admin .admin-side button:hover{border-color:'+mix(60)+' !important;}'
+   +'#admin .admin-side button.ecw-menu-active{background:linear-gradient(110deg,'+mix(70)+',rgba(40,42,48,.9)) !important;border-color:'+p+' !important;box-shadow:inset 3px 0 0 '+p+',0 2px 9px rgba(0,0,0,.18) !important;}'
+   +'#admin .admin-side button:focus-visible{outline-color:'+p+' !important;}'
+   +'#startseite #ecwInfoRibbon{border-color:'+mix(45)+' !important;}'
+   +'button.primary{background:'+p+' !important;border-color:'+p+' !important;}';
+}
 function apply(v){
   if(!v)return;
   const d=clean(v),style=el('ecw-config-style')||document.createElement('style');
@@ -126,11 +139,12 @@ function apply(v){
     ? '#shArt{background-image:url("'+bg+'") !important;background-position:center !important;background-size:cover !important;}'
     : '';
   style.textContent='body{background-color:'+d.background+' !important;'
-    +(bg?'background-image:url("'+bg+'") !important;':'')
+    +(bg?'background-image:url("'+bg+'") !important;':(d.colorOnly?'background-image:none !important;':''))
     +'background-position:center !important;background-size:cover !important;}'
     +'#shStage{background-color:'+d.background+' !important;}'
     +startBackground
-    +'button.primary{background:'+d.primary+' !important;}';
+    +(d.colorOnly?'#shArt{background-image:none !important;background-color:'+d.background+' !important;}':'')
+    +accentCss(d.primary);
   if(!style.parentNode)document.head.appendChild(style);
   document.documentElement.dataset.ecwTheme=d.theme;
   applyTexts(d);
@@ -150,27 +164,56 @@ async function load(){
 
 /* ---------- Oberfläche ---------- */
 function msg(text,isError=false){const e=el('ecwCfgStatus');if(e){e.textContent=text;e.style.color=isError?'#ff9999':'#a5f2c2';}}
+let defaultBg=null;
+function appDefaultBackground(){
+  if(defaultBg!==null)return defaultBg;
+  const st=el('ecw-config-style');if(st)st.disabled=true;
+  const cs=getComputedStyle(document.body);defaultBg=cs.backgroundImage&&cs.backgroundImage!=='none'?cs.backgroundImage:'';
+  if(st)st.disabled=false;
+  return defaultBg;
+}
+function previewBackground(){
+  const bg=draft.backgroundImage||presetUrl(draft.backgroundPreset);
+  if(bg)return 'url("'+bg+'") center/cover,'+draft.background;
+  if(draft.colorOnly)return draft.background;
+  const def=appDefaultBackground();
+  return def?def+' center/cover,'+draft.background:draft.background;
+}
 function preview(){
   const p=el('ecwConfigPreview');if(!p||!draft)return;
-  const bg=draft.backgroundImage||presetUrl(draft.backgroundPreset);
-  p.style.background=bg?'url("'+bg+'") center/cover':draft.background;
+  const a=draft.primary,mix=x=>'color-mix(in srgb,'+a+' '+x+'%,transparent)';
+  p.style.background=previewBackground();
   p.style.color='#fff';
-  p.innerHTML='<div style="display:flex;align-items:center;gap:16px">'+(draft.logo?'<img alt="Vereinslogo" style="width:70px;height:70px;object-fit:contain" src="'+draft.logo+'">':'')+'<div><strong style="font-size:22px;text-shadow:0 1px 4px #000">'+esc(draft.name||'Vereinsname')+'</strong><div style="text-shadow:0 1px 4px #000">Vorschau</div></div></div><div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap"><span style="background:'+draft.primary+';padding:10px 14px;border-radius:9px">Turnierverwaltung</span><span style="background:'+draft.primary+';padding:10px 14px;border-radius:9px">Mitgliederverwaltung</span></div>';
+  p.innerHTML='<div style="background:linear-gradient(105deg,#17191e,#202127);border:1px solid rgba(255,255,255,.12);border-left:4px solid '+a+';border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px">'
+   +(draft.logo?'<img alt="" style="width:44px;height:44px;object-fit:contain" src="'+draft.logo+'">':'')
+   +'<div><strong style="font-size:20px">'+esc(draft.name||'Vereinsname')+'</strong><div style="font-size:12px;opacity:.8">Verwaltung</div></div></div>'
+   +'<div style="display:grid;grid-template-columns:200px 1fr;gap:10px;margin-top:10px">'
+   +'<div style="background:rgba(25,27,33,.95);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px">'
+   +'<div style="font-size:11px;font-weight:800;letter-spacing:.12em;border-bottom:2px solid '+a+';padding-bottom:6px;margin-bottom:8px">BEREICHE</div>'
+   +['Turnierverwaltung','Mitgliederverwaltung'].map((t,i)=>'<div style="display:flex;gap:8px;align-items:center;padding:7px 8px;margin-bottom:6px;border-radius:8px;font-size:12px;font-weight:650;'+(i===0?'background:linear-gradient(110deg,'+mix(70)+',rgba(40,42,48,.9));border:1px solid '+a+';box-shadow:inset 3px 0 0 '+a:'background:#30333a;border:1px solid rgba(255,255,255,.1)')+'"><span style="width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:'+mix(22)+';border:1px solid '+mix(35)+'">▤</span>'+t+'</div>').join('')
+   +'</div><div style="background:rgba(25,27,33,.95);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px">'
+   +'<div style="font-weight:700;border-bottom:2px solid '+a+';padding-bottom:6px;margin-bottom:10px">Überschrift</div>'
+   +'<span style="display:inline-block;background:'+a+';padding:8px 14px;border-radius:8px;font-size:13px">Speichern</span></div></div>';
   document.querySelectorAll('#ecwCfgTiles [data-tile]').forEach(b=>{
     const [kind,key]=b.dataset.tile.split(':');
-    const on=kind==='preset'?(!draft.backgroundImage&&draft.backgroundPreset===key):(!draft.backgroundImage&&draft.backgroundPreset==='none'&&draft.theme===key);
+    const custom=!!draft.backgroundImage;
+    const on=kind==='preset'?(!custom&&draft.backgroundPreset===key&&!draft.colorOnly):kind==='std'?(!custom&&draft.backgroundPreset==='none'&&!draft.colorOnly):(!custom&&draft.colorOnly&&draft.theme===key);
     b.classList.toggle('on',on);
   });
 }
 function tilesHtml(){
+  const def=appDefaultBackground();
+  const std='<button type="button" class="ecw-cfg-tile" data-tile="std:none"><span class="img" style="background:'+(def?def.replace(/"/g,'&quot;')+' center/cover':'#333')+'"></span><span>Standard · bisheriger Hintergrund</span></button>';
   const pre=Object.entries(PRESETS).filter(([k])=>k!=='none').map(([k,t])=>'<button type="button" class="ecw-cfg-tile" data-tile="preset:'+k+'"><span class="img" style="background-image:url(&quot;'+esc(presetUrl(k))+'&quot;)"></span><span>'+esc(t.label)+'</span></button>');
   const col=Object.entries(THEMES).map(([k,t])=>'<button type="button" class="ecw-cfg-tile" data-tile="theme:'+k+'"><span class="img" style="background:linear-gradient(135deg,'+t.background+' 55%,'+t.primary+' 55%)"></span><span>Nur Farbe · '+esc(t.label)+'</span></button>');
-  return pre.concat(col).join('');
+  return [std].concat(pre,col).join('');
 }
 function pickTile(id){
   const [kind,key]=id.split(':');
-  if(kind==='preset'){draft.backgroundPreset=key;draft.backgroundImage='';const th=PRESETS[key]?.theme;if(th){draft.theme=th;draft.primary=THEMES[th].primary;draft.background=THEMES[th].background;}}
-  else{draft.theme=key;draft.primary=THEMES[key].primary;draft.background=THEMES[key].background;draft.backgroundPreset='none';draft.backgroundImage='';}
+  draft.backgroundImage='';
+  if(kind==='preset'){draft.backgroundPreset=key;draft.colorOnly=false;const th=PRESETS[key]?.theme;if(th){draft.theme=th;draft.primary=THEMES[th].primary;draft.background=THEMES[th].background;}}
+  else if(kind==='std'){draft.backgroundPreset='none';draft.colorOnly=false;draft.theme='carbon';draft.primary=THEMES.carbon.primary;draft.background=THEMES.carbon.background;}
+  else{draft.theme=key;draft.primary=THEMES[key].primary;draft.background=THEMES[key].background;draft.backgroundPreset='none';draft.colorOnly=true;}
   el('ecwCfgPrimary').value=draft.primary;el('ecwCfgBackground').value=draft.background;
   preview();msg('Vorlage ausgewählt – noch nicht gespeichert.');
 }
@@ -185,7 +228,7 @@ async function upload(file,key){
     let data=canvas.toDataURL('image/webp',0.68);
     if(!data.startsWith('data:image/webp'))data=canvas.toDataURL('image/jpeg',0.65);
     if(!safeImage(data)){msg('Bild zu groß. Bitte eine kleinere Datei wählen.',true);return;}
-    draft[key]=data;if(key==='backgroundImage')draft.backgroundPreset='none';
+    draft[key]=data;if(key==='backgroundImage'){draft.backgroundPreset='none';draft.colorOnly=false;}
     preview();msg('Bild übernommen – noch nicht gespeichert.');
   }catch(e){msg('Bild konnte nicht verarbeitet werden: '+e.message,true)}
 }
@@ -298,7 +341,7 @@ async function open(){
    +'<div class="card" style="margin-bottom:12px"><h3 style="margin-top:0">1 · Farbe und Hintergrund</h3>'
    +'<p class="small">Vorlage anklicken. Mit den Farbfeldern kannst du danach feinjustieren oder ein eigenes Hintergrundbild hochladen.</p>'
    +'<div id="ecwCfgTiles">'+tilesHtml()+'</div>'
-   +'<div class="row"><div><label>Akzentfarbe (Buttons)</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div>'
+   +'<div class="row"><div><label>Akzentfarbe (Buttons)</label><input id="ecwCfgPrimary" type="color" style="height:44px;width:100%"></div><div><label>Hintergrundfarbe (sichtbar bei „Nur Farbe“)</label><input id="ecwCfgBackground" type="color" style="height:44px;width:100%"></div></div>'
    +'<div class="row"><div><label>Eigenes Hintergrundbild (PNG/JPG/WebP)</label><input id="ecwCfgBg" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" id="ecwCfgRemoveBg">Eigenes Bild entfernen</button></div></div>'
    +'<div id="ecwConfigPreview" style="padding:20px;min-height:150px;border-radius:12px;margin-top:12px"></div></div>'
    +'<div class="card" style="margin-bottom:12px"><h3 style="margin-top:0">2 · Verein</h3>'
@@ -332,6 +375,8 @@ async function open(){
   el('ecwCfgAddOwn').onclick=()=>el('ecwCfgOwnTexts').insertAdjacentHTML('beforeend',ownRow());
   el('ecwCfgOwnTexts').addEventListener('click',e=>{if(e.target.classList.contains('ecw-cfg-del'))e.target.closest('.ecw-cfg-own').remove();});
   ['ecwCfgName','ecwCfgShort','ecwCfgEmail','ecwCfgAddress','ecwCfgContact','ecwCfgPrimary','ecwCfgBackground'].forEach(id=>el(id).addEventListener('input',change));
+  // Eine eigene Hintergrundfarbe ist nur ohne Bild sichtbar – daher auf „Nur Farbe“ umschalten.
+  el('ecwCfgBackground').addEventListener('input',()=>{draft.colorOnly=true;draft.backgroundPreset='none';draft.backgroundImage='';preview();});
   el('ecwCfgTiles').addEventListener('click',e=>{const b=e.target.closest('[data-tile]');if(b)pickTile(b.dataset.tile);});
   el('ecwCfgLogo').addEventListener('change',e=>upload(e.target.files[0],'logo'));
   el('ecwCfgBg').addEventListener('change',e=>upload(e.target.files[0],'backgroundImage'));
