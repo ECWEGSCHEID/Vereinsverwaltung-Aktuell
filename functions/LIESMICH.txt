@@ -1,0 +1,11 @@
+Server-Funktion ecwBahnreservierung (Firebase, Region europe-west3)
+====================================================================
+Kopie des Quellcodes, damit Änderungen nachvollziehbar sind.
+Bereitgestellt wird über die Google-Cloud-Konsole (Cloud Run → ecwbahnreservierung → Quelle bearbeiten)
+oder mit der Firebase-CLI (firebase deploy --only functions).
+
+Hinweis: booking.js (validBooking, validDate, overlaps, normalizedName) liegt bisher nur in der
+bereitgestellten Funktion und fehlt hier noch – bei Gelegenheit aus der Konsole ergänzen.
+
+Stand 24.11.2026: Administratoren (users/{uid}.admin) dürfen alle Reservierungen ändern
+(Aktion adminReplace) und löschen (cancel, cancelImported für den Bestand vom 12.11.).

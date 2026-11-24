@@ -19,7 +19,7 @@ const firebaseConfig={
   messagingSenderId:"558472054725",
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
-import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=5';
+import {createRasterBooking} from './reservierung-raster-buchung.mjs?v=6-admin';
 import {getMemberSession} from './ecw-smartphone-session.mjs?v=3.1.25.171126';
 const status=document.getElementById('shared-session-status');
 const params=new URLSearchParams(location.search);
@@ -264,7 +264,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
 }
 </style><style>
 #userLoginButton,#logoutBtn,[onclick^="openBookingModal("],button[onclick="openClubhouseModal()"],#navAdmin,#navMembers{display:none!important}
-</style><script src="ecw-site-base.js?v=3.1.57.241126"></script>
+</style><script src="ecw-site-base.js?v=3.1.59.241126"></script>
 <link rel="stylesheet" href="css/reservierung-layout.css?v=3.1.24.171126">
 </head>
 <body class="reservation-shared-session bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
@@ -688,6 +688,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             }
         });
 
+        // Beim Ändern die eigene Ausgangsbuchung nicht als Überschneidung werten.
+        window.ecwSetEditingBooking = function(id) { editingBookingId = id; checkTimeAvailability(); };
         window.ecwShowReservationSnapshot = function(rows) {
             bookingsList=rows;
             if(!document.getElementById('calendarDate').value)
@@ -812,13 +814,18 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             });
         }
 
+        // Anlässe für das Vereinsheim (gleiche Liste wie in der Server-Funktion).
+        const clubhouseModes = ['Vereinsfeier', 'Gremlins Heimspiel', 'Geburtstagsfeier', 'Turnier', 'Vorstandssitzung', 'Vereinsveranstaltung'];
+        const isClubhouseMode = value => value === 'Vereinsheim' || clubhouseModes.includes(value);
         function syncReservationResource() {
             const resource = document.getElementById('modalSelectedResource').value;
             const mode = document.getElementById('modalTemplateSelect');
             if (resource === 'Vereinsheim') {
-                mode.replaceChildren(new Option('Vereinsheim', 'Vereinsheim'));
+                if (!isClubhouseMode(mode.value) || mode.options.length !== clubhouseModes.length) {
+                    mode.replaceChildren(...clubhouseModes.map(name => new Option(name, name)));
+                }
                 onTemplateChange();
-            } else if (!mode.options.length || mode.value === 'Vereinsheim') {
+            } else if (!mode.options.length || isClubhouseMode(mode.value)) {
                 renderTemplatesUI();
             }
         }
@@ -828,8 +835,8 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
         function onTemplateChange() {
             const select = document.getElementById('modalTemplateSelect');
             const selectedTemplateName = select.value;
-            const found = selectedTemplateName === 'Vereinsheim'
-                ? {name: 'Vereinsheim', players: 0}
+            const found = isClubhouseMode(selectedTemplateName)
+                ? {name: selectedTemplateName, players: 0}
                 : eventTemplates.find(t => t.name === selectedTemplateName);
             const hint = document.getElementById('gameModeHint');
             if (found && found.players !== undefined) {
@@ -1345,13 +1352,21 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
                 <div><strong>Gegner:</strong> ${escapeHtml(opponent)}</div>
                 <div class="pt-1 border-t border-zinc-700"><strong>Reserviert von:</strong> ${escapeHtml(b.bookedBy || '-')}</div>`;
 
-            if(b.liveId && b.own && window.ecwRasterBuchung) {
+            if((b.liveId || b.legacyKey) && b.own && window.ecwRasterBuchung) {
+                const adminMode=window.ecwRasterBuchung.isAdmin?.()===true;
                 const cancel=document.createElement('button');
                 cancel.type='button';
                 cancel.className='bg-red-700 hover:bg-red-800 text-white py-2 rounded font-semibold';
-                cancel.textContent='Eigene Reservierung stornieren';
+                cancel.textContent=adminMode?'🗑️ Reservierung löschen':'Eigene Reservierung stornieren';
                 cancel.onclick=()=>{closeBookingActionModal();void window.ecwRasterBuchung.cancelBooking(b);};
-                buttons.replaceChildren(cancel);
+                if(adminMode){
+                    const edit=document.createElement('button');
+                    edit.type='button';
+                    edit.className='bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold';
+                    edit.textContent='✏️ Reservierung ändern';
+                    edit.onclick=()=>{closeBookingActionModal();void window.ecwRasterBuchung.editBooking(b);};
+                    buttons.replaceChildren(edit,cancel);
+                } else buttons.replaceChildren(cancel);
             } else if(canManage) {
                 buttons.innerHTML = `
                     <button type="button" onclick="closeBookingActionModal(); editBooking(${id})" class="bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold">✏️ Reservierung ändern</button>
@@ -1434,6 +1449,7 @@ html.ecw-reservation-admin-entry #exitToStartButton{display:block!important}
             if(!force&&window.ecwRasterBuchung?.isBusy())return; 
             document.getElementById('bookingModal').classList.add('hidden'); 
             editingBookingId = null;
+            window.ecwRasterBuchung?.stopEditing?.();
         }
 
         function openClubhouseModal() { return readOnlyReservation();

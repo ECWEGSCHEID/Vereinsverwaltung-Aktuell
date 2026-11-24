@@ -10,6 +10,8 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
   const call = bookingCall ?? httpsCallable(getFunctions(app, 'europe-west3'), 'ecwBahnreservierung');
   let imported = [], dates = [], dateKey = '', loaded = false, sequence = 0;
   let writable = new Set(), busy = false, options, formAccount, pending, session = 0;
+  // Administrator (Verwaltung): darf alle Reservierungen ändern und löschen.
+  let admin = false, editing;
   const uid = () => auth.currentUser?.uid;
   const element = id => document.getElementById(id);
   const pause = () => new Promise(resolve => setTimeout(resolve, 400));
@@ -43,12 +45,14 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       results.forEach((result, index) => {
         if (result.status !== 'fulfilled') return;
         if (result.value.data.canBook === true && !games) writable.add(days[index]);
+        if (result.value.data.admin === true) admin = true;
         for (const booking of result.value.data.bookings || []) {
           if ((!whiteboard && !/^[a-f0-9]{64}$/.test(booking.id)) || booking.date !== days[index] ||
               !resourcePattern.test(booking.resource) || !timePattern.test(booking.timeFrom) ||
               !(timePattern.test(booking.timeTo) || booking.timeTo === '24:00')) continue;
           extra.push({
-            id: 1000000 + extra.length, liveId: booking.id, own: !games && !whiteboard && booking.own === true,
+            id: 1000000 + extra.length, liveId: booking.id, own: !games && booking.own === true,
+            legacyKey: typeof booking.legacyKey === 'string' ? booking.legacyKey : undefined,
             date: booking.date, resource: booking.resource, timeFrom: booking.timeFrom, timeTo: booking.timeTo,
             bookedBy: typeof booking.bookedBy === 'string' ? booking.bookedBy : '',
             mode: booking.mode || 'Reserviert',
@@ -75,6 +79,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
 
   async function openSlot(date, resource, time) {
     if (busy || !canBook(date, resource, time)) return;
+    editing = undefined;
     busy = true;
     const account = uid(), openingSession = session;
     try {
@@ -115,7 +120,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     event.preventDefault();
     if (busy || !uid() || formAccount !== uid()) return;
     const values = {
-      action: 'book', date: element('modalBookDate').value,
+      action: editing ? 'adminReplace' : 'book', date: element('modalBookDate').value,
       resource: element('modalSelectedResource').value,
       timeFrom: element('modalTimeFrom').value, timeTo: element('modalTimeTo').value,
       mode: element('modalTemplateSelect').value,
@@ -134,6 +139,13 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
       message.textContent = 'Bitte einen freien zukünftigen Beginn und eine spätere Endzeit wählen.';
       return;
     }
+    if (editing) {
+      // Ändern: neue Daten als "booking", alte Buchung über ID bzw. Kennung des Bestands.
+      const {action, view, ...booking} = values;
+      for (const key of Object.keys(values)) delete values[key];
+      Object.assign(values, {action: 'adminReplace', view: 'whiteboard', date: editing.date, booking,
+        ...(editing.id ? {id: editing.id} : {key: editing.key})});
+    }
     const signature = JSON.stringify(values);
     if (pending?.signature !== signature) pending = {signature, id: crypto.randomUUID()};
     const button = element('modalSubmitBtn');
@@ -143,6 +155,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     try {
       await call({...values, requestId: pending.id});
       if (account !== uid()) return;
+      editing = undefined;
       window.closeBookingModal(true);
       update(dates, true);
     } catch (error) {
@@ -153,11 +166,16 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
   }
 
   async function cancelBooking(booking) {
-    if (busy || games || !booking.own || !writable.has(booking.date) ||
-        !confirm('Diese eigene Buchung stornieren?')) return;
+      if (busy || games || !booking.own || !(booking.liveId || booking.legacyKey) ||
+        (!admin && !writable.has(booking.date)) ||
+        !confirm(admin ? 'Reservierung von ' + (booking.bookedBy || '–') + ' am ' + booking.date + ' löschen?' : 'Diese eigene Buchung stornieren?')) return;
     busy = true;
     try {
-      await call({action: 'cancel', date: booking.date, id: booking.liveId});
+      const request = booking.liveId
+        ? {action: 'cancel', date: booking.date, id: booking.liveId}
+        : {action: 'cancelImported', date: booking.date, key: booking.legacyKey};
+      if (whiteboard && booking.liveId) request.view = 'whiteboard';
+      await call(request);
       update(dates, true);
     } catch (error) {
       status.textContent = error.message || 'Stornieren fehlgeschlagen.';
@@ -166,13 +184,40 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     }
   }
 
+  // Administrator: Buchungsmaske mit den Daten der Reservierung öffnen; Speichern ersetzt sie.
+  async function editBooking(booking) {
+    if (busy || !admin || !booking.own || !(booking.liveId || booking.legacyKey)) return;
+    if (!canBook(booking.date, booking.resource, booking.timeFrom)) {
+      status.textContent = 'Vergangene Reservierungen können nur gelöscht werden.';
+      return;
+    }
+    await openSlot(booking.date, booking.resource, booking.timeFrom);
+    if (!options) return;
+    editing = {id: booking.liveId, key: booking.legacyKey, date: booking.date};
+    element('modalTimeTo').value = booking.timeTo;
+    element('modalTemplateSelect').value = booking.mode;
+    window.onTemplateChange?.();
+    for (const [side, team] of [['home', booking.homeTeam], ['guest', booking.guestTeam]]) {
+      (team || []).forEach((name, index) => {
+        const select = element(side + 'Player' + (index + 1));
+        if (select) select.value = name;
+      });
+    }
+    window.updateMemberDropdowns?.();
+    const booker = element('whiteboard-booker-name');
+    if (booker) booker.value = booking.bookedBy || '';
+    element('modalTitleHeading').innerText = '✏️ Reservierung ändern';
+    window.ecwSetEditingBooking?.(booking.id);
+  }
+
   return {
     setImported(rows) { imported = rows; loaded = true; },
     reset() {
       sequence++; session++; loaded = false; dateKey = ''; imported = []; dates = [];
-      writable.clear(); options = undefined; formAccount = undefined; pending = undefined;
+      writable.clear(); options = undefined; formAccount = undefined; pending = undefined; editing = undefined; admin = false;
       window.closeBookingModal(true);
     },
-    update, canBookDay, canBook, openSlot, submit, cancelBooking, isBusy: () => busy
+    update, canBookDay, canBook, openSlot, submit, cancelBooking, editBooking,
+    isAdmin: () => admin, stopEditing() { editing = undefined; }, isBusy: () => busy
   };
 }
