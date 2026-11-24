@@ -1,0 +1,69 @@
+name: Server-Funktion Reservierung
+
+# Pull Request: Tests der Server-Funktion.
+# Nach dem Mergen (main): Tests und – nur wenn sie bestehen – automatische
+# Bereitstellung von ecwBahnreservierung in Google Cloud.
+on:
+  pull_request:
+    paths: ['functions/**', 'firebase.json', '.github/workflows/server-funktion.yml']
+  push:
+    branches: [main]
+    paths: ['functions/**', 'firebase.json', '.github/workflows/server-funktion.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-funktion
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Tests Server-Funktion
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax und Tests
+        run: |
+          node --check functions/index.js
+          node --check functions/booking.js
+          node functions/test/run.js
+
+  deploy:
+    name: Bereitstellen in Google Cloud
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zugang vorhanden?
+        id: secret
+        env:
+          KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "Secret GCP_SA_KEY fehlt – automatische Bereitstellung übersprungen." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.secret.outputs.ok == 'true'
+        with:
+          node-version: '22'
+      - uses: google-github-actions/auth@v2
+        if: steps.secret.outputs.ok == 'true'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: Abhängigkeiten installieren
+        if: steps.secret.outputs.ok == 'true'
+        run: npm install --prefix functions --omit=dev --no-audit --no-fund
+      - name: ecwBahnreservierung bereitstellen
+        if: steps.secret.outputs.ok == 'true'
+        run: npx --yes firebase-tools@14 deploy --only functions:ecwBahnreservierung --project ec-wegscheid-verwaltung-neu --non-interactive --force
