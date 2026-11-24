@@ -12,14 +12,18 @@ const THEMES={
 };
 const PRESETS={
   none:{label:'Kein Vorlagenbild · bisheriger Hintergrund',file:''},
-  'carbon-rot-mit-logo':{label:'Carbon Rot – mit EC Wegscheid Logo',file:'designvorlagen/carbon-rot-mit-logo.jpg',theme:'carbon'},
-  'carbon-rot-ohne-logo':{label:'Carbon Rot – ohne Logo',file:'designvorlagen/carbon-rot-ohne-logo.jpg',theme:'carbon'},
-  'blau-silber-mit-logo':{label:'Blau Silber – mit EC Wegscheid Logo',file:'designvorlagen/blau-silber-mit-logo.jpg',theme:'blue'},
-  'blau-silber-ohne-logo':{label:'Blau Silber – ohne Logo',file:'designvorlagen/blau-silber-ohne-logo.jpg',theme:'blue'},
-  'silber-hell-mit-logo':{label:'Silber Hell – mit EC Wegscheid Logo',file:'designvorlagen/silber-hell-mit-logo.jpg',theme:'silver'},
-  'silber-hell-ohne-logo':{label:'Silber Hell – ohne Logo',file:'designvorlagen/silber-hell-ohne-logo.jpg',theme:'silver'},
-  'schwarz-silber-original-mit-logo':{label:'Schwarz Silber – bisherige verkleinerte Vorlage',file:'designvorlagen/schwarz-silber-original-mit-logo.jpg',theme:'blacksilver'},
-  'schwarz-carbon-original-mit-logo':{label:'Schwarz Carbon – EC Wegscheid (dein Originalbild)',file:'designvorlagen/schwarz-carbon-ec-wegscheid-original.jpg',theme:'blacksilver'}
+  // Alle Vorlagen sind aus dem Original-Hintergrund der Startseite umgefärbt,
+  // damit die schrägen Linien überall gleich liegen und zur Schrift passen.
+  'carbon-rot-mit-logo':{label:'Carbon Rot – mit Logo',file:'designvorlagen/startseite/carbon-rot-mit-logo.jpg',theme:'carbon'},
+  'carbon-rot-ohne-logo':{label:'Carbon Rot – ohne Logo',file:'designvorlagen/startseite/carbon-rot-ohne-logo.jpg',theme:'carbon'},
+  'blau-silber-mit-logo':{label:'Blau Silber – mit Logo',file:'designvorlagen/startseite/blau-silber-mit-logo.jpg',theme:'blue'},
+  'blau-silber-ohne-logo':{label:'Blau Silber – ohne Logo',file:'designvorlagen/startseite/blau-silber-ohne-logo.jpg',theme:'blue'},
+  'gruen-mit-logo':{label:'Grün Silber – mit Logo',file:'designvorlagen/startseite/gruen-mit-logo.jpg',theme:'green'},
+  'gruen-ohne-logo':{label:'Grün Silber – ohne Logo',file:'designvorlagen/startseite/gruen-ohne-logo.jpg',theme:'green'},
+  'silber-hell-mit-logo':{label:'Silber Hell – mit Logo',file:'designvorlagen/startseite/silber-hell-mit-logo.jpg',theme:'silver'},
+  'silber-hell-ohne-logo':{label:'Silber Hell – ohne Logo',file:'designvorlagen/startseite/silber-hell-ohne-logo.jpg',theme:'silver'},
+  'schwarz-silber-original-mit-logo':{label:'Schwarz Silber – mit Logo',file:'designvorlagen/startseite/schwarz-silber-mit-logo.jpg',theme:'blacksilver'},
+  'schwarz-carbon-original-mit-logo':{label:'Schwarz Silber – ohne Logo',file:'designvorlagen/startseite/schwarz-silber-ohne-logo.jpg',theme:'blacksilver'}
 };
 function presetUrl(key){
   const file=PRESETS[key]?.file||'';
