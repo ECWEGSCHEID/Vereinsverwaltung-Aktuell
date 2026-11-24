@@ -5,7 +5,7 @@ window.ecwLocalUrl=function(value){try{const u=new URL(value,location.href);if(u
 })();
 
 /* Gemeinsamer Versionsstand der aktiven Vereinsverwaltung. version.json führt denselben Stand für den Update-Check. */
-window.ECW_APP_VERSION = '3.1.62.241126';
+window.ECW_APP_VERSION = '3.1.63.241126';
 (function () {
   const page = location.pathname.split('/').pop();
   if (/^START_VEREINSVERWALTUNG_|^ecw-versammlungen-v295[56]\.html$/.test(page)) return;
@@ -92,4 +92,48 @@ window.ecwTileLabel = function (title, menu) {
   window.addEventListener('pageshow', event => {
     if (event.persisted) void checkMobileRelease();
   });
+})();
+
+/* Vereinsverwaltung am PC: Hinweis, sobald eine neuere Version veröffentlicht ist.
+   Nicht automatisch neu laden – sonst gingen ungespeicherte Eingaben verloren. */
+(function () {
+  if (!/\/(index\.html)?$/.test(location.pathname) || !/^https?:$/.test(location.protocol) ||
+      window.top !== window) return;
+  let shown = false;
+  async function checkDesktopRelease() {
+    if (shown) return;
+    try {
+      const manifest = new URL('version.json', window.ECW_SITE_BASE);
+      manifest.searchParams.set('check', String(Date.now()));
+      const response = await fetch(manifest, {cache: 'no-store'});
+      if (!response.ok) return;
+      const {version: latest} = await response.json();
+      if (!/^\d+\.\d+\.\d+\.\d{6}$/.test(latest) || latest === window.ECW_APP_VERSION) return;
+      shown = true;
+      const bar = document.createElement('div');
+      bar.setAttribute('role', 'status');
+      bar.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483647;' +
+        'background:#1f6f3f;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.4);' +
+        'font:15px system-ui,sans-serif;display:flex;gap:12px;align-items:center;max-width:92vw';
+      const text = document.createElement('span');
+      text.textContent = 'Neue Version ' + latest + ' verfügbar. Bitte vorher speichern, dann aktualisieren.';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'Jetzt aktualisieren';
+      button.style.cssText = 'background:#fff;color:#1f6f3f;border:0;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer';
+      button.addEventListener('click', () => {
+        const target = new URL(location.href);
+        target.searchParams.set('v', latest);
+        location.replace(target.href);
+      });
+      bar.append(text, button);
+      document.body.appendChild(bar);
+    } catch {}
+  }
+  const start = () => {
+    void checkDesktopRelease();
+    setInterval(checkDesktopRelease, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) void checkDesktopRelease(); });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
