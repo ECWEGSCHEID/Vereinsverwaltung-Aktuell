@@ -4,8 +4,10 @@ Kopie des Quellcodes, damit Änderungen nachvollziehbar sind.
 Bereitgestellt wird über die Google-Cloud-Konsole (Cloud Run → ecwbahnreservierung → Quelle bearbeiten)
 oder mit der Firebase-CLI (firebase deploy --only functions).
 
-Hinweis: booking.js (validBooking, validDate, overlaps, normalizedName) liegt bisher nur in der
-bereitgestellten Funktion und fehlt hier noch – bei Gelegenheit aus der Konsole ergänzen.
+Automatische Bereitstellung: .github/workflows/server-funktion.yml
+- Pull Request mit Änderungen in functions/: Tests laufen (functions/test/run.js).
+- Nach dem Mergen: Tests, danach Bereitstellung in Google Cloud – nur wenn die Tests bestehen
+  und das GitHub-Secret GCP_SA_KEY (Schlüssel des Dienstkontos) hinterlegt ist.
 
 Stand 24.11.2026: Administratoren (users/{uid}.admin) dürfen alle Reservierungen ändern
 (Aktion adminReplace) und löschen (cancel, cancelImported für den Bestand vom 12.11.).
