@@ -194,6 +194,24 @@ function render(container, name, data) {
   container.replaceChildren();
   let shown = 0;
 
+  // Vereinsrangliste: eigener Platz und Punkte, aufklappbar mit Zusammensetzung.
+  const rl = data.ranking;
+  if (rl) {
+    const box = el('details', null, container, 'my-participations my-row-highlight');
+    const summary = el('summary', null, box);
+    const text = el('div', null, summary, 'my-row-text');
+    el('strong', 'Vereinsrangliste' + (rl.season ? ' ' + rl.season : ''), text);
+    el('span', rl.total + ' Punkte · Antippen für die Zusammensetzung', text, 'my-row-detail');
+    el('span', placeText(rl.rank, rl.of), summary, 'my-row-place');
+    const list = el('ul', null, box, 'my-list my-rank-list');
+    for (const p of rl.parts) {
+      const item = el('li', null, list);
+      el('span', p.label + (p.type === 'pyramidGames' ? ' · ' + p.won + ' S / ' + p.lost + ' N' : ' · Platz ' + p.place + ' von ' + p.of), item);
+      el('strong', '+' + p.points, item);
+    }
+    shown++;
+  }
+
   // Nur bereits gespielte Turniere des laufenden Jahres; künftige Anmeldungen bleiben weg.
   const year = String(new Date().getFullYear());
   const played = (data.planner || []).filter(x => !x.upcoming && x.date.startsWith(year));
@@ -250,7 +268,13 @@ function render(container, name, data) {
 }
 
 /* Lädt alle Quellen parallel. Eine fehlende Quelle blendet nur ihren Abschnitt aus. */
-async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, loadMontagsSolo, standings}) {
+function rankingEntry(doc, name) {
+  const rows = Array.isArray(doc?.rows) ? doc.rows : [];
+  const own = rows.find(r => sameName(r.name, name));
+  return own ? {season: clean(doc.season), rank: own.rank, of: rows.length, total: own.total, parts: Array.isArray(own.parts) ? own.parts : []} : null;
+}
+
+async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, loadMontagsSolo, loadRanking, standings}) {
   const errors = [];
   const attempt = async (label, task) => {
     try { return await task(); } catch (error) {
@@ -260,12 +284,13 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, load
       return null;
     }
   };
-  const [events, tournaments, jmState, soloState, msState] = await Promise.all([
+  const [events, tournaments, jmState, soloState, msState, rankDoc] = await Promise.all([
     attempt('Der Terminplaner', loadPlanner),
     attempt('Die Cup-Ergebnisse', loadCups),
     attempt('Die Ziel-Jahresmeisterschaft', loadChampionship),
     loadPyramid ? attempt('Die Solo Pyramide', loadPyramid) : null,
-    loadMontagsSolo ? attempt('Das Montags Solo', loadMontagsSolo) : null
+    loadMontagsSolo ? attempt('Das Montags Solo', loadMontagsSolo) : null,
+    loadRanking ? attempt('Die Vereinsrangliste', loadRanking) : null
   ]);
   return {
     planner: events ? participations(events, name) : [],
@@ -273,9 +298,10 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, load
     championship: jmState ? championshipEntry(jmState, name) : null,
     pyramid: soloState ? pyramidEntry(soloState, name) : null,
     montagsSolo: msState ? montagsSoloEntries(msState, name) : [],
+    ranking: rankDoc ? rankingEntry(rankDoc, name) : null,
     errors
   };
 }
 
-root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, montagsSoloEntries, loadPyramidPublic, render, load, isoDate};
+root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, montagsSoloEntries, rankingEntry, loadPyramidPublic, render, load, isoDate};
 })(typeof window !== 'undefined' ? window : globalThis);

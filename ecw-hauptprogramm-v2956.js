@@ -2529,6 +2529,7 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'auslosung\')">Turnierauslosung</button>'
   +'<button type="button" onclick="window.ECWMontagsSolo&&ECWMontagsSolo.open()">Montags Solo</button>'
+  +'<button type="button" onclick="window.ECWRangliste&&ECWRangliste.open()">Vereinsrangliste</button>'
   +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide</button>'
   +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
