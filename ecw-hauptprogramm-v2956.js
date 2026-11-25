@@ -3636,6 +3636,8 @@ function renderOwnTournaments(){
  const f=document.getElementById('tFooter');if(f)f.style.display='block';
  ['prevPageBtn','nextPageBtn','prevMonthBtn','nextMonthBtn','tMonthsBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display='none'});
  const c=document.getElementById('tContent');c.innerHTML='';
+ // Nach den Zeitungsberichten ist der Bereich noch auf Mosaik-Darstellung (display:block) gestellt.
+ c.classList.remove('press-mosaic-host');
 
  // Einladungen links in A4-Größe, rechts ein schmaler Bereich mit den Live-Startlisten.
  const totalSlots=Math.max(1,items.length);
