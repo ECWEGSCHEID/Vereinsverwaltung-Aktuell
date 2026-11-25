@@ -1219,15 +1219,16 @@ function memberApplicationPdfFromJpeg(jpegBytes,w,h){
  return new Blob(chunks,{type:'application/pdf'});
 }
 async function memberApplicationGenerate(){
- const img=new Image();img.src='assets/mitgliedsantrag_basis.png';await img.decode();
+ const img=new Image();img.src='assets/mitgliedsantrag_basis.png?v=2026-11-datenschutz';await img.decode();
  const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
  const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
  const factor=canvas.width/595.32;
  // Das Original-PDF hatte die Beitragsangabe bei x=411 / y=272 (Koordinaten vom oberen Rand).
  ctx.fillStyle='#111';ctx.textBaseline='top';ctx.font='bold '+Math.round(17*factor)+'px Arial,sans-serif';
- ctx.fillText(memberFeeEuro(),411*factor,271*factor);
- ctx.font=Math.round(9*factor)+'px Arial,sans-serif';
- ctx.fillText('Aktueller Mitgliedsbeitrag',310*factor,302*factor);
+ // Vorlage = Aufnahmeantrag-Excel (Stand 11/2026): Beitrag mittig im Feld „Mitgliedsbeitrag“, darunter das Jahr.
+ ctx.textAlign='center';ctx.fillText(memberFeeEuro(),431*factor,251*factor);
+ ctx.textAlign='left';ctx.font='bold '+Math.round(7*factor)+'px Arial,sans-serif';
+ ctx.fillText('Stand '+new Date().getFullYear(),298*factor,280*factor);
  const data=canvas.toDataURL('image/jpeg',0.94).split(',')[1];const bin=atob(data);const bytes=new Uint8Array(bin.length);
  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
  return memberApplicationPdfFromJpeg(bytes,canvas.width,canvas.height);
