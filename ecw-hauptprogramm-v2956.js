@@ -3859,6 +3859,8 @@ async function renderPressMosaic(c,items){
  }));
  if(token!==pressMosaicToken||!box.isConnected)return;
  const W=box.clientWidth,gap=6;let H=box.clientHeight;
+ // Sicherheitsnetz: Ist der Bereich (z. B. am Tablet) nicht hoch genug, die sichtbare Bildschirmhöhe verwenden.
+ if(H<240){H=Math.max(240,Math.round(window.innerHeight-box.getBoundingClientRect().top-12));box.style.height=H+'px';}
  // Unten Platz für den Zurück-Button lassen, damit keine Kachel verdeckt wird.
  const br=box.getBoundingClientRect();
  for(const b of document.querySelectorAll('#tournaments button')){
