@@ -120,6 +120,39 @@ function championshipEntry(state, name) {
     season: Number(state.seasonYear) || null, archived: !!state.archived} : null;
 }
 
+// ---------- Montags Solo ----------
+// Vorrunden-Platz, Anmeldung, Finale-Qualifikation oder Nachrücker-Vormerkung.
+function montagsSoloEntries(state, name) {
+  if (!state || typeof state !== 'object') return [];
+  const dd = v => v ? deDate(String(v)) : 'offen';
+  const title = clean(state.title) || 'Montags Solo';
+  const labels = {v1: 'Vorrunde 1', v2: 'Vorrunde 2', v3: 'Vorrunde 3'};
+  const out = [];
+  const finale = state.finale || {};
+  const finalDone = !!(finale.result && Array.isArray(finale.result.rows) && finale.result.rows.length);
+  for (const key of ['v1', 'v2', 'v3']) {
+    const round = state.rounds?.[key];
+    if (!round) continue;
+    const rows = Array.isArray(round.result?.rows) ? round.result.rows : [];
+    const own = rows.find(r => sameName(r?.name, name));
+    if (own) out.push({title: title + ' · ' + labels[key], detail: dd(round.date) + ' · ' + own.points + ':' + own.minus + ' Pkt.', place: own.rank + '. von ' + rows.length});
+    else if ((round.players || []).some(p => sameName(p?.name, name))) out.push({title: title + ' · ' + labels[key], detail: 'Angemeldet für Montag, ' + dd(round.date), place: 'gemeldet'});
+  }
+  if (finalDone) {
+    const rows = finale.result.rows, own = rows.find(r => sameName(r?.name, name));
+    if (own) out.push({title: title + ' · Finale', detail: dd(finale.date) + ' · ' + own.points + ':' + own.minus + ' Pkt.', place: own.rank + '. von ' + rows.length});
+    return out;
+  }
+  const slot = (finale.slots || []).find(s => sameName(s?.name, name));
+  if (slot && slot.status !== 'abgesagt') out.push({title: title + ' · Finale', detail: 'Qualifiziert für das Finale am Montag, ' + dd(finale.date), place: 'Finale', highlight: true});
+  else if (slot) out.push({title: title + ' · Finale', detail: 'Für das Finale abgesagt', place: '–'});
+  else {
+    const reserve = ['v1', 'v2', 'v3'].find(k => (state.rounds?.[k]?.reserves || []).some(n => sameName(n, name)));
+    if (reserve) out.push({title: title + ' · Finale', detail: 'Als Nachrücker vorgemerkt (' + labels[reserve] + ') · Finale am ' + dd(finale.date), place: 'Nachrücker', highlight: true});
+  }
+  return out;
+}
+
 // ---------- Solo Pyramide ----------
 function pyramidEntry(state, name) {
   const players = Array.isArray(state?.players) ? state.players : [];
@@ -199,6 +232,12 @@ function render(container, name, data) {
     shown++;
   }
 
+  for (const x of data.montagsSolo || []) {
+    const line = row(container, x.title, x.detail, x.place);
+    if (x.highlight) line.classList.add('my-row-highlight');
+    shown++;
+  }
+
   const solo = data.pyramid;
   if (solo) {
     row(container, 'Solo Pyramide', '', 'Platz ' + solo.position);
@@ -211,7 +250,7 @@ function render(container, name, data) {
 }
 
 /* Lädt alle Quellen parallel. Eine fehlende Quelle blendet nur ihren Abschnitt aus. */
-async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, standings}) {
+async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, loadMontagsSolo, standings}) {
   const errors = [];
   const attempt = async (label, task) => {
     try { return await task(); } catch (error) {
@@ -221,20 +260,22 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, load
       return null;
     }
   };
-  const [events, tournaments, jmState, soloState] = await Promise.all([
+  const [events, tournaments, jmState, soloState, msState] = await Promise.all([
     attempt('Der Terminplaner', loadPlanner),
     attempt('Die Cup-Ergebnisse', loadCups),
     attempt('Die Ziel-Jahresmeisterschaft', loadChampionship),
-    loadPyramid ? attempt('Die Solo Pyramide', loadPyramid) : null
+    loadPyramid ? attempt('Die Solo Pyramide', loadPyramid) : null,
+    loadMontagsSolo ? attempt('Das Montags Solo', loadMontagsSolo) : null
   ]);
   return {
     planner: events ? participations(events, name) : [],
     cups: tournaments ? cupEntries(tournaments, name, standings) : [],
     championship: jmState ? championshipEntry(jmState, name) : null,
     pyramid: soloState ? pyramidEntry(soloState, name) : null,
+    montagsSolo: msState ? montagsSoloEntries(msState, name) : [],
     errors
   };
 }
 
-root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, loadPyramidPublic, render, load, isoDate};
+root.ECWMeineErgebnisse = {sameName, teamHasPlayer, participations, cupEntries, championshipEntry, pyramidEntry, montagsSoloEntries, loadPyramidPublic, render, load, isoDate};
 })(typeof window !== 'undefined' ? window : globalThis);
