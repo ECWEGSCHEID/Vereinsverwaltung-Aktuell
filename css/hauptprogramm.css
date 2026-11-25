@@ -2194,3 +2194,4 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
 #tContent .press-tile::before,#tContent .press-tile::after{content:none!important}
 #tContent .press-crop{position:relative;height:100%;flex:none;overflow:hidden}
 #tContent .press-tile .press-crop img{position:absolute!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;height:auto!important;object-fit:contain!important;transform:none!important;margin:0!important;padding:0!important;border:0!important}
+#tContent .press-tile{border-radius:6px!important;box-shadow:0 3px 10px rgba(0,0,0,.45)}
