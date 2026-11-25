@@ -3701,7 +3701,9 @@ function renderTournaments(){
  const title=document.getElementById('tMonth');
  if(title)title.textContent=(tCollection==='pressReports'?'Zeitungsberichte':tGroupLabel(currentMonth))+(items.some(Boolean)?'':(tCollection==='pressReports'?' – noch keine Berichte':' – noch keine Einladungen'));
  const c=document.getElementById('tContent');c.innerHTML='';const n=shown.length;
- if(!n){
+ c.classList.toggle('press-mosaic-host',tCollection==='pressReports'&&!!n);
+ if(n&&tCollection==='pressReports'){renderPressMosaic(c,shown.filter(Boolean));}
+ else if(!n){
    c.style.gridTemplateColumns='1fr';c.style.gridTemplateRows='1fr';
    c.innerHTML='<div class="empty">'+(tCollection==='pressReports'?'Noch keine Zeitungsberichte vorhanden.':'Für diesen Monat sind noch keine Turniereinladungen vorhanden.')+'</div>';
  }else{
@@ -3722,6 +3724,74 @@ function renderTournaments(){
  const idx=ms.indexOf(currentMonth),prev=document.getElementById('prevMonthBtn'),next=document.getElementById('nextMonthBtn');
  if(prev){prev.style.display=tCollection==='pressReports'?'none':(idx>0?'block':'none');prev.textContent='Voriger Monat';}
  if(next){next.style.display=tCollection==='pressReports'?'none':(idx>=0&&idx<ms.length-1?'block':'none');next.textContent='Nächster Monat';}
+}
+/* ===== Zeitungsberichte als Mosaik: echte Form, weiße Ränder abgeschnitten, ohne Scrollen ===== */
+const pressCropCache=new Map();
+function pressCrop(src,key){
+ if(pressCropCache.has(key))return pressCropCache.get(key);
+ const p=new Promise(resolve=>{
+  const img=new Image();
+  img.onload=()=>{
+   const W=img.naturalWidth||1,H=img.naturalHeight||1,full={x:0,y:0,w:1,h:1,a:W/H};
+   try{
+    const sc=Math.min(1,400/Math.max(W,H)),cw=Math.max(1,Math.round(W*sc)),ch=Math.max(1,Math.round(H*sc));
+    const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+    const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,cw,ch);
+    const d=ctx.getImageData(0,0,cw,ch).data;
+    const dark=(i)=>(d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11)<232;
+    const rowHas=y=>{let k=0;for(let x=0;x<cw;x++)if(dark((y*cw+x)*4))k++;return k>cw*0.006};
+    const colHas=x=>{let k=0;for(let y=0;y<ch;y++)if(dark((y*cw+x)*4))k++;return k>ch*0.006};
+    let t=0,b=ch-1,l=0,r=cw-1;
+    while(t<b&&!rowHas(t))t++;while(b>t&&!rowHas(b))b--;
+    while(l<r&&!colHas(l))l++;while(r>l&&!colHas(r))r--;
+    const m=Math.round(Math.max(cw,ch)*0.012);
+    t=Math.max(0,t-m);l=Math.max(0,l-m);b=Math.min(ch-1,b+m);r=Math.min(cw-1,r+m);
+    const box={x:l/cw,y:t/ch,w:(r-l+1)/cw,h:(b-t+1)/ch};
+    if(box.w<0.15||box.h<0.15){resolve(full);return;}
+    box.a=(box.w*W)/(box.h*H);resolve(box);
+   }catch(e){resolve(full);}
+  };
+  img.onerror=()=>resolve({x:0,y:0,w:1,h:1,a:210/297});
+  img.src=src;
+ });
+ pressCropCache.set(key,p);return p;
+}
+function pressCropHtml(src,box,alt,share=1){
+ return '<div class="press-crop" style="width:'+(share*100).toFixed(3)+'%"><img src="'+src+'" alt="'+esc(alt||'Zeitungsbericht')+'" style="width:'+(100/box.w).toFixed(3)+'%;height:'+(100/box.h).toFixed(3)+'%;left:'+(-100*box.x/box.w).toFixed(3)+'%;top:'+(-100*box.y/box.h).toFixed(3)+'%"></div>';
+}
+let pressMosaicToken=0;
+async function renderPressMosaic(c,items){
+ const token=++pressMosaicToken;
+ c.style.gridTemplateColumns='1fr';c.style.gridTemplateRows='1fr';c.style.columnGap='0';c.style.rowGap='0';c.style.justifyContent='stretch';c.style.alignContent='stretch';
+ const box=document.createElement('div');box.className='press-mosaic';c.appendChild(box);
+ const tiles=await Promise.all(items.map(async x=>{
+   const b1=await pressCrop(x.data,(x.id||x.name)+'|1');
+   const b2=x.data2?await pressCrop(x.data2,(x.id||x.name)+'|2'):null;
+   return {x,b1,b2,a:b1.a+(b2?b2.a:0)};
+ }));
+ if(token!==pressMosaicToken||!box.isConnected)return;
+ const W=box.clientWidth,H=box.clientHeight,gap=8;
+ // Kleinste Spaltenzahl wählen, bei der alles ohne Scrollen hineinpasst (größtmögliche Kacheln).
+ const layout=(cols,cwFix)=>{const cw=cwFix||(W-gap*(cols-1))/cols,hs=new Array(cols).fill(0),pos=[];
+   tiles.forEach(t=>{const span=t.b2&&cols>1&&t.a>1.4?2:1;let best=0,bestH=Infinity;
+     for(let i=0;i+span<=cols;i++){const h=Math.max(...hs.slice(i,i+span));if(h<bestH){bestH=h;best=i}}
+     const w=cw*span+gap*(span-1),h=w/t.a;pos.push({l:best*(cw+gap),t:bestH,w,h});for(let i=best;i<best+span;i++)hs[i]=bestH+h+gap;});
+   return {pos,height:Math.max(...hs)-gap};};
+ let cols=1,res=layout(1);
+ while(res.height>H&&cols<14){cols++;res=layout(cols);}
+ // Eine Spalte weniger mit etwas schmaleren Kacheln füllt die Höhe oft besser aus.
+ if(cols>1){
+   let lo=0,hi=(W-gap*(cols-2))/(cols-1),best=null;
+   for(let k=0;k<22;k++){const mid=(lo+hi)/2,r=layout(cols-1,mid);if(r.height<=H){best=r;best.cw=mid;lo=mid}else hi=mid;}
+   const cwNow=(W-gap*(cols-1))/cols;
+   if(best&&best.cw>cwNow)res=best;
+ }
+ // Bei wenigen Berichten nicht unnötig groß: höchstens so hoch wie der Bereich, Spalten zentrieren.
+ const used=Math.max(...res.pos.map(p=>p.l+p.w));const offX=Math.max(0,(W-used)/2);
+ box.innerHTML=tiles.map((t,i)=>{const p=res.pos[i];
+   return '<button type="button" class="press-tile'+(t.b2?' pair':'')+'" data-i="'+i+'" style="left:'+(p.l+offX).toFixed(1)+'px;top:'+p.t.toFixed(1)+'px;width:'+p.w.toFixed(1)+'px;height:'+p.h.toFixed(1)+'px">'
+     +pressCropHtml(t.x.data,t.b1,t.x.name,t.b1.a/t.a)+(t.b2?pressCropHtml(t.x.data2,t.b2,t.x.name2,t.b2.a/t.a):'')+'</button>';}).join('');
+ box.querySelectorAll('.press-tile').forEach(b=>b.onclick=()=>openInvitationZoom(tiles[+b.dataset.i].x));
 }
 function openInvitationZoom(x){
  if(!x||!x.data)return;
