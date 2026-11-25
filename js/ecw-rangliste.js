@@ -54,7 +54,7 @@ async function getDoc(c,d){try{const s=await db().collection(c).doc(d).get();ret
 async function loadSources(){
   const [cup,ms,jm,pyr,rl]=await Promise.all([getDoc('turnierauswertung','cup'),getDoc('turnierauswertung','montagsSolo'),getDoc('turnierauswertung','jahresmeisterschaft'),getDoc('soloPyramide','state'),getDoc(DOC[0],DOC[1])]);
   src={cups:(cup&&cup.tournaments)||{},ms,jm:jm&&jm.state||null,pyr};
-  cfg=Object.assign({season:'',cups:{},msCurrent:true,msArchive:{},pyramid:true,jm:true,events:[],archive:[]},rl&&rl.config||{});
+  cfg=Object.assign({visible:false,season:'',cups:{},msCurrent:true,msArchive:{},pyramid:true,jm:true,events:[],archive:[]},rl&&rl.config||{});
   cfg.events=Array.isArray(cfg.events)?cfg.events:[];cfg.archive=Array.isArray(rl&&rl.archive)?rl.archive:[];
   if(!cfg.season){const y=new Date().getFullYear(),m=new Date().getMonth();cfg.season=m>=6?y+'/'+String(y+1).slice(2):(y-1)+'/'+String(y).slice(2);}
   result=rl&&rl.rows?{rows:rl.rows,updatedAt:rl.updatedAt}:null;
@@ -142,7 +142,7 @@ function compute(){
 /* ---------- Speichern ---------- */
 async function saveConfig(extra){
   if(!isAdmin())return toast('Nur Administratoren dürfen die Rangliste bearbeiten.');
-  const payload={config:{season:cfg.season,cups:cfg.cups,msCurrent:cfg.msCurrent,msArchive:cfg.msArchive,pyramid:cfg.pyramid,jm:cfg.jm,events:cfg.events},archive:cfg.archive,...(extra||{})};
+  const payload={visible:!!cfg.visible,config:{visible:!!cfg.visible,season:cfg.season,cups:cfg.cups,msCurrent:cfg.msCurrent,msArchive:cfg.msArchive,pyramid:cfg.pyramid,jm:cfg.jm,events:cfg.events},archive:cfg.archive,...(extra||{})};
   await db().collection(DOC[0]).doc(DOC[1]).set(JSON.parse(JSON.stringify(payload)),{merge:true});
 }
 async function publish(){
@@ -152,7 +152,7 @@ async function publish(){
     const rows=r.rows.map(p=>({rank:p.rank,name:p.name,total:p.total,parts:p.parts}));
     result={rows,updatedAt:new Date().toISOString()};
     await saveConfig({season:cfg.season,rows,updatedAt:result.updatedAt});
-    msg='Rangliste veröffentlicht: '+rows.length+' Spieler'+(r.unknown.length?' · nicht in der Spielerliste und daher nicht gewertet: '+r.unknown.join(', '):'')+'.';
+    msg='Rangliste berechnet: '+rows.length+' Spieler'+(cfg.visible?' · am Smartphone sichtbar':' · am Smartphone ausgeblendet')+(r.unknown.length?' · nicht in der Spielerliste und daher nicht gewertet: '+r.unknown.join(', '):'')+'.';
   }catch(e){msg='Fehler: '+(e.code||e.message);}
   finally{busy=false;render();}
 }
@@ -210,7 +210,9 @@ function render(){
     +result.rows.map(r=>'<tr><td>'+r.rank+'.</td><td><details><summary>'+esc(r.name)+'</summary><ul class="rl-parts">'+r.parts.map(p=>'<li>'+esc(p.label)+(p.type==='pyramidGames'?': '+p.won+' Siege, '+p.lost+' Niederlagen':': Platz '+p.place+' von '+p.of)+' → <b>'+p.points+'</b></li>').join('')+'</ul></details></td><td class="r"><b>'+r.total+'</b></td></tr>').join('')+'</tbody></table>'
     +'<div class="small">Stand '+new Date(result.updatedAt).toLocaleString('de-DE')+'</div>':'<div class="small">Noch keine Rangliste berechnet.</div>';
   root.innerHTML='<div class="card"><div class="row" style="gap:10px;align-items:end;flex-wrap:wrap"><label>Saison<input type="text" data-rl-season value="'+esc(cfg.season)+'" style="width:120px"></label>'
-    +'<button type="button" class="primary" data-rl-publish'+(busy?' disabled':'')+'>Rangliste berechnen und veröffentlichen</button><button type="button" data-rl-print>Drucken</button><button type="button" data-rl-close>Saison abschließen</button></div>'
+    +'<button type="button" class="primary" data-rl-publish'+(busy?' disabled':'')+'>Rangliste berechnen</button><button type="button" data-rl-print>Drucken</button><button type="button" data-rl-close>Saison abschließen</button></div>'
+    +'<label class="rl-vis" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" data-rl-visible'+(cfg.visible?' checked':'')+' style="width:auto;margin:0"> <b>Am Smartphone in „Meine Ergebnisse“ anzeigen</b></label>'
+    +'<div class="small">'+(cfg.visible?'Die Spieler sehen ihren Platz und ihre Punkte.':'Ausgeblendet: Die Rangliste wird nur hier intern berechnet, die Spieler sehen sie nicht.')+'</div>'
     +(msg?'<div class="small" style="margin-top:8px">'+esc(msg)+'</div>':'')+'</div>'
     +'<div class="card"><h3 style="margin-top:0">Rangliste '+esc(cfg.season)+'</h3>'+table+'</div>'
     +'<div class="card rl-src"><h3 style="margin-top:0">Wettbewerbe dieser Saison</h3>'
@@ -228,7 +230,11 @@ function render(){
 async function onChange(e){
   const t=e.target,d=t.dataset;if(!cfg)return;
   try{
-    if('rlCup' in d){cfg.cups[d.rlCup]=t.checked;await saveConfig();}
+    if('rlVisible' in d){
+      if(t.checked&&!confirm('Rangliste jetzt für alle Spieler am Smartphone anzeigen?')){t.checked=false;return;}
+      cfg.visible=t.checked;await saveConfig();msg=cfg.visible?'Rangliste ist am Smartphone sichtbar.':'Rangliste am Smartphone ausgeblendet.';
+    }
+    else if('rlCup' in d){cfg.cups[d.rlCup]=t.checked;await saveConfig();}
     else if('rlMs' in d){cfg.msCurrent=t.checked;await saveConfig();}
     else if('rlMsarch' in d){cfg.msArchive[d.rlMsarch]=t.checked;await saveConfig();}
     else if('rlPyr' in d){cfg.pyramid=t.checked;await saveConfig();}
