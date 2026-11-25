@@ -647,7 +647,8 @@ function tpPlannerStructureSignature(list){
         location:String(x?.location||''),
         type:String(x?.type||''),
         internal:!!x?.internal,
-        calendarExported:!!x?.calendarExported
+        calendarExported:!!x?.calendarExported,
+        ergebnis:x?.ergebnis?[x.ergebnis.platz,x.ergebnis.von,!!x.ergebnis.foto,x.ergebnis.notiz||'']:null
       }))
       .sort((a,b)=>a.id.localeCompare(b.id))
   );
@@ -711,7 +712,7 @@ function centralApplyTournamentPlanner(snap){
   snap.forEach(doc=>{
     const x=doc.data()||{};
     list.push({
-      ...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),
+      ...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),...(x.ergebnis?{ergebnis:x.ergebnis}:{}),
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
       location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,
@@ -4063,7 +4064,7 @@ function tpPopulatePeriodFilter(selectId,defaultValue){
 }
 function tpFilterByPeriod(items,period){
   const today=todayStr();
-  if(period==='upcoming')return items.filter(x=>x&&tpEventDateStr(x)&&tpEventDateStr(x)>=today);
+  if(period==='upcoming')return items.filter(x=>x&&tpEventDateStr(x)&&(tpEventDateStr(x)>=today||window.ECWMeisterschaftErgebnis?.isOpen(x)));
   if(period==='past')return items.filter(x=>x&&tpEventDateStr(x)&&tpEventDateStr(x)<today);
   if(period&&period.charAt(0)==='y')return items.filter(x=>x&&tpEventYear(x)===period.slice(1));
   return items;
@@ -4390,7 +4391,8 @@ function tpRenderStats(){
     +'<div class="tp-stat">Ausgerichtete Turniere '+y+'<b>'+s.ausgerichteteTurniere+'</b></div>'
     +'<div class="tp-stat">Interne Turniere '+y+'<b>'+s.interneTurniere+'</b></div>'
     +'<div class="tp-stat">Meisterschaften besucht '+y+'<b>'+s.meisterschaftenBesucht+'</b></div>'
-    +'<div class="tp-stat">Meisterschaften offen '+y+'<b>'+s.meisterschaftenOffen+'</b></div>';
+    +'<div class="tp-stat">Meisterschaften offen '+y+'<b>'+s.meisterschaftenOffen+'</b></div>'
+    +((n=>n?'<div class="tp-stat tp-stat-alert" title="Vergangene Meisterschaften ohne eingetragenes Ergebnis">Ergebnisse fehlen<b>'+n+'</b></div>':'')(window.ECWMeisterschaftErgebnis?ECWMeisterschaftErgebnis.openCount():0));
 }
 
 let tpWhiteboardEditHold=null;
@@ -4992,7 +4994,9 @@ function renderTournamentPlanner(){
   const today=todayStr();
   el.innerHTML=items.map(x=>{
     const players=(x.players&&x.players.length===4)?x.players:['','','',''];
-    const isPast=x.date&&x.date<today;
+    const champOpen=!!window.ECWMeisterschaftErgebnis?.isOpen(x);
+    const isPast=x.date&&x.date<today&&!champOpen;
+    const resultHtml=window.ECWMeisterschaftErgebnis?ECWMeisterschaftErgebnis.cardHtml(x):'';
     const canEdit=tpCanEditPlanner();
     const allowsPlayers=tpAllowsPlayers(x.type);
     const playersDisabled=!canEdit;
@@ -5006,13 +5010,14 @@ function renderTournamentPlanner(){
       return '<div class="tp-row'+(playersDisabled?' tp-players-disabled':'')+'">'+label+'<select data-tp-field="players" data-tp-player-index="'+i+'" '+(playersDisabled?'disabled ':'')+'onchange="tpUpdateField('+jsArg(x.id)+',\'players\','+i+',this.value)">'+tpPlayerOptionsHtml(players[i],x.type,x.contestClass,players,i)+'</select></div>';
     }).join(''):'';
     const nameWraps=x.name&&x.name.trim().split(/\s+/).filter(Boolean).length>=2;
-    return '<div class="tp-card'+(isPast?' tp-past':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
+    return '<div class="tp-card'+(isPast?' tp-past':'')+(champOpen?' tp-champ-open':'')+'" data-tp-id="'+esc(String(x.id))+'" data-tp-date="'+esc(String(x.date||''))+'">'
       +'<div class="tp-name'+(nameWraps?' tp-name-wrap':'')+'">'+esc(x.name)+'</div>'
       +'<div class="tp-meta">'
       +'<div class="tp-date"><div>'+(tpDayLabel(x.date)?esc(tpDayLabel(x.date))+' · ':'')+esc(tpFormatDate(x.date))+'</div>'+(x.time?'<div>'+esc(x.time)+' Uhr</div>':compact?'':'<div>&nbsp;</div>')+'</div>'
       +'<span class="tp-type-locked-value">'+esc(tpCanonicalType(x.type)||'– keine –')+(x.contestClass?' · '+esc(x.contestClass):'')+'</span>'
       +(x.location?'<div class="tp-loc">📍 '+esc(x.location)+'</div>':'')
       +'</div>'
+      +resultHtml
       +(allowsPlayers && compact
         ? '<details class="tp-participants"'+(expandedParticipants.has(String(x.id))?' open':'')+'><summary>Teilnehmer'+(players.some(Boolean)?' · '+players.filter(Boolean).length:'')+'</summary>'
         : '')
@@ -5140,7 +5145,7 @@ async function tpSyncEventToFirebase(item){
 
   try{
     await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(item.id)).set({
-      ...(item.homepageFreigabe?{homepageFreigabe:item.homepageFreigabe}:{}),
+      ...(item.homepageFreigabe?{homepageFreigabe:item.homepageFreigabe}:{}),...(item.ergebnis?{ergebnis:item.ergebnis}:{}),
       id:String(item.id),name:String(item.name||''),date:String(item.date||''),time:String(item.time||''),
       reportedBy:String(item.reportedBy||''),players:[0,1,2,3].map(i=>String((item.players||[])[i]||'')),
       location:String(item.location||''),type:String(item.type||''),contestClass:String(item.contestClass||''),internal:!!item.internal,calendarExported:!!item.calendarExported,googleEventId:String(item.googleEventId||''),googleEventCalendarId:String(item.googleEventCalendarId||''),calendarExportedBeforeChange:!!item.calendarExportedBeforeChange,googleEventUpdated:String(item.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(item.googleSyncedFields),updatedAt:String(item.updatedAt||new Date().toISOString())
@@ -5998,7 +6003,7 @@ async function syncTournamentPlannerToFirebase(){if(isWhiteboardUser()){showToas
     let count=0;
     for(const x of (data.tournamentPlanner||[])){
       if(!x||!x.id)continue;
-      const payload={...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
+      const payload={...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),...(x.ergebnis?{ergebnis:x.ergebnis}:{}),id:String(x.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,calendarExported:!!x.calendarExported,googleEventId:String(x.googleEventId||''),googleEventCalendarId:String(x.googleEventCalendarId||''),calendarExportedBeforeChange:!!x.calendarExportedBeforeChange,googleEventUpdated:String(x.googleEventUpdated||''),googleSyncedFields:tpGoogleStoredFields(x.googleSyncedFields),updatedAt:String(x.updatedAt||new Date().toISOString())};
       await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(x.id)).set(payload),60000,'Firebase');
       count++;
     }
@@ -6036,6 +6041,7 @@ async function loadTournamentPlannerFromFirebase(forceServer=false, reportError=
     tpPlannerLoadedFromCache=!!snap.metadata?.fromCache;
     const list=[];
     snap.forEach(doc=>{const x=doc.data()||{};list.push({
+      ...(x.homepageFreigabe?{homepageFreigabe:x.homepageFreigabe}:{}),...(x.ergebnis?{ergebnis:x.ergebnis}:{}),
       id:String(x.id||doc.id),name:String(x.name||''),date:String(x.date||''),time:String(x.time||''),
       reportedBy:String(x.reportedBy||''),players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
       location:String(x.location||''),type:String(x.type||''),contestClass:String(x.contestClass||''),internal:!!x.internal,
