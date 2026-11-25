@@ -167,19 +167,66 @@ async function syncPlanner(){
     if(!date)continue;
     const name=state.title+' · '+ROUND_LABEL[k];
     let id=state.plannerIds[k],item=id?data.tournamentPlanner.find(x=>x&&x.id===id):null;
-    if(!item){id='tp_ms_'+k+'_'+Date.now();item={id,players:['','','',''],reportedBy:'',contestClass:'',addToTurnierWirtschaftlichkeit:false};data.tournamentPlanner.push(item);state.plannerIds[k]=id;}
-    Object.assign(item,{name,date,time:state.time||'',location:state.location||'',type:'Turnier intern',internal:true,updatedAt:new Date().toISOString()});
+    if(item){
+      // Vorhandener (verknüpfter) Termin: nur das Datum angleichen, Name und Angaben bleiben.
+      if(item.date===date)continue;
+      Object.assign(item,{date,updatedAt:new Date().toISOString()});
+    }else{
+      id='tp_ms_'+k+'_'+Date.now();item={id,players:['','','',''],reportedBy:'',contestClass:'',addToTurnierWirtschaftlichkeit:false};data.tournamentPlanner.push(item);state.plannerIds[k]=id;
+      Object.assign(item,{name,date,time:state.time||'',location:state.location||'',type:'Turnier intern',internal:true,updatedAt:new Date().toISOString()});
+    }
     await db().collection('tournamentPlanner').doc(id).set(JSON.parse(JSON.stringify(item)));n++;
   }
   try{window.save?.()}catch(e){}
-  await save(n+' Termine im Terminplaner eingetragen.');
+  await save(n?n+' Termine im Terminplaner eingetragen bzw. aktualisiert.':'Alle Termine stehen bereits im Terminplaner.');
   try{if(typeof renderTournamentPlannerAdminList==='function')renderTournamentPlannerAdminList();}catch(e){}
+}
+
+function plannerEvents(){
+  const list=(typeof data!=='undefined'&&Array.isArray(data.tournamentPlanner))?data.tournamentPlanner:[];
+  return list.filter(x=>x&&x.date&&!x.cancelled&&!x.abgesagt).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+const allKeys=()=>[...ROUND_KEYS,'finale'];
+const dateOf=k=>k==='finale'?state.finale.date:state.rounds[k].date;
+function setDate(k,v){if(k==='finale')state.finale.date=v;else state.rounds[k].date=v;}
+// Verknüpfte Termine: Datumsänderungen im Terminplaner automatisch übernehmen.
+function adoptPlannerDates(){
+  let changed=false;
+  for(const k of allKeys()){
+    const id=state.plannerIds[k];if(!id)continue;
+    const ev=plannerEvents().find(x=>x.id===id);
+    if(ev&&ev.date&&ev.date!==dateOf(k)){setDate(k,ev.date);changed=true;}
+  }
+  return changed;
+}
+// Vorhandene Termine mit „Solo“ im Namen der Reihe nach zuordnen (3 Vorrunden + Finale).
+async function importFromPlanner(){
+  const today=new Date().toISOString().slice(0,10);
+  const found=plannerEvents().filter(x=>/solo/i.test(x.name||'')&&!/pyramide/i.test(x.name||'')&&x.date>=today);
+  if(!found.length)return toast('Im Terminplaner wurden keine kommenden Termine mit „Solo“ im Namen gefunden. Termine einzeln über die Auswahl „aus Terminplaner“ zuordnen.',8000);
+  const fin=found.find(x=>/finale/i.test(x.name||''));
+  const rest=found.filter(x=>x!==fin);
+  const pick=[...ROUND_KEYS.map((k,i)=>[k,rest[i]]),['finale',fin||rest[3]]].filter(([,x])=>x);
+  if(!confirm('Folgende Termine übernehmen?\n'+pick.map(([k,x])=>ROUND_LABEL[k]+': '+deDate(x.date)+' · '+x.name).join('\n')))return;
+  for(const [k,x] of pick){setDate(k,x.date);state.plannerIds[k]=x.id;}
+  await save(pick.length+' Termine aus dem Terminplaner übernommen.');
+}
+async function linkPlanner(k,id){
+  const ev=plannerEvents().find(x=>x.id===id);if(!ev)return;
+  setDate(k,ev.date);state.plannerIds[k]=ev.id;
+  await save(ROUND_LABEL[k]+': Termin '+deDate(ev.date)+' übernommen.');
+}
+function plannerSelect(k){
+  const today=new Date().toISOString().slice(0,10),linked=state.plannerIds[k];
+  const evs=plannerEvents().filter(x=>x.date>=today||x.id===linked);
+  return '<select data-ms-link="'+k+'" title="Termin aus dem Terminplaner übernehmen"><option value="">aus Terminplaner …</option>'
+    +evs.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===linked?' selected':'')+'>'+deDate(x.date)+' · '+esc(x.name||'')+'</option>').join('')+'</select>';
 }
 
 /* ---------- Kassenliste ---------- */
 function printCashList(k){
-  const isF=k==='finale',date=isF?state.finale.date:state.rounds[k].date;
-  const names=isF?finaleNames():state.rounds[k].players.map(p=>p.name);
+  if(k==='finale')return;
+  const date=state.rounds[k].date,names=state.rounds[k].players.map(p=>p.name);
   const rows=Array.from({length:Math.max(names.length,MAX_PLAYERS)},(_,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(names[i]||'')+'</td><td class="r">'+euro(state.fee)+'</td><td class="c">☐</td><td></td></tr>').join('');
   const html='<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Kassenliste</title><style>body{font:14px Arial,sans-serif;margin:18mm}h1{font-size:20px;margin:0 0 4px}p{margin:0 0 14px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:8px 6px;height:22px}th{background:#eee;text-align:left}.r{text-align:right;width:80px}.c{text-align:center;width:70px;font-size:18px}td:first-child{width:30px;text-align:center}tfoot td{font-weight:bold}</style></head><body>'
     +'<h1>'+esc(state.title)+' · '+ROUND_LABEL[k]+'</h1><p>Montag, '+deDate(date)+(state.time?' · '+esc(state.time)+' Uhr':'')+' · Startgeld '+euro(state.fee)+' pro Spieler</p>'
@@ -211,7 +258,7 @@ function roundCard(k){
   const r=state.rounds[k],paid=r.players.filter(p=>p.paid).length;
   const opts=playerOptions().filter(n=>!r.players.some(p=>sameName(p.name,n)));
   const other=n=>ROUND_KEYS.filter(x=>x!==k&&state.rounds[x].players.some(p=>sameName(p.name,n))).map(x=>ROUND_LABEL[x]);
-  return '<div class="card ms-card"><div class="ms-head"><h3>'+ROUND_LABEL[k]+'</h3><label>Montag <input type="date" data-ms-date="'+k+'" value="'+esc(r.date)+'"></label></div>'
+  return '<div class="card ms-card"><div class="ms-head"><h3>'+ROUND_LABEL[k]+'</h3><div class="ms-dates"><label>Montag <input type="date" data-ms-date="'+k+'" value="'+esc(r.date)+'"></label>'+plannerSelect(k)+'</div></div>'
     +'<div class="ms-players">'+(r.players.length?r.players.map((p,i)=>'<div class="ms-player"><span class="ms-n">'+(i+1)+'.</span><span class="ms-name">'+esc(p.name)+(other(p.name).length?' <span class="small">(auch '+other(p.name).join(', ')+')</span>':'')+'</span><label class="ms-paid"><input type="checkbox" data-ms-paid="'+k+'" data-i="'+i+'"'+(p.paid?' checked':'')+'> bezahlt</label>'+(r.result?'':'<button type="button" class="ms-x" data-ms-remove="'+k+'" data-i="'+i+'" title="Entfernen">✕</button>')+'</div>').join(''):'<div class="small">Noch keine Spieler eingetragen.</div>')+'</div>'
     +(r.players.length<MAX_PLAYERS&&!r.result?'<div class="row ms-add"><select data-ms-pick="'+k+'"><option value="">Spieler aus der Spielerliste …</option>'+opts.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><input type="text" data-ms-free="'+k+'" placeholder="oder Name eingeben"><button type="button" data-ms-add="'+k+'">Hinzufügen</button></div>':'')
     +'<div class="small">'+r.players.length+' von '+MAX_PLAYERS+' Spielern · bezahlt '+paid+' · kassiert '+euro(paid*state.fee)+'</div>'
@@ -220,28 +267,28 @@ function roundCard(k){
 }
 function finaleCard(){
   syncFinaleSlots();
-  const f=state.finale,complete=finaleComplete(),paid=f.slots.filter(s=>s.paid&&s.status==='ok'&&s.name).length;
+  const f=state.finale,complete=finaleComplete();
   const slotRow=s=>{
     const label=ROUND_LABEL[s.from]+' · '+(s.substitute?'Nachrücker':s.rank+'. Platz');
     if(!s.name)return '<div class="ms-player ms-open"><span class="ms-name small">'+label+': noch offen</span></div>';
     const res=availableReserves(s.from);
     return '<div class="ms-player'+(s.status==='abgesagt'?' ms-off':'')+'"><span class="ms-name">'+esc(s.name)+' <span class="small">'+label+'</span></span>'
-      +(s.status==='ok'?'<label class="ms-paid"><input type="checkbox" data-ms-fpaid="'+s.from+'" data-slot="'+s.slot+'"'+(s.paid?' checked':'')+'> bezahlt</label><button type="button" data-ms-cancel="'+s.from+'" data-slot="'+s.slot+'">Kann nicht</button>'
+      +(s.status==='ok'?'<button type="button" data-ms-cancel="'+s.from+'" data-slot="'+s.slot+'">Kann nicht</button>'
         :'<span class="small">abgesagt</span>'+(res.length?'<select data-ms-sub="'+s.from+'" data-slot="'+s.slot+'"><option value="">Nachrücker wählen …</option>'+res.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select>':'<span class="small"> – kein Nachrücker vorgemerkt</span>')+'<button type="button" data-ms-undo="'+s.from+'" data-slot="'+s.slot+'">Rückgängig</button>')
       +'</div>';
   };
-  return '<div class="card ms-card"><div class="ms-head"><h3>Finale</h3><label>Montag <input type="date" data-ms-date="finale" value="'+esc(f.date)+'"></label></div>'
+  return '<div class="card ms-card"><div class="ms-head"><h3>Finale</h3><div class="ms-dates"><label>Montag <input type="date" data-ms-date="finale" value="'+esc(f.date)+'"></label>'+plannerSelect('finale')+'</div></div>'
     +'<div class="small">Die besten '+FINAL_PER_ROUND+' jeder Vorrunde werden automatisch eingetragen. Kann ein Spieler nicht, „Kann nicht“ drücken und einen vorgemerkten Nachrücker derselben Vorrunde wählen.</div>'
     +'<div class="ms-players">'+f.slots.map(slotRow).join('')+'</div>'
-    +'<div class="small">'+finaleNames().length+' von '+f.slots.length+' Finalplätzen besetzt'+(f.slots.length?' · bezahlt '+paid+' · kassiert '+euro(paid*state.fee):'')+'</div>'
-    +'<div class="row ms-actions"><button type="button" data-ms-skmr="finale"'+(complete?'':' disabled title="Erst möglich, wenn alle Finalplätze besetzt sind"')+'>StockTV-Datei (.skmr) erstellen</button><button type="button" data-ms-cash="finale"'+(finaleNames().length?'':' disabled')+'>Kassenliste drucken</button><label class="ms-file">Ergebnis-Datei (.skmr) einlesen<input type="file" accept=".skmr,.xml" data-ms-result="finale"></label>'+(f.result?'<button type="button" data-ms-clear="finale">Ergebnis entfernen</button>':'')+'</div>'
+    +'<div class="small">'+finaleNames().length+' von '+f.slots.length+' Finalplätzen besetzt · im Finale ist kein Startgeld zu bezahlen</div>'
+    +'<div class="row ms-actions"><button type="button" data-ms-skmr="finale"'+(complete?'':' disabled title="Erst möglich, wenn alle Finalplätze besetzt sind"')+'>StockTV-Datei (.skmr) erstellen</button><label class="ms-file">Ergebnis-Datei (.skmr) einlesen<input type="file" accept=".skmr,.xml" data-ms-result="finale"></label>'+(f.result?'<button type="button" data-ms-clear="finale">Ergebnis entfernen</button>':'')+'</div>'
     +(complete?'':'<div class="small">StockTV-Datei für das Finale erst, wenn das Finale komplett ist.</div>')
     +resultTable(f.result,'finale')+'</div>';
 }
 function css(){
   if(document.getElementById('msCss'))return;
   const s=document.createElement('style');s.id='msCss';
-  s.textContent='.ms-card{margin-bottom:12px}.ms-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.ms-head h3{margin:0}.ms-head input{width:auto!important;margin:0!important}'
+  s.textContent='.ms-card{margin-bottom:12px}.ms-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.ms-head h3{margin:0}.ms-head input,.ms-head select{width:auto!important;margin:0!important}.ms-dates{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ms-dates select{max-width:260px}'
    +'.ms-players{display:grid;gap:4px;margin:10px 0}.ms-player{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(0,0,0,.18)}'
    +'.ms-player .ms-name{flex:1}.ms-n{width:24px;opacity:.7}.ms-paid,.ms-res{display:flex;align-items:center;gap:6px;white-space:nowrap;margin:0!important}.ms-paid input,.ms-res input{width:auto!important;margin:0!important}'
    +'.ms-off .ms-name{text-decoration:line-through;opacity:.6}.ms-open{opacity:.7;border-style:dashed}.ms-x{padding:4px 9px!important;min-height:0!important}'
@@ -259,7 +306,7 @@ function render(){
     +'<label>Beginn<input type="time" data-ms-set="time" value="'+esc(state.time)+'"></label>'
     +'<label style="flex:1">Ort<input type="text" data-ms-set="location" value="'+esc(state.location)+'"></label>'
     +'<label>Startgeld €<input type="number" min="0" step="0.5" data-ms-set="fee" value="'+esc(state.fee)+'" style="width:90px"></label></div>'
-    +'<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px"><button type="button" class="primary" data-ms-planner>4 Montage in den Terminplaner eintragen</button><button type="button" data-ms-new>Neues Montags Solo beginnen</button></div>'
+    +'<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px"><button type="button" class="primary" data-ms-planner>4 Montage in den Terminplaner eintragen</button><button type="button" data-ms-fromplanner>Termine aus dem Terminplaner übernehmen</button><button type="button" data-ms-new>Neues Montags Solo beginnen</button></div>'
     +'<div class="small" style="margin-top:6px">3 Vorrunden mit je höchstens '+MAX_PLAYERS+' Spielern, die besten '+FINAL_PER_ROUND+' jeder Vorrunde spielen das Finale. Alles wird sofort gespeichert'+(state.updatedAt?' · zuletzt '+new Date(state.updatedAt).toLocaleString('de-DE'):'')+'.</div>'
     +(lastError?'<div class="small" style="color:#ff9d9d">'+esc(lastError)+'</div>':'')+'</div>'
     +ROUND_KEYS.map(roundCard).join('')+finaleCard()
@@ -300,6 +347,7 @@ async function onClick(e){
       if(s.substitute){const q=qualifiersOf(s.from)[s.slot];Object.assign(s,{name:q?.name||'',rank:s.slot+1,substitute:false});}
       s.status='ok';await save();
     }else if('msPlanner' in d){await syncPlanner();}
+    else if('msFromplanner' in d){await importFromPlanner();}
     else if('msNew' in d){
       if(!confirm('Das aktuelle Montags Solo abschließen und ein neues beginnen? Spieler und Ergebnisse werden ins Archiv verschoben.'))return;
       const winner=state.finale.result?.rows?.[0]?.name||'';
@@ -313,6 +361,7 @@ async function onChange(e){
   const t=e.target,d=t.dataset;if(!state)return;
   try{
     if('msSet' in d){state[d.msSet]=d.msSet==='fee'?Number(t.value)||0:t.value;await save();}
+    else if('msLink' in d){if(t.value)await linkPlanner(d.msLink,t.value);else{delete state.plannerIds[d.msLink];await save();}}
     else if('msDate' in d){if(d.msDate==='finale')state.finale.date=t.value;else state.rounds[d.msDate].date=t.value;await save();}
     else if('msPaid' in d){const p=state.rounds[d.msPaid].players[+d.i];if(p){p.paid=t.checked;await save();}}
     else if('msFpaid' in d){const s=slotOf(d.msFpaid,d.slot);if(s){s.paid=t.checked;await save();}}
@@ -356,7 +405,7 @@ async function open(){
   const root=a.querySelector('#msRoot');
   root.addEventListener('click',onClick);root.addEventListener('change',onChange);
   state=null;lastError='';render();
-  try{await load();}catch(e){lastError='Laden fehlgeschlagen: '+(e.code||e.message);}
+  try{await load();if(adoptPlannerDates())await save('Geänderte Termine aus dem Terminplaner übernommen.');}catch(e){lastError='Laden fehlgeschlagen: '+(e.code||e.message);}
   render();
 }
 window.ECWMontagsSolo={open,parseSkmr,normalize,_test:{set:s=>{state=normalize(s)},get:()=>state,render,syncFinaleSlots,finaleComplete,finaleNames,availableReserves}};
