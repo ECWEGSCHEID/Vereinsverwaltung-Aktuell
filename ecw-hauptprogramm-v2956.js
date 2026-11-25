@@ -3728,6 +3728,8 @@ function renderTournaments(){
 /* ===== Zeitungsberichte als Mosaik: echte Form, weiße Ränder abgeschnitten, ohne Scrollen ===== */
 const pressCropCache=new Map();
 function pressCrop(src,key){
+ // Schlüssel enthält die Bildquelle: wird das Bild ersetzt (z. B. nach dem Nachladen), wird neu berechnet.
+ key=key+'|'+String(src||'').length+'|'+String(src||'').slice(-40);
  if(pressCropCache.has(key))return pressCropCache.get(key);
  const p=new Promise(resolve=>{
   const img=new Image();
@@ -3751,13 +3753,13 @@ function pressCrop(src,key){
     box.a=(box.w*W)/(box.h*H);resolve(box);
    }catch(e){resolve(full);}
   };
-  img.onerror=()=>resolve({x:0,y:0,w:1,h:1,a:210/297});
+  img.onerror=()=>resolve({x:0,y:0,w:1,h:1,a:210/297,failed:true});
   img.src=src;
  });
  pressCropCache.set(key,p);return p;
 }
 function pressCropHtml(src,box,alt,share=1){
- return '<div class="press-crop" style="width:'+(share*100).toFixed(3)+'%"><img src="'+src+'" alt="'+esc(alt||'Zeitungsbericht')+'" style="width:'+(100/box.w).toFixed(3)+'%;height:'+(100/box.h).toFixed(3)+'%;left:'+(-100*box.x/box.w).toFixed(3)+'%;top:'+(-100*box.y/box.h).toFixed(3)+'%"></div>';
+ return '<div class="press-crop" style="width:'+(share*100).toFixed(3)+'%"><img src="'+src+'" alt="'+esc(alt||'Zeitungsbericht')+'" style="width:'+(100/box.w).toFixed(3)+'%;height:auto;left:'+(-100*box.x/box.w).toFixed(3)+'%;top:'+(-100*box.y/box.h).toFixed(3)+'%"></div>';
 }
 let pressMosaicToken=0;
 async function renderPressMosaic(c,items){
