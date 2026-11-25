@@ -691,6 +691,11 @@ body.tv-preview-open{overflow:hidden!important}
  #startseite.active #shGear,#startseite.active #shFs{position:fixed;bottom:12px}
  .view.active:not(#startseite){min-height:100dvh;height:auto;overflow-y:auto}
 }
+/* Tablet: Zeitungsberichte und Fotos berechnen ihr Layout aus der Bildschirmhöhe.
+   Mit height:auto wäre der Inhaltsbereich 0 px hoch (Mosaik „Seite 1 von 22“, Diashow unsichtbar). */
+@media (max-width:1199px), (pointer:coarse) and (max-width:1366px) {
+ #tournaments.view.active,#photos.view.active,#sponsorPhotos.view.active{height:100dvh;min-height:0;overflow:hidden}
+}
 @media(max-width:600px){
  #startseite.active #shStage{padding-inline:12px}
  #startseite.active #shTitle2{font-size:27px;margin:12px 0 20px}
