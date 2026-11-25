@@ -3761,6 +3761,72 @@ function pressCrop(src,key){
 function pressCropHtml(src,box,alt,share=1){
  return '<div class="press-crop" style="width:'+(share*100).toFixed(3)+'%"><img src="'+src+'" alt="'+esc(alt||'Zeitungsbericht')+'" style="width:'+(100/box.w).toFixed(3)+'%;height:auto;left:'+(-100*box.x/box.w).toFixed(3)+'%;top:'+(-100*box.y/box.h).toFixed(3)+'%"></div>';
 }
+/* ===== Doppelte Zeitungsberichte finden (Bildvergleich, unabhängig von Dateiname und Rand) ===== */
+const pressHashCache=new Map();
+function pressHash(src){
+ const key=String(src||'').length+'|'+String(src||'').slice(-40);
+ if(pressHashCache.has(key))return pressHashCache.get(key);
+ const p=(async()=>{
+   const box=await pressCrop(src,'dup');
+   return await new Promise(resolve=>{
+     const img=new Image();
+     img.onload=()=>{try{
+       const W=img.naturalWidth,H=img.naturalHeight,cw=48,ch=48;
+       const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+       const ctx=cv.getContext('2d',{willReadFrequently:true});
+       ctx.imageSmoothingQuality='high';
+       ctx.drawImage(img,box.x*W,box.y*H,box.w*W,box.h*H,0,0,cw,ch);
+       const d=ctx.getImageData(0,0,cw,ch).data,g=new Float32Array(cw*ch);let m=0;
+       for(let k=0;k<cw*ch;k++){g[k]=d[k*4]*0.3+d[k*4+1]*0.59+d[k*4+2]*0.11;m+=g[k];}
+       m/=cw*ch;let n=0;for(let k=0;k<g.length;k++){g[k]-=m;n+=g[k]*g[k];}
+       n=Math.sqrt(n)||1;for(let k=0;k<g.length;k++)g[k]/=n;
+       resolve({v:g,a:box.a});
+     }catch(e){resolve(null)}};
+     img.onerror=()=>resolve(null);img.src=src;
+   });
+ })();
+ pressHashCache.set(key,p);return p;
+}
+function pressHashScore(h1,h2){let c=0;for(let k=0;k<h1.v.length;k++)c+=h1.v[k]*h2.v[k];return c;}
+function pressHashSimilar(h1,h2){
+ if(!h1||!h2)return false;
+ if(Math.abs(h1.a-h2.a)/Math.max(h1.a,h2.a)>0.08)return false;
+ return pressHashScore(h1,h2)>=0.93;
+}
+async function pressFindDuplicates(){
+ const out=document.getElementById('zrDupResult');if(!out)return;
+ tCollection='pressReports';normalizePressReportsFlat();
+ const arr=data.pressReports[PRESS_REPORTS_GROUP]||[];
+ out.innerHTML='<div class="small">Berichte werden verglichen …</div>';
+ try{await hydrateMedia()}catch(e){}
+ const entries=[];let missing=0;
+ for(let i=0;i<arr.length;i++){
+   const x=arr[i];if(!x)continue;
+   if(!x.data){missing++;continue;}
+   const pages=[await pressHash(x.data)];if(x.data2)pages.push(await pressHash(x.data2));
+   entries.push({i,x,pages});
+   if(entries.length%10===0)out.innerHTML='<div class="small">Berichte werden verglichen … '+entries.length+' von '+arr.filter(Boolean).length+'</div>';
+ }
+ const parent=entries.map((_,k)=>k),find=k=>parent[k]===k?k:(parent[k]=find(parent[k]));
+ for(let a=0;a<entries.length;a++)for(let b=a+1;b<entries.length;b++){
+   const same=String(entries[a].x.name||'')!==''&&entries[a].x.name===entries[b].x.name&&entries[a].x.data===entries[b].x.data;
+   if(same||entries[a].pages.some(p=>entries[b].pages.some(q=>pressHashSimilar(p,q))))parent[find(b)]=find(a);
+ }
+ const groups={};entries.forEach((e,k)=>{(groups[find(k)]=groups[find(k)]||[]).push(e)});
+ const dup=Object.values(groups).filter(g=>g.length>1);
+ const note=missing?' · '+missing+' Bericht(e) ohne geladenes Bild nicht geprüft':'';
+ if(!dup.length){out.innerHTML='<div class="small" style="color:#a5f2c2">Keine doppelten Berichte gefunden ('+entries.length+' geprüft'+note+').</div>';return;}
+ out.innerHTML='<div class="small" style="margin-bottom:8px">'+dup.length+' Gruppe(n) mit gleichen Berichten gefunden ('+entries.length+' geprüft'+note+'). Pro Gruppe genügt ein Bericht – die anderen löschen und danach unten „Zeitungsberichte speichern“.</div>'
+  +dup.map((g,gi)=>'<div style="border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:8px;margin-bottom:8px"><div class="small" style="margin-bottom:6px">Gruppe '+(gi+1)+'</div><div style="display:flex;gap:10px;flex-wrap:wrap">'
+   +g.map(e=>'<div style="width:150px;text-align:center"><img src="'+e.x.data+'" alt="" style="width:150px;height:190px;object-fit:contain;background:#fff;border-radius:6px;cursor:zoom-in" onclick="openInvitationZoom(data.pressReports[PRESS_REPORTS_GROUP]['+e.i+'])"><div class="small" style="word-break:break-all;margin:4px 0">Nr. '+(e.i+1)+(e.x.data2?' · 2 Seiten':'')+'<br>'+esc(e.x.name||'')+'</div><button type="button" onclick="pressDeleteDuplicate('+e.i+')">Löschen</button></div>').join('')
+   +'</div></div>').join('');
+}
+async function pressDeleteDuplicate(i){
+ tCollection='pressReports';
+ const before=(data.pressReports[PRESS_REPORTS_GROUP]||[]).length;
+ await deleteTournament(PRESS_REPORTS_GROUP,i);
+ if((data.pressReports[PRESS_REPORTS_GROUP]||[]).length!==before)pressFindDuplicates();
+}
 let pressMosaicToken=0;
 async function renderPressMosaic(c,items){
  const token=++pressMosaicToken;
@@ -6892,7 +6958,8 @@ function adminSection(s){
    +'<div class="card"><label>Zeitungsberichte hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg">'
    +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>Aktuellen Upload paarweise zusammenfassen (1+2, 3+4, …)</span></label>'
    +'<div class="small" style="margin-top:6px">Alle Berichte werden gemeinsam gespeichert. Standard: jede Seite einzeln. Wenn aktiviert, werden die Seiten dieses Uploads paarweise zusammengefasst: 1+2, 3+4 usw.</div>'
-   +'<div class="row" style="margin-top:10px"><button type="button" onclick="pressRecoverOrphanedLocalMedia()">Lokale Berichte wiederherstellen</button></div>'
+   +'<div class="row" style="margin-top:10px"><button type="button" onclick="pressRecoverOrphanedLocalMedia()">Lokale Berichte wiederherstellen</button><button type="button" onclick="pressFindDuplicates()">Doppelte Berichte suchen</button></div>'
+   +'<div id="zrDupResult" style="margin-top:10px"></div>'
    +'<div id="firebasePressReportInfo" class="small" style="margin-top:10px"></div></div>'
    +'<h3>Vorhandene Zeitungsberichte</h3><div class="card"><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div>'
    +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="savePressReportFiles()">Zeitungsberichte speichern</button></div>';
