@@ -269,6 +269,7 @@ function render(container, name, data) {
 
 /* Lädt alle Quellen parallel. Eine fehlende Quelle blendet nur ihren Abschnitt aus. */
 function rankingEntry(doc, name) {
+  if (doc?.visible !== true) return null;
   const rows = Array.isArray(doc?.rows) ? doc.rows : [];
   const own = rows.find(r => sameName(r.name, name));
   return own ? {season: clean(doc.season), rank: own.rank, of: rows.length, total: own.total, parts: Array.isArray(own.parts) ? own.parts : []} : null;
