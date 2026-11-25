@@ -149,6 +149,7 @@ main:has(#overview:not([hidden])) #detail{padding:10px 6px;border-radius:14px;bo
 .my-list{list-style:none;margin:0;padding:4px 10px 8px;background:#2c292d;border:1px solid #4c4248;border-top:0;border-radius:0 0 10px 10px;display:grid;gap:5px}
 .my-list li{display:grid;grid-template-columns:78px 1fr;gap:6px;font-size:13px}
 .my-list time{color:#e9d7db}
+.my-rank-list li{grid-template-columns:1fr auto}
 #myresults-picker{display:grid;gap:8px;margin-top:10px}
 .planner-event{padding:10px 12px;background:#2c292d;border:1px solid #4c4248;border-radius:10px;overflow-wrap:anywhere}
 .planner-event h2{font-size:16px;margin:3px 0 7px}
@@ -247,9 +248,9 @@ main:has(#menu:not([hidden])){
 #invitation-prev{margin:0 0 10px;background:#302529;border-color:#6f626b}
 [hidden]{display:none!important}
 </style>
-<script src="ecw-site-base.js?v=3.1.85.251126"></script>
+<script src="ecw-site-base.js?v=3.1.86.251126"></script>
 <script src="ecw-cup-results.js?v=20261121-meine"></script>
-<script src="js/ecw-meine-ergebnisse.js?v=9-montags-solo"></script>
+<script src="js/ecw-meine-ergebnisse.js?v=10-rangliste"></script>
 <script src="js/ecw-mein-ueberblick.js?v=8"></script>
 <script src="js/ecw-letzte-ergebnisse.js?v=2"></script>
 <link rel="stylesheet" href="css/cup-team-results.css?v=3.1.36.181126">
@@ -708,6 +709,7 @@ async function showMyResultsFor(name, signal) {
     loadCups: () => window.ecwLoadCupTournaments(signal),
     loadChampionship: async () => (await getDocFromServer(doc(db, 'turnierauswertung', 'jahresmeisterschaft'))).data()?.state,
     loadMontagsSolo: async () => (await getDocFromServer(doc(db, 'turnierauswertung', 'montagsSolo'))).data() || null,
+    loadRanking: async () => (await getDocFromServer(doc(db, 'turnierauswertung', 'rangliste'))).data() || null,
     loadPyramid: async () => {
       if (!(await readPyramidActive())) return null;
       // Erst mit der Mitglieder-Anmeldung lesen; klappt das nicht, über die
