@@ -5,7 +5,7 @@
    Foto: eigenes Dokument meisterschaftsFotos/{id}, damit der Terminplaner klein und schnell bleibt. */
 (function(){
 'use strict';
-const PFLICHT_AB='2027-01-01';
+const PFLICHT_AB='2026-01-01';
 const FOTO_COLL='meisterschaftsFotos';
 const fotoCache=new Map();
 let current=null,pendingPhoto=undefined;
