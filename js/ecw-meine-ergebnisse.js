@@ -65,6 +65,8 @@ function participations(events, name, today = todayVienna()) {
     if (!date) continue;
     const row = {date, name: clean(x.name) || 'Ohne Bezeichnung', location: clean(x.location),
       type: type === 'turnier' ? 'Turnier' : 'Meisterschaft', upcoming: date >= today};
+    const erg = x.ergebnis;
+    if (erg && Number(erg.platz) > 0) row.result = 'Platz ' + Number(erg.platz) + (Number(erg.von) > 0 ? ' von ' + Number(erg.von) : '');
     const key = [row.date, row.name, row.location].join('|');
     if (seen.has(key)) continue;
     seen.add(key);
@@ -226,7 +228,7 @@ function render(container, name, data) {
     for (const x of played) {
       const item = el('li', null, list);
       el('time', deDate(x.date), item);
-      el('span', x.name + (x.location ? ' · ' + x.location : ''), item);
+      el('span', x.name + (x.location ? ' · ' + x.location : '') + (x.result ? ' · 🏆 ' + x.result : ''), item);
     }
     shown++;
   }
