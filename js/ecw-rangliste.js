@@ -17,8 +17,12 @@ const TYPES={
   jm:{label:'Ziel-Jahresmeisterschaft',max:120},
   vm:{label:'Vereinsmeisterschaft (zusammengelost)',max:40}
 };
-const CATEGORIES=['Frauencup','Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft'];
-const DEFAULT_TYPE={'Frauencup':'group','Duo Cup':'group','Montags Solo':'round','Solo Cup':'round','Solo Pyramide':'pyramid','Ziel-JM':'jm','Vereinsmeisterschaft':'vm'};
+const CATEGORIES=['Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft','Frauencup','Frauen Solo Pyramide'];
+// Frauenwertung: eigene Rangliste aus Frauencup, Vereinsmeisterschaft und Frauen Solo Pyramide.
+// Frauencup und Frauen Solo Pyramide zählen nur dort, nicht in der allgemeinen Rangliste.
+const WOMEN_CATS=['Frauencup','Vereinsmeisterschaft','Frauen Solo Pyramide'],WOMEN_ONLY=['Frauencup','Frauen Solo Pyramide'];
+const inScope=(cat,scope)=>scope==='frauen'?WOMEN_CATS.includes(cat):!WOMEN_ONLY.includes(cat);
+const DEFAULT_TYPE={'Frauen Solo Pyramide':'pyramid','Frauencup':'group','Duo Cup':'group','Montags Solo':'round','Solo Cup':'round','Solo Pyramide':'pyramid','Ziel-JM':'jm','Vereinsmeisterschaft':'vm'};
 const PYR_WIN=8,PYR_LOSS=2;
 let cfg=null,result=null,busy=false,msg='',openEv=null;
 
@@ -79,7 +83,7 @@ async function load(){
   // ältere Version: nur StockTV-Ergebnisse ohne Kategorie
   cfg.events.forEach(ev=>{if(!ev.category)ev.category=ev.type==='vm'?'Vereinsmeisterschaft':'Duo Cup';if(!ev.season)ev.season=cfg.season;if(ev.type==='cupFinal')ev.type='final';
     if(!Array.isArray(ev.rows))ev.rows=[];ev.rows.forEach(r=>{if(!Array.isArray(r.players))r.players=[];});});
-  result=rl&&Array.isArray(rl.rows)?{rows:rl.rows,updatedAt:rl.updatedAt}:null;
+  result=rl&&Array.isArray(rl.rows)?{rows:rl.rows,rowsFrauen:Array.isArray(rl.rowsFrauen)?rl.rowsFrauen:[],updatedAt:rl.updatedAt}:null;
 }
 async function saveConfig(extra){
   if(!isAdmin())throw Error('Nur Administratoren dürfen die Rangliste bearbeiten.');
@@ -96,15 +100,21 @@ function countingSeasons(){
 const counts=(ev,latest)=>latest[ev.category]===ev.season;
 
 /* ---------- Berechnung ---------- */
-function compute(){
-  const ros=roster(),latest=countingSeasons(),people=new Map(),unknown=new Set();
+function isWoman(name,ros){
+  try{if(typeof tpGender==='function'){const g=tpGender(name);if(g==='Dame')return true;if(g==='Herr')return false;}}catch(e){}
+  // ohne Zuordnung in der Spielerliste: wer im Frauencup oder in der Frauen Solo Pyramide gespielt hat
+  const k=key(name);
+  return cfg.events.some(ev=>WOMEN_ONLY.includes(ev.category)&&(ev.rows.some(r=>r.players.some(p=>key(resolveName(p,ros))===k))||Object.keys(ev.games||{}).some(p=>key(resolveName(p,ros))===k)));
+}
+function compute(scope){
+  const ros=roster(),latest=Object.fromEntries(Object.entries(countingSeasons()).filter(([c])=>inScope(c,scope))),people=new Map(),unknown=new Set();
   // gleiche Person in verschiedener Schreibweise („Stadler Martin“ / „Martin Stadler“) zusammenführen
   const person=n=>{const k=key(n);if(!people.has(k))people.set(k,{name:ros.get(k)||n,total:0,parts:[],cats:new Set()});return people.get(k);};
   const bestRound=new Map(); // Kategorie|Saison|Spieler -> part
   // Startstand zuerst: dessen Schreibweise („Nachname Vorname“) wird für die Anzeige verwendet
   const evs=[...cfg.events].sort((a,b)=>(String(b.id).startsWith('ev_2526_')?1:0)-(String(a.id).startsWith('ev_2526_')?1:0));
   for(const ev of evs){
-    if(!counts(ev,latest)||!(ev.rows||[]).length)continue;
+    if(!inScope(ev.category,scope)||!counts(ev,latest)||!(ev.rows||[]).length&&!Object.keys(ev.games||{}).length)continue;
     const t=TYPES[ev.type]||TYPES.group,n=Number(ev.n)||ev.rows.length;
     for(const r of ev.rows){
       const pts=placePoints(t.max,Number(r.rank),n);
@@ -127,18 +137,19 @@ function compute(){
   }
   for(const {p,part} of bestRound.values()){const pr=person(p);pr.parts.push(part);pr.total+=part.points;pr.cats.add(part.category);}
   const cats=Object.keys(latest);
-  const list=[...people.values()].sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'));
+  const list=[...people.values()].filter(p=>scope!=='frauen'||isWoman(p.name,ros)).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'));
   let rank=0,prev=null;list.forEach((r,i)=>{if(r.total!==prev)rank=i+1;r.rank=rank;prev=r.total;r.all=cats.length>1&&cats.every(c=>r.cats.has(c));});
   return {rows:list,unknown:[...unknown].sort((a,b)=>a.localeCompare(b,'de')),cats};
 }
 async function publish(){
   if(busy)return;busy=true;msg='Wird berechnet …';render();
   try{
-    const r=compute();
-    const rows=r.rows.map(p=>({rank:p.rank,name:p.name,total:p.total,all:p.all,parts:p.parts}));
-    result={rows,updatedAt:new Date().toISOString()};
-    await saveConfig({season:cfg.season,rows,updatedAt:result.updatedAt,categories:r.cats});
-    msg='Rangliste berechnet: '+rows.length+' Spieler'+(cfg.visible?' · am Smartphone sichtbar':' · am Smartphone ausgeblendet')+(r.unknown.length?' · nicht in der Spielerliste (trotzdem gewertet, bitte prüfen): '+r.unknown.join(', '):'')+'.';
+    const r=compute('all'),w=compute('frauen');
+    const slim=x=>x.rows.map(p=>({rank:p.rank,name:p.name,total:p.total,all:p.all,parts:p.parts}));
+    const rows=slim(r),rowsFrauen=slim(w);
+    result={rows,rowsFrauen,updatedAt:new Date().toISOString()};
+    await saveConfig({season:cfg.season,rows,updatedAt:result.updatedAt,categories:r.cats,rowsFrauen,categoriesFrauen:w.cats});
+    msg='Rangliste berechnet: '+rows.length+' Spieler, Frauenwertung '+rowsFrauen.length+' Spielerinnen'+(cfg.visible?' · am Smartphone sichtbar':' · am Smartphone ausgeblendet')+(r.unknown.length?' · nicht in der Spielerliste (trotzdem gewertet, bitte prüfen): '+r.unknown.join(', '):'')+'.';
   }catch(e){msg='Fehler: '+(e.code||e.message);}
   finally{busy=false;render();}
 }
@@ -218,12 +229,12 @@ async function importFromApp(kind){
 /* ---------- Drucken ---------- */
 function printList(){
   if(!result||!result.rows.length)return toast('Noch keine Rangliste berechnet.');
-  const cats=CATEGORIES.filter(c=>result.rows.some(r=>r.parts.some(p=>p.category===c)));
   const sum=(r,c)=>r.parts.filter(p=>p.category===c).reduce((a,p)=>a+p.points,0);
-  const rows=result.rows.map(r=>'<tr><td>'+r.rank+'.</td><td>'+esc(r.name)+(r.all?' ★':'')+'</td>'+cats.map(c=>'<td class="r">'+(sum(r,c)||'–')+'</td>').join('')+'<td class="r"><b>'+r.total+'</b></td></tr>').join('');
+  const tbl=list=>{const cats=CATEGORIES.filter(c=>list.some(r=>r.parts.some(p=>p.category===c)));
+    return '<table><thead><tr><th>Pl.</th><th>Name</th>'+cats.map(c=>'<th class="r">'+esc(c)+'</th>').join('')+'<th class="r">Gesamt</th></tr></thead><tbody>'+list.map(r=>'<tr><td>'+r.rank+'.</td><td>'+esc(r.name)+(r.all?' ★':'')+'</td>'+cats.map(c=>'<td class="r">'+(sum(r,c)||'–')+'</td>').join('')+'<td class="r"><b>'+r.total+'</b></td></tr>').join('')+'</tbody></table>';};
   const latest=countingSeasons();
   const w=window.open('','_blank');if(!w)return toast('Bitte Pop-ups erlauben.');
-  w.document.write('<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Vereinsrangliste</title><style>@page{size:A4;margin:12mm}body{font:10pt Arial}h1{font-size:17pt;margin:0 0 3px}p{font-size:8.5pt;color:#444;margin:0 0 8px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #bbb;padding:3px 5px;text-align:left}th{background:#8b0000;color:#fff;font-size:8.5pt}.r{text-align:right}</style></head><body><h1>Vereinsrangliste EC Wegscheid</h1><p>Stand '+new Date(result.updatedAt).toLocaleDateString('de-DE')+' · gezählt: '+esc(Object.entries(latest).map(([c,s])=>c+' '+s).join(' · '))+' · ★ = bei allen Wettbewerben dabei</p><table><thead><tr><th>Pl.</th><th>Name</th>'+cats.map(c=>'<th class="r">'+esc(c)+'</th>').join('')+'<th class="r">Gesamt</th></tr></thead><tbody>'+rows+'</tbody></table><script>onload=()=>print()<\/script></body></html>');
+  w.document.write('<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Vereinsrangliste</title><style>@page{size:A4;margin:12mm}body{font:10pt Arial}h1{font-size:17pt;margin:0 0 3px}p{font-size:8.5pt;color:#444;margin:0 0 8px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #bbb;padding:3px 5px;text-align:left}th{background:#8b0000;color:#fff;font-size:8.5pt}.r{text-align:right}</style></head><body><h1>Vereinsrangliste EC Wegscheid</h1><p>Stand '+new Date(result.updatedAt).toLocaleDateString('de-DE')+' · gezählt: '+esc(Object.entries(latest).map(([c,s])=>c+' '+s).join(' · '))+' · ★ = bei allen Wettbewerben dabei</p>'+tbl(result.rows)+((result.rowsFrauen||[]).length?'<h1 style="margin-top:18px">Frauenwertung</h1><p>Frauencup · Vereinsmeisterschaft · Frauen Solo Pyramide</p>'+tbl(result.rowsFrauen):'')+'<script>onload=()=>print()<\/script></body></html>');
   w.document.close();
 }
 
@@ -243,10 +254,10 @@ function render(){
   if(!cfg){root.innerHTML='<div class="card">'+esc(msg||'Wird geladen …')+'</div>';return;}
   const latest=countingSeasons(),ros=roster();
   const sum=(r,c)=>r.parts.filter(p=>p.category===c).reduce((a,p)=>a+p.points,0);
-  const cats=CATEGORIES.filter(c=>result?.rows?.some(r=>r.parts.some(p=>p.category===c)));
-  const table=result&&result.rows.length?'<div style="overflow:auto"><table class="rl-table"><thead><tr><th>Pl.</th><th>Spieler</th>'+cats.map(c=>'<th class="r">'+esc(c)+'</th>').join('')+'<th class="r">Gesamt</th></tr></thead><tbody>'
-    +result.rows.map(r=>'<tr><td>'+r.rank+'.</td><td><details><summary>'+esc(r.name)+(r.all?' <span class="rl-star" title="bei allen Wettbewerben dabei">★</span>':'')+'</summary><ul class="rl-parts">'+r.parts.map(p=>'<li>'+esc(p.label)+(p.type==='pyramidGames'?': '+p.won+' Siege, '+p.lost+' Niederlagen':': Platz '+p.place+' von '+p.of)+' → <b>'+p.points+'</b></li>').join('')+'</ul></details></td>'+cats.map(c=>'<td class="r">'+(sum(r,c)||'–')+'</td>').join('')+'<td class="r"><b>'+r.total+'</b></td></tr>').join('')+'</tbody></table></div>'
-    +'<div class="small">Stand '+new Date(result.updatedAt).toLocaleString('de-DE')+' · ★ = bei allen Wettbewerben dabei</div>':'<div class="small">Noch keine Rangliste berechnet.</div>';
+  const tableOf=list=>{const cats=CATEGORIES.filter(c=>list.some(r=>r.parts.some(p=>p.category===c)));return list.length?'<div style="overflow:auto"><table class="rl-table"><thead><tr><th>Pl.</th><th>Spieler</th>'+cats.map(c=>'<th class="r">'+esc(c)+'</th>').join('')+'<th class="r">Gesamt</th></tr></thead><tbody>'
+    +list.map(r=>'<tr><td>'+r.rank+'.</td><td><details><summary>'+esc(r.name)+(r.all?' <span class="rl-star" title="bei allen Wettbewerben dabei">★</span>':'')+'</summary><ul class="rl-parts">'+r.parts.map(p=>'<li>'+esc(p.label)+(p.type==='pyramidGames'?': '+p.won+' Siege, '+p.lost+' Niederlagen':': Platz '+p.place+' von '+p.of)+' → <b>'+p.points+'</b></li>').join('')+'</ul></details></td>'+cats.map(c=>'<td class="r">'+(sum(r,c)||'–')+'</td>').join('')+'<td class="r"><b>'+r.total+'</b></td></tr>').join('')+'</tbody></table></div>'
+    +'<div class="small">Stand '+new Date(result.updatedAt).toLocaleString('de-DE')+' · ★ = bei allen Wettbewerben dabei</div>':'<div class="small">Noch keine Rangliste berechnet.</div>';};
+  const table=tableOf(result?.rows||[]),tableW=tableOf(result?.rowsFrauen||[]);
   const byCat=CATEGORIES.concat([...new Set(cfg.events.map(e=>e.category))].filter(c=>!CATEGORIES.includes(c)));
   const evHtml=byCat.map(c=>{const list=cfg.events.filter(e=>e.category===c).sort((a,b)=>seasonKey(b.season)-seasonKey(a.season)||String(a.date).localeCompare(String(b.date)));if(!list.length)return '';
     return '<h4 style="margin:12px 0 4px">'+esc(c)+(latest[c]?' <span class="rl-badge ok">zählt: '+esc(latest[c])+'</span>':'')+'</h4>'+list.map(ev=>{const i=cfg.events.indexOf(ev),on=counts(ev,latest),bad=ev.rows.some(r=>!r.players.length||r.players.some(p=>!known(p,ros)));
@@ -259,6 +270,7 @@ function render(){
     +'<label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" data-rl-visible'+(cfg.visible?' checked':'')+' style="width:auto;margin:0"> <b>Am Smartphone in „Meine Ergebnisse“ anzeigen</b></label>'
     +(msg?'<div class="small" style="margin-top:8px">'+esc(msg)+'</div>':'')+'</div>'
     +'<div class="card"><h3 style="margin-top:0">Rangliste</h3>'+table+'</div>'
+    +'<div class="card"><h3 style="margin-top:0">Frauenwertung</h3><div class="small" style="margin-bottom:6px">Frauencup · Vereinsmeisterschaft · Frauen Solo Pyramide. Spielerinnen: in der Spielerliste als „Dame“ zugeordnet oder im Frauencup / in der Frauen Solo Pyramide dabei.</div>'+tableW+'</div>'
     +'<div class="card"><h3 style="margin-top:0">Neues Ergebnis eintragen</h3>'
     +'<div class="small" style="margin-bottom:8px">Je Kategorie zählt nur die neueste Saison. Ein Ergebnis einer neuen Saison ersetzt automatisch alle Ergebnisse derselben Kategorie aus der Vorsaison.</div>'
     +'<div class="rl-form"><label>Kategorie<select id="rlNewCat">'+CATEGORIES.map(c=>'<option>'+esc(c)+'</option>').join('')+'</select></label>'

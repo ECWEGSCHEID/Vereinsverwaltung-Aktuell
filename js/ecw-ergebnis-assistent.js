@@ -20,11 +20,11 @@ const deDate=iso=>{const p=String(iso||'').slice(0,10).split('-');return p.lengt
 // Saison läuft von Dezember bis November (Vereinsmeisterschaft im November ist das letzte Event).
 function seasonOf(iso){const d=new Date((iso||'')+'T12:00:00');if(isNaN(d))return '';const y=d.getFullYear();return d.getMonth()>=11?y+'/'+String(y+1).slice(2):(y-1)+'/'+String(y).slice(2);}
 function guessCategory(name){const n=String(name||'').toLowerCase();
-  if(/montag/.test(n))return 'Montags Solo';if(/solo\s*cup/.test(n))return 'Solo Cup';if(/pyramide/.test(n))return 'Solo Pyramide';
+  if(/montag/.test(n))return 'Montags Solo';if(/solo\s*cup/.test(n))return 'Solo Cup';if(/pyramide/.test(n))return /frauen|damen/.test(n)?'Frauen Solo Pyramide':'Solo Pyramide';
   if(/duo/.test(n))return 'Duo Cup';if(/frauen|damen/.test(n))return 'Frauencup';if(/vereinsmeister/.test(n))return 'Vereinsmeisterschaft';if(/ziel/.test(n))return 'Ziel-JM';return '';}
 function guessType(cat,name){const n=String(name||'').toLowerCase();const fin=/finale|endrunde|endergebnis|abschluss/.test(n);
   if(cat==='Montags Solo'||cat==='Solo Cup')return fin?'soloFinal':'round';if(cat==='Duo Cup'||cat==='Frauencup')return fin?'final':'group';
-  return {'Solo Pyramide':'pyramid','Ziel-JM':'jm','Vereinsmeisterschaft':'vm'}[cat]||'group';}
+  return {'Solo Pyramide':'pyramid','Frauen Solo Pyramide':'pyramid','Ziel-JM':'jm','Vereinsmeisterschaft':'vm'}[cat]||'group';}
 
 /* ---------- Dateien lesen ---------- */
 function readBase64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(Error('Datei konnte nicht gelesen werden.'));r.onload=()=>res(String(r.result).split(',')[1]||'');r.readAsDataURL(blob);});}
@@ -194,7 +194,7 @@ function render(){
     +(st.internal?'<td><input type="text" data-ea-players="'+i+'" value="'+esc((r.players||[]).join(' / '))+'" placeholder="Spieler mit / trennen"></td>':'')
     +'<td class="small">'+esc(r.info||'')+(OWN.test(r.team)?' <b style="color:#7fd17f">EC Wegscheid</b>':'')+'</td><td><button type="button" data-ea-del="'+i+'">✕</button></td></tr>').join('');
   const fl=folders();
-  const cats=['Frauencup','Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft'];
+  const cats=['Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft','Frauencup','Frauen Solo Pyramide'];
   const types={group:'Gruppe / Vorrunde (Mannschaft)',final:'Abschlussturnier / Endergebnis (Mannschaft)',round:'Vorrunde Einzel',soloFinal:'Finale / Endrunde Einzel',pyramid:'Solo Pyramide Endstand',jm:'Ziel-Jahresmeisterschaft',vm:'Vereinsmeisterschaft'};
   const own=st.rows.filter(r=>OWN.test(r.team));
   root.innerHTML=head
