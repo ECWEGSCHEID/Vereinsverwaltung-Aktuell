@@ -4618,7 +4618,7 @@ var qrcode = function() {
 }));
 </script>
 <script src="js/turnier-historie-core.js?v=history-20261103-1"></script>
-<script src="js/ecw-homepage-test.js?v=24"></script>
+<script src="js/ecw-homepage-test.js?v=25"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -4958,6 +4958,7 @@ onAuthStateChanged(auth, async (user) => {
   if(liveStartPublicMode){
     loginScreen.classList.add("hidden");appScreen.classList.remove("hidden");document.body.classList.add('live-start-public');startLiveStartlistenViewer();showLiveStartliste();return;
   }
+  if (user) window.ecwHomepageTest?.setTokenProvider(() => auth.currentUser ? auth.currentUser.getIdToken() : null);
   if (!user) {
     if(embeddedInMain){
       loginScreen.classList.add("hidden");
