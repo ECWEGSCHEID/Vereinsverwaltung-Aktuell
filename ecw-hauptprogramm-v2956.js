@@ -8159,13 +8159,22 @@ if(!isPublicWhiteboardMode()){
 function ecwReservationAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  if(appPermissions.admin!==true){showToast('Nur für Administratoren.');return;}
- a.innerHTML='<h2>Reservierungssystem</h2>'+
- '<div class="card"><p>Neues Reservierungssystem mit deiner Verwaltungs-Anmeldung (Vollansicht wie am Informationssystem: alle Reservierungen, Buchen für andere Mitglieder).</p>'+
- '<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" onclick="ecwReservationReload()">Reservierung neu laden</button>'+
- '<button type="button" onclick="ecwReservationLoginAsInfosystem()">Zum Testen als Informationssystem anmelden</button>'+
- '<a href="ecw-reservierung-v2955.html" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">Altes Reservierungssystem ↗</a></div>'+
- '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="'+ecwReservationAdminUrl()+'" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
- '<p class="small">Die lokale Kopie funktioniert beim Öffnen über einen Webserver zuverlässig; Firebase benötigt eine Internetverbindung. Für den produktiven Betrieb die enthaltenen Dateien mit auf GitHub Pages hochladen.</p></div>'+ 
+ // Vollbild wie bei „Versammlungen“: Menü links ausgeblendet, Reservierung nutzt die ganze Fläche.
+ document.getElementById('admin').classList.add('meeting-wide');
+ a.classList.add('meeting-mode');
+ a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><h2 style="margin:0">Reservierungssystem</h2>'+
+ '<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" onclick="ecwReservationReload()">Neu laden</button>'+
+ '<button type="button" onclick="ecwReservationCompareView()">Namen vergleichen</button>'+
+ '<button type="button" onclick="ecwReservationLoginAsInfosystem()">Als Informationssystem anmelden</button>'+
+ '<a href="ecw-reservierung-v2955.html" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">Altes System ↗</a>'+
+ '<button type="button" onclick="renderAdminMenuLanding()">← Zurück zur Verwaltung</button></div></div>'+
+ '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="'+ecwReservationAdminUrl()+'" loading="eager" style="display:block;width:100%;flex:1;min-height:0;border:1px solid #777;border-radius:10px;background:#fff"></iframe>';
+}
+// Namensvergleich (Test) als eigene Ansicht
+function ecwReservationCompareView(){
+ const a=document.getElementById('adminMain');if(!a)return;
+ document.getElementById('admin')?.classList.remove('meeting-wide');a.classList.remove('meeting-mode');
+ a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Reservierungssystem – Namen vergleichen</h2><button type="button" onclick="ecwReservationAdmin()">← Zurück zur Reservierung</button></div>'+
  '<div class="card"><h3>Mitglieder mit Spielerliste vergleichen (Test)</h3>'+
  '<p>Füge die Namen aus dem Reservierungssystem ein – ein Name pro Zeile, oder importiere eine CSV-/TXT-Datei. Der Vergleich verwendet die vorhandene Terminplaner-Spielerliste. Er verändert keine Daten.</p>'+
  '<input type="file" id="ecwReservationNamesFile" accept=".csv,.txt,text/plain,text/csv" onchange="ecwReservationImportNames(this)">'+
