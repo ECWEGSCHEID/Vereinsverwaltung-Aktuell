@@ -6915,7 +6915,7 @@ function renderTurnierWirtschaftlichkeitAdmin(){
     +'loading="eager" referrerpolicy="same-origin"></iframe>';
 }
 
-const ECW_HOMEPAGE_EDITOR='https://ec-wegscheid-test-homepage.m-stadler1978.chatgpt.site/homepage-pflege';
+const ECW_HOMEPAGE_EDITOR='https://www.ec-wegscheid.de/homepage-pflege';
 function openHomepageEditor(area=''){
  const url=new URL(ECW_HOMEPAGE_EDITOR);
  if(area)url.searchParams.set('bereich',area);
