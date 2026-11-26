@@ -23,12 +23,18 @@ function hasResult(x){const e=x&&x.ergebnis;return !!(e&&Number(e.platz)>0);}
 function isOpen(x){return isChamp(x)&&dateOf(x)&&dateOf(x)<today()&&dateOf(x)>=PFLICHT_AB&&!hasResult(x);}
 function resultText(e){
   if(!e||!(Number(e.platz)>0))return '';
-  return 'Platz '+Number(e.platz)+(Number(e.von)>0?' von '+Number(e.von):'');
+  return Number(e.platz)+'.'+(Number(e.von)>0?' von '+Number(e.von):'');
 }
 // Kachel im Terminplaner (nur Meisterschaften, ab dem Spieltag).
+// Turniere (extern und als Ausrichter) zeigen ihr Ergebnis ebenfalls kompakt an, sobald eines eingetragen ist.
+const isTournament=x=>{const t=String(x&&x.type||'').toLowerCase();return /turnier/.test(t)&&!/intern/.test(t)&&x.internal!==true;};
 function cardHtml(x){
-  if(!isChamp(x)||!dateOf(x)||dateOf(x)>today())return '';
   const id=JSON.stringify(String(x.id)).replace(/"/g,'&quot;');
+  if(!isChamp(x)){
+    if(!isTournament(x)||!hasResult(x))return '';
+    return '<button type="button" class="tp-result tp-result-done" onclick="ECWMeisterschaftErgebnis.open('+id+')" title="Ergebnis ansehen'+(canEdit()?' / ändern':'')+'">🏆 '+esc(resultText(x.ergebnis))+(x.ergebnis.foto?' · 📷':'')+'</button>';
+  }
+  if(!dateOf(x)||dateOf(x)>today())return '';
   if(hasResult(x)){
     return '<button type="button" class="tp-result tp-result-done" onclick="ECWMeisterschaftErgebnis.open('+id+')" title="Ergebnis ansehen'+(canEdit()?' / ändern':'')+'">🏆 '+esc(resultText(x.ergebnis))+(x.ergebnis.foto?' · 📷':'')+'</button>';
   }
