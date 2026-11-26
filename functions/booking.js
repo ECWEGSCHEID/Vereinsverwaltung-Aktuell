@@ -31,6 +31,8 @@ function overlaps(existing, requested, playerName, uid) {
   if (existing?.date !== requested.date ||
       !(requested.timeFrom < existing.timeTo && requested.timeTo > existing.timeFrom)) return false;
   if (existing.resource === requested.resource || existing.ownerUid === uid) return true;
+  // Teilnehmer einer Vereinsheim-Buchung (z. B. Vorstandssitzung) blockieren keine Bahnen und umgekehrt.
+  if (existing.resource === 'Vereinsheim' || requested.resource === 'Vereinsheim') return false;
   const participants = [existing.bookedBy];
   for (const team of [existing.homeTeam, existing.guestTeam]) {
     if (Array.isArray(team)) participants.push(...team);
