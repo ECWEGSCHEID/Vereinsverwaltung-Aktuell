@@ -122,7 +122,7 @@ $('transfer-onedrive-save').onclick=async()=>{
  try{
   const r=skmrResult();renderMapping(r.mapping);
   if(!window.ecwOneDriveStore)throw Error('Die OneDrive-Dateiübergabe konnte nicht geladen werden. Bitte alle Update-Dateien hochladen und die Seite neu laden.');
-  if(!confirm(r.withPlayers?'Die befüllte SKMR-Datei für OneDrive bereitstellen? Im neuen Tab anmelden und dort das Speichern bestätigen.':'Nur Mannschaftsnamen für OneDrive bereitstellen? Die Spielernamen werden nicht übernommen.'))return;
+  if(!confirm(r.withPlayers?'Die befüllte SKMR-Datei in OneDrive (ECWegscheid/02.Auslosungen) speichern?':'Nur Mannschaftsnamen für OneDrive bereitstellen? Die Spielernamen werden nicht übernommen.'))return;
   tab=window.open('about:blank','_blank');
   if(!tab)throw Error('Bitte neue Tabs / Pop-ups für die Vereinsverwaltung erlauben und den OneDrive-Button erneut antippen.');
   tab.document.title='EC Wegscheid – OneDrive';tab.document.body.textContent='SKMR-Datei wird für OneDrive vorbereitet …';
@@ -130,7 +130,7 @@ $('transfer-onedrive-save').onclick=async()=>{
   const id=await window.ecwOneDriveStore.put(r.xml,filename.replace(/\.skmr$/i,'')+'_Auslosung.skmr');
   const target=new URL('ecw-onedrive.html',document.baseURI);target.hash='job='+id;
   tab.opener=null;tab.location.replace(target.href);
-  status('OneDrive-Seite geöffnet. Dort einmalig die Microsoft-App einrichten, anmelden und die Speicherung bestätigen. Bis dahin wurde nichts in OneDrive gespeichert.');
+  status('OneDrive-Seite geöffnet: Die Datei wird in „ECWegscheid/02.Auslosungen“ gespeichert (beim ersten Mal mit Microsoft anmelden).');
  }catch(e){if(tab&&!tab.closed)tab.close();status('OneDrive nicht gestartet: '+e.message);}
  finally{busy=false;$('transfer-onedrive-save').disabled=false;}
 };
