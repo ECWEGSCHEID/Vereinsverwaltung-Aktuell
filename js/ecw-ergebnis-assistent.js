@@ -74,12 +74,25 @@ function parseLines(lines){
   for(let i=start+1;i<rows.length;i++){const r=rows[i];if(r.rank<out[out.length-1].rank||r.rank===1)break;out.push(r);}
   return out;
 }
+// Spieler einer StockTV-Mannschaft: nur die innersten <Spieler>-Einträge, Vor- und Nachname zusammen
+function skmrPlayers(m){
+  const all=[...m.getElementsByTagName('Spieler')].filter(s=>!s.getElementsByTagName('Spieler').length);
+  const names=[];
+  for(const sp of all){
+    const kids=[...sp.children];if(!kids.length){const t=clean(sp.textContent);if(t)names.push(t);continue;}
+    const get=re=>clean(kids.find(c=>re.test(c.tagName))?.textContent);
+    const vn=get(/^(vor|first|given)/i),nn=get(/^(nach|zu|last|sur|family)/i);
+    const n=nn||vn?clean(nn+' '+vn):clean(kids.map(c=>c.textContent).join(' '));
+    if(n&&!names.includes(n))names.push(n);
+  }
+  return names;
+}
 function parseSkmrFile(text){
   if(!window.ECWMontagsSolo?.parseSkmr)throw Error('StockTV-Leser nicht geladen.');
   const res=ECWMontagsSolo.parseSkmr(text);
   const xml=new DOMParser().parseFromString(text,'application/xml');
   const players=new Map([...xml.getElementsByTagName('Mannschaft')].map(m=>[clean(m.getElementsByTagName('TeamName')[0]?.textContent),
-    [...m.getElementsByTagName('Spieler')].flatMap(s=>[...s.children].map(c=>clean(c.textContent)).filter(Boolean))]));
+    skmrPlayers(m)]));
   const date=(text.match(/<DateOfTournament>(\d{4}-\d{2}-\d{2})/)||[])[1]||'';
   return {title:res.title,date,played:res.played,total:res.total,rows:res.rows.map(r=>({rank:r.rank,team:r.name,players:players.get(clean(r.name))||[],info:r.points+':'+r.minus+' · '+(r.diff>0?'+':'')+r.diff}))};
 }

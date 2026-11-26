@@ -60,11 +60,22 @@ function splitPlayers(text,ros){
 const known=(n,ros)=>ros.size===0||ros.has(key(n));
 
 /* ---------- Laden / Speichern ---------- */
-async function getDoc(c,d){try{const s=await db().collection(c).doc(d).get();return s.exists?s.data():null;}catch(e){console.warn('Rangliste: '+c+'/'+d,e);return null;}}
+// Ein Lesefehler darf nie zu einer leeren Rangliste führen, die dann gespeichert wird.
+async function getDoc(c,d){const s=await db().collection(c).doc(d).get();return s.exists?s.data():null;}
+// Wettbewerbe, die es je Kategorie und Saison nur einmal gibt (werden ersetzt statt doppelt gezählt)
+const SINGLE=['final','soloFinal','pyramid','jm','vm'];
+const sameSlot=(a,b)=>a.category===b.category&&a.season===b.season&&(clean(a.label)===clean(b.label)||(a.type===b.type&&SINGLE.includes(a.type)));
+// Startstand 2025/26 einmalig ergänzen (fehlende Wettbewerbe), ohne vorhandene doppelt zu zählen
+function mergeSeed(){
+  const seed=window.ECW_RANGLISTE_2025_26;if(!seed||cfg.seeded)return 0;let n=0;
+  seed.events.forEach((e,i)=>{if(cfg.events.some(x=>sameSlot(x,e)))return;cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+i});n++;});
+  cfg.aliases={...seed.aliases,...cfg.aliases};cfg.seeded=true;return n;
+}
 async function load(){
-  const rl=await getDoc(DOC[0],DOC[1]);
+  let rl;
+  try{rl=await getDoc(DOC[0],DOC[1]);}catch(e){cfg=null;throw Error('Rangliste konnte nicht geladen werden ('+(e.code||e.message)+'). Es wurde nichts verändert.');}
   const c=rl&&rl.config||{};
-  cfg={visible:!!c.visible,season:c.season||currentSeason(),events:Array.isArray(c.events)?c.events:[],aliases:c.aliases&&typeof c.aliases==='object'?c.aliases:{}};
+  cfg={visible:!!c.visible,season:c.season||currentSeason(),events:Array.isArray(c.events)?c.events:[],aliases:c.aliases&&typeof c.aliases==='object'?c.aliases:{},seeded:!!c.seeded};
   // ältere Version: nur StockTV-Ergebnisse ohne Kategorie
   cfg.events.forEach(ev=>{if(!ev.category)ev.category=ev.type==='vm'?'Vereinsmeisterschaft':'Duo Cup';if(!ev.season)ev.season=cfg.season;if(ev.type==='cupFinal')ev.type='final';
     if(!Array.isArray(ev.rows))ev.rows=[];ev.rows.forEach(r=>{if(!Array.isArray(r.players))r.players=[];});});
@@ -72,7 +83,7 @@ async function load(){
 }
 async function saveConfig(extra){
   if(!isAdmin())throw Error('Nur Administratoren dürfen die Rangliste bearbeiten.');
-  const payload={visible:!!cfg.visible,config:{visible:!!cfg.visible,season:cfg.season,events:cfg.events,aliases:cfg.aliases},...(extra||{})};
+  const payload={visible:!!cfg.visible,config:{visible:!!cfg.visible,season:cfg.season,events:cfg.events,aliases:cfg.aliases,seeded:!!cfg.seeded},...(extra||{})};
   await db().collection(DOC[0]).doc(DOC[1]).set(JSON.parse(JSON.stringify(payload)),{merge:true});
 }
 
@@ -87,22 +98,30 @@ const counts=(ev,latest)=>latest[ev.category]===ev.season;
 /* ---------- Berechnung ---------- */
 function compute(){
   const ros=roster(),latest=countingSeasons(),people=new Map(),unknown=new Set();
-  const person=n=>{if(!people.has(n))people.set(n,{name:n,total:0,parts:[],cats:new Set()});return people.get(n);};
+  // gleiche Person in verschiedener Schreibweise („Stadler Martin“ / „Martin Stadler“) zusammenführen
+  const person=n=>{const k=key(n);if(!people.has(k))people.set(k,{name:ros.get(k)||n,total:0,parts:[],cats:new Set()});return people.get(k);};
   const bestRound=new Map(); // Kategorie|Saison|Spieler -> part
-  for(const ev of cfg.events){
-    if(!counts(ev,latest)||!ev.rows.length)continue;
+  // Startstand zuerst: dessen Schreibweise („Nachname Vorname“) wird für die Anzeige verwendet
+  const evs=[...cfg.events].sort((a,b)=>(String(b.id).startsWith('ev_2526_')?1:0)-(String(a.id).startsWith('ev_2526_')?1:0));
+  for(const ev of evs){
+    if(!counts(ev,latest)||!(ev.rows||[]).length)continue;
     const t=TYPES[ev.type]||TYPES.group,n=Number(ev.n)||ev.rows.length;
     for(const r of ev.rows){
       const pts=placePoints(t.max,Number(r.rank),n);
-      for(const p of r.players.map(clean).filter(Boolean)){
+      const seen=new Set(),names=r.players.map(x=>resolveName(x,ros)).map(clean).filter(Boolean);
+      // einzelne Wörter, die nur Teil eines vollen Namens derselben Zeile sind (ältere StockTV-Einlesung), überspringen
+      const words=new Set(names.filter(n=>/\s/.test(n)).flatMap(n=>n.toLocaleLowerCase('de-DE').split(' ')));
+      for(const p of names){
+        if(!/\s/.test(p)&&words.has(p.toLocaleLowerCase('de-DE'))&&!ros.has(key(p))&&!cfg.aliases?.[p])continue;
+        if(seen.has(key(p)))continue;seen.add(key(p));
         if(!known(p,ros))unknown.add(p);
         const part={type:ev.type,category:ev.category,label:ev.label,date:ev.date||'',place:Number(r.rank),of:n,points:pts};
-        if(ev.type==='round'){const k=ev.category+'|'+ev.season+'|'+p,old=bestRound.get(k);if(!old||pts>old.part.points)bestRound.set(k,{p,part});continue;}
+        if(ev.type==='round'){const k=ev.category+'|'+ev.season+'|'+key(p),old=bestRound.get(k);if(!old||pts>old.part.points)bestRound.set(k,{p,part});continue;}
         const pr=person(p);pr.parts.push(part);pr.total+=pts;pr.cats.add(ev.category);
       }
     }
     for(const [p,g] of Object.entries(ev.games||{})){
-      const pr=person(p);const pts=(g.w||0)*PYR_WIN+(g.l||0)*PYR_LOSS;
+      const pr=person(resolveName(p,ros));const pts=(g.w||0)*PYR_WIN+(g.l||0)*PYR_LOSS;
       pr.parts.push({type:'pyramidGames',category:ev.category,label:ev.category+' · Spiele',won:g.w||0,lost:g.l||0,points:pts});pr.total+=pts;pr.cats.add(ev.category);
     }
   }
@@ -166,10 +185,8 @@ async function addEvent(root){
 }
 async function importSeed(){
   const seed=window.ECW_RANGLISTE_2025_26;if(!seed)return toast('Daten 2025/26 nicht geladen.');
-  if(cfg.events.some(e=>e.season==='2025/26'))return toast('Saison 2025/26 ist schon eingetragen.');
-  seed.events.forEach((e,i)=>cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+i}));
-  cfg.aliases={...seed.aliases,...cfg.aliases};
-  await saveConfig();msg='Saison 2025/26 übernommen ('+seed.events.length+' Wettbewerbe). Jetzt „Rangliste berechnen“.';
+  cfg.seeded=false;const n=mergeSeed();
+  await saveConfig();msg='Saison 2025/26: '+n+' Wettbewerbe ergänzt. Jetzt „Rangliste berechnen“.';
 }
 // Aus dem Programm übernehmen (Momentaufnahme als normaler Wettbewerb)
 async function importFromApp(kind){
@@ -253,7 +270,7 @@ function render(){
     +'<label style="display:block;margin-top:8px">… oder Platzierungen eingeben (je Zeile: Platz und Name, Mannschaften mit „/“ oder „und“)<textarea id="rlNewText" placeholder="1. Höglinger Paul&#10;2. Höglinger Heinz&#10;3. Freund Heiner und Höglinger Paul"></textarea></label>'
     +'<div class="rl-row" style="margin-top:8px"><button type="button" class="primary" data-rl-add>Ergebnis speichern</button></div>'
     +'<h4 style="margin:14px 0 4px">Aus dem Programm übernehmen (Saison '+esc(cfg.season)+')</h4><div class="rl-row"><button type="button" data-rl-app="ms">Montags Solo</button><button type="button" data-rl-app="pyr">Solo Pyramide (mit Spielen)</button><button type="button" data-rl-app="jm">Ziel-Jahresmeisterschaft</button></div>'
-    +(cfg.events.some(e=>e.season==='2025/26')||!window.ECW_RANGLISTE_2025_26?'':'<div class="rl-row" style="margin-top:12px"><button type="button" class="primary" data-rl-seed>Ergebnisse Saison 2025/26 übernehmen (Startstand)</button></div>')
+    +(cfg.seeded||!window.ECW_RANGLISTE_2025_26?'':'<div class="rl-row" style="margin-top:12px"><button type="button" class="primary" data-rl-seed>Ergebnisse Saison 2025/26 übernehmen (Startstand)</button></div>')
     +'<div class="rl-row" style="margin-top:12px"><label class="small" style="display:flex;gap:6px;align-items:center;margin:0">Aktuelle Saison (Vorgabe für neue Einträge) <input type="text" data-rl-season value="'+esc(cfg.season)+'" style="width:90px"></label></div></div>'
     +'<div class="card"><h3 style="margin-top:0">Eingetragene Wettbewerbe</h3>'+(evHtml||'<div class="small">Noch keine Wettbewerbe eingetragen.</div>')+'<div class="small" style="margin-top:8px">Spieler, die nicht in der Spielerliste stehen, sind rot markiert. Bei Spitznamen (z. B. „Masy“) den richtigen Namen eintragen – die Zuordnung wird gemerkt und beim nächsten Einlesen automatisch verwendet.</div></div>'
     +'<div class="card"><h3 style="margin-top:0">Punkteverteilung</h3><table class="rl-table">'+Object.values(TYPES).map(t=>'<tr><td>'+esc(t.label)+'</td><td class="r"><b>'+t.max+'</b></td></tr>').join('')+'<tr><td>Solo Pyramide · je gewonnenes / verlorenes Spiel</td><td class="r"><b>'+PYR_WIN+' / '+PYR_LOSS+'</b></td></tr></table><div class="small">Sieger 100 %, Letzter 10 % der Höchstpunkte, dazwischen gleichmäßig. Mannschaften: jeder Spieler bekommt die Punkte der Mannschaft.</div></div>';
@@ -295,15 +312,18 @@ async function open(){
   a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Vereinsrangliste</h2><button type="button" onclick="adminSection(\'ic\')">← Zurück zu Interne Cups</button></div><div id="rlRoot"></div>';
   const root=a.querySelector('#rlRoot');root.addEventListener('change',onChange);root.addEventListener('click',onClick);
   cfg=null;msg='';render();
-  try{await load();}catch(e){msg='Laden fehlgeschlagen: '+(e.code||e.message);}
+  try{await load();}catch(e){msg=e.message;render();return;}
+  // Startstand 2025/26 fehlt noch → automatisch ergänzen und neu berechnen
+  if(!cfg.seeded&&window.ECW_RANGLISTE_2025_26){const n=mergeSeed();try{await saveConfig();if(n){await publish();msg='Startstand Saison 2025/26 ergänzt ('+n+' Wettbewerbe) und Rangliste neu berechnet. '+msg;}}catch(e){msg='Fehler: '+(e.code||e.message);}}
   render();
 }
 // Schnittstelle für den Ergebnis-Assistenten
 async function addEventApi(ev){
   if(!isAdmin())throw Error('Nur Administratoren dürfen die Rangliste bearbeiten.');
   if(!cfg)await load();
+  mergeSeed();
   const latest=countingSeasons()[ev.category];
-  cfg.events=cfg.events.filter(e=>!(e.category===ev.category&&e.season===ev.season&&clean(e.label)===clean(ev.label)));
+  cfg.events=cfg.events.filter(e=>!sameSlot(e,ev));
   cfg.events.push({...ev,id:'ev_'+Date.now()});
   await saveConfig();await publish();
   return {replaced:latest&&seasonKey(ev.season)>seasonKey(latest)?latest:''};
