@@ -796,6 +796,8 @@ function saveSettings(){
  c.displayOrder=memberDisplayOrder();
 
  save();
+// Mitgliedsantrag unter „Dokumente drucken“ mit dem neuen Beitrag neu erzeugen.
+try{window.parent.ecwDocsSyncMemberApplication?.(c.fee);}catch(e){}
 try{refreshPassGroupsByAgeSettings();}catch(e){console.error("Spielerpässe konnten nach der Einstellungsänderung nicht aktualisiert werden:",e)}
 all();admin();alert("Admin-Einstellungen gespeichert und Spielerpässe aktualisiert.");
 }
