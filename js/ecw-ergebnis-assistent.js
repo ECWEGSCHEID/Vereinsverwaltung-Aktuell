@@ -134,6 +134,8 @@ function folderNode(pathIds,newChild){
   if(newChild){let c=(n.children||[]).find(x=>x.t===newChild);if(!c){c={id:'result-'+Date.now().toString(36),t:newChild,u:'',body:'',links:[],children:[]};(n.children=n.children||[]).push(c);}n=c;}
   n.links=n.links||[];return n;
 }
+function odReady(){return !!(st.od&&(st.od.local||st.od.configured));}
+function odRootName(){return st.od?.local?(st.od.folder||'ECWegscheid'):(window.ECWOneDrive?.config?.root||'ECWegscheid');}
 function odPath(){const parts=folderLabel().split(' / ').filter(x=>x&&x!=='…');return [(st.kind2==='intern'||st.kind2==='veranstalter')?'Turniere':'Ergebnisse',...parts].join('/');}
 function folderLabel(){const f=folders().find(x=>x.path.join('>')===st?.folder);return [f?f.label:'',st?.subfolder||''].filter(Boolean).join(' / ')||'…';}
 function listText(rows){return rows.map(r=>r.rank+'. '+r.team+(r.players?.length&&r.players.join(', ')!==r.team?' ('+r.players.join(', ')+')':'')).join('\n');}
@@ -182,12 +184,15 @@ function render(){
     +'<label class="ea-check"><input type="checkbox" id="eaToHomepage"'+(st.toHomepage?' checked':'')+'> <b>Ergebnisse</b> (Vereinsverwaltung → Homepage) – PDF + PNG und die gesamte Liste als Text</label>'
     +'<div class="ea-grid" style="margin:4px 0 10px 26px"><label>Ordner<select id="eaFolder"><option value="">– bitte wählen –</option><option value="/"'+(st.folder==='/'?' selected':'')+'>Ergebnisse (Hauptebene – neuen Ordner rechts eintragen)</option>'+fl.map(f=>'<option value="'+esc(f.path.join('>'))+'"'+(st.folder===f.path.join('>')?' selected':'')+'>'+esc(f.label)+'</option>').join('')+'</select></label>'
     +'<label>Neuer Unterordner (optional)<input id="eaSubfolder" type="text" value="'+esc(st.subfolder)+'" placeholder="z. B. '+esc(String(st.date||'').slice(0,4)||'2027')+'"></label></div>'
-    +'<label class="ea-check"><input type="checkbox" id="eaToOneDrive"'+(st.toOneDrive?' checked':'')+(st.od?.configured?'':' disabled')+'> <b>OneDrive</b> – PDF und PNG in „'+esc((window.ECWOneDrive?.config?.root||'ECWegscheid')+'/'+odPath())+'“ '
-    +(st.od?.configured?'<span class="small">(öffnet einen eigenen Tab mit Microsoft-Anmeldung)</span>':'<span class="small">(noch nicht eingerichtet – siehe unten)</span>')+'</label>'
+    +'<label class="ea-check"><input type="checkbox" id="eaToOneDrive"'+(st.toOneDrive?' checked':'')+(odReady()?'':' disabled')+'> <b>OneDrive</b> – PDF und PNG in „'+esc(odRootName()+'/'+odPath())+'“ '
+    +'<span class="small">('+(st.od?.local?(st.od.folder?'OneDrive-Ordner am PC':'beim ersten Speichern den Ordner „OneDrive\\ECWegscheid“ auswählen'):(st.od?.configured?'öffnet einen eigenen Tab mit Microsoft-Anmeldung':'nur am Computer mit Chrome oder Edge'))+')</span></label>'
     +(st.eventId?'<label class="ea-check"><input type="checkbox" id="eaToPlanner"'+(st.toPlanner?' checked':'')+'> <b>Terminplaner</b> – Ergebnis beim Termin eintragen: Platz <input id="eaOwnPlace" type="number" min="1" value="'+esc(st.ownPlace)+'" style="width:64px;display:inline-block;margin:0 4px"> von '+st.rows.length+(own.length>1?' <span class="small">(mehrere EC-Wegscheid-Mannschaften: '+esc(own.map(r=>r.rank+'. '+r.team).join(', '))+')</span>':'')+'</label>':'')
     +(st.internal?'<label class="ea-check"><input type="checkbox" id="eaToRanking"'+(st.toRanking?' checked':'')+'> <b>Vereinsrangliste</b></label><div class="ea-grid" style="margin:4px 0 0 26px"><label>Kategorie<select id="eaCat">'+cats.map(c=>'<option'+(st.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'
       +'<label>Wertung<select id="eaType">'+Object.entries(types).map(([k,v])=>'<option value="'+k+'"'+(st.type===k?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label><label>Saison<input id="eaSeason" type="text" value="'+esc(st.season)+'"></label></div>':'')
-    +'<details style="margin-top:10px"><summary class="small">OneDrive-Einstellungen</summary><div class="ea-grid" style="margin-top:6px"><label>Anwendungs-ID (Client-ID) aus der Microsoft-App-Registrierung<input id="eaOdClient" type="text" value="'+esc(window.ECWOneDrive?.config?.clientId||'')+'" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label><label>Hauptordner in OneDrive<input id="eaOdFolder" type="text" value="'+esc(window.ECWOneDrive?.config?.root||'ECWegscheid')+'"></label></div><div class="small">Umleitungs-URI für die App-Registrierung (Single-Page-Anwendung): <b>'+esc(window.ECWOneDrive?.redirectUri?.()||'')+'</b> · Berechtigung: Files.ReadWrite<br>Ablage: Interne Wettbewerbe und Turniere als Veranstalter → Turniere/…, Meisterschaften und externe Turniere → Ergebnisse/…, Auslosungen → 02.Auslosungen</div><div class="ea-row" style="margin-top:6px"><button type="button" data-ea-odsave>Speichern</button></div></details>'
+    +'<details style="margin-top:10px"><summary class="small">OneDrive-Einstellungen</summary>'
+      +(st.od?.local?'<div class="small" style="margin:6px 0">OneDrive-Ordner auf diesem PC: <b>'+esc(st.od.folder||'noch nicht gewählt')+'</b> <button type="button" data-ea-odpick>Ordner wählen</button><br>Bitte den Ordner <b>ECWegscheid</b> in deinem OneDrive auswählen (z. B. C:\\Benutzer\\…\\OneDrive\\ECWegscheid). Die OneDrive-App lädt die Dateien automatisch hoch. Auf jedem PC einmal auswählen.</div>':'<div class="small" style="margin:6px 0">Speichern in den OneDrive-Ordner geht nur am Computer mit Chrome oder Edge.</div>')
+      +'<details><summary class="small">Alternativ: Microsoft-Anmeldung (nur mit eigener Microsoft-App)</summary><div class="ea-grid" style="margin-top:6px"><label>Anwendungs-ID (Client-ID) aus der Microsoft-App-Registrierung<input id="eaOdClient" type="text" value="'+esc(window.ECWOneDrive?.config?.clientId||'')+'" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label><label>Hauptordner in OneDrive<input id="eaOdFolder" type="text" value="'+esc(window.ECWOneDrive?.config?.root||'ECWegscheid')+'"></label></div><div class="small">Umleitungs-URI: <b>'+esc(window.ECWOneDrive?.redirectUri?.()||'')+'</b> · Berechtigung: Files.ReadWrite</div><div class="ea-row" style="margin-top:6px"><button type="button" data-ea-odsave>Speichern</button></div></details>'
+      +'<div class="small" style="margin-top:6px">Ablage: Interne Wettbewerbe und Turniere als Veranstalter → Turniere/…, Meisterschaften und externe Turniere → Ergebnisse/…, Auslosungen → 02.Auslosungen</div></details>'
     +'<div class="ea-row" style="margin-top:12px"><button type="button" class="primary" data-ea-save'+(st.busy?' disabled':'')+'>Alles speichern und veröffentlichen</button></div>'
     +(st.msg?'<div class="small" style="margin-top:8px;white-space:pre-line">'+esc(st.msg)+'</div>':'')+'</div>';
 }
@@ -249,7 +254,8 @@ async function saveManual(){
   }catch(e){st.msg='Abgebrochen: '+e.message;toast(e.message,8000);}
   finally{st.busy=false;render();}
 }
-async function saveAll(tab){
+async function saveAll(od){
+  let tab=od?.tab||null;
   readForm();
   const rows=st.rows.filter(r=>clean(r.team)).map(r=>({rank:Number(r.rank)||0,team:clean(r.team),players:(r.players||[]).map(clean).filter(Boolean),info:r.info||''})).sort((a,b)=>a.rank-b.rank);
   const stop=m=>{if(tab&&!tab.closed)tab.close();toast(m);};
@@ -274,6 +280,11 @@ async function saveAll(tab){
       done.push('Homepage-Ergebnisse: '+files.length+' Datei(en) + Liste im Ordner gespeichert');
     }
     // OneDrive
+    if(st.toOneDrive&&od?.dir){
+      const title=st.name+(st.date?' '+st.date:'');const files=await outputFiles(rows,title),path=odPath();
+      for(const [blob,name] of files){st.msg='OneDrive: '+name+' …';render();await ecwOneDriveOrdner.write(od.dir,path,name,blob);}
+      done.push('OneDrive: '+files.length+' Datei(en) in „'+od.dir.name+'/'+path+'“ gespeichert – die OneDrive-App lädt sie hoch');
+    }
     if(st.toOneDrive&&tab){
       const title=st.name+(st.date?' '+st.date:'');const files=await outputFiles(rows,title),path=odPath();
       await ECWOneDrive.send(tab,files.map(([blob,name])=>({blob,name,path})),title);tab=null;
@@ -325,10 +336,16 @@ function onClick(e){
   if('eaDel' in d){readForm();st.rows.splice(+d.eaDel,1);render();}
   else if('eaAddrow' in d){readForm();st.rows.push({rank:(st.rows[st.rows.length-1]?.rank||0)+1,team:'',players:[]});render();}
   else if('eaMsave' in d){saveManual();}
-  else if('eaSave' in d){st._out=null;let tab=null;readForm();if(st.toOneDrive&&window.ECWOneDrive){try{tab=ECWOneDrive.openTab();}catch(err){return toast(err.message,8000);}}saveAll(tab);}
+  else if('eaSave' in d){st._out=null;readForm();
+    if(!st.toOneDrive)return saveAll(null);
+    if(st.od?.local)return ecwOneDriveOrdner.ensure().then(dir=>{st.od.folder=dir.name;saveAll({dir});}).catch(err=>toast(err.message,8000));
+    if(window.ECWOneDrive){try{return saveAll({tab:ECWOneDrive.openTab()});}catch(err){return toast(err.message,8000);}}
+    saveAll(null);}
+  else if('eaOdpick' in d){readForm();ecwOneDriveOrdner.choose().then(dir=>{st.od.folder=dir.name;render();toast('OneDrive-Ordner gewählt: '+dir.name);}).catch(err=>toast(err.message,8000));}
   else if('eaOdsave' in d){readForm();ECWOneDrive.saveConfig({clientId:$('eaOdClient').value,root:$('eaOdFolder').value}).then(refreshOd).then(()=>toast('OneDrive-Einstellungen gespeichert.')).catch(e=>toast(e.message,7000));}
 }
-async function refreshOd(){if(!window.ECWOneDrive||!st)return;const c=await ECWOneDrive.loadConfig();st.od={configured:!!c.clientId};if(st.toOneDrive===undefined)st.toOneDrive=false;render();}
+async function refreshOd(){if(!st)return;const c=window.ECWOneDrive?await ECWOneDrive.loadConfig():{};const i=window.ecwOneDriveOrdner?await ecwOneDriveOrdner.info():{supported:false,folder:''};
+  st.od={configured:!!c.clientId,local:i.supported,folder:i.folder};if(st.toOneDrive===undefined)st.toOneDrive=!!(i.supported&&i.folder);render();}
 function open(){
   if(!isAdmin())return toast('Der Ergebnis-Assistent ist nur für Administratoren.');
   const a=$('adminMain');if(!a)return;css();
