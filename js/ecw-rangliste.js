@@ -71,15 +71,15 @@ const SINGLE=['final','soloFinal','pyramid','jm','vm'];
 const sameSlot=(a,b)=>a.category===b.category&&a.season===b.season&&(clean(a.label)===clean(b.label)||(a.type===b.type&&SINGLE.includes(a.type)));
 // Startstand 2025/26 einmalig ergänzen (fehlende Wettbewerbe), ohne vorhandene doppelt zu zählen
 function mergeSeed(){
-  const seed=window.ECW_RANGLISTE_2025_26;if(!seed||cfg.seeded)return 0;let n=0;
-  seed.events.forEach((e,i)=>{if(cfg.events.some(x=>sameSlot(x,e)))return;cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+i});n++;});
-  cfg.aliases={...seed.aliases,...cfg.aliases};cfg.seeded=true;return n;
+  const seed=window.ECW_RANGLISTE_2025_26,ver=Number(seed?.version)||1;if(!seed||(cfg.seeded&&cfg.seedVersion>=ver))return 0;let n=0;
+  seed.events.forEach((e,i)=>{if(cfg.events.some(x=>sameSlot(x,e)))return;cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+e.category.replace(/\W/g,'')+'_'+i});n++;});
+  cfg.aliases={...seed.aliases,...cfg.aliases};cfg.women=[...new Set([...(cfg.women||[]),...(seed.women||[])])];cfg.seeded=true;cfg.seedVersion=ver;return n;
 }
 async function load(){
   let rl;
   try{rl=await getDoc(DOC[0],DOC[1]);}catch(e){cfg=null;throw Error('Rangliste konnte nicht geladen werden ('+(e.code||e.message)+'). Es wurde nichts verändert.');}
   const c=rl&&rl.config||{};
-  cfg={visible:!!c.visible,season:c.season||currentSeason(),events:Array.isArray(c.events)?c.events:[],aliases:c.aliases&&typeof c.aliases==='object'?c.aliases:{},seeded:!!c.seeded};
+  cfg={visible:!!c.visible,season:c.season||currentSeason(),events:Array.isArray(c.events)?c.events:[],aliases:c.aliases&&typeof c.aliases==='object'?c.aliases:{},seeded:!!c.seeded,seedVersion:Number(c.seedVersion)||(c.seeded?1:0),women:Array.isArray(c.women)?c.women:[]};
   // ältere Version: nur StockTV-Ergebnisse ohne Kategorie
   cfg.events.forEach(ev=>{if(!ev.category)ev.category=ev.type==='vm'?'Vereinsmeisterschaft':'Duo Cup';if(!ev.season)ev.season=cfg.season;if(ev.type==='cupFinal')ev.type='final';
     if(!Array.isArray(ev.rows))ev.rows=[];ev.rows.forEach(r=>{if(!Array.isArray(r.players))r.players=[];});});
@@ -87,7 +87,7 @@ async function load(){
 }
 async function saveConfig(extra){
   if(!isAdmin())throw Error('Nur Administratoren dürfen die Rangliste bearbeiten.');
-  const payload={visible:!!cfg.visible,config:{visible:!!cfg.visible,season:cfg.season,events:cfg.events,aliases:cfg.aliases,seeded:!!cfg.seeded},...(extra||{})};
+  const payload={visible:!!cfg.visible,config:{visible:!!cfg.visible,season:cfg.season,events:cfg.events,aliases:cfg.aliases,seeded:!!cfg.seeded,seedVersion:cfg.seedVersion||0,women:cfg.women||[]},...(extra||{})};
   await db().collection(DOC[0]).doc(DOC[1]).set(JSON.parse(JSON.stringify(payload)),{merge:true});
 }
 
@@ -102,9 +102,10 @@ const counts=(ev,latest)=>latest[ev.category]===ev.season;
 /* ---------- Berechnung ---------- */
 function isWoman(name,ros){
   try{if(typeof tpGender==='function'){const g=tpGender(name);if(g==='Dame')return true;if(g==='Herr')return false;}}catch(e){}
-  // ohne Zuordnung in der Spielerliste: wer im Frauencup oder in der Frauen Solo Pyramide gespielt hat
   const k=key(name);
-  return cfg.events.some(ev=>WOMEN_ONLY.includes(ev.category)&&(ev.rows.some(r=>r.players.some(p=>key(resolveName(p,ros))===k))||Object.keys(ev.games||{}).some(p=>key(resolveName(p,ros))===k)));
+  if((cfg.women||[]).some(w=>key(resolveName(w,ros))===k))return true;
+  // sonst: wer im Frauencup (jeweils die zuerst genannte Person einer Paarung) oder in der Frauen Solo Pyramide gespielt hat
+  return cfg.events.some(ev=>WOMEN_ONLY.includes(ev.category)&&(ev.rows.some(r=>r.players[0]&&key(resolveName(r.players[0],ros))===k)||Object.keys(ev.games||{}).some(p=>key(resolveName(p,ros))===k)));
 }
 function compute(scope){
   const ros=roster(),latest=Object.fromEntries(Object.entries(countingSeasons()).filter(([c])=>inScope(c,scope))),people=new Map(),unknown=new Set();
@@ -137,7 +138,8 @@ function compute(scope){
   }
   for(const {p,part} of bestRound.values()){const pr=person(p);pr.parts.push(part);pr.total+=part.points;pr.cats.add(part.category);}
   const cats=Object.keys(latest);
-  const list=[...people.values()].filter(p=>scope!=='frauen'||isWoman(p.name,ros)).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'));
+  // Damen haben eine eigene Rangliste: dort nur Damen, in der Herren-Rangliste keine Damen
+  const list=[...people.values()].filter(p=>scope==='frauen'?isWoman(p.name,ros):!isWoman(p.name,ros)).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de'));
   let rank=0,prev=null;list.forEach((r,i)=>{if(r.total!==prev)rank=i+1;r.rank=rank;prev=r.total;r.all=cats.length>1&&cats.every(c=>r.cats.has(c));});
   return {rows:list,unknown:[...unknown].sort((a,b)=>a.localeCompare(b,'de')),cats};
 }
@@ -149,7 +151,7 @@ async function publish(){
     const rows=slim(r),rowsFrauen=slim(w);
     result={rows,rowsFrauen,updatedAt:new Date().toISOString()};
     await saveConfig({season:cfg.season,rows,updatedAt:result.updatedAt,categories:r.cats,rowsFrauen,categoriesFrauen:w.cats});
-    msg='Rangliste berechnet: '+rows.length+' Spieler, Frauenwertung '+rowsFrauen.length+' Spielerinnen'+(cfg.visible?' · am Smartphone sichtbar':' · am Smartphone ausgeblendet')+(r.unknown.length?' · nicht in der Spielerliste (trotzdem gewertet, bitte prüfen): '+r.unknown.join(', '):'')+'.';
+    msg='Rangliste berechnet: Herren '+rows.length+', Damen '+rowsFrauen.length+(cfg.visible?' · am Smartphone sichtbar':' · am Smartphone ausgeblendet')+(r.unknown.length?' · nicht in der Spielerliste (trotzdem gewertet, bitte prüfen): '+r.unknown.join(', '):'')+'.';
   }catch(e){msg='Fehler: '+(e.code||e.message);}
   finally{busy=false;render();}
 }
@@ -234,7 +236,7 @@ function printList(){
     return '<table><thead><tr><th>Pl.</th><th>Name</th>'+cats.map(c=>'<th class="r">'+esc(c)+'</th>').join('')+'<th class="r">Gesamt</th></tr></thead><tbody>'+list.map(r=>'<tr><td>'+r.rank+'.</td><td>'+esc(r.name)+(r.all?' ★':'')+'</td>'+cats.map(c=>'<td class="r">'+(sum(r,c)||'–')+'</td>').join('')+'<td class="r"><b>'+r.total+'</b></td></tr>').join('')+'</tbody></table>';};
   const latest=countingSeasons();
   const w=window.open('','_blank');if(!w)return toast('Bitte Pop-ups erlauben.');
-  w.document.write('<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Vereinsrangliste</title><style>@page{size:A4;margin:12mm}body{font:10pt Arial}h1{font-size:17pt;margin:0 0 3px}p{font-size:8.5pt;color:#444;margin:0 0 8px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #bbb;padding:3px 5px;text-align:left}th{background:#8b0000;color:#fff;font-size:8.5pt}.r{text-align:right}</style></head><body><h1>Vereinsrangliste EC Wegscheid</h1><p>Stand '+new Date(result.updatedAt).toLocaleDateString('de-DE')+' · gezählt: '+esc(Object.entries(latest).map(([c,s])=>c+' '+s).join(' · '))+' · ★ = bei allen Wettbewerben dabei</p>'+tbl(result.rows)+((result.rowsFrauen||[]).length?'<h1 style="margin-top:18px">Frauenwertung</h1><p>Frauencup · Vereinsmeisterschaft · Frauen Solo Pyramide</p>'+tbl(result.rowsFrauen):'')+'<script>onload=()=>print()<\/script></body></html>');
+  w.document.write('<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Vereinsrangliste</title><style>@page{size:A4;margin:12mm}body{font:10pt Arial}h1{font-size:17pt;margin:0 0 3px}p{font-size:8.5pt;color:#444;margin:0 0 8px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #bbb;padding:3px 5px;text-align:left}th{background:#8b0000;color:#fff;font-size:8.5pt}.r{text-align:right}</style></head><body><h1>Rangliste Herren EC Wegscheid</h1><p>Stand '+new Date(result.updatedAt).toLocaleDateString('de-DE')+' · gezählt: '+esc(Object.entries(latest).map(([c,s])=>c+' '+s).join(' · '))+' · ★ = bei allen Wettbewerben dabei</p>'+tbl(result.rows)+((result.rowsFrauen||[]).length?'<h1 style="margin-top:18px;page-break-before:always">Rangliste Damen EC Wegscheid</h1><p>Frauencup · Vereinsmeisterschaft · Frauen Solo Pyramide</p>'+tbl(result.rowsFrauen):'')+'<script>onload=()=>print()<\/script></body></html>');
   w.document.close();
 }
 
@@ -269,8 +271,9 @@ function render(){
     +'<button type="button" class="primary" data-rl-publish'+(busy?' disabled':'')+'>Rangliste berechnen</button><button type="button" data-rl-print>Drucken</button></div>'
     +'<label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" data-rl-visible'+(cfg.visible?' checked':'')+' style="width:auto;margin:0"> <b>Am Smartphone in „Meine Ergebnisse“ anzeigen</b></label>'
     +(msg?'<div class="small" style="margin-top:8px">'+esc(msg)+'</div>':'')+'</div>'
-    +'<div class="card"><h3 style="margin-top:0">Rangliste</h3>'+table+'</div>'
-    +'<div class="card"><h3 style="margin-top:0">Frauenwertung</h3><div class="small" style="margin-bottom:6px">Frauencup · Vereinsmeisterschaft · Frauen Solo Pyramide. Spielerinnen: in der Spielerliste als „Dame“ zugeordnet oder im Frauencup / in der Frauen Solo Pyramide dabei.</div>'+tableW+'</div>'
+    +'<div class="card"><h3 style="margin-top:0">Rangliste Herren</h3>'+table+'</div>'
+    +'<div class="card"><h3 style="margin-top:0">Rangliste Damen</h3><div class="small" style="margin-bottom:6px">Frauencup · Vereinsmeisterschaft · Frauen Solo Pyramide. Als Dame zählt, wer unten eingetragen ist, in der Spielerliste als „Dame“ zugeordnet ist oder im Frauencup (zuerst genannt) / in der Frauen Solo Pyramide gespielt hat. Damen erscheinen nicht in der Rangliste Herren.</div>'+tableW
+      +'<label class="small" style="display:block;margin-top:8px">Damen (eine pro Zeile)<textarea id="rlWomen" style="width:100%;min-height:90px">'+esc((cfg.women||[]).join('\n'))+'</textarea></label><div class="rl-row"><button type="button" data-rl-women>Damen speichern und neu berechnen</button></div></div>'
     +'<div class="card"><h3 style="margin-top:0">Neues Ergebnis eintragen</h3>'
     +'<div class="small" style="margin-bottom:8px">Je Kategorie zählt nur die neueste Saison. Ein Ergebnis einer neuen Saison ersetzt automatisch alle Ergebnisse derselben Kategorie aus der Vorsaison.</div>'
     +'<div class="rl-form"><label>Kategorie<select id="rlNewCat">'+CATEGORIES.map(c=>'<option>'+esc(c)+'</option>').join('')+'</select></label>'
@@ -313,6 +316,7 @@ async function onClick(e){
     else if('rlPrint' in d)printList();
     else if('rlAdd' in d){b.disabled=true;try{await addEvent(root);}finally{b.disabled=false;}render();}
     else if('rlSeed' in d){await importSeed();render();}
+    else if('rlWomen' in d){cfg.women=[...new Set(String(document.getElementById('rlWomen').value||'').split(/\n/).map(clean).filter(Boolean))];await saveConfig();await publish();}
     else if('rlApp' in d){await importFromApp(d.rlApp);render();}
     else if('rlEvdel' in d){const ev=cfg.events[+d.rlEvdel];if(ev&&confirm('„'+ev.label+'“ ('+ev.season+') löschen?')){cfg.events.splice(+d.rlEvdel,1);await saveConfig();msg='Gelöscht. Bitte Rangliste neu berechnen.';render();}}
   }catch(err){toast(err.message||String(err),7000);}
@@ -326,7 +330,8 @@ async function open(){
   cfg=null;msg='';render();
   try{await load();}catch(e){msg=e.message;render();return;}
   // Startstand 2025/26 fehlt noch → automatisch ergänzen und neu berechnen
-  if(!cfg.seeded&&window.ECW_RANGLISTE_2025_26){const n=mergeSeed();try{await saveConfig();if(n){await publish();msg='Startstand Saison 2025/26 ergänzt ('+n+' Wettbewerbe) und Rangliste neu berechnet. '+msg;}}catch(e){msg='Fehler: '+(e.code||e.message);}}
+  const sv=Number(window.ECW_RANGLISTE_2025_26?.version)||1;
+  if((!cfg.seeded||(cfg.seedVersion||0)<sv)&&window.ECW_RANGLISTE_2025_26){const n=mergeSeed();try{await saveConfig();await publish();msg='Saison 2025/26 ergänzt ('+n+' Wettbewerbe, Damenliste) und Rangliste neu berechnet. '+msg;}catch(e){msg='Fehler: '+(e.code||e.message);}}
   render();
 }
 // Schnittstelle für den Ergebnis-Assistenten

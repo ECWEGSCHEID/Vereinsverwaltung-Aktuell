@@ -204,8 +204,8 @@ function rankingBox(container, rl, title, limit, women) {
     const info = el('button', 'i', head, 'my-info-btn');
     info.type = 'button';info.setAttribute('aria-label', 'Erklärung zur Rangliste');
     const hint = el('p', women
-      ? 'Die Frauenwertung entsteht über das Jahr verteilt bei 3 Wettbewerben: Frauencup, Vereinsmeisterschaft und Frauen Solo Pyramide. Wenn ein Wettbewerb abgeschlossen ist, werden die Punkte berechnet und das letztjährige Ergebnis dieses Wettbewerbs gelöscht. Die jeweils erreichten Punkte seht ihr, wenn ihr auf die Rangliste drückt.'
-      : 'Das Ergebnis entsteht über das Jahr verteilt bei 5 Wettbewerben. Wenn ein Wettbewerb abgeschlossen ist, werden die Punkte berechnet und das letztjährige Ergebnis dieses Wettbewerbs gelöscht. Die jeweils erreichten Punkte seht ihr, wenn ihr auf die Rangliste drückt.', null, 'my-info-text');
+      ? 'Die Rangliste Damen entsteht über das Jahr verteilt bei 3 Wettbewerben: Frauencup, Vereinsmeisterschaft und Frauen Solo Pyramide. Wenn ein Wettbewerb abgeschlossen ist, werden die Punkte berechnet und das letztjährige Ergebnis dieses Wettbewerbs gelöscht. Die jeweils erreichten Punkte seht ihr, wenn ihr auf die Rangliste drückt.'
+      : 'Die Rangliste Herren entsteht über das Jahr verteilt bei 5 Wettbewerben. Wenn ein Wettbewerb abgeschlossen ist, werden die Punkte berechnet und das letztjährige Ergebnis dieses Wettbewerbs gelöscht. Die jeweils erreichten Punkte seht ihr, wenn ihr auf die Rangliste drückt.', null, 'my-info-text');
     hint.hidden = true;
     box.after(hint);
     info.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); hint.hidden = !hint.hidden; });
@@ -258,8 +258,8 @@ function render(container, name, data) {
   let shown = 0;
 
   // EC Wegscheid Rangliste (und Frauenwertung): eigener Platz; aufgeklappt Teilnahme, Punkte, Nachbarn, Bestenliste.
-  if (data.ranking) { rankingBox(container, data.ranking, 'EC Wegscheid Rangliste', 20); shown++; }
-  if (data.rankingWomen) { rankingBox(container, data.rankingWomen, 'EC Wegscheid Frauenwertung', 10, true); shown++; }
+  if (data.ranking) { rankingBox(container, data.ranking, 'Rangliste Herren', 20); shown++; }
+  if (data.rankingWomen) { rankingBox(container, data.rankingWomen, 'Rangliste Damen', 10, true); shown++; }
 
   // Nur bereits gespielte Turniere des laufenden Jahres; künftige Anmeldungen bleiben weg.
   const year = String(new Date().getFullYear());
