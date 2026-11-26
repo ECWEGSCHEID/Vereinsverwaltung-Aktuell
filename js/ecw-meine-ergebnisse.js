@@ -190,27 +190,58 @@ function row(parent, title, detail, place) {
   el('span', place, line, 'my-row-place');
   return line;
 }
+// Tabelle Platz · Name · Punkte; eigene Zeile hervorgehoben
+function rankTable(parent, rows, ownAt) {
+  const list = el('ol', null, parent, 'my-list my-rank-table');
+  rows.forEach((r, i) => {
+    const item = el('li', null, list, i === ownAt ? 'my-rank-own' : '');
+    el('span', r.rank + '.', item, 'my-rank-no');
+    el('span', r.name + (r.all ? ' ★' : ''), item);
+    el('strong', String(r.total), item);
+  });
+  return list;
+}
 const placeText = (place, of) => place > 0 ? place + '. von ' + of : '–';
 
 function render(container, name, data) {
   container.replaceChildren();
   let shown = 0;
 
-  // Vereinsrangliste: eigener Platz und Punkte, aufklappbar mit Zusammensetzung.
+  // EC Wegscheid Rangliste: eigener Platz; aufgeklappt Teilnahme je Wettbewerb, Punkte, Nachbarn und Gesamtliste.
   const rl = data.ranking;
   if (rl) {
     const box = el('details', null, container, 'my-participations my-row-highlight');
     const summary = el('summary', null, box);
     const text = el('div', null, summary, 'my-row-text');
-    el('strong', 'Vereinsrangliste' + (rl.season ? ' ' + rl.season : ''), text);
-    el('span', rl.total + ' Punkte · Antippen für die Zusammensetzung', text, 'my-row-detail');
-    el('span', placeText(rl.rank, rl.of), summary, 'my-row-place');
-    const list = el('ul', null, box, 'my-list my-rank-list');
-    for (const p of rl.parts) {
-      const item = el('li', null, list);
-      el('span', p.label + (p.type === 'pyramidGames' ? ' · ' + p.won + ' S / ' + p.lost + ' N' : ' · Platz ' + p.place + ' von ' + p.of), item);
-      el('strong', '+' + p.points, item);
+    el('strong', 'EC Wegscheid Rangliste' + (rl.season ? ' ' + rl.season : ''), text);
+    el('span', rl.total + ' Punkte · dabei bei ' + rl.joined.length + ' von ' + rl.categories.length + ' Wettbewerben · Antippen', text, 'my-row-detail');
+    el('span', 'Platz ' + rl.rank, summary, 'my-row-place');
+    const body = el('div', null, box, 'my-rank-body');
+
+    el('div', 'Teilnahme und Punkte je Wettbewerb', body, 'my-rank-head');
+    const cats = el('ul', null, body, 'my-list my-rank-list my-rank-cats');
+    for (const c of rl.categories) {
+      const parts = rl.parts.filter(p => p.category === c);
+      const item = el('li', null, cats, parts.length ? '' : 'my-rank-miss');
+      const left = el('span', null, item);
+      el('b', (parts.length ? '✓ ' : '✗ ') + c, left);
+      for (const p of parts) el('small', p.type === 'pyramidGames' ? p.label + ': ' + p.won + ' Siege / ' + p.lost + ' Niederlagen (+' + p.points + ')'
+        : p.label + ': Platz ' + p.place + ' von ' + p.of + ' (+' + p.points + ')', left);
+      if (!parts.length) el('small', 'nicht dabei', left);
+      el('strong', parts.length ? String(parts.reduce((n, p) => n + (Number(p.points) || 0), 0)) : '–', item);
     }
+
+    el('div', 'Deine Umgebung in der Rangliste', body, 'my-rank-head');
+    rankTable(body, rl.near, rl.ownIndex - rl.nearStart);
+
+    const all = el('div', null, body, 'my-rank-all');
+    const btn = el('button', 'Gesamtliste anzeigen (' + rl.rows.length + ' Spieler)', all, 'my-rank-btn');
+    btn.type = 'button';
+    let table = null;
+    btn.addEventListener('click', () => {
+      if (table) { table.remove(); table = null; btn.textContent = 'Gesamtliste anzeigen (' + rl.rows.length + ' Spieler)'; return; }
+      table = rankTable(all, rl.rows, rl.ownIndex);btn.textContent = 'Gesamtliste ausblenden';
+    });
     shown++;
   }
 
@@ -273,8 +304,16 @@ function render(container, name, data) {
 function rankingEntry(doc, name) {
   if (doc?.visible !== true) return null;
   const rows = Array.isArray(doc?.rows) ? doc.rows : [];
-  const own = rows.find(r => sameName(r.name, name));
-  return own ? {season: clean(doc.season), rank: own.rank, of: rows.length, total: own.total, parts: Array.isArray(own.parts) ? own.parts : []} : null;
+  const at = rows.findIndex(r => sameName(r.name, name));
+  if (at < 0) return null;
+  const own = rows[at], parts = Array.isArray(own.parts) ? own.parts : [];
+  const categories = Array.isArray(doc.categories) && doc.categories.length ? doc.categories.map(clean)
+    : [...new Set(rows.flatMap(r => (r.parts || []).map(p => clean(p.category))))].filter(Boolean);
+  const joined = categories.filter(c => parts.some(p => clean(p.category) === c));
+  const nearStart = Math.max(0, at - 5), near = rows.slice(nearStart, at + 6);
+  const slim = r => ({rank: r.rank, name: clean(r.name), total: r.total, all: !!r.all});
+  return {season: clean(doc.season), rank: own.rank, of: rows.length, total: own.total, parts, categories, joined,
+    rows: rows.map(slim), near: near.map(slim), nearStart, ownIndex: at};
 }
 
 async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, loadMontagsSolo, loadRanking, standings}) {
