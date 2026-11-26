@@ -88,7 +88,7 @@ function publicMembersState(state){
  const memberFields=['id','lastName','firstName','birthDate','memberSince','exitType','exitDate'];
  const passFields=['id','memberId','lastName','firstName','birthDate','passportGroup','passportNo','passportExpiry','passNotRenewed'];
  const pick=(obj,keys)=>Object.fromEntries(keys.filter(k=>obj[k]!==undefined).map(k=>[k,obj[k]]));
- const settings=pick(state.settings||{},['roundAge','ageU14Max','ageU16Max','ageU19Max','ageU23Max','ageSeniorMin','ageCutoff','birthdayUpcomingMonths','roundBirthdayMode']);
+ const settings=pick(state.settings||{},['roundAge','ageU14Max','ageU16Max','ageU19Max','ageU23Max','ageSeniorMin','ageCutoff','birthdayUpcomingMonths','roundBirthdayMode','fee']);
  Object.assign(settings,{showAddress:false,showContact:false,showBankButton:false,showMemberSince:true,showBirthDate:true,showAZ:true,displayOrder:['birthDate','memberSince']});
  return {members:(state.members||[]).map(m=>pick(m,memberFields)),passes:(state.passes||[]).map(p=>pick(p,passFields)),users:[],sponsors:[],settings,dataVersion:5};
 }

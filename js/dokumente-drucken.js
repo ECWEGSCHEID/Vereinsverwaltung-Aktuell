@@ -49,7 +49,7 @@ function menuSync(){
   if(typeof shSave==='function')shSave();
   if(typeof shRender==='function')shRender();
 }
-async function save(){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}
+async function save(quiet=false){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';if(!quiet)toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}
 function isDocumentWhiteboardMode(){
  return isPublicWhiteboardMode() ||
   (appPermissions.admin!==true && (isWhiteboardUser() || isWhiteboardKioskAccount()));
@@ -81,6 +81,7 @@ async function open(category,fromAdmin=false){
  const box=$('ecwDocPublic');if(box)box.innerHTML='<div class="ecw-doc-card">Dokumente werden direkt vom Firebase-Server geladen …</div>';
  await load();
  if($('druckdokumente')?.classList.contains('active'))renderPublic();
+ if(editor())syncMemberApplication().then(()=>{if($('druckdokumente')?.classList.contains('active'))renderPublic()});
 }
 function renderPublic(){
  const box=$('ecwDocPublic');if(!box)return;
@@ -161,7 +162,9 @@ function back(){
  try{history.replaceState(null,'',location.pathname+location.search+'#startseite')}catch(e){}
  if(typeof showView==='function')showView('startseite');
 }
-async function getUrl(id){if(urls.has(id))return urls.get(id);const f=state.files.find(x=>x.id===id);if(!f)throw Error('Dokument nicht gefunden.');const parts=[];for(let i=0;i<f.parts;i++){const snap=await db().collection(COL).doc('druckpdf_'+id+'_'+i).get();if(!snap.exists)throw Error('PDF-Daten fehlen (Block '+(i+1)+').');parts.push(snap.data().data||'')}
+async function getUrl(id){const f=state.files.find(x=>x.id===id);if(!f)throw Error('Dokument nicht gefunden.');
+ if(f.auto==='mitgliedsantrag'){const fee=await currentMemberFee().catch(()=>null);if(fee!==null&&(fee!==f.fee||f.year!==new Date().getFullYear())){const key=id+'@'+fee;if(!urls.has(key))urls.set(key,URL.createObjectURL(await memberApplicationBlob(fee)));return urls.get(key);}}
+ if(urls.has(id))return urls.get(id);const parts=[];for(let i=0;i<f.parts;i++){const snap=await db().collection(COL).doc('druckpdf_'+id+'_'+i).get();if(!snap.exists)throw Error('PDF-Daten fehlen (Block '+(i+1)+').');parts.push(snap.data().data||'')}
  const base64=parts.join('');const binary=atob(base64);const chunks=[];for(let i=0;i<binary.length;i+=32768){const sl=binary.slice(i,i+32768),arr=new Uint8Array(sl.length);for(let j=0;j<sl.length;j++)arr[j]=sl.charCodeAt(j);chunks.push(arr)}
  const url=URL.createObjectURL(new Blob(chunks,{type:'application/pdf'}));urls.set(id,url);return url}
 async function previewPdf(id){
@@ -305,7 +308,7 @@ async function admin(){
  const a=$('adminMain');a.innerHTML='<h2>Dokumente werden direkt vom Firebase-Server geladen …</h2>';
  const ok=await load();
  if(!ok){a.innerHTML='<div class="card" role="alert"><h2>⚠ Dokumentenverwaltung nicht geladen</h2><p>'+esc(loadError)+'</p><p>Zur Sicherheit ist das Bearbeiten gesperrt. So kann eine leere Liste nicht versehentlich die zentral gespeicherten Dokumente überschreiben.</p><button type="button" id="ecwDocAdminRetry">Erneut versuchen</button></div>';a.querySelector('#ecwDocAdminRetry').onclick=admin;return}
- renderAdmin();
+ renderAdmin();syncMemberApplication().then(()=>{if($('ecwDocUpload'))renderAdmin()});
 }
 function renderAdmin(){const a=$('adminMain');if(!a)return;
  if(localPreviewUrl){URL.revokeObjectURL(localPreviewUrl);localPreviewUrl=null;}
@@ -332,10 +335,75 @@ function renderAdmin(){const a=$('adminMain');if(!a)return;
 }
 
 function fileBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(Error('Datei konnte nicht gelesen werden.'));r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.readAsDataURL(file)})}
+
+/* Mitgliedsantrag immer aktuell: wird aus der Vorlage (assets/mitgliedsantrag_basis.png) mit dem
+   Mitgliedsbeitrag aus der Mitgliederverwaltung erzeugt und als normales Druckdokument gespeichert
+   (damit auch der Hallendrucker die aktuelle Fassung druckt). */
+const AUTO_APPLICATION='mitgliedsantrag';
+async function currentMemberFee(){
+ const snap=await withDeadline(db().collection('ecw').doc('publicMembers').get(),12000);
+ const fee=Number(snap.exists?snap.data()?.settings?.fee:NaN);
+ return Number.isFinite(fee)&&fee>=0?Math.round(fee*100)/100:null;
+}
+function applicationPdfFromJpeg(jpegBytes,w,h){
+ const enc=new TextEncoder();const chunks=[];let length=0;const offsets=[0];
+ const put=v=>{const b=typeof v==='string'?enc.encode(v):v;chunks.push(b);length+=b.length;};
+ const obj=(id,body)=>{offsets[id]=length;put(id+' 0 obj\n'+body+'\nendobj\n');};
+ put('%PDF-1.4\n');
+ obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+ obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+ obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.32 841.92] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+ offsets[4]=length;put('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+w+' /Height '+h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpegBytes.length+' >>\nstream\n');put(jpegBytes);put('\nendstream\nendobj\n');
+ const content='q 595.32 0 0 841.92 0 0 cm /Im0 Do Q\n';
+ obj(5,'<< /Length '+enc.encode(content).length+' >>\nstream\n'+content+'endstream');
+ const xref=length;put('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)put(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
+ put('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
+ return new Blob(chunks,{type:'application/pdf'});
+}
+async function memberApplicationBlob(fee){
+ const img=new Image();img.src='assets/mitgliedsantrag_basis.png?v=2026-11-datenschutz';await img.decode();
+ const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+ const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const factor=canvas.width/595.32;
+ ctx.fillStyle='#111';ctx.textBaseline='top';ctx.font='bold '+Math.round(17*factor)+'px Arial,sans-serif';
+ ctx.textAlign='center';ctx.fillText(fee.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €',431*factor,251*factor);
+ ctx.textAlign='left';ctx.font='bold '+Math.round(7*factor)+'px Arial,sans-serif';
+ ctx.fillText('Stand '+new Date().getFullYear(),298*factor,280*factor);
+ const bin=atob(canvas.toDataURL('image/jpeg',0.94).split(',')[1]);const bytes=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+ return applicationPdfFromJpeg(bytes,canvas.width,canvas.height);
+}
+let applicationSyncing=null;
+async function syncMemberApplication(knownFee){
+ if(applicationSyncing)return applicationSyncing;
+ applicationSyncing=(async()=>{
+  try{
+   if(!editor())return false;
+   if(loadSource!=='server'&&loadSource!=='missing'){await load();if(loadSource!=='server'&&loadSource!=='missing')return false;}
+   const fee=Number.isFinite(knownFee)?Math.round(knownFee*100)/100:await currentMemberFee();
+   if(fee===null)return false;
+   const year=new Date().getFullYear();
+   let f=state.files.find(x=>x.auto===AUTO_APPLICATION);
+   if(f&&f.fee===fee&&f.year===year)return true;
+   const blob=await memberApplicationBlob(fee);
+   const base64=await fileBase64(blob);
+   const parts=Math.ceil(base64.length/SIZE),old=f?f.parts:0;
+   for(let i=0;i<parts;i++)await db().collection(COL).doc('druckpdf_'+AUTO_APPLICATION+'_'+i).set({data:base64.slice(i*SIZE,(i+1)*SIZE),createdAt:new Date().toISOString()});
+   for(let i=parts;i<old;i++)await db().collection(COL).doc('druckpdf_'+AUTO_APPLICATION+'_'+i).delete().catch(()=>{});
+   const category=state.categories.some(c=>c.id==='formulare')?'formulare':(state.categories[0]?.id||'formulare');
+   if(f)Object.assign(f,{parts,size:blob.size,fee,year});
+   else{f={id:AUTO_APPLICATION,title:'Mitgliedsantrag',category,parts,size:blob.size,auto:AUTO_APPLICATION,fee,year};state.files.unshift(f);}
+   if(urls.has(AUTO_APPLICATION)){URL.revokeObjectURL(urls.get(AUTO_APPLICATION));urls.delete(AUTO_APPLICATION);}
+   await save(true);
+   return true;
+  }catch(e){console.warn('Mitgliedsantrag konnte nicht aktualisiert werden',e);return false;}
+  finally{applicationSyncing=null;}
+ })();
+ return applicationSyncing;
+}
 async function upload(){if(!editor())return;const f=$('ecwDocUpload').files[0],cat=$('ecwDocCat').value,title=$('ecwDocTitle').value.trim()||f?.name;if(!f){toast('Bitte PDF-Datei auswählen.');return}if(f.size>MAX_BYTES){toast('PDF zu groß. Maximal 8 MB.');return}if(!/\.pdf$/i.test(f.name)||f.type&&f.type!=='application/pdf'){toast('Nur PDF-Dateien sind erlaubt.');return}
  if(busy)return;busy=true;const btn=$('ecwDocUploadBtn');btn.disabled=true;const status=$('ecwDocStatus');try{if(loadSource==='error'||!loadSource)throw Error('Zentrale Liste ist nicht geladen.');const base64=await fileBase64(f);if(!base64.startsWith('JVBERi0'))throw Error('Die Datei ist kein gültiges PDF.');const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),parts=Math.ceil(base64.length/SIZE);for(let i=0;i<parts;i++){status.textContent='PDF wird gespeichert: Block '+(i+1)+' von '+parts;await db().collection(COL).doc('druckpdf_'+id+'_'+i).set({data:base64.slice(i*SIZE,(i+1)*SIZE),createdAt:new Date().toISOString()})}
  state.files.push({id,title:title.slice(0,130),category:cat,parts,size:f.size});await save();renderAdmin();toast('PDF zentral gespeichert ✓');
  }catch(e){status.textContent='Speichern fehlgeschlagen: '+e.message;toast('PDF konnte nicht gespeichert werden: '+e.message)}finally{busy=false;if(btn.isConnected)btn.disabled=false}}
 async function removeFile(id){if(!editor())return;const f=state.files.find(x=>x.id===id);if(!f||!confirm('PDF „'+f.title+'“ endgültig entfernen?'))return;const previous=state.files;state.files=state.files.filter(x=>x.id!==id);try{await save();renderAdmin();for(let i=0;i<f.parts;i++)await db().collection(COL).doc('druckpdf_'+id+'_'+i).delete();if(urls.has(id)){URL.revokeObjectURL(urls.get(id));urls.delete(id)}toast('PDF entfernt ✓')}catch(e){state.files=previous;toast('Entfernen fehlgeschlagen: '+e.message)}}
-window.ecwDocsOpen=open;window.ecwDocsBack=back;window.ecwDocsAdmin=admin;
+window.ecwDocsSyncMemberApplication=syncMemberApplication;window.ecwDocsOpen=open;window.ecwDocsBack=back;window.ecwDocsAdmin=admin;
 })();
