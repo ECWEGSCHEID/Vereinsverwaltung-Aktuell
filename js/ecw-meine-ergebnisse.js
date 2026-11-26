@@ -91,9 +91,15 @@ function cupEntries(tournaments, name, standings) {
       const table = standings(group);
       const index = table.findIndex(row => row.id === String(team.id));
       const own = table[index];
+      // Spiele der eigenen Mannschaft: gespielt / noch offen
+      const tid = String(team.id), teamsById = new Map((group.teams || []).map(x => [String(x.id), x]));
+      const mine = Object.values(group.matches || {}).filter(m => String(m?.teamA) === tid || String(m?.teamB) === tid);
+      const out = x => !!(x?.dq || x?.dnf);
+      const open = mine.filter(m => !m.completed && !out(team) && !out(teamsById.get(String(String(m.teamA) === tid ? m.teamB : m.teamA)))).length;
+      const total = mine.length || Math.max(0, (group.teams || []).length - 1);
       rows.push({id, kind: cupKind(t.name), tournament: clean(t.name) || 'Cup', group: clean(group.name) || groupId,
         team: clean(team.name), place: index + 1, of: table.length, points: own?.points ?? 0,
-        played: own?.played ?? 0, sets: own?.sets ?? 0, stocks: own ? own.for + ':' + own.against : '–',
+        played: own?.played ?? 0, open: mine.length ? open : Math.max(0, total - (own?.played ?? 0)), games: total, sets: own?.sets ?? 0, stocks: own ? own.for + ':' + own.against : '–',
         dq: !!own?.dq, dnf: !!own?.dnf});
     }
   }
@@ -190,11 +196,19 @@ function row(parent, title, detail, place) {
   el('span', place, line, 'my-row-place');
   return line;
 }
-function rankingBox(container, rl, title, limit) {
+function rankingBox(container, rl, title, limit, women) {
     const box = el('details', null, container, 'my-participations my-row-highlight');
     const summary = el('summary', null, box);
     const text = el('div', null, summary, 'my-row-text');
-    el('strong', title + (rl.season ? ' ' + rl.season : ''), text);
+    const head = el('strong', title + (rl.season ? ' ' + rl.season : '') + ' ', text);
+    const info = el('button', 'i', head, 'my-info-btn');
+    info.type = 'button';info.setAttribute('aria-label', 'Erklärung zur Rangliste');
+    const hint = el('p', women
+      ? 'Die Frauenwertung entsteht über das Jahr verteilt bei 3 Wettbewerben: Frauencup, Vereinsmeisterschaft und Frauen Solo Pyramide. Wenn ein Wettbewerb abgeschlossen ist, werden die Punkte berechnet und das letztjährige Ergebnis dieses Wettbewerbs gelöscht. Die jeweils erreichten Punkte seht ihr, wenn ihr auf die Rangliste drückt.'
+      : 'Das Ergebnis entsteht über das Jahr verteilt bei 5 Wettbewerben. Wenn ein Wettbewerb abgeschlossen ist, werden die Punkte berechnet und das letztjährige Ergebnis dieses Wettbewerbs gelöscht. Die jeweils erreichten Punkte seht ihr, wenn ihr auf die Rangliste drückt.', null, 'my-info-text');
+    hint.hidden = true;
+    box.after(hint);
+    info.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); hint.hidden = !hint.hidden; });
     el('span', rl.total + ' Punkte · dabei bei ' + rl.joined.length + ' von ' + rl.categories.length + ' Wettbewerben · Antippen', text, 'my-row-detail');
     el('span', 'Platz ' + rl.rank, summary, 'my-row-place');
     const body = el('div', null, box, 'my-rank-body');
@@ -245,7 +259,7 @@ function render(container, name, data) {
 
   // EC Wegscheid Rangliste (und Frauenwertung): eigener Platz; aufgeklappt Teilnahme, Punkte, Nachbarn, Bestenliste.
   if (data.ranking) { rankingBox(container, data.ranking, 'EC Wegscheid Rangliste', 20); shown++; }
-  if (data.rankingWomen) { rankingBox(container, data.rankingWomen, 'EC Wegscheid Frauenwertung', 10); shown++; }
+  if (data.rankingWomen) { rankingBox(container, data.rankingWomen, 'EC Wegscheid Frauenwertung', 10, true); shown++; }
 
   // Nur bereits gespielte Turniere des laufenden Jahres; künftige Anmeldungen bleiben weg.
   const year = String(new Date().getFullYear());
@@ -272,7 +286,8 @@ function render(container, name, data) {
       const status = x.dq ? ' · DSQ' : x.dnf ? ' · DNF' : '';
       const title = kind === 'weitere' || !new RegExp(cupTitles[kind].replace(' ', '\\s*'), 'i').test(x.tournament)
         ? cupTitles[kind] + ': ' + x.tournament : x.tournament;
-      row(container, title, x.group + ' · ' + x.points + ' Pkt. · ' + x.stocks + ' Stöcke' + status, placeText(x.place, x.of));
+      row(container, title, x.group + ' · ' + x.points + ' Pkt. · ' + x.stocks + ' Stöcke' + status
+        + (x.dq || x.dnf ? '' : ' · ' + x.played + ' ' + (x.played === 1 ? 'Spiel' : 'Spiele') + ' gespielt, ' + (x.open ? x.open + ' offen' : 'alle gespielt')), placeText(x.place, x.of));
       shown++;
     }
   }
