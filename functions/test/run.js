@@ -58,5 +58,13 @@ store.set('reservierungBuchungstage/'+D(1),{list:[live]});
  const w=await call('ADMIN',{action:'list',date:D(5),view:'whiteboard'}); assert.strictEqual(w.bookings[0].note,'Mustermann');
  await call('MEMBER',{action:'book',date:D(6),resource:'Bahn 1',timeFrom:'18:00',timeTo:'19:00',requestId:'a1111111-2222-3333-4444-555555555555',mode:'Freies Training (Standard)',note:'x'}); assert(!('note' in store.get('reservierungBuchungstage/'+D(6)).list[0]));
  await assert.rejects(call('MEMBER',{action:'book',date:D(7),resource:'Vereinsheim',timeFrom:'18:00',timeTo:'19:00',requestId:'b1111111-2222-3333-4444-555555555555',mode:'Turnier',note:'y'.repeat(61)}),e=>e.code==='invalid-argument');
+ // Vorstandssitzung: Teilnehmer aus der Spielerliste werden gespeichert, fremde Namen abgelehnt
+ await call('MEMBER',{action:'book',date:D(8),resource:'Vereinsheim',timeFrom:'19:00',timeTo:'21:00',requestId:'c1111111-2222-3333-4444-555555555555',mode:'Vorstandssitzung',homeTeam:['Stadler Martin','Resch Michael','Freund Heiner']});
+ assert.deepStrictEqual(store.get('reservierungBuchungstage/'+D(8)).list[0].homeTeam,['Stadler Martin','Resch Michael','Freund Heiner']);
+ await assert.rejects(call('MEMBER',{action:'book',date:D(9),resource:'Vereinsheim',timeFrom:'19:00',timeTo:'21:00',requestId:'d1111111-2222-3333-4444-555555555555',mode:'Vorstandssitzung',homeTeam:['Unbekannt Hans']}),e=>e.code==='invalid-argument');
+ await assert.rejects(call('MEMBER',{action:'book',date:D(9),resource:'Vereinsheim',timeFrom:'19:00',timeTo:'21:00',requestId:'e1111111-2222-3333-4444-555555555555',mode:'Geburtstagsfeier',homeTeam:['Resch Michael']}),e=>e.code==='invalid-argument');
+ // Teilnehmer der Sitzung können zur selben Zeit eine Bahn haben (keine Spieler-Kollision mit dem Vereinsheim)
+ store.set('reservierungZugaenge/MEMBER2',{reservieren:true,spielerName:'Resch Michael'});store.set('smartphoneFreigaben/MEMBER2',{reservierungenLesen:true});store.set('users/MEMBER2',{admin:false});
+ await call('MEMBER2',{action:'book',date:D(8),resource:'Bahn 1',timeFrom:'19:00',timeTo:'20:00',requestId:'f1111111-2222-3333-4444-555555555555',mode:'Freies Training (Standard)'});
  console.log('SERVER TESTS OK');
 })().catch(e=>{console.error(e);process.exit(1)});
