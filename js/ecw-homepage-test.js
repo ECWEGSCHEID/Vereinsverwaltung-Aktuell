@@ -13,6 +13,33 @@
   const recordStatus = new Map();
   const pdfFactories = new WeakMap();
   let popup, channel, connectedOrigin, folders = [], message = "Homepage noch nicht verbunden.";
+  // Automatische Übertragung: direkt mit der Firebase-Anmeldung der Vereinsverwaltung,
+  // ohne Fenster „Homepage verbinden“. Das Fenster bleibt als Ersatzweg erhalten.
+  const directApi = "https://www.ec-wegscheid.de/homepage-api/veroeffentlichungen";
+  let tokenProvider = null, direct = false, directBusy = false;
+  async function directFetch(init) {
+    const token = await tokenProvider?.();
+    if (!token) throw Error("Nicht in der Vereinsverwaltung angemeldet.");
+    const response = await fetch(directApi,{...init,headers:{...(init.headers || {}),"X-ECW-Token":token},signal:AbortSignal.timeout(35000),cache:"no-store"});
+    const result = await response.json().catch(() => null);
+    if (!response.ok) throw Error(result?.error || "Homepage antwortet nicht (HTTP " + response.status + ").");
+    return result;
+  }
+  async function connectDirect() {
+    if (!tokenProvider || direct || directBusy) return;
+    directBusy = true;
+    try {
+      const result = await directFetch({method:"GET"});
+      if (!Array.isArray(result?.folders)) throw Error("Ordnerliste fehlt.");
+      folders = result.folders;
+      direct = true;
+      status("Automatisch mit der Homepage verbunden.");
+      Object.values(pending).forEach(send);
+    } catch (error) {
+      console.warn("Automatische Homepage-Verbindung:", error);
+      if (!folders.length) status("Automatische Homepage-Verbindung nicht möglich: " + error.message + " Ersatzweise „Homepage verbinden“ benutzen.");
+    } finally { directBusy = false; }
+  }
   let pending = {};
   try { pending = JSON.parse(localStorage.getItem(storeKey) || "{}") || {}; } catch {}
   let lastRevision = Math.max(0,...Object.values(pending).map(item => item?.revision || 0));
@@ -28,7 +55,7 @@
   }
 
   async function send(record) {
-    if (!folders.length || !popup || popup.closed || !connectedOrigin) {
+    if (!direct && (!folders.length || !popup || popup.closed || !connectedOrigin)) {
       status("Homepage-Übertragung vorgemerkt. Bitte die Homepage verbinden.",record.key);
       return;
     }
@@ -48,6 +75,27 @@
       }
       if (!waiting.has(request) || pending[record.key] !== record) {
         waiting.delete(request);
+        return;
+      }
+      if (direct) {
+        status("Übertragung an die Homepage läuft …",record.key);
+        let body = JSON.stringify(record), headers = {"Content-Type":"application/json"};
+        if (record.pdfMode) {
+          body = new FormData();
+          body.set("record",JSON.stringify(record));
+          for (const kind of ["invitation","startList"]) if (pdfs?.[kind] instanceof Blob) body.set(kind,pdfs[kind],kind + ".pdf");
+          headers = {};
+        }
+        try {
+          const result = await directFetch({method:"POST",headers,body});
+          if (result?.ok !== true) throw Error(result?.error || "Veröffentlichung unbestätigt.");
+          waiting.delete(request);
+          if (pending[record.key] === record) { delete pending[record.key]; saveOutbox(); }
+          status(record.remove ? "Veröffentlichung zurückgenommen." : "Automatisch auf der Homepage gespeichert.",record.key);
+        } catch (error) {
+          waiting.delete(request);
+          if (pending[record.key] === record) status("Homepage: " + error.message,record.key);
+        }
         return;
       }
       if (target.closed) throw Error("Bitte die Homepage erneut verbinden.");
@@ -119,6 +167,11 @@
       status(popup ? "Bitte Testverbindung im geöffneten Fenster zulassen." : "Bitte Pop-ups für die Verbindung erlauben.");
     },
     queue,
+    // Wird von der Turnierverwaltung nach der Anmeldung gesetzt: liefert den Firebase-ID-Token.
+    setTokenProvider(provider) {
+      tokenProvider = provider;
+      if (provider) void connectDirect();
+    },
     options(select, selected = select.value) {
       select.replaceChildren(new select.ownerDocument.defaultView.Option("– Homepage-Unterordner auswählen –",""));
       for (const folder of folders) select.add(new select.ownerDocument.defaultView.Option(folder.title,folder.id));
