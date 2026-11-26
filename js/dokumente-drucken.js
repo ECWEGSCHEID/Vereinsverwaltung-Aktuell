@@ -390,18 +390,28 @@ async function syncMemberApplication(knownFee){
     f=state.files.find(x=>/mitglieds?antrag|aufnahmeantrag/i.test(x.title||''));
     if(f)f.auto=AUTO_APPLICATION;
    }
-   if(f&&f.fee===fee&&f.year===year&&f.autoVersion===2)return true;
+   // Bereich für den Antrag: der Bereich mit „Mitglied…“ im Namen, sonst „Formulare“, sonst der erste.
+   const target=(state.categories.find(c=>/mitglied/i.test(c.title||''))||state.categories.find(c=>c.id==='formulare')||state.categories[0]||{id:'formulare'}).id;
+   // Doppelte alte Mitgliedsanträge entfernen (nur hochgeladene, nicht der automatische).
+   const duplicates=f?state.files.filter(x=>x!==f&&!x.auto&&/mitglieds?antrag|aufnahmeantrag/i.test(x.title||'')):[];
+   let changed=false;
+   if(f&&f.category!==target){f.category=target;changed=true;}
+   if(duplicates.length){state.files=state.files.filter(x=>!duplicates.includes(x));changed=true;}
+   if(f&&f.fee===fee&&f.year===year&&f.autoVersion===2){
+    if(changed){await save(true);for(const d of duplicates)for(let i=0;i<(d.parts||0);i++)await db().collection(COL).doc('druckpdf_'+d.id+'_'+i).delete().catch(()=>{});}
+    return true;
+   }
    const blob=await memberApplicationBlob(fee);
    const base64=await fileBase64(blob);
    const parts=Math.ceil(base64.length/SIZE),old=f?f.parts:0;
    const fileId=f?f.id:AUTO_APPLICATION;
    for(let i=0;i<parts;i++)await db().collection(COL).doc('druckpdf_'+fileId+'_'+i).set({data:base64.slice(i*SIZE,(i+1)*SIZE),createdAt:new Date().toISOString()});
    for(let i=parts;i<old;i++)await db().collection(COL).doc('druckpdf_'+fileId+'_'+i).delete().catch(()=>{});
-   const category=state.categories.some(c=>c.id==='formulare')?'formulare':(state.categories[0]?.id||'formulare');
    if(f)Object.assign(f,{parts,size:blob.size,fee,year,autoVersion:2});
-   else{f={id:AUTO_APPLICATION,title:'Mitgliedsantrag',category,parts,size:blob.size,auto:AUTO_APPLICATION,fee,year,autoVersion:2};state.files.unshift(f);}
+   else{f={id:AUTO_APPLICATION,title:'Mitgliedsantrag',category:target,parts,size:blob.size,auto:AUTO_APPLICATION,fee,year,autoVersion:2};state.files.unshift(f);}
    if(urls.has(fileId)){URL.revokeObjectURL(urls.get(fileId));urls.delete(fileId);}
    await save(true);
+   for(const d of duplicates)for(let i=0;i<(d.parts||0);i++)await db().collection(COL).doc('druckpdf_'+d.id+'_'+i).delete().catch(()=>{});
    return true;
   }catch(e){console.warn('Mitgliedsantrag konnte nicht aktualisiert werden',e);return false;}
   finally{applicationSyncing=null;}
