@@ -118,6 +118,19 @@ $('transfer-skmr-save').onclick=async()=>{
 };
 $('transfer-onedrive-save').onclick=async()=>{
  if(busy)return;
+ // Bevorzugt: direkt in den OneDrive-Ordner am PC (ohne Microsoft-App)
+ if(window.ecwOneDriveOrdner?.supported()){
+  try{
+   const r=skmrResult();renderMapping(r.mapping);
+   const dir=await window.ecwOneDriveOrdner.ensure();busy=true;$('transfer-onedrive-save').disabled=true;
+   const stamp=new Date().toISOString().replace(/[:.]/g,'-').replace('T','_').slice(0,19);
+   const name=filename.replace(/\.skmr$/i,'')+'_Auslosung_'+stamp+'.skmr';
+   const where=await window.ecwOneDriveOrdner.write(dir,'02.Auslosungen',name,new Blob([r.xml],{type:'application/xml;charset=utf-8'}));
+   status('In OneDrive gespeichert: '+where+(r.withPlayers?'':' (nur Mannschaftsnamen)')+' – die OneDrive-App lädt die Datei hoch.');
+  }catch(e){status('Nicht in OneDrive gespeichert: '+e.message);}
+  finally{busy=false;$('transfer-onedrive-save').disabled=false;}
+  return;
+ }
  let tab=null;
  try{
   const r=skmrResult();renderMapping(r.mapping);
