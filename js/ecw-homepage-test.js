@@ -17,6 +17,9 @@
   // ohne Fenster „Homepage verbinden“. Das Fenster bleibt als Ersatzweg erhalten.
   const directApi = "https://www.ec-wegscheid.de/homepage-api/veroeffentlichungen";
   let tokenProvider = null, direct = false, directBusy = false;
+  // Die PDFs entstehen in der eingebetteten Turnierverwaltung (anderes Fenster) –
+  // „instanceof Blob“ wäre dort immer falsch. Deshalb an den Eigenschaften erkennen.
+  const isBlob = value => !!value && typeof value === "object" && typeof value.arrayBuffer === "function" && typeof value.size === "number";
   async function directFetch(init) {
     const token = await tokenProvider?.();
     if (!token) throw Error("Nicht in der Vereinsverwaltung angemeldet.");
@@ -83,7 +86,7 @@
         if (record.pdfMode) {
           body = new FormData();
           body.set("record",JSON.stringify(record));
-          for (const kind of ["invitation","startList"]) if (pdfs?.[kind] instanceof Blob) body.set(kind,pdfs[kind],kind + ".pdf");
+          for (const kind of ["invitation","startList"]) if (isBlob(pdfs?.[kind])) body.set(kind,pdfs[kind],kind + ".pdf");
           headers = {};
         }
         try {
@@ -94,7 +97,7 @@
           status(record.remove ? "Veröffentlichung zurückgenommen." : "Automatisch auf der Homepage gespeichert.",record.key);
         } catch (error) {
           waiting.delete(request);
-          const sizes = ["invitation","startList"].filter(k => pdfs?.[k] instanceof Blob)
+          const sizes = ["invitation","startList"].filter(k => isBlob(pdfs?.[k]))
             .map(k => (k === "invitation" ? "Einladung " : "Startliste ") + (pdfs[k].size / 1048576).toFixed(1).replace(".",",") + " MB").join(", ");
           if (pending[record.key] === record) status("Homepage: " + error.message + (sizes ? " (" + sizes + ")" : ""),record.key);
         }
