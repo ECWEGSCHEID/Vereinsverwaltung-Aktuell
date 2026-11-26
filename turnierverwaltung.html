@@ -4618,7 +4618,7 @@ var qrcode = function() {
 }));
 </script>
 <script src="js/turnier-historie-core.js?v=history-20261103-1"></script>
-<script src="js/ecw-homepage-test.js?v=25"></script>
+<script src="js/ecw-homepage-test.js?v=26"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -6967,7 +6967,8 @@ async function renderExportPages(markup){
 }
 // Homepage nimmt PDFs nur bis 8 MB an. Größere (z. B. hochgeladene fertige Einladungen)
 // werden für die Homepage als Bilder-PDF neu erstellt (ca. 150 dpi, JPEG) – das Original bleibt unverändert.
-const HOMEPAGE_PDF_LIMIT=7.5*1024*1024;
+// Der Webspace nimmt je Datei evtl. nur 2 MB an (PHP-Grenze) – deshalb sicher darunter bleiben.
+const HOMEPAGE_PDF_LIMIT=1.9*1024*1024;
 let tvPdfJsPromise=null;
 function tvLoadPdfJs(){
   try{if(window.parent!==window&&typeof window.parent.loadPdfJs==='function')return window.parent.loadPdfJs().then(ok=>{if(ok&&!window.pdfjsLib)window.pdfjsLib=window.parent.pdfjsLib;return !!window.pdfjsLib;});}catch(e){}
@@ -6980,9 +6981,9 @@ function tvLoadPdfJs(){
 }
 async function shrinkPdfForHomepage(blob){
   if(!(blob instanceof Blob)||blob.size<=HOMEPAGE_PDF_LIMIT)return blob;
-  if(!await tvLoadPdfJs())throw Error('Die Einladung ist größer als 8 MB und konnte nicht verkleinert werden (PDF-Programm nicht ladbar).');
+  if(!await tvLoadPdfJs())throw Error('Die PDF ist für die Homepage zu groß und konnte nicht verkleinert werden (PDF-Programm nicht ladbar).');
   const doc=await window.pdfjsLib.getDocument({data:await blob.arrayBuffer()}).promise;
-  for(const [dpi,quality] of [[150,.82],[120,.75],[96,.68]]){
+  for(const [dpi,quality] of [[150,.8],[130,.72],[110,.66],[96,.6],[80,.55]]){
     let pdf=null;
     for(let n=1;n<=doc.numPages;n++){
       const page=await doc.getPage(n),base=page.getViewport({scale:1}),viewport=page.getViewport({scale:dpi/72});
@@ -6997,7 +6998,7 @@ async function shrinkPdfForHomepage(blob){
     const out=pdf.output('blob');
     if(out.size<=HOMEPAGE_PDF_LIMIT)return out;
   }
-  throw Error('Die Einladung ist auch verkleinert noch größer als 8 MB. Bitte eine kleinere PDF hochladen.');
+  throw Error('Die PDF ist auch verkleinert noch zu groß für die Homepage. Bitte eine kleinere PDF hochladen.');
 }
 function pagesToPdf(pages){
   const pdf=new jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});

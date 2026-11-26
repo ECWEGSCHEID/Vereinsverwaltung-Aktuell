@@ -94,7 +94,9 @@
           status(record.remove ? "Veröffentlichung zurückgenommen." : "Automatisch auf der Homepage gespeichert.",record.key);
         } catch (error) {
           waiting.delete(request);
-          if (pending[record.key] === record) status("Homepage: " + error.message,record.key);
+          const sizes = ["invitation","startList"].filter(k => pdfs?.[k] instanceof Blob)
+            .map(k => (k === "invitation" ? "Einladung " : "Startliste ") + (pdfs[k].size / 1048576).toFixed(1).replace(".",",") + " MB").join(", ");
+          if (pending[record.key] === record) status("Homepage: " + error.message + (sizes ? " (" + sizes + ")" : ""),record.key);
         }
         return;
       }
