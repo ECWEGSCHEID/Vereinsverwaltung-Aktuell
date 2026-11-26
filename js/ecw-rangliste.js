@@ -30,7 +30,8 @@ const isAdmin=()=>typeof appPermissions!=='undefined'&&appPermissions.admin===tr
 const toast=(m,t)=>{if(typeof showToast==='function')showToast(m,t||5000);};
 const deDate=iso=>{const p=String(iso||'').slice(0,10).split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:''};
 const seasonKey=s=>Number(String(s||'').match(/\d{4}/)?.[0]||0);
-function currentSeason(){const d=new Date(),y=d.getFullYear();return d.getMonth()>=6?y+'/'+String(y+1).slice(2):(y-1)+'/'+String(y).slice(2);}
+// Saison Dezember bis November
+function currentSeason(){const d=new Date(),y=d.getFullYear();return d.getMonth()>=11?y+'/'+String(y+1).slice(2):(y-1)+'/'+String(y).slice(2);}
 
 function placePoints(max,rank,n){
   if(!(n>0)||!(rank>0))return 0;
@@ -297,5 +298,17 @@ async function open(){
   try{await load();}catch(e){msg='Laden fehlgeschlagen: '+(e.code||e.message);}
   render();
 }
-window.ECWRangliste={open,placePoints,_test:{compute,parseText,setCfg:c=>{cfg=Object.assign({visible:false,season:'2026/27',events:[],aliases:{}},c);},countingSeasons}};
+// Schnittstelle für den Ergebnis-Assistenten
+async function addEventApi(ev){
+  if(!isAdmin())throw Error('Nur Administratoren dürfen die Rangliste bearbeiten.');
+  if(!cfg)await load();
+  const latest=countingSeasons()[ev.category];
+  cfg.events=cfg.events.filter(e=>!(e.category===ev.category&&e.season===ev.season&&clean(e.label)===clean(ev.label)));
+  cfg.events.push({...ev,id:'ev_'+Date.now()});
+  await saveConfig();await publish();
+  return {replaced:latest&&seasonKey(ev.season)>seasonKey(latest)?latest:''};
+}
+function resolvePlayersApi(team){if(!cfg)return [];return splitPlayers(team,roster());}
+async function ensureLoaded(){if(!cfg)await load();}
+window.ECWRangliste={open,placePoints,addEvent:addEventApi,resolvePlayers:resolvePlayersApi,ensureLoaded,_test:{compute,parseText,setCfg:c=>{cfg=Object.assign({visible:false,season:'2026/27',events:[],aliases:{}},c);},countingSeasons}};
 })();
