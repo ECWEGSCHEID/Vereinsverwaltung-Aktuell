@@ -49,7 +49,7 @@ function menuSync(){
   if(typeof shSave==='function')shSave();
   if(typeof shRender==='function')shRender();
 }
-async function save(quiet=false){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';if(!quiet)toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}
+async function save(quiet=false){if(!editor())throw Error('Keine Berechtigung zur Dokumentenverwaltung.');if(loadSource==='error'||!loadSource)throw Error('Zentrale Dokumentenliste wurde nicht erfolgreich geladen.');state.updatedAt=new Date().toISOString();await withDeadline(ref().set(JSON.parse(JSON.stringify(state))),25000);const verified=await withDeadline(ref().get({source:'server'}),18000);if(!verified.exists||!Array.isArray(verified.data()?.files)||verified.data().files.length!==state.files.length)throw Error('Speicherung konnte nicht vom Firebase-Server bestätigt werden. Bitte vor erneutem Upload aktualisieren.');loadSource='server';if(!quiet){toast('Dokumentenverwaltung zentral gespeichert und vom Server bestätigt ✓');menuSync()}}
 function isDocumentWhiteboardMode(){
  return isPublicWhiteboardMode() ||
   (appPermissions.admin!==true && (isWhiteboardUser() || isWhiteboardKioskAccount()));
@@ -163,7 +163,7 @@ function back(){
  if(typeof showView==='function')showView('startseite');
 }
 async function getUrl(id){const f=state.files.find(x=>x.id===id);if(!f)throw Error('Dokument nicht gefunden.');
- if(f.auto==='mitgliedsantrag'){const fee=await currentMemberFee().catch(()=>null);if(fee!==null&&(fee!==f.fee||f.year!==new Date().getFullYear())){const key=id+'@'+fee;if(!urls.has(key))urls.set(key,URL.createObjectURL(await memberApplicationBlob(fee)));return urls.get(key);}}
+ if(f.auto==='mitgliedsantrag'||/mitglieds?antrag|aufnahmeantrag/i.test(f.title||'')){const fee=await currentMemberFee().catch(()=>null);if(fee!==null&&(fee!==f.fee||f.year!==new Date().getFullYear()||f.autoVersion!==2)){const key=id+'@'+fee;if(!urls.has(key))urls.set(key,URL.createObjectURL(await memberApplicationBlob(fee)));return urls.get(key);}}
  if(urls.has(id))return urls.get(id);const parts=[];for(let i=0;i<f.parts;i++){const snap=await db().collection(COL).doc('druckpdf_'+id+'_'+i).get();if(!snap.exists)throw Error('PDF-Daten fehlen (Block '+(i+1)+').');parts.push(snap.data().data||'')}
  const base64=parts.join('');const binary=atob(base64);const chunks=[];for(let i=0;i<binary.length;i+=32768){const sl=binary.slice(i,i+32768),arr=new Uint8Array(sl.length);for(let j=0;j<sl.length;j++)arr[j]=sl.charCodeAt(j);chunks.push(arr)}
  const url=URL.createObjectURL(new Blob(chunks,{type:'application/pdf'}));urls.set(id,url);return url}
@@ -341,9 +341,11 @@ function fileBase64(file){return new Promise((resolve,reject)=>{const r=new File
    (damit auch der Hallendrucker die aktuelle Fassung druckt). */
 const AUTO_APPLICATION='mitgliedsantrag';
 async function currentMemberFee(){
- const snap=await withDeadline(db().collection('ecw').doc('publicMembers').get(),12000);
- const fee=Number(snap.exists?snap.data()?.settings?.fee:NaN);
- return Number.isFinite(fee)&&fee>=0?Math.round(fee*100)/100:null;
+ const valid=v=>{const n=Number(v);return v!==undefined&&v!==null&&v!==''&&Number.isFinite(n)&&n>=0?Math.round(n*100)/100:null;};
+ for(const docId of ['publicMembers','state']){
+  try{const snap=await withDeadline(db().collection('ecw').doc(docId).get(),12000);const fee=valid(snap.exists?snap.data()?.settings?.fee:null);if(fee!==null)return fee;}catch(e){}
+ }
+ return 16; // Standard der Mitgliederverwaltung, solange dort noch nichts gespeichert ist
 }
 function applicationPdfFromJpeg(jpegBytes,w,h){
  const enc=new TextEncoder();const chunks=[];let length=0;const offsets=[0];
@@ -383,16 +385,22 @@ async function syncMemberApplication(knownFee){
    if(fee===null)return false;
    const year=new Date().getFullYear();
    let f=state.files.find(x=>x.auto===AUTO_APPLICATION);
-   if(f&&f.fee===fee&&f.year===year)return true;
+   if(!f){
+    // Bisher hochgeladenen Mitgliedsantrag weiterverwenden (gleicher Platz, gleicher Titel).
+    f=state.files.find(x=>/mitglieds?antrag|aufnahmeantrag/i.test(x.title||''));
+    if(f)f.auto=AUTO_APPLICATION;
+   }
+   if(f&&f.fee===fee&&f.year===year&&f.autoVersion===2)return true;
    const blob=await memberApplicationBlob(fee);
    const base64=await fileBase64(blob);
    const parts=Math.ceil(base64.length/SIZE),old=f?f.parts:0;
-   for(let i=0;i<parts;i++)await db().collection(COL).doc('druckpdf_'+AUTO_APPLICATION+'_'+i).set({data:base64.slice(i*SIZE,(i+1)*SIZE),createdAt:new Date().toISOString()});
-   for(let i=parts;i<old;i++)await db().collection(COL).doc('druckpdf_'+AUTO_APPLICATION+'_'+i).delete().catch(()=>{});
+   const fileId=f?f.id:AUTO_APPLICATION;
+   for(let i=0;i<parts;i++)await db().collection(COL).doc('druckpdf_'+fileId+'_'+i).set({data:base64.slice(i*SIZE,(i+1)*SIZE),createdAt:new Date().toISOString()});
+   for(let i=parts;i<old;i++)await db().collection(COL).doc('druckpdf_'+fileId+'_'+i).delete().catch(()=>{});
    const category=state.categories.some(c=>c.id==='formulare')?'formulare':(state.categories[0]?.id||'formulare');
-   if(f)Object.assign(f,{parts,size:blob.size,fee,year});
-   else{f={id:AUTO_APPLICATION,title:'Mitgliedsantrag',category,parts,size:blob.size,auto:AUTO_APPLICATION,fee,year};state.files.unshift(f);}
-   if(urls.has(AUTO_APPLICATION)){URL.revokeObjectURL(urls.get(AUTO_APPLICATION));urls.delete(AUTO_APPLICATION);}
+   if(f)Object.assign(f,{parts,size:blob.size,fee,year,autoVersion:2});
+   else{f={id:AUTO_APPLICATION,title:'Mitgliedsantrag',category,parts,size:blob.size,auto:AUTO_APPLICATION,fee,year,autoVersion:2};state.files.unshift(f);}
+   if(urls.has(fileId)){URL.revokeObjectURL(urls.get(fileId));urls.delete(fileId);}
    await save(true);
    return true;
   }catch(e){console.warn('Mitgliedsantrag konnte nicht aktualisiert werden',e);return false;}
