@@ -5846,7 +5846,7 @@ async function ecwArchiveOpenResult(id,t){
    ecwArchiveRenderSkmr(snapshot.exists()?(snapshot.data()?.archivSkmrRangliste||t?.archivSkmrRangliste||null):(t?.archivSkmrRangliste||null));
 
    if(metadata?.path){
-     try{pdf=await getBlob(storageRef(archiveStorage,metadata.path));status.textContent='Ergebnisliste aus Firebase Storage geladen.';}
+     try{await ensureStorageAuth();pdf=await getBlob(storageRef(archiveStorage,metadata.path));status.textContent='Ergebnisliste aus Firebase Storage geladen.';}
      catch(e){status.textContent='Firebase-Datei nicht abrufbar ('+e.code+'). Prüfe Storage-Regeln.';}
    }
    if(!pdf){pdf=await ecwArchivePdfGet(id);if(pdf)status.textContent='Nur lokale Altdatei vorhanden – bitte erneut hochladen, um sie mit Firebase zu synchronisieren.';}
@@ -6669,7 +6669,18 @@ async function openInvitationPdf(load){
   try{showInvitationPdf(tab,await load());}
   catch(error){tab.close();notify('PDF konnte nicht geöffnet werden: '+error.message,true);}
 }
-function readExternalInvitation(invitation){
+// Storage nutzt die eigene Firebase-App dieser Seite. Eingebettet in die Vereinsverwaltung
+// stellt sie die Anmeldung erst kurz nach dem Laden wieder her – vorher wäre der Abruf anonym
+// und Firebase meldet „storage/unauthorized“. Deshalb vor jedem Zugriff auf die Anmeldung warten.
+async function ensureStorageAuth(){
+  const storageAuth=getAuth(app);
+  await storageAuth.authStateReady();
+  if(!auth.currentUser || storageAuth.currentUser?.uid!==auth.currentUser.uid){
+    throw Error('Die Firebase-Anmeldung für den Dateizugriff fehlt. Bitte Turnierverwaltung neu laden oder neu anmelden.');
+  }
+}
+async function readExternalInvitation(invitation){
+  await ensureStorageAuth();
   return getBlob(storageRef(archiveStorage,invitation.path),15*1024*1024);
 }
 async function invitationPdf(t,config){
