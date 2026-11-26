@@ -152,6 +152,15 @@ function kindOf(x){const t=String(x?.type||'').toLowerCase();
   if(/meisterschaft/.test(t)||(typeof tpIsChampionshipEvent==='function'&&tpIsChampionshipEvent(x)))return 'meisterschaft';return 'extern';}
 const manualAllowed=()=>st.kind2==='extern'||st.kind2==='veranstalter';
 function applyKind(){if(!manualAllowed())st.manual=false;st.internal=st.kind2==='intern';st.toRanking=st.internal;st.toPlanner=!!st.eventId&&st.kind2!=='intern';}
+function filesHtml(){
+  const fl=st.files.map((f,i)=>'<div class="ea-filerow">'+(f.previewUrl?'<img src="'+f.previewUrl+'" alt="">':'<span class="ea-fileicon">'+(f.kind==='skmr'?'SKMR':'PDF')+'</span>')
+    +'<div style="flex:1;min-width:0"><b>'+esc(f.name)+'</b>'+(i===st.rowsFrom?' <span class="small" style="color:#7fd17f">· Platzierungen daraus übernommen</span>':'')+'<div class="small">'+esc(f.note||'')+'</div></div><button type="button" data-ea-fdel="'+i+'" title="Entfernen">✕</button></div>').join('');
+  const ph=st.photos.map((f,i)=>'<div class="ea-thumb"><img src="'+f.previewUrl+'" alt=""><button type="button" data-ea-pdel="'+i+'" title="Entfernen">✕</button></div>').join('');
+  return '<div class="ea-row"><label class="ea-file">'+(st.files.length?'+ Weitere Ergebnisliste':'Ergebnisliste wählen (StockTV .skmr, PDF oder Bild)')+'<input id="eaFile" type="file" multiple accept=".skmr,.xml,application/pdf,image/*"></label>'
+    +'<label class="ea-file">📷 Fotos hinzufügen<input id="eaPhotos" type="file" multiple accept="image/*"></label></div>'
+    +(fl?'<div style="margin-top:8px">'+fl+'</div>':'')+(ph?'<div class="small" style="margin-top:8px">Fotos ('+st.photos.length+')</div><div class="ea-thumbs">'+ph+'</div>':'')
+    +(st.files.length>1?'<div class="small" style="margin-top:6px">Die Platzierungen (Schritt 3) kommen aus einer Liste. Andere Liste verwenden: <select id="eaRowsFrom">'+st.files.map((f,i)=>'<option value="'+i+'"'+(i===st.rowsFrom?' selected':'')+'>'+esc(f.name)+'</option>').join('')+'</select></div>':'');
+}
 function manualHtml(){
   return '<div class="ea-grid"><label>Platz<input id="eaMPlatz" type="number" min="1" inputmode="numeric" value="'+esc(st.mPlatz||'')+'"></label><label>von (Teilnehmer)<input id="eaMVon" type="number" min="1" inputmode="numeric" value="'+esc(st.mVon||'')+'"></label><label>Notiz (optional)<input id="eaMNotiz" type="text" maxlength="200" value="'+esc(st.mNotiz||'')+'"></label></div>'
     +(st.eventId?'':'<div class="small" style="margin-top:6px;color:#ffb3b3">Für die manuelle Eingabe bitte oben den Termin aus dem Terminplaner wählen.</div>')
@@ -166,9 +175,8 @@ function render(){
     +'<label>Bezeichnung<input id="eaName" type="text" value="'+esc(st.name)+'" placeholder="z. B. Duo Cup · Gruppe A"></label>'
     +'<label>Datum<input id="eaDate" type="date" value="'+esc(st.date)+'"></label>'
     +'<label>Art<select id="eaKind">'+Object.entries(KINDS).map(([k,v])=>'<option value="'+k+'"'+(st.kind2===k?' selected':'')+'>'+esc(v)+(k==='intern'?' (zählt für die Vereinsrangliste)':'')+'</option>').join('')+'</select></label></div></div>'
-    +'<div class="card"><h3 style="margin-top:0">2. '+(st.manual?'Ergebnis manuell eingeben':'Ergebnisliste einfügen')+'</h3>'+(manualAllowed()?'<div class="ea-row" style="margin-bottom:8px"><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="list"'+(st.manual?'':' checked')+'> Ergebnisliste (SKMR, PDF, Bild)</label><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="manual"'+(st.manual?' checked':'')+'> Manuell eingeben (Platz von Teilnehmer)</label></div>':'')+(st.manual?manualHtml():'<label class="ea-file">StockTV-Datei (.skmr), PDF oder Bild wählen<input id="eaFile" type="file" accept=".skmr,.xml,application/pdf,image/*"></label>'
-    +(st.fileName?'<div class="small" style="margin-top:6px">Datei: <b>'+esc(st.fileName)+'</b>'+(st.note?' · '+esc(st.note):'')+'</div>':'')+(st.previewUrl?'<img src="'+st.previewUrl+'" alt="" style="max-width:100%;max-height:420px;margin-top:8px;background:#fff;border-radius:6px">':''))+'</div>';
-  if(st.manual||!st.fileName){root.innerHTML=head;return;}
+    +'<div class="card"><h3 style="margin-top:0">2. '+(st.manual?'Ergebnis manuell eingeben':'Ergebnisliste einfügen')+'</h3>'+(manualAllowed()?'<div class="ea-row" style="margin-bottom:8px"><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="list"'+(st.manual?'':' checked')+'> Ergebnisliste (SKMR, PDF, Bild)</label><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="manual"'+(st.manual?' checked':'')+'> Manuell eingeben (Platz von Teilnehmer)</label></div>':'')+(st.manual?manualHtml():filesHtml())+'</div>';
+  if(st.manual||!st.files.length){root.innerHTML=head;return;}
   const rowsHtml=st.rows.map((r,i)=>'<tr><td><input type="number" min="1" data-ea-rank="'+i+'" value="'+r.rank+'" style="width:64px"></td><td><input type="text" data-ea-team="'+i+'" value="'+esc(r.team)+'"></td>'
     +(st.internal?'<td><input type="text" data-ea-players="'+i+'" value="'+esc((r.players||[]).join(' / '))+'" placeholder="Spieler mit / trennen"></td>':'')
     +'<td class="small">'+esc(r.info||'')+(OWN.test(r.team)?' <b style="color:#7fd17f">EC Wegscheid</b>':'')+'</td><td><button type="button" data-ea-del="'+i+'">✕</button></td></tr>').join('');
@@ -181,10 +189,10 @@ function render(){
     +'<div style="overflow:auto"><table class="ea-table"><thead><tr><th>Platz</th><th>Mannschaft / Name</th>'+(st.internal?'<th>Spieler (Spielerliste)</th>':'')+'<th></th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'
     +'<div class="ea-row" style="margin-top:6px"><button type="button" data-ea-addrow>+ Zeile</button>'+(st.internal?'':'')+'</div></div>'
     +'<div class="card"><h3 style="margin-top:0">4. Wohin übernehmen?</h3>'
-    +'<label class="ea-check"><input type="checkbox" id="eaToHomepage"'+(st.toHomepage?' checked':'')+'> <b>Ergebnisse</b> (Vereinsverwaltung → Homepage) – PDF + PNG und die gesamte Liste als Text</label>'
+    +'<label class="ea-check"><input type="checkbox" id="eaToHomepage"'+(st.toHomepage?' checked':'')+'> <b>Ergebnisse</b> (Vereinsverwaltung → Homepage) – Listen (PDF + PNG), Fotos und die gesamte Liste als Text</label>'
     +'<div class="ea-grid" style="margin:4px 0 10px 26px"><label>Ordner<select id="eaFolder"><option value="">– bitte wählen –</option><option value="/"'+(st.folder==='/'?' selected':'')+'>Ergebnisse (Hauptebene – neuen Ordner rechts eintragen)</option>'+fl.map(f=>'<option value="'+esc(f.path.join('>'))+'"'+(st.folder===f.path.join('>')?' selected':'')+'>'+esc(f.label)+'</option>').join('')+'</select></label>'
     +'<label>Neuer Unterordner (optional)<input id="eaSubfolder" type="text" value="'+esc(st.subfolder)+'" placeholder="z. B. '+esc(String(st.date||'').slice(0,4)||'2027')+'"></label></div>'
-    +'<label class="ea-check"><input type="checkbox" id="eaToOneDrive"'+(st.toOneDrive?' checked':'')+(odReady()?'':' disabled')+'> <b>OneDrive</b> – PDF und PNG in „'+esc(odRootName()+'/'+odPath())+'“ '
+    +'<label class="ea-check"><input type="checkbox" id="eaToOneDrive"'+(st.toOneDrive?' checked':'')+(odReady()?'':' disabled')+'> <b>OneDrive</b> – Listen (PDF + PNG) und Fotos in „'+esc(odRootName()+'/'+odPath())+'“ '
     +'<span class="small">('+(st.od?.local?(st.od.folder?'OneDrive-Ordner am PC':'beim ersten Speichern den Ordner „OneDrive\\ECWegscheid“ auswählen'):(st.od?.configured?'öffnet einen eigenen Tab mit Microsoft-Anmeldung':'nur am Computer mit Chrome oder Edge'))+')</span></label>'
     +(st.eventId?'<label class="ea-check"><input type="checkbox" id="eaToPlanner"'+(st.toPlanner?' checked':'')+'> <b>Terminplaner</b> – Ergebnis beim Termin eintragen: Platz <input id="eaOwnPlace" type="number" min="1" value="'+esc(st.ownPlace)+'" style="width:64px;display:inline-block;margin:0 4px"> von '+st.rows.length+(own.length>1?' <span class="small">(mehrere EC-Wegscheid-Mannschaften: '+esc(own.map(r=>r.rank+'. '+r.team).join(', '))+')</span>':'')+'</label>':'')
     +(st.internal?'<label class="ea-check"><input type="checkbox" id="eaToRanking"'+(st.toRanking?' checked':'')+'> <b>Vereinsrangliste</b></label><div class="ea-grid" style="margin:4px 0 0 26px"><label>Kategorie<select id="eaCat">'+cats.map(c=>'<option'+(st.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'
@@ -209,33 +217,57 @@ function applyGuesses(){
   const f=guessFolder(st.name,st.date);if(f&&!st.folder)st.folder=f.path.join('>');
   const own=st.rows.find(r=>OWN.test(r.team));if(own&&!st.ownPlace)st.ownPlace=String(own.rank);
 }
-async function loadFile(file){
-  st.fileName=file.name;st.file=file;st.rows=[];st.note='Datei wird gelesen …';st.pngs=[];if(st.previewUrl)URL.revokeObjectURL(st.previewUrl);st.previewUrl='';render();
-  try{
-    if(/\.(skmr|xml)$/i.test(file.name)){
-      const r=parseSkmrFile(await file.text());st.kind='skmr';st.rows=r.rows;st.date=st.date||r.date;if(!st.name)st.name=r.title;
-      st.note='StockTV-Datei: '+r.played+' von '+r.total+' Spielen eingetragen';
-    }else if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
-      st.kind='pdf';const doc=await pdfDoc(file);st.rows=parseLines(await pdfLines(doc));st.pngs=await pdfToPngs(doc);
-      if(st.pngs[0])st.previewUrl=URL.createObjectURL(st.pngs[0]);st.note='PDF mit '+doc.numPages+' Seite(n)';
-    }else if(/^image\//.test(file.type)){
-      st.kind='image';st.previewUrl=URL.createObjectURL(file);st.note='Bild – Plätze bitte unten eintragen';
-      if(!st.rows.length)st.rows=[{rank:1,team:'',players:[]}];
-    }else throw Error('Dateiformat nicht unterstützt (.skmr, PDF oder Bild).');
-    if(window.ECWRangliste?.ensureLoaded)await ECWRangliste.ensureLoaded().catch(()=>{});
-    if(st.internal&&window.ECWRangliste?.resolvePlayers)st.rows.forEach(r=>{if(!r.players.length)r.players=ECWRangliste.resolvePlayers(r.team);});
-    applyGuesses();
-  }catch(e){st.note='Fehler: '+e.message;}
-  render();
+async function readOne(file){
+  const f={name:file.name,file,kind:'',pngs:[],previewUrl:'',note:'',rows:[]};
+  if(/\.(skmr|xml)$/i.test(file.name)){
+    const r=parseSkmrFile(await file.text());f.kind='skmr';f.rows=r.rows;f.date=r.date;f.title=r.title;
+    f.note='StockTV-Datei: '+r.played+' von '+r.total+' Spielen eingetragen';
+  }else if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
+    f.kind='pdf';const doc=await pdfDoc(file);f.rows=parseLines(await pdfLines(doc));f.pngs=await pdfToPngs(doc);
+    if(f.pngs[0])f.previewUrl=URL.createObjectURL(f.pngs[0]);f.note='PDF mit '+doc.numPages+' Seite(n)'+(f.rows.length?' · '+f.rows.length+' Plätze erkannt':'');
+  }else if(/^image\//.test(file.type)){
+    f.kind='image';f.previewUrl=URL.createObjectURL(file);f.note='Bild – Plätze bitte in Schritt 3 eintragen';
+  }else throw Error(file.name+': Dateiformat nicht unterstützt (.skmr, PDF oder Bild).');
+  return f;
+}
+function useRowsFrom(i){
+  const f=st.files[i];if(!f)return;st.rowsFrom=i;
+  st.rows=f.rows.map(r=>({...r,players:[...(r.players||[])]}));if(!st.rows.length)st.rows=[{rank:1,team:'',players:[]}];
+  if(f.date&&!st.eventId)st.date=st.date||f.date;if(f.title&&!st.name)st.name=f.title;
+  if(st.internal&&window.ECWRangliste?.resolvePlayers)st.rows.forEach(r=>{if(!r.players.length)r.players=ECWRangliste.resolvePlayers(r.team);});
+  st.ownPlace='';applyGuesses();
+}
+async function addFiles(list){
+  st.msg='Datei(en) werden gelesen …';render();const errs=[];
+  for(const file of list){try{st.files.push(await readOne(file));}catch(e){errs.push(e.message);}}
+  if(window.ECWRangliste?.ensureLoaded)await ECWRangliste.ensureLoaded().catch(()=>{});
+  if(st.rowsFrom<0||!st.files[st.rowsFrom]){const i=st.files.findIndex(f=>f.rows.length);if(st.files.length)useRowsFrom(i<0?0:i);}
+  else if(!st.rows.some(r=>clean(r.team))){const i=st.files.findIndex(f=>f.rows.length);if(i>=0)useRowsFrom(i);}
+  st._out=null;st.msg=errs.join('\n');render();
+}
+// Fotos verkleinern (max. 2000 px, JPEG) – schont Speicher und Homepage.
+async function shrinkPhoto(file){
+  const url=URL.createObjectURL(file);const img=new Image();img.src=url;await img.decode();URL.revokeObjectURL(url);
+  const sc=Math.min(1,2000/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);return new Promise(res=>c.toBlob(res,'image/jpeg',0.85));
+}
+async function addPhotos(list){
+  st.msg='Fotos werden vorbereitet …';render();
+  for(const file of list){try{const blob=await shrinkPhoto(file);st.photos.push({name:file.name,blob,previewUrl:URL.createObjectURL(blob)});}catch(e){toast(file.name+': kein lesbares Bild.');}}
+  st._out=null;st.msg='';render();
 }
 // PDF + PNG für alle Eingaben (PDF: Original + Seitenbilder; Bild/StockTV: Bild + PDF daraus)
 async function outputFiles(rows,title){
   if(st._out&&st._outKey===title)return st._out;
-  let pdf,pngs;
-  if(st.kind==='pdf'){pdf=st.file;pngs=st.pngs;}
-  else if(st.kind==='image'){pngs=[await toPng(st.file)];pdf=await imageToPdf(pngs[0]);}
-  else{pngs=[await tablePng(st.name,(st.date?deDate(st.date)+' · ':'')+rows.length+' Platzierungen',rows)];pdf=await imageToPdf(pngs[0]);}
-  const out=[[pdf,title+'.pdf'],...pngs.map((b,i)=>[b,title+(pngs.length>1?' · Seite '+(i+1):'')+'.png'])];
+  const out=[],multi=st.files.length>1;
+  for(const [i,f] of st.files.entries()){
+    const t=multi?title+' – '+clean(f.name.replace(/\.[^.]+$/,'')):title;let pdf,pngs;
+    if(f.kind==='pdf'){pdf=f.file;pngs=f.pngs;}
+    else if(f.kind==='image'){pngs=[await toPng(f.file)];pdf=await imageToPdf(pngs[0]);}
+    else{const rr=i===st.rowsFrom?rows:f.rows;pngs=[await tablePng(st.name,(st.date?deDate(st.date)+' · ':'')+rr.length+' Platzierungen',rr)];pdf=await imageToPdf(pngs[0]);}
+    out.push([pdf,t+'.pdf'],...pngs.map((b,k)=>[b,t+(pngs.length>1?' · Seite '+(k+1):'')+'.png']));
+  }
+  st.photos.forEach((p,k)=>out.push([p.blob,title+' · Foto '+(k+1)+'.jpg']));
   st._out=out;st._outKey=title;return out;
 }
 async function saveManual(){
@@ -272,7 +304,7 @@ async function saveAll(od){
       const title=st.name+(st.date?' · '+deDate(st.date):'');
       const files=await outputFiles(rows,title);
       for(const [blob,name] of files){st.msg='Homepage: '+name+' wird hochgeladen …';render();const f=await storeResultFile(blob,name);
-        node.links.push({t:name.replace(/\.(png|pdf)$/,''),u:'',kind:f.mime.startsWith('image/')?'image':'link',file:f});}
+        node.links.push({t:name.replace(/\.(png|pdf|jpg)$/,''),u:'',kind:f.mime.startsWith('image/')?'image':'link',file:f});}
       node.body=(node.body?node.body.trim()+'\n\n':'')+title+'\n'+listText(rows);
       if(typeof shSave==='function')shSave();
       const ok=typeof shSaveToFirebase==='function'?await shSaveToFirebase():false;
@@ -312,6 +344,8 @@ function css(){
   s.textContent='.ea-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 12px}.ea-grid label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:.85rem}'
    +'.ea-file{display:inline-flex!important;align-items:center;padding:10px 14px;border:1px dashed rgba(255,255,255,.5);border-radius:8px;cursor:pointer;margin:0}.ea-file input{display:none}'
    +'.ea-table{width:100%;border-collapse:collapse}.ea-table td,.ea-table th{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}.ea-table input{margin:0!important;width:100%}'
+   +'.ea-filerow{display:flex;gap:10px;align-items:center;padding:6px;border:1px solid rgba(255,255,255,.15);border-radius:8px;margin-top:6px}.ea-filerow img,.ea-fileicon{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:4px;flex:none}.ea-fileicon{display:flex;align-items:center;justify-content:center;color:#333;font-weight:700;font-size:12px}.ea-filerow button{flex:none;width:auto}'
+   +'.ea-thumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.ea-thumb{position:relative}.ea-thumb img{width:96px;height:72px;object-fit:cover;border-radius:4px;display:block}.ea-thumb button{position:absolute;top:2px;right:2px;padding:0 6px;min-height:0;width:auto;line-height:1.4}'
    +'.ea-check{display:flex!important;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0!important}.ea-check>input[type=checkbox]{width:auto!important;margin:0!important}.ea-row{display:flex;gap:8px;flex-wrap:wrap}';
   document.head.appendChild(s);
 }
@@ -324,7 +358,9 @@ function onInput(e){
 function onChange(e){
   const t=e.target;if(!st)return;
   if(t.name==='eaMode'){readForm();st.manual=t.value==='manual';st.msg='';render();return;}
-  if(t.id==='eaFile'){const f=t.files&&t.files[0];if(f)loadFile(f);return;}
+  if(t.id==='eaFile'){readForm();const l=[...(t.files||[])];t.value='';if(l.length)addFiles(l);return;}
+  if(t.id==='eaPhotos'){readForm();const l=[...(t.files||[])];t.value='';if(l.length)addPhotos(l);return;}
+  if(t.id==='eaRowsFrom'){readForm();useRowsFrom(+t.value);render();return;}
   if(t.id==='eaEvent'){readForm();st.eventId=t.value;const x=plannerEvents().find(v=>v.id===t.value);
     if(x){st.name=x.name;st.date=x.date;st.kind2=kindOf(x);applyKind();st.category='';st.season='';st.folder='';applyGuesses();}else{applyKind();}render();return;}
   if(t.id==='eaFolder'||t.id==='eaSubfolder'||t.id==='eaToOneDrive'){readForm();render();return;}
@@ -333,6 +369,9 @@ function onChange(e){
 }
 function onClick(e){
   const b=e.target.closest('button');if(!b||!st)return;const d=b.dataset;
+  if('eaFdel' in d){readForm();const i=+d.eaFdel,f=st.files[i];if(f?.previewUrl)URL.revokeObjectURL(f.previewUrl);st.files.splice(i,1);st._out=null;
+    if(i===st.rowsFrom){st.rowsFrom=-1;st.rows=[];const j=st.files.findIndex(x=>x.rows.length);if(st.files.length)useRowsFrom(j<0?0:j);}else if(i<st.rowsFrom)st.rowsFrom--;render();return;}
+  if('eaPdel' in d){readForm();const i=+d.eaPdel;URL.revokeObjectURL(st.photos[i].previewUrl);st.photos.splice(i,1);st._out=null;render();return;}
   if('eaDel' in d){readForm();st.rows.splice(+d.eaDel,1);render();}
   else if('eaAddrow' in d){readForm();st.rows.push({rank:(st.rows[st.rows.length-1]?.rank||0)+1,team:'',players:[]});render();}
   else if('eaMsave' in d){saveManual();}
@@ -349,7 +388,7 @@ async function refreshOd(){if(!st)return;const c=window.ECWOneDrive?await ECWOne
 function open(){
   if(!isAdmin())return toast('Der Ergebnis-Assistent ist nur für Administratoren.');
   const a=$('adminMain');if(!a)return;css();
-  st={kind2:'intern',manual:false,mPlatz:'',mVon:'',mNotiz:'',toOneDrive:undefined,od:null,eventId:'',name:'',date:new Date().toISOString().slice(0,10),internal:true,fileName:'',rows:[],toHomepage:true,toPlanner:false,toRanking:true,folder:'',subfolder:'',ownPlace:'',category:'',type:'group',season:'',msg:''};
+  st={files:[],photos:[],rowsFrom:-1,kind2:'intern',manual:false,mPlatz:'',mVon:'',mNotiz:'',toOneDrive:undefined,od:null,eventId:'',name:'',date:new Date().toISOString().slice(0,10),internal:true,fileName:'',rows:[],toHomepage:true,toPlanner:false,toRanking:true,folder:'',subfolder:'',ownPlace:'',category:'',type:'group',season:'',msg:''};
   a.innerHTML='<h2 style="margin:0 0 10px">Ergebnisse eingeben</h2>'
     +'<div class="small" style="margin-bottom:10px">Wettkampf wählen, Ergebnisliste einfügen, prüfen – dann wird alles in einem Schritt gespeichert: Ergebnisse (Homepage), OneDrive, Terminplaner und Vereinsrangliste.</div><div id="eaRoot"></div>';
   const root=$('eaRoot');root.addEventListener('input',onInput);root.addEventListener('change',onChange);root.addEventListener('click',onClick);
