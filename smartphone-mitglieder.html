@@ -923,11 +923,11 @@ moduleResults.append(...Array.from(results.children, button => button.cloneNode(
 const moduleFrame = document.getElementById('module-frame');
 const moduleBack = document.getElementById('module-back');
 const legacyReservationUrl = reservationTest
-  ? new URL('reservierung-smartphone-test.html?v=3.1.38.181126', location.href).href
+  ? new URL('reservierung-smartphone-test.html?v=3.1.115.261126', location.href).href
   : 'https://ecwegscheid.github.io/Reservierungssystem/';
 function reservationAddress(games = false) {
   const url = new URL(bookingPilot || bookingOperationActive
-    ? 'reservierung-smartphone-test.html?v=3.1.38.181126' : legacyReservationUrl, location.href);
+    ? 'reservierung-smartphone-test.html?v=3.1.115.261126' : legacyReservationUrl, location.href);
   if (games) url.searchParams.set('ansicht', 'tag');
   return url;
 }

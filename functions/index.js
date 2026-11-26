@@ -16,6 +16,8 @@ const clubhouseModes = ['Vereinsfeier', 'Gremlins Heimspiel', 'Geburtstagsfeier'
 const modes = new Map([
   ['Freies Training (Standard)', 0], ['Cup-Spiel', 4], ['Solo Turnier', 1], ['Duo Cup', 2],
   ['Frauencup', 2], ...clubhouseModes.map(mode => [mode, 0]),
+  // Vorstandssitzung: Teilnehmer (Vorstand) werden als Heimteam gespeichert, damit sie in „Mein Überblick“ erscheinen.
+  ['Vorstandssitzung', 12],
 ]);
 const informationssystemEmail = 'informationssystem@ec-wegscheid.de';
 const pilot = 'n9MpiKXZNLap8wsbRcP4fVjrT4D2';

@@ -133,6 +133,8 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     if (values.resource === 'Vereinsheim') {
       const note = (element('clubhouseNote')?.value || '').trim();
       if (note) values.note = note;
+      // Vorstandssitzung: ausgewählte Vorstandsmitglieder als Teilnehmer
+      if (values.mode === 'Vorstandssitzung') { values.homeTeam = window.ecwBoardSelection?.() || []; values.guestTeam = []; }
     }
     const message = element('raster-booking-message');
     if (whiteboard && options?.chooseBooker) {
@@ -206,6 +208,7 @@ export function createRasterBooking(app, auth, {games, whiteboard, status, showR
     element('modalTemplateSelect').value = booking.baseMode || booking.mode;
     if (element('clubhouseNote')) element('clubhouseNote').value = booking.note || '';
     window.onTemplateChange?.();
+    if (booking.resource === 'Vereinsheim' && (booking.baseMode || booking.mode) === 'Vorstandssitzung') window.ecwSetBoardSelection?.(booking.homeTeam || []);
     for (const [side, team] of [['home', booking.homeTeam], ['guest', booking.guestTeam]]) {
       (team || []).forEach((name, index) => {
         const select = element(side + 'Player' + (index + 1));
