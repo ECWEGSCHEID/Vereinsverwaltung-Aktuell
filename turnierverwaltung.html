@@ -5723,11 +5723,11 @@ function publishHomepageTournament(t, force = false, reportedEntries) {
   const makePdfs = active ? async () => {
     const pdfs = {};
     if (publishInvitation) {
-      pdfs.invitation = await invitationPdf(t,invitationValues);
+      pdfs.invitation = await shrinkPdfForHomepage(await invitationPdf(t,invitationValues));
     }
     if (config.startList) {
       const source = {...t,entries,vorlage:liveStartlistTemplateFor(t)};
-      pdfs.startList = pagesToPdf(await renderExportPages(liveStartlistHtml(source)));
+      pdfs.startList = await shrinkPdfForHomepage(pagesToPdf(await renderExportPages(liveStartlistHtml(source))));
     }
     return pdfs;
   } : undefined;
@@ -6964,6 +6964,40 @@ async function renderExportPages(markup){
     }
     if(!pages.length)throw Error('Keine Dokumentseiten vorhanden.');return pages;
   } finally {host.remove();}
+}
+// Homepage nimmt PDFs nur bis 8 MB an. Größere (z. B. hochgeladene fertige Einladungen)
+// werden für die Homepage als Bilder-PDF neu erstellt (ca. 150 dpi, JPEG) – das Original bleibt unverändert.
+const HOMEPAGE_PDF_LIMIT=7.5*1024*1024;
+let tvPdfJsPromise=null;
+function tvLoadPdfJs(){
+  try{if(window.parent!==window&&typeof window.parent.loadPdfJs==='function')return window.parent.loadPdfJs().then(ok=>{if(ok&&!window.pdfjsLib)window.pdfjsLib=window.parent.pdfjsLib;return !!window.pdfjsLib;});}catch(e){}
+  if(window.pdfjsLib)return Promise.resolve(true);
+  if(tvPdfJsPromise)return tvPdfJsPromise;
+  const sources=[['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'],
+    ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js']];
+  tvPdfJsPromise=(async()=>{for(const [lib,worker] of sources){try{await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=lib;sc.onload=res;sc.onerror=()=>{sc.remove();rej(Error('nicht ladbar'))};document.head.appendChild(sc)});if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc=worker;return true}}catch(e){}}tvPdfJsPromise=null;return false;})();
+  return tvPdfJsPromise;
+}
+async function shrinkPdfForHomepage(blob){
+  if(!(blob instanceof Blob)||blob.size<=HOMEPAGE_PDF_LIMIT)return blob;
+  if(!await tvLoadPdfJs())throw Error('Die Einladung ist größer als 8 MB und konnte nicht verkleinert werden (PDF-Programm nicht ladbar).');
+  const doc=await window.pdfjsLib.getDocument({data:await blob.arrayBuffer()}).promise;
+  for(const [dpi,quality] of [[150,.82],[120,.75],[96,.68]]){
+    let pdf=null;
+    for(let n=1;n<=doc.numPages;n++){
+      const page=await doc.getPage(n),base=page.getViewport({scale:1}),viewport=page.getViewport({scale:dpi/72});
+      const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+      const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:ctx,viewport}).promise;
+      const w=base.width*25.4/72,h=base.height*25.4/72,orientation=w>h?'landscape':'portrait';
+      if(!pdf)pdf=new jspdf.jsPDF({orientation,unit:'mm',format:[w,h],compress:true});else pdf.addPage([w,h],orientation);
+      pdf.addImage(canvas.toDataURL('image/jpeg',quality),'JPEG',0,0,w,h,undefined,'FAST');
+      canvas.width=canvas.height=1;
+    }
+    const out=pdf.output('blob');
+    if(out.size<=HOMEPAGE_PDF_LIMIT)return out;
+  }
+  throw Error('Die Einladung ist auch verkleinert noch größer als 8 MB. Bitte eine kleinere PDF hochladen.');
 }
 function pagesToPdf(pages){
   const pdf=new jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
