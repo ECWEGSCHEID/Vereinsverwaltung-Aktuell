@@ -5697,7 +5697,8 @@ function publishHomepageTournament(t, force = false, reportedEntries) {
   // Einladung mit Vereinsvorgaben (Vorstand, Schriftführer, Meldung) wie in der Vorschau.
   const invitationValues = withClubDefaults(template);
   // Pflichtfeld Preise: ohne Auswahl keine Einladung auf der Homepage veröffentlichen.
-  const invitationReady = PRIZE_OPTIONS.includes(invitationValues.preise);
+  // Eine fertig hochgeladene Einladung (PDF) braucht keine Angaben aus der Vorlage.
+  const invitationReady = Boolean(t.externalInvitation?.path) || PRIZE_OPTIONS.includes(invitationValues.preise);
   const publishInvitation = Boolean(config.invitation) && invitationReady;
   const invitationText = [
     template.einladungsTitel,
