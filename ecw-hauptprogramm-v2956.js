@@ -2531,7 +2531,6 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openInternalCupAdmin(\'auslosung\')">Turnierauslosung</button>'
   +'<button type="button" onclick="window.ECWMontagsSolo&&ECWMontagsSolo.open()">Montags Solo</button>'
   +'<button type="button" onclick="window.ECWRangliste&&ECWRangliste.open()">Vereinsrangliste</button>'
-  +'<button type="button" onclick="window.ECWErgebnisAssistent&&ECWErgebnisAssistent.open()">Ergebnis eintragen</button>'
   +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide</button>'
   +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
@@ -6952,7 +6951,7 @@ function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
  const permKey=(s==='zr'?'t':s==='docs'||s==='ergebnisse'||s==='homepage'?'sh':s==='players'?'tp':s);
- const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin','checklists'];
+ const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin','checklists','ea'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
  try{unloadMvAdmin()}catch(e){}
@@ -6963,6 +6962,7 @@ function adminSection(s){
  if(s==='docs'){ecwDocsAdmin();return}
  if(s==='homepage'){renderHomepageAdmin();return}
  if(s==='ergebnisse'){ecwResults.admin();return}
+ if(s==='ea'){if(window.ECWErgebnisAssistent)ECWErgebnisAssistent.open();return}
  if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}
  if(s==='u'){openUserRightsAdmin();return}
