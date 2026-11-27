@@ -7824,8 +7824,8 @@ function renderPhotos(){
  clearInterval(photoTimer);if(photoScrollTimer)cancelAnimationFrame(photoScrollTimer);photoScrollTimer=null;
  const c=document.getElementById(pCfg().contentEl),ms=[...new Set(pItems().map(p=>p.month))].sort();
  let photos=pItems().filter(p=>p.month===photoAlbumMonth&&readPhotoSource(p));
- // Diashow: jedes Mal in zufälliger Reihenfolge; nach einem vollen Durchlauf neu gemischt (Sponsoren bleiben in fester Reihenfolge)
- const shuffled=pCollection==='photos';
+ // Diashow und Sponsoren: jedes Mal in zufälliger Reihenfolge; nach einem vollen Durchlauf neu gemischt
+ const shuffled=true;
  const shuffle=l=>{l=l.slice();for(let k=l.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[l[k],l[j]]=[l[j],l[k]];}return l;};
  if(shuffled)photos=shuffle(photos);
  // Endlose Bildfolge: Runde für Runde neu gemischt, ohne dasselbe Bild zweimal hintereinander
