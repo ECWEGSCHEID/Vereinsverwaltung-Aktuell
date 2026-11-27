@@ -1476,6 +1476,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  if(Array.isArray(j.buttons))d.buttons=j.buttons.filter(b=>b&&typeof b.t==='string').map(b=>{const o={t:b.t,u:typeof b.u==='string'?b.u:''};
   if(b.whiteboardSlot===1||b.whiteboardSlot===2)o.whiteboardSlot=b.whiteboardSlot;
   if(Number.isInteger(b.cell)&&b.cell>=0&&b.cell<200)o.cell=b.cell;
+  if(Number.isInteger(b.subRows)&&b.subRows>=1&&b.subRows<=8)o.subRows=b.subRows;
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>{const y={t:x.t,u:typeof x.u==='string'?x.u:''};if(Number.isInteger(x.cell)&&x.cell>=0&&x.cell<200)y.cell=x.cell;return y;});if(sb.length)o.sub=sb}
   return o});
  if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
@@ -1794,6 +1795,12 @@ function shEnsureListCells(list){
  list.forEach(b=>{if(Number.isInteger(b.cell)&&b.cell>=0&&!used.has(b.cell))used.add(b.cell);else b.cell=-1;});
  list.forEach(b=>{if(b.cell<0){let c=0;while(used.has(c))c++;b.cell=c;used.add(c);}});
 }
+// Reihen der Interne-Cups-Seite: gleich für Startseite und Vorschau (auch nicht aktive Kacheln behalten ihren Platz)
+function shSubUsedRows(grp){return Math.max(1,...(grp?.sub||[]).map(b=>Number.isInteger(b.cell)?Math.floor(b.cell/SH_SUB_PER_ROW)+1:1));}
+function shSubRows(grp){return Math.max(+grp?.subRows||0,shSubUsedRows(grp));}
+function shSetSubRows(d){const g=shInternalGroup();if(!g||!hasAppPermission('sh'))return;shEnsureListCells(g.sub);const n=shSubRows(g)+d;
+ if(n<shSubUsedRows(g)){showToast('Die letzte Reihe ist belegt – zuerst die Kacheln daraus verschieben.',6000);return;}
+ if(n<1||n>8)return;g.subRows=n;shSave();shRender();window.ecwMarkDirty?.();const v=document.getElementById('icRowsVal');if(v)v.textContent=n;}
 function shSortListByCell(list){const order=new Map(list.map((b,i)=>[b,i]));list.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shSortByCell(){const order=new Map(SH.buttons.map((b,i)=>[b,i]));SH.buttons.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shRender(){
@@ -1845,8 +1852,7 @@ function shRender(){
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
  if(internalGroup){
   shEnsureListCells(grp.sub);
-  const rows=Math.max(1,...items.map(b=>Math.floor(b.cell/SH_SUB_PER_ROW)+1));
-  g.style.setProperty('--centered-submenu-rows',rows);
+  g.style.setProperty('--centered-submenu-rows',shSubRows(grp));
   els.forEach((tile,i)=>{const [row,column]=shSubCellPos(items[i].cell);tile.style.setProperty('--sh-tile-row',row);tile.style.setProperty('--sh-tile-column',column);});
  }else if(centeredSubmenu){
   g.style.setProperty('--centered-submenu-rows',Math.max(1,Math.ceil(total/4)));
@@ -2016,7 +2022,8 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
 }
 // Vorschau: der ganze Startbildschirm (Hintergrund, Logos, Laufschrift) mit allen Plätzen.
 // Kacheln lassen sich nur auf FREIE Plätze ziehen.
-const SH_SCREEN_W=1920,SH_SCREEN_H=1080;
+// Vorschaugröße = Bildschirmgröße dieses Geräts (Querformat), sonst Full HD
+const SH_SCREEN_W=(screen.width>=1000&&screen.width>screen.height)?screen.width:1920,SH_SCREEN_H=(screen.width>=1000&&screen.width>screen.height)?screen.height:1080;
 function shScreenHtml(){
  const sc=Math.round(shTileScale()*100);
  return '<div class="row sh-size-bar" style="align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">'
@@ -2029,6 +2036,7 @@ function shScreenHtml(){
 function shScreenInit(){shFrameInit('shScreen','shScreenWrap',shScreenFill);}
 function shFrameInit(frId,wrapId,fill){
  const fr=document.getElementById(frId),wrap=document.getElementById(wrapId);if(!fr||!wrap)return;
+ fr.style.width=SH_SCREEN_W+'px';fr.style.height=SH_SCREEN_H+'px';
  const scale=()=>{const f=document.getElementById(frId),w=document.getElementById(wrapId);if(!f||!w)return;const s=w.clientWidth/SH_SCREEN_W;f.style.transform='scale('+s+')';w.style.height=Math.round(SH_SCREEN_H*s)+'px';};
  scale();window.__shScaleFns=window.__shScaleFns||{};window.__shScaleFns[frId]=scale;
  if(!window.__shScreenResize){window.__shScreenResize=true;window.addEventListener('resize',()=>Object.values(window.__shScaleFns).forEach(f=>f()));}
@@ -2090,7 +2098,7 @@ function shIcFill(){
  const back=doc.getElementById('shSubReturn');if(back)back.hidden=false;
  g.className='sh-whiteboard-hex sh-centered-submenu-hex';
  const used=new Set(grp.sub.map(b=>b.cell));
- const rows=Math.max(3,Math.floor(Math.max(...grp.sub.map(b=>b.cell))/SH_SUB_PER_ROW)+2);
+ const rows=shSubRows(grp);
  g.style.setProperty('--centered-submenu-rows',rows);
  const tiles=[];
  grp.sub.forEach((b,i)=>{const x=doc.createElement('a');x.className='shbtn'+(ecwInternActive(b)?'':' sh-inactive');
@@ -2104,9 +2112,9 @@ function shIcFill(){
 }
 function shSetRows(d){if(!hasAppPermission('sh'))return;const n=shRows()+d;
  if(n<shUsedRows()){showToast('Die letzte Reihe ist belegt – zuerst die Kacheln daraus verschieben.',6000);return;}
- if(n<2||n>8)return;SH.rows=n;shSave();shRender();
+ if(n<2||n>8)return;SH.rows=n;shSave();shRender();window.ecwMarkDirty?.();
  const v=document.getElementById('shRowsVal');if(v){v.textContent=n;const f=v.parentElement.querySelector('.small');if(f)f.textContent='('+(n*SH_CELLS_PER_ROW-SH.buttons.length)+' frei)';}}
-function shSetTileScale(v){if(!hasAppPermission('sh'))return;SH.tileScale=Math.max(.5,Math.min(1.2,(+v||100)/100));shSave();shRender();
+function shSetTileScale(v){if(!hasAppPermission('sh'))return;SH.tileScale=Math.max(.5,Math.min(1.2,(+v||100)/100));shSave();shRender();window.ecwMarkDirty?.();
  const e=document.getElementById('shScaleVal');if(e)e.textContent=Math.round(SH.tileScale*100)+' %';
  const r=document.querySelector('.sh-size-bar input[type=range]');if(r&&+r.value!==Math.round(SH.tileScale*100))r.value=Math.round(SH.tileScale*100);}
 function shRefreshButtonsList(){const d=document.querySelector('#shdButtons .sh-det-body');if(d)d.innerHTML=SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>';}
@@ -2748,7 +2756,7 @@ function setInternalCupAdminReturnButton(){
 // V3.1.121: jeder Cup ein eigener Button (Admin-Menü nur für diesen Cup), „Neuen Cup hinzufügen“ extra
 function openCupSingle(id,name){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
- window.__adminBack='menu';window.__adminPreviewMode=false;
+ window.__adminBack='ic';window.__adminPreviewMode=false;
  const u=new URL(internalCupUrl('cup','bearbeiten'));if(id)u.searchParams.set('turnier',id);else u.searchParams.set('neu','1');
  openExternalPage(u.href,id?(name||'Cup'):'Neuen Cup hinzufügen');
  setInternalCupAdminReturnButton();
@@ -2769,7 +2777,7 @@ async function renderCupButtons(){
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='ecw-cup-created')setTimeout(renderCupButtons,800);});
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
- window.__adminBack='menu';
+ window.__adminBack=document.getElementById('icCupButtons')?'ic':'menu';
  window.__adminPreviewMode=false;
  const labels={doppelko:'Doppel KO System',home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
  openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
@@ -2796,6 +2804,7 @@ function renderInternalCupAdmin(){
   +'<div style="margin-top:14px"></div>'
   +shDetails('icdActive','Auf der Startseite anzeigen','<div id="ecwInternActiveBody"><p class="small">Wird geladen …</p></div>','aktiv / nicht aktiv')
   +shDetails('icdLayout','Buttonanordnung','<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><p class="small" style="margin:0">Kacheln auf einen <b>freien Platz</b> ziehen (zum Tauschen zuerst eine auf einen freien Platz). Graue Kacheln sind nicht aktiv und werden auf der Startseite nicht angezeigt.</p><button class="primary" onclick="shSaveToFirebase()">💾 Anordnung speichern</button></div>'
+   +'<div style="margin-top:8px"><b>Reihen:</b> <button type="button" style="width:auto" onclick="shSetSubRows(-1)" title="Reihe entfernen">−</button> <b id="icRowsVal">'+(shInternalGroup()?shSubRows(shInternalGroup()):1)+'</b> <button type="button" style="width:auto" onclick="shSetSubRows(1)" title="Reihe mit 4 freien Plätzen hinzufügen">+</button> <span class="small">· die Vorschau entspricht genau der Startseite</span></div>'
    +'<div class="sh-screen-wrap" id="icScreenWrap" style="margin-top:8px"><iframe id="icScreen" title="Vorschau Interne Cups" tabindex="-1"></iframe></div>','Ansicht wie auf der Startseite – Kacheln verschieben')
   ;
  renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);renderCupButtons();
@@ -7344,9 +7353,9 @@ function adminSection(s){
  if(s==='t'){
   tCollection='tournaments';
   const tmonths=existingMonths(); const selectedAdminMonth=tmonths.includes(currentMonth)?currentMonth:(tmonths[0]||monthKey());
-  a.innerHTML='<h2>'+tCfg().label+'</h2><div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select><label style="margin-top:10px">Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="tfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><div id="firebaseTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die ausgewählten Dateien werden automatisch im Programm und in Firebase gespeichert. PDF-Dateien werden automatisch seitenweise übernommen.</p></div>'
+  a.innerHTML='<div class="n-admin-head"><h2>'+tCfg().label+'</h2><button class="primary" onclick="saveTournamentFiles()">💾 Speichern</button></div><div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select><label style="margin-top:10px">Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="tfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><div id="firebaseTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die ausgewählten Dateien werden automatisch im Programm und in Firebase gespeichert. PDF-Dateien werden automatisch seitenweise übernommen.</p></div>'
    +shDetails('tdPresent','Präsentationsseite – alle gespeicherten Einladungen','<label>Monat auswählen</label><select id="tadminmonth">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div>','auch abgelaufene, zum Sortieren und Bearbeiten')
-   +shDetails('tdReal','Echte Ansicht – so erscheint es auf der Startseite','<div id="tRealView"></div>','nur die wirklich angezeigten Einladungen')
+   +shDetails('tdReal','Echte Ansicht – so erscheint es auf der Startseite','<label>Monat auswählen</label><select id="tRealMonth" data-no-dirty onchange="renderTournamentRealView()">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tRealView" style="margin-top:8px"></div>','nur die wirklich angezeigten Einladungen')
    +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="saveTournamentFiles()">Speichern</button></div>';
   renderTournamentAdminList(); renderTournamentAdminPreview(); renderTournamentRealView();
   document.getElementById('tdReal')?.addEventListener('toggle',renderTournamentRealView);
@@ -7518,7 +7527,7 @@ function renderTournamentAdminPreview(){
    d.ondragend=()=>d.style.opacity='1';
    d.ondragover=e=>{e.preventDefault();d.classList.add('drag-over')};
    d.ondragleave=()=>d.classList.remove('drag-over');
-   d.ondrop=e=>{e.preventDefault();d.classList.remove('drag-over');const from=Number(e.dataTransfer.getData('text/plain')),to=Number(d.dataset.pos);if(!Number.isFinite(from)||from===to)return;const arr=tStore()[m]||[];if(from<0||from>=arr.length||!arr[from])return;const moved=arr[from];arr[from]=null;if(to>=arr.length)arr.length=to+1;arr[to]=moved;while(arr.length&&arr[arr.length-1]==null)arr.pop();renderTournamentAdminPreview();renderTournamentAdminList();showToast('Reihenfolge geändert – bitte Speichern')};
+   d.ondrop=e=>{e.preventDefault();d.classList.remove('drag-over');const from=Number(e.dataTransfer.getData('text/plain')),to=Number(d.dataset.pos);if(!Number.isFinite(from)||from===to)return;const arr=tStore()[m]||[];if(from<0||from>=arr.length||!arr[from])return;const moved=arr[from];if(to>=arr.length)arr.length=to+1;const other=arr[to]??null;arr[to]=moved;arr[from]=other; /* belegter Platz: tauschen statt überschreiben */while(arr.length&&arr[arr.length-1]==null)arr.pop();renderTournamentAdminPreview();renderTournamentAdminList();showToast('Reihenfolge geändert – bitte Speichern')};
    page.appendChild(d);
  }
  el.appendChild(page);
@@ -7530,12 +7539,12 @@ function renderTournamentAdminPreview(){
 function renderTournamentRealView(){
  const el=document.getElementById('tRealView');if(!el||tCollection!=='tournaments')return;
  const det=document.getElementById('tdReal');if(det&&!det.open){el.innerHTML='';return;}
- const st=tStore(),months=presentationTournamentMonths(),perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12));
- const hidden=Object.values(st).flat().filter(x=>x&&!tournamentInvitationVisible(x)).length;
- if(!months.length){el.innerHTML='<div class="small">Auf der Startseite werden derzeit keine Einladungen angezeigt.</div>';return;}
+ const st=tStore(),selM=document.getElementById('tRealMonth')?.value,months=selM?[selM]:presentationTournamentMonths(),perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12));
+ const hidden=months.flatMap(m=>st[m]||[]).filter(x=>x&&!tournamentInvitationVisible(x)).length;
+ if(!months.length||!months.some(m=>(st[m]||[]).some(tournamentInvitationVisible))){el.innerHTML='<div class="small">In diesem Monat wird auf der Startseite keine Einladung angezeigt'+(months.length&&(st[months[0]]||[]).some(Boolean)?' (alle Einladungen sind abgelaufen)':'')+'.</div>';return;}
  const W=Math.max(320,el.clientWidth||900),H=Math.round(W*9/16),rows=2,cols=Math.ceil(perPage/2),gap=4,pad=10;
  const slotH=Math.floor((H-2*pad-(rows-1)*gap)/rows),slotW=Math.max(40,Math.min(Math.floor(slotH*210/297),Math.floor((W-2*pad-(cols-1)*gap)/cols)));
- let h='<div class="small" style="margin-bottom:8px">'+months.length+' Monat(e) mit Einladungen'+(hidden?' · '+hidden+' abgelaufene Einladung(en) werden nicht mehr angezeigt':'')+' · '+perPage+' pro Seite</div>';
+ let h='<div class="small" style="margin-bottom:8px">'+(hidden?hidden+' abgelaufene Einladung(en) werden nicht mehr angezeigt':'Alle Einladungen dieses Monats werden angezeigt')+' · '+perPage+' pro Seite</div>';
  months.forEach(m=>{
   const items=(st[m]||[]).filter(tournamentInvitationVisible),pages=Math.max(1,Math.ceil(items.length/perPage));
   for(let pg=0;pg<pages;pg++){

@@ -13,7 +13,11 @@
   css.textContent=(fixedId
     ?'#tabNew{display:none!important}'+SELECTS.map(id=>'#'+id).join(',')+'{display:none!important}.cup-single-label{display:none!important}'
     :'#tabMatchEdit,#tabHistory,#tabPrint,#tabEdit{display:none!important}')
-    +'#adminCornerBtn{display:none!important}';
+    +'#adminCornerBtn,#globalStartMenuBtn,#view-admin .btn-mainmenu,#view-admin .btn-section-start-fixed{display:none!important}'
+    // Reiter gut lesbar (Text war im eingebetteten Modus kaum zu sehen)
+    +'#view-admin .admin-tab-bar{gap:6px;padding-bottom:6px;overflow:visible}'
+    +'#view-admin .admin-tab{min-height:40px;padding:9px 8px;font-size:.92rem;font-weight:700;line-height:1.15;display:flex;align-items:center;justify-content:center;color:#fff!important;background:#2b2f3a;border:1px solid #556}'
+    +'#view-admin .admin-tab.active{background:#a31c28;border-color:#e04a55}';
   document.head.appendChild(css);
 
   const cupName=()=>{try{return (typeof tournaments!=='undefined'&&tournaments[fixedId]?.name)||''}catch(e){return ''}};
@@ -27,7 +31,8 @@
   // Neu: immer den Reiter „Neu“ öffnen
   const origCheck=window.checkAdminAccess;
   if(typeof origCheck==='function'){
-    window.checkAdminAccess=function(tab){origCheck(onlyNew?'new':(tab==='new'?'edit':tab));title();};
+    // Ein Cup: gleich „Ergebnisse eingeben“ öffnen
+    window.checkAdminAccess=function(tab){origCheck(onlyNew?'new':((tab==='new'||tab==='edit')?'matchEdit':tab));title();};
   }
 
   if(fixedId){
@@ -54,5 +59,7 @@
       origGo();
     };
   }
-  document.addEventListener('DOMContentLoaded',title);
+  function labels(){if(!fixedId)return;const L={tabMatchEdit:'✍️ Ergebnisse eingeben',tabHistory:'🕘 Historie',tabPrint:'🖨 Drucken',tabEdit:'⚙️ Mannschaften & Einstellungen'};
+    Object.entries(L).forEach(([id,t])=>{const e=document.getElementById(id);if(e)e.textContent=t;});}
+  document.addEventListener('DOMContentLoaded',()=>{title();labels();});
 })();

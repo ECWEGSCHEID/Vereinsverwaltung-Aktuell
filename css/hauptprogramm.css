@@ -2301,7 +2301,7 @@ span.tp-result-open{cursor:default}
 .tp-step-nav{display:flex;gap:8px;justify-content:flex-start;margin-top:10px}.tp-step-nav button{width:auto;padding:8px 16px}
 .tp-wiz-all .tp-step-nav{display:none}
 .tp-save-top{width:auto!important;flex:none!important;padding:8px 16px!important}
-.tp-subnav .tp-save-top{margin-left:auto;font-size:.9em;padding:6px 14px!important;min-height:0}
+.tp-subnav .tp-save-top{margin-left:auto;font-size:1.05em;font-weight:700;padding:11px 26px!important;min-height:44px}
 .tp-subnav .tp-save-top+#tpSubBtn-cal{margin-left:0}
 #tpContestRow label{display:flex;flex-direction:column;gap:3px;margin:8px 0 0}
 
