@@ -1454,6 +1454,11 @@ function shEnsureSoloPyramide(d){
  else target.sub.push({t:'Solo Pyramide Herren',u:SOLO_PYRAMIDE_PAGE});
  if(!target.sub.some(isWomenPyr)){const at=target.sub.indexOf(menPyr||target.sub.find(x=>norm(x?.t)==='solo pyramide herren'));target.sub.splice(at>=0?at+1:target.sub.length,0,{t:'Solo Pyramide Damen',u:SOLO_PYRAMIDE_PAGE+'&pyramide=frauen'});}
  if(!target.sub.some(x=>norm(x?.t)==='doppel ko system'||/seite=doppelko/i.test(String(x?.u||''))))target.sub.push({t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'});
+ // V3.1.121: fehlende Standard-Bereiche wieder ergänzen (z. B. Stockdartauswertung war aus der gespeicherten Startseite verschwunden)
+ [['jahresmeisterschaft','Jahresmeisterschaft Ziel',/jahresmeister/],['auslosung','Turnierauslosung',/auslosung/],['stockdart','Stockdartauswertung',/stockdart/]].forEach(([mode,t,re])=>{
+  if(target.sub.some(x=>new RegExp('[?&#]seite='+mode+'\\b|#'+mode+'\\b','i').test(String(x?.u||''))||re.test(norm(x?.t))))return;
+  const item={t,u:SH_B+'turnierauswertung.html?v=2.5.2&seite='+mode};if(target.sub.some(x=>Number.isInteger(x.cell))){let c=0;const u=new Set(target.sub.map(x=>x.cell));while(u.has(c))c++;item.cell=c;}
+  target.sub.push(item);});
  // V3.1.121: Duo Cup und Frauencup als eigene Buttons (öffnen direkt die Tabelle des aktuellen Cups)
  const cupAt=target.sub.findIndex(x=>/seite=cup/i.test(String(x?.u||''))&&!/[?&]cup=/i.test(String(x?.u||'')));
  const used=new Set(target.sub.map(x=>x.cell).filter(Number.isInteger));const freeCell=()=>{let c=0;while(used.has(c))c++;used.add(c);return c;};
