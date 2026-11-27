@@ -1464,6 +1464,8 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>{const y={t:x.t,u:typeof x.u==='string'?x.u:''};if(Number.isInteger(x.cell)&&x.cell>=0&&x.cell<200)y.cell=x.cell;return y;});if(sb.length)o.sub=sb}
   return o});
  if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
+ if(Number.isInteger(+j.rows)&&+j.rows>=2&&+j.rows<=8)d.rows=+j.rows;
+ if(Number.isFinite(+j.tileScale)&&+j.tileScale>=.5&&+j.tileScale<=1.2)d.tileScale=+j.tileScale;
  if(j.docMenuInitialized===true)d.docMenuInitialized=true;
  if(!d.docMenuInitialized){
    if(!d.buttons.some(b=>String(b.u||'').includes('#druckdokumente')||b.sub?.some(x=>String(x.u||'').includes('#druckdokumente'))))
@@ -1741,6 +1743,14 @@ function shWhiteboardPosition(index, slot){
 // V3.1.120: feste Plätze für die Startseiten-Kacheln (5 pro Reihe, versetzt wie Bienenwaben).
 // cell = Reihe*5 + Platz. Freie Plätze bleiben auf der Startseite frei.
 const SH_CELLS_PER_ROW=5,SH_CELL_ROWS=4;
+// Anzahl der Reihen (mindestens so viele, wie belegt sind) und Kachelgröße (Anteil der größtmöglichen Größe)
+function shUsedRows(){return Math.max(1,...SH.buttons.map(b=>Number.isInteger(b.cell)?Math.floor(b.cell/SH_CELLS_PER_ROW)+1:1));}
+function shRows(){return Math.max(+SH.rows||SH_CELL_ROWS,shUsedRows());}
+function shTileScale(){const v=+SH.tileScale;return v>=.5&&v<=1.2?v:1;}
+function shApplyGridSize(g,on){
+ if(!on){g.style.removeProperty('--sh-rows-factor');g.style.removeProperty('--sh-rows-factor2');g.style.removeProperty('--sh-tile-scale');return;}
+ g.style.setProperty('--sh-rows-factor',(0.8399*shRows()+0.655).toFixed(4));g.style.setProperty('--sh-rows-factor2',(0.8399*shRows()+0.2953).toFixed(4));g.style.setProperty('--sh-tile-scale',shTileScale());
+}
 function shCellPos(c){const r=Math.floor(c/SH_CELLS_PER_ROW),k=c%SH_CELLS_PER_ROW;return [r+1,(r%2?1:2)+2*k];}
 function shLegacyCells(){
  // bisherige Anordnung (Reihenfolge + feste Plätze) in Platznummern umrechnen
@@ -1831,6 +1841,7 @@ function shRender(){
    tile.style.setProperty('--sh-tile-column',column);
   });
  }else if(whiteboardLayout){
+  shApplyGridSize(g,!grp);
   if(!grp){shEnsureCells();items.forEach((button,i)=>{const [row,column]=shCellPos(button.cell);els[i].style.setProperty('--sh-tile-row',row);els[i].style.setProperty('--sh-tile-column',column);});}
   else{
   let regularIndex=0;
@@ -1991,7 +2002,12 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
 // Kacheln lassen sich nur auf FREIE Plätze ziehen.
 const SH_SCREEN_W=1920,SH_SCREEN_H=1080;
 function shScreenHtml(){
- return '<div class="sh-screen-wrap" id="shScreenWrap"><iframe id="shScreen" title="Vorschau Startbildschirm" tabindex="-1"></iframe></div>'
+ const sc=Math.round(shTileScale()*100);
+ return '<div class="row sh-size-bar" style="align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">'
+  +'<span><b>Reihen:</b> <button type="button" onclick="shSetRows(-1)" title="Reihe entfernen">−</button> <b id="shRowsVal">'+shRows()+'</b> <button type="button" onclick="shSetRows(1)" title="Reihe mit 5 freien Plätzen hinzufügen">+</button> <span class="small">('+(shRows()*SH_CELLS_PER_ROW-SH.buttons.length)+' frei)</span></span>'
+  +'<label style="display:flex;align-items:center;gap:8px;margin:0"><b>Kachelgröße:</b><input type="range" min="50" max="120" step="5" value="'+sc+'" style="width:180px" oninput="shSetTileScale(this.value)"><b id="shScaleVal">'+sc+' %</b></label>'
+  +'<button type="button" onclick="shSetTileScale(100)">Standard</button></div>'
+  +'<div class="sh-screen-wrap" id="shScreenWrap"><iframe id="shScreen" title="Vorschau Startbildschirm" tabindex="-1"></iframe></div>'
   +'<p class="small" style="margin:6px 0 0">Eine Kachel auf einen <b>freien Platz</b> ziehen. Zum Tauschen zweier Kacheln zuerst eine davon auf einen freien Platz ziehen. Danach „Startseite speichern“.</p>';
 }
 function shScreenInit(){shFrameInit('shScreen','shScreenWrap',shScreenFill);}
@@ -2035,9 +2051,9 @@ function shScreenFill(){
  const st=doc.getElementById('startseite');st.classList.remove('sh-submenu');
  const art=doc.getElementById('shArt');if(art)art.style.backgroundImage='url("'+(SH.bg||SH_BG)+'")';
  ['shTitle','shTitle2'].forEach(id=>{const h=doc.getElementById(id);if(h){h.textContent=SH.title;h.classList.remove('ecw-long-sh-title');}});
- g.className='sh-whiteboard-hex';
+ g.className='sh-whiteboard-hex';shApplyGridSize(g,true);
  const used=new Set(SH.buttons.map(b=>b.cell));
- const maxCell=Math.max(SH_CELLS_PER_ROW*SH_CELL_ROWS-1,...SH.buttons.map(b=>b.cell));
+ const maxCell=Math.max(SH_CELLS_PER_ROW*shRows()-1,...SH.buttons.map(b=>b.cell));
  const tiles=[];
  SH.buttons.forEach((b,i)=>{let t;try{t=shMakeBtn(b,i)}catch(e){t=document.createElement('a');t.className='shbtn';t.textContent=b.t}
   const x=doc.createElement('a');x.className=t.className;x.textContent=t.textContent;x.draggable=true;x.dataset.shI=i;x.title=String(b.t).replace(/\n/g,' ');
@@ -2070,6 +2086,13 @@ function shIcFill(){
  g.replaceChildren(...tiles);
  shBindFrameDrag(g,()=>shInternalGroup()?.sub);
 }
+function shSetRows(d){if(!hasAppPermission('sh'))return;const n=shRows()+d;
+ if(n<shUsedRows()){showToast('Die letzte Reihe ist belegt – zuerst die Kacheln daraus verschieben.',6000);return;}
+ if(n<2||n>8)return;SH.rows=n;shSave();shRender();
+ const v=document.getElementById('shRowsVal');if(v){v.textContent=n;const f=v.parentElement.querySelector('.small');if(f)f.textContent='('+(n*SH_CELLS_PER_ROW-SH.buttons.length)+' frei)';}}
+function shSetTileScale(v){if(!hasAppPermission('sh'))return;SH.tileScale=Math.max(.5,Math.min(1.2,(+v||100)/100));shSave();shRender();
+ const e=document.getElementById('shScaleVal');if(e)e.textContent=Math.round(SH.tileScale*100)+' %';
+ const r=document.querySelector('.sh-size-bar input[type=range]');if(r&&+r.value!==Math.round(SH.tileScale*100))r.value=Math.round(SH.tileScale*100);}
 function shRefreshButtonsList(){const d=document.querySelector('#shdButtons .sh-det-body');if(d)d.innerHTML=SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>';}
 var shAdminOpen=new WeakSet();
 function shAdminRow(b,i){

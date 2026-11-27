@@ -1056,7 +1056,7 @@ body.tv-preview-open{overflow:hidden!important}
     --sh-menu-bottom: calc(var(--sh-ribbon-height) + 16px);
     --sh-menu-width: 66.8vw;
     --sh-menu-height: calc(100dvh - var(--sh-menu-top) - var(--sh-menu-bottom));
-    --sh-hex-width: min(calc(var(--sh-menu-width) / 5.85), calc(var(--sh-menu-height) / 4.015));
+    --sh-hex-width: calc(min(calc(var(--sh-menu-width) / 5.85), calc(var(--sh-menu-height) / var(--sh-rows-factor, 4.015))) * var(--sh-tile-scale, 1));
     position: absolute;
     margin: 0;
     left: auto;
@@ -2018,10 +2018,10 @@ body:has(#externalPage.active, #mitglieder.active) > #appVersion {
   }
   #startseite.active #shGrid.sh-whiteboard-hex {
     --sh-landscape-tracks: 11;
-    --sh-landscape-tile: min(
+    --sh-landscape-tile: calc(min(
       calc((var(--sh-landscape-menu-width) - 12px) / (var(--sh-landscape-tracks) / 2) - var(--hex-gap)),
-      clamp(54px, calc((var(--sh-landscape-menu-height) - 4px - 3 * var(--hex-diagonal-row-gap)) / 3.655), 105px)
-    );
+      clamp(54px, calc((var(--sh-landscape-menu-height) - 4px - 3 * var(--hex-diagonal-row-gap)) / var(--sh-rows-factor2, 3.655)), 105px)
+    ) * var(--sh-tile-scale, 1));
     grid-template-columns: repeat(var(--sh-landscape-tracks), minmax(0, calc((var(--sh-landscape-tile) + var(--hex-gap)) / 2)));
     grid-auto-rows: calc(var(--sh-landscape-tile) * var(--hex-row-height-factor) + var(--hex-diagonal-row-gap));
     grid-template-rows: none;
