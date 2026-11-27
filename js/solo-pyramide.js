@@ -1449,7 +1449,46 @@ function render(){
       }
       pyramidEl.appendChild(row);
     }
+    fitPyramid();
   } catch(err) {
     console.error("Fehler im Render-Prozess: ", err);
   }
 }
+
+// Pyramide so groß wie möglich: Karten wachsen, bis entweder die Breite oder die Höhe
+// des Bildschirms erreicht ist (je nachdem, was früher eintritt). Schrift passt sich an,
+// damit auch lange Namen ganz sichtbar bleiben.
+function fitPyramid(){
+  if(!pyramidEl || !pyramidEl.children.length) return;
+  const rows = pyramidEl.children.length;
+  const gap = 6, rowGap = 6, ratio = 1.35;
+  const top = pyramidEl.getBoundingClientRect().top + (window.scrollY || 0);
+  const availW = Math.max(200, pyramidEl.clientWidth - 8);
+  const availH = Math.max(220, window.innerHeight - top - 18);
+  let w = (availW - (rows - 1) * gap) / rows;
+  const hByHeight = (availH - rows * rowGap * 2) / rows;
+  w = Math.min(w, hByHeight * ratio, 300);
+  w = Math.max(w, 44);
+  // Wird die Breite zuerst knapp (Smartphone), dürfen die Karten höher werden – Platz für zwei bis drei Zeilen.
+  const widthLimited = w * 1.15 < hByHeight;
+  const h = Math.max(widthLimited ? Math.min(hByHeight, w * 1.15) : w / ratio, 40);
+  // längstes Wort (Name steht je Wort in einer Zeile)
+  const longest = players.slice(0, currentMaxPlayers).filter(n => n && n !== 'FREI')
+    .flatMap(n => String(n).split(/\s+/)).reduce((m, x) => Math.max(m, x.length), 4);
+  let nameFont = Math.min(h * 0.2, (w - 8) / (longest * 0.62), 30);
+  // Zu kleine Schrift? Dann lieber lange Namen mit Trennstrich umbrechen.
+  const hyphen = nameFont < 11;
+  if(hyphen) nameFont = Math.min(11, h * 0.17);
+  nameFont = Math.max(8, nameFont);
+  pyramidEl.classList.add('fit');
+  pyramidEl.classList.toggle('hyph', hyphen);
+  pyramidEl.style.setProperty('--cw', w.toFixed(1) + 'px');
+  pyramidEl.style.setProperty('--ch', h.toFixed(1) + 'px');
+  pyramidEl.style.setProperty('--nf', nameFont.toFixed(1) + 'px');
+  pyramidEl.style.setProperty('--pf', Math.max(7, Math.min(h * 0.12, 16)).toFixed(1) + 'px');
+  pyramidEl.style.setProperty('--bf', Math.max(7, Math.min(h * 0.11, 14)).toFixed(1) + 'px');
+  pyramidEl.style.setProperty('--gap', gap + 'px');
+  pyramidEl.style.setProperty('--rgap', rowGap + 'px');
+}
+let fitTimer = null;
+window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitPyramid, 120); });

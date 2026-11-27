@@ -14,7 +14,7 @@ const TYPES={
   round:{label:'Vorrunde Einzel (nur beste zählt)',max:100},
   soloFinal:{label:'Finale / Endrunde Einzel',max:150},
   pyramid:{label:'Solo Pyramide Endstand',max:150},
-  jm:{label:'Ziel-Jahresmeisterschaft',max:120},
+  jm:{label:'Ziel-Jahresmeisterschaft',max:150},
   vm:{label:'Vereinsmeisterschaft (zusammengelost)',max:40}
 };
 const CATEGORIES=['Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft','Frauencup','Frauen Solo Pyramide'];
@@ -23,7 +23,7 @@ const CATEGORIES=['Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM',
 const WOMEN_CATS=['Frauencup','Vereinsmeisterschaft','Frauen Solo Pyramide'],WOMEN_ONLY=['Frauencup','Frauen Solo Pyramide'];
 const inScope=(cat,scope)=>scope==='frauen'?WOMEN_CATS.includes(cat):!WOMEN_ONLY.includes(cat);
 const DEFAULT_TYPE={'Frauen Solo Pyramide':'pyramid','Frauencup':'group','Duo Cup':'group','Montags Solo':'round','Solo Cup':'round','Solo Pyramide':'pyramid','Ziel-JM':'jm','Vereinsmeisterschaft':'vm'};
-const PYR_WIN=8,PYR_LOSS=2;
+const PYR_WIN=2,PYR_LOSS=1;
 let cfg=null,result=null,busy=false,msg='',openEv=null;
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -37,13 +37,20 @@ const seasonKey=s=>Number(String(s||'').match(/\d{4}/)?.[0]||0);
 // Saison Dezember bis November
 function currentSeason(){const d=new Date(),y=d.getFullYear();return d.getMonth()>=11?y+'/'+String(y+1).slice(2):(y-1)+'/'+String(y).slice(2);}
 
+// Solo Pyramide: 150 / 130 / 110, danach gleichmäßig bis 15 Punkte für den Letzten
+function pyramidPoints(rank,n){
+  if(!(n>0)||!(rank>0))return 0;
+  const top=[150,130,110];if(rank<=3)return top[rank-1];
+  if(n<=3)return 15;
+  return Math.round(110-(110-15)*(rank-3)/(n-3));
+}
 function placePoints(max,rank,n){
   if(!(n>0)||!(rank>0))return 0;
   if(n===1)return max;
   return Math.round(max*(0.1+0.9*Math.max(0,n-rank)/(n-1)));
 }
 
-/* ---------- Spielerliste und Spitznamen ---------- */
+/* ---------- Spielerliste (Grundlage für alle Namen) ---------- */
 function roster(){
   let list=[];try{list=typeof tpPlayers==='function'?tpPlayers(true):[];}catch(e){}
   const map=new Map();list.filter(n=>n&&n!=='X').forEach(n=>map.set(key(n),n));
@@ -62,6 +69,23 @@ function splitPlayers(text,ros){
   return t.split(/\s*(?:\/|&|\+|;|\bund\b|,)\s*/i).map(clean).filter(Boolean).map(x=>resolveName(x,ros));
 }
 const known=(n,ros)=>ros.size===0||ros.has(key(n));
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}return prev[n];}
+// Name mit der Spielerliste abgleichen: ok = genau gefunden; sonst Vorschläge (ähnliche Schreibweise)
+function matchName(n){
+  const ros=roster(),t=clean(n);if(!t||!ros.size)return {ok:true,name:t,suggest:[]};
+  const fixed=cfg?.aliases?.[t];if(fixed&&ros.has(key(fixed)))return {ok:true,name:ros.get(key(fixed)),suggest:[]};
+  const k=key(t);if(ros.has(k))return {ok:true,name:ros.get(k),suggest:[]};
+  const words=k.split(' ');
+  const scored=[...ros.entries()].map(([rk,name])=>{
+    let d=lev(k,rk);
+    // ein Wort (nur Vor- oder Nachname) passt genau → guter Vorschlag
+    if(words.length===1&&rk.split(' ').includes(words[0]))d=Math.min(d,1);
+    return {name,d};
+  }).filter(x=>x.d<=Math.max(2,Math.round(k.length*0.2))).sort((a,b)=>a.d-b.d||a.name.localeCompare(b.name,'de'));
+  return {ok:false,name:t,suggest:scored.slice(0,5).map(x=>x.name)};
+}
+function rosterNames(){return [...roster().values()].sort((a,b)=>a.localeCompare(b,'de'));}
 
 /* ---------- Laden / Speichern ---------- */
 // Ein Lesefehler darf nie zu einer leeren Rangliste führen, die dann gespeichert wird.
@@ -73,7 +97,17 @@ const sameSlot=(a,b)=>a.category===b.category&&a.season===b.season&&(clean(a.lab
 function mergeSeed(){
   const seed=window.ECW_RANGLISTE_2025_26,ver=Number(seed?.version)||1;if(!seed||(cfg.seeded&&cfg.seedVersion>=ver))return 0;let n=0;
   seed.events.forEach((e,i)=>{if(cfg.events.some(x=>sameSlot(x,e)))return;cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+e.category.replace(/\W/g,'')+'_'+i});n++;});
-  cfg.aliases={...seed.aliases,...cfg.aliases};cfg.women=[...new Set([...(cfg.women||[]),...(seed.women||[])])];cfg.seeded=true;cfg.seedVersion=ver;return n;
+  cfg.aliases={...(seed.aliases||{}),...cfg.aliases};
+  // nicht mehr verwendete Spitznamen entfernen
+  for(const k of seed.removeAliases||[])delete cfg.aliases[k];
+  // Namensänderungen (z. B. nach Heirat) in allen Wettbewerben und der Damenliste übernehmen
+  const ren=seed.renames||{},rn=x=>ren[clean(x)]||x;
+  if(Object.keys(ren).length){
+    cfg.events.forEach(ev=>{(ev.rows||[]).forEach(r=>{r.players=(r.players||[]).map(rn);if(ren[clean(r.team)])r.team=ren[clean(r.team)];});
+      if(ev.games)ev.games=Object.fromEntries(Object.entries(ev.games).map(([p,g])=>[rn(p),g]));});
+    cfg.women=(cfg.women||[]).map(rn);
+  }
+  cfg.women=[...new Set([...(cfg.women||[]),...(seed.women||[])])];cfg.seeded=true;cfg.seedVersion=ver;return n;
 }
 async function load(){
   let rl;
@@ -118,7 +152,7 @@ function compute(scope){
     if(!inScope(ev.category,scope)||!counts(ev,latest)||!(ev.rows||[]).length&&!Object.keys(ev.games||{}).length)continue;
     const t=TYPES[ev.type]||TYPES.group,n=Number(ev.n)||ev.rows.length;
     for(const r of ev.rows){
-      const pts=placePoints(t.max,Number(r.rank),n);
+      const pts=ev.type==='pyramid'?pyramidPoints(Number(r.rank),n):placePoints(t.max,Number(r.rank),n);
       const seen=new Set(),names=r.players.map(x=>resolveName(x,ros)).map(clean).filter(Boolean);
       // einzelne Wörter, die nur Teil eines vollen Namens derselben Zeile sind (ältere StockTV-Einlesung), überspringen
       const words=new Set(names.filter(n=>/\s/.test(n)).flatMap(n=>n.toLocaleLowerCase('de-DE').split(' ')));
@@ -252,6 +286,23 @@ function css(){
    +'.rl-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.rl-star{color:#f3c34b}';
   document.head.appendChild(s);
 }
+// Namen, die nicht in der Spielerliste stehen: zuordnen (gilt für alle Wettbewerbe und künftige Einträge)
+function unknownNames(){
+  const ros=roster();if(!ros.size||!cfg)return [];
+  const set=new Set();
+  cfg.events.forEach(ev=>{(ev.rows||[]).forEach(r=>(r.players||[]).forEach(p=>{const n=clean(resolveName(p,ros));if(n&&!ros.has(key(n)))set.add(clean(p));}));
+    Object.keys(ev.games||{}).forEach(p=>{const n=clean(resolveName(p,ros));if(n&&!ros.has(key(n)))set.add(clean(p));});});
+  // Bruchstücke (einzelne Wörter eines vollen Namens derselben Zeile) nicht melden
+  return [...set].filter(n=>/\s/.test(n)||!cfg.events.some(ev=>(ev.rows||[]).some(r=>r.players.some(p=>p!==n&&/\s/.test(p)&&p.toLocaleLowerCase('de-DE').split(' ').includes(n.toLocaleLowerCase('de-DE')))))).sort((a,b)=>a.localeCompare(b,'de'));
+}
+function namesCard(){
+  const list=unknownNames();if(!list.length)return '';
+  const all=rosterNames();
+  return '<div class="card"><h3 style="margin-top:0">Namen prüfen</h3><div class="small" style="margin-bottom:6px">Diese Namen stehen nicht in der Spielerliste. Bitte den richtigen Spieler wählen – der Name wird in allen Wettbewerben ersetzt und künftig automatisch zugeordnet.</div>'
+    +list.map((n,i)=>{const m=matchName(n);return '<div class="rl-row" style="align-items:center;margin:4px 0"><span style="min-width:180px;color:#ff9b9b"><b>'+esc(n)+'</b></span><select data-rl-namefix="'+i+'" data-raw="'+esc(n)+'"><option value="">– Spieler wählen –</option>'
+      +(m.suggest.length?'<optgroup label="Vorschläge">'+m.suggest.map(x=>'<option>'+esc(x)+'</option>').join('')+'</optgroup>':'')+'<optgroup label="Spielerliste">'+all.map(x=>'<option>'+esc(x)+'</option>').join('')+'</optgroup></select></div>';}).join('')
+    +'</div>';
+}
 function render(){
   const root=document.getElementById('rlRoot');if(!root)return;
   if(!cfg){root.innerHTML='<div class="card">'+esc(msg||'Wird geladen …')+'</div>';return;}
@@ -288,8 +339,9 @@ function render(){
     +'<h4 style="margin:14px 0 4px">Aus dem Programm übernehmen (Saison '+esc(cfg.season)+')</h4><div class="rl-row"><button type="button" data-rl-app="ms">Montags Solo</button><button type="button" data-rl-app="pyr">Solo Pyramide (mit Spielen)</button><button type="button" data-rl-app="pyrF">Frauen Solo Pyramide (mit Spielen)</button><button type="button" data-rl-app="jm">Ziel-Jahresmeisterschaft</button></div>'
     +(cfg.seeded||!window.ECW_RANGLISTE_2025_26?'':'<div class="rl-row" style="margin-top:12px"><button type="button" class="primary" data-rl-seed>Ergebnisse Saison 2025/26 übernehmen (Startstand)</button></div>')
     +'<div class="rl-row" style="margin-top:12px"><label class="small" style="display:flex;gap:6px;align-items:center;margin:0">Aktuelle Saison (Vorgabe für neue Einträge) <input type="text" data-rl-season value="'+esc(cfg.season)+'" style="width:90px"></label></div></div>'
-    +'<div class="card"><h3 style="margin-top:0">Eingetragene Wettbewerbe</h3>'+(evHtml||'<div class="small">Noch keine Wettbewerbe eingetragen.</div>')+'<div class="small" style="margin-top:8px">Spieler, die nicht in der Spielerliste stehen, sind rot markiert. Bei Spitznamen (z. B. „Masy“) den richtigen Namen eintragen – die Zuordnung wird gemerkt und beim nächsten Einlesen automatisch verwendet.</div></div>'
-    +'<div class="card"><h3 style="margin-top:0">Punkteverteilung</h3><table class="rl-table">'+Object.values(TYPES).map(t=>'<tr><td>'+esc(t.label)+'</td><td class="r"><b>'+t.max+'</b></td></tr>').join('')+'<tr><td>Solo Pyramide · je gewonnenes / verlorenes Spiel</td><td class="r"><b>'+PYR_WIN+' / '+PYR_LOSS+'</b></td></tr></table><div class="small">Sieger 100 %, Letzter 10 % der Höchstpunkte, dazwischen gleichmäßig. Mannschaften: jeder Spieler bekommt die Punkte der Mannschaft.</div></div>';
+    +'<div class="card"><h3 style="margin-top:0">Eingetragene Wettbewerbe</h3>'+(evHtml||'<div class="small">Noch keine Wettbewerbe eingetragen.</div>')+'<div class="small" style="margin-top:8px">Spieler, die nicht in der Spielerliste stehen, sind rot markiert. Unten unter „Namen prüfen“ den richtigen Spieler aus der Spielerliste zuordnen – die Zuordnung wird gemerkt und beim nächsten Einlesen automatisch verwendet.</div></div>'
+    +namesCard()
+    +'<div class="card"><h3 style="margin-top:0">Punkteverteilung</h3><table class="rl-table">'+Object.values(TYPES).map(t=>'<tr><td>'+esc(t.label)+'</td><td class="r"><b>'+t.max+'</b></td></tr>').join('')+'<tr><td>Solo Pyramide · Endstand Platz 1 / 2 / 3, danach abgestuft bis 15</td><td class="r"><b>150 / 130 / 110</b></td></tr><tr><td>Solo Pyramide · je gewonnenes / verlorenes Spiel</td><td class="r"><b>'+PYR_WIN+' / '+PYR_LOSS+'</b></td></tr></table><div class="small">Sieger 100 %, Letzter 10 % der Höchstpunkte, dazwischen gleichmäßig. Mannschaften: jeder Spieler bekommt die Punkte der Mannschaft.</div></div>';
   const catSel=root.querySelector('#rlNewCat'),typeSel=root.querySelector('#rlNewType');
   if(catSel&&typeSel){typeSel.value=DEFAULT_TYPE[catSel.value]||'group';catSel.onchange=()=>{typeSel.value=DEFAULT_TYPE[catSel.value]||'group';};}
 }
@@ -301,10 +353,18 @@ async function onChange(e){
       cfg.visible=t.checked;await saveConfig();msg=cfg.visible?'Rangliste ist am Smartphone sichtbar.':'Rangliste am Smartphone ausgeblendet.';render();
     }else if('rlSeason' in d){cfg.season=clean(t.value)||currentSeason();await saveConfig();render();}
     else if('rlEvseason' in d){const ev=cfg.events[+d.rlEvseason];ev.season=clean(t.value)||ev.season;openEv=ev.id;await saveConfig();render();}
+    else if('rlNamefix' in d){
+      const raw=clean(d.raw),to=clean(t.value);if(!to)return;
+      if(!confirm('„'+raw+'“ überall durch „'+to+'“ ersetzen?')){t.value='';return;}
+      cfg.aliases[raw]=to;
+      cfg.events.forEach(ev=>{(ev.rows||[]).forEach(r=>{r.players=(r.players||[]).map(p=>clean(p)===raw?to:p);});if(ev.games&&ev.games[raw]){ev.games[to]=ev.games[raw];delete ev.games[raw];}});
+      cfg.women=(cfg.women||[]).map(w=>clean(w)===raw?to:w);
+      await saveConfig();await publish();msg='„'+raw+'“ → „'+to+'“ zugeordnet und Rangliste neu berechnet.';render();
+    }
     else if('rlEvp' in d){
       const ev=cfg.events[+d.rlEvp],r=ev.rows[+d.j],ros=roster();
       r.players=t.value.split('/').map(clean).filter(Boolean).map(n=>ros.get(key(n))||n);
-      // Spitzname merken: einzelner Name in der Datei → ein Spieler
+      // Zuordnung merken: abweichende Schreibweise in der Datei → Spieler aus der Spielerliste
       if(r.team&&r.players.length===1&&!/[\/&]|\bund\b/i.test(r.team)&&key(r.team)!==key(r.players[0]))cfg.aliases[clean(r.team)]=r.players[0];
       openEv=ev.id;await saveConfig();render();
     }
@@ -348,5 +408,5 @@ async function addEventApi(ev){
 }
 function resolvePlayersApi(team){if(!cfg)return [];return splitPlayers(team,roster());}
 async function ensureLoaded(){if(!cfg)await load();}
-window.ECWRangliste={open,placePoints,addEvent:addEventApi,resolvePlayers:resolvePlayersApi,ensureLoaded,_test:{compute,parseText,setCfg:c=>{cfg=Object.assign({visible:false,season:'2026/27',events:[],aliases:{}},c);},countingSeasons}};
+window.ECWRangliste={open,placePoints,pyramidPoints,addEvent:addEventApi,resolvePlayers:resolvePlayersApi,ensureLoaded,matchName,rosterNames,_test:{compute,parseText,setCfg:c=>{cfg=Object.assign({visible:false,season:'2026/27',events:[],aliases:{}},c);},countingSeasons}};
 })();

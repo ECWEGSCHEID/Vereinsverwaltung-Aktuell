@@ -479,6 +479,14 @@ h1, .subtitle {
   font-size: 13px;
 }
 
+/* Automatische Größe (fitPyramid): Karten so groß wie Breite bzw. Höhe es erlauben */
+#pyramid.fit .row { gap: var(--gap) !important; margin: var(--rgap) 0 !important; }
+#pyramid.fit .card { width: var(--cw) !important; height: var(--ch) !important; font-size: var(--bf) !important; }
+#pyramid.fit .nameBox { font-size: var(--nf) !important; max-height: none !important; overflow: visible !important; word-break: normal !important; }
+#pyramid.fit .place { font-size: var(--pf) !important; }
+#pyramid.fit.hyph .nameBox { hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; line-height: 1.05; }
+#pyramid.fit .lockBadge, #pyramid.fit .timeBadge, #pyramid.fit .vacationBadge, #pyramid.fit .challengedBy { font-size: var(--bf) !important; }
+
 /* V2.5.2: smartphone-friendly layout */
 @media (max-width: 700px) {
   .headerContainer {
@@ -576,6 +584,6 @@ html.ecw-inside-frame .bottomRightBtnContainer {display:none!important;}
 
 <div id="ov" class="overlay"><div class="modal"><div id="mc"></div></div></div>
 
-<script type="module" src="js/solo-pyramide.js?v=20261127-frauen"></script>
+<script type="module" src="js/solo-pyramide.js?v=20261127-fit"></script>
 </body>
 </html>

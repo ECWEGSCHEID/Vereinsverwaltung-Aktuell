@@ -1418,8 +1418,9 @@ function shEnsureSoloPyramide(d){
 
      const legacy=u.origin==='https://ecwegscheid.github.io'
        && /^\/Turnierverwaltung\/?$/i.test(u.pathname);
-     const local=u.origin==='https://ecwegscheid.github.io'
-       && /^\/Vereinsverwaltung-Aktuell\/turnierauswertung\.html$/i.test(u.pathname);
+     const local=(u.origin==='https://ecwegscheid.github.io'
+       && /^\/Vereinsverwaltung-Aktuell\/turnierauswertung\.html$/i.test(u.pathname))
+       || (/^(127\.0\.0\.1|localhost)$/i.test(u.hostname) && /\/turnierauswertung\.html$/i.test(u.pathname));
 
      if((legacy||local) && ['cup','doppelko','jahresmeisterschaft','auslosung','stockdart'].includes(mode)){
        return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode);
@@ -1810,7 +1811,14 @@ let ecwPyrActive=null,ecwPyrLoading=null;
 function ecwInternKey(item){
  const u=String(item?.u||'');let mode='';try{mode=ecwInternalResultMode(u)}catch(e){}
  if(mode==='soloPyramide')return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
- return mode||'';
+ if(mode)return mode;
+ // Adresse von einem anderen Rechner (z. B. 127.0.0.1) oder ohne erkannte Seite: über „seite=“ bzw. die Bezeichnung zuordnen
+ const m=u.match(/turnierauswertung\.html[^#]*[?&]seite=(cup|doppelko|jahresmeisterschaft|auslosung|stockdart)/i);if(m)return m[1].toLowerCase();
+ if(/solo-pyramide/i.test(u))return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
+ const t=String(item?.t||'').toLowerCase().replace(/\s+/g,' ');
+ if(/doppel\s*ko/.test(t))return 'doppelko';if(/stockdart/.test(t))return 'stockdart';if(/auslosung/.test(t))return 'auslosung';
+ if(/jahresmeister/.test(t))return 'jahresmeisterschaft';if(/^cup|cup\s*(ergebnis|auswertung)/.test(t))return 'cup';
+ return '';
 }
 function ecwLoadPyrActive(force){
  if(ecwPyrLoading&&!force)return ecwPyrLoading;
@@ -2570,11 +2578,6 @@ function openInternalCupAdmin(mode='home'){
  openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
  setInternalCupAdminReturnButton();
 }
-function openInternalCupMigration(){
- if(appPermissions.admin!==true){showToast('Datenübernahme ist nur für Administratoren freigegeben.',5000);return;}
- openExternalPage(internalCupUrl('home','migration'),'Interne Cup · Datenübernahme');
- setInternalCupAdminReturnButton();
-}
 function renderInternalCupAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  a.classList.remove('mv-mode');
@@ -2594,9 +2597,7 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
   +'<div class="card" id="ecwInternActiveCard" style="margin-top:14px"><h3>Auf der Startseite anzeigen</h3><p class="small">Wird geladen …</p></div>'
-  +'<div class="card" style="margin-top:14px"><h3>Datenübernahme</h3>'
-  +'<p class="small">Einmalige Übernahme der Daten aus dem bisherigen Firebase-Projekt der Turnierauswertung. Danach wird nur noch das zentrale Firebase-Projekt der Vereinsverwaltung verwendet.</p>'
-  +'<button type="button" class="primary" style="width:100%" onclick="openInternalCupMigration()">Bisherige Turnierauswertung nach Vereinsverwaltung übernehmen</button></div>';
+  ;
  renderInternActiveCard();
 }
 

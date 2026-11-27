@@ -13,12 +13,12 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 .ecw-smartphone-view #routeDiagHome,
 .ecw-smartphone-view button[onclick^="returnToPowerPoint("] { display:none!important; }
 </style>
-<script src="ecw-site-base.js?v=3.1.116.271126"></script>
+<script src="ecw-site-base.js?v=3.1.117.271126"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vereins-Informationssystem – Version 3.1.32.171126</title>
 <script src="js/ladefehler.js?v=2.9.29"></script>
-<link rel="stylesheet" href="css/hauptprogramm.css?v=3.1.116.271126">
+<link rel="stylesheet" href="css/hauptprogramm.css?v=3.1.117.271126">
 <link rel="stylesheet" href="css/dokumente-drucken.css?v=20261116-dokumente-ganzseite">
 <style>
 #startseite .ecw-temp-open{margin:0;width:100%;min-height:0;border:1px solid #86505a;cursor:pointer}
@@ -63,7 +63,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 </style>
 </head>
 <body data-ecw-build="ECW18-TEST">
-<div id="appVersion" class="app-version">Version 3.1.116.271126</div>
+<div id="appVersion" class="app-version">Version 3.1.117.271126</div>
 <section id="mitglieder" class="view">
   <iframe id="mvFrame" title="Mitgliederverwaltung"></iframe>
   <button id="mvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
@@ -198,7 +198,7 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 </section>
 
 <section id="turnierverwaltung" class="view" style="padding:0">
-  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="about:blank" data-src="turnierverwaltung.html?v=3.1.116.271126" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
+  <iframe id="turnierverwaltungFrame" title="EC Wegscheid Turnierverwaltung" src="about:blank" data-src="turnierverwaltung.html?v=3.1.117.271126" style="width:100%;height:100vh;border:0;background:#fff"></iframe>
   <button id="tvPreviewBack" class="admin-preview-float" hidden onclick="returnFromAdminPreviewToMenu()">← Zurück zum Menü</button>
 </section>
 
@@ -285,19 +285,19 @@ if (window.self !== window.top && new URLSearchParams(location.search).get('smar
 <script src="js/firebase-init.js?v=2.9.49-samsung1"></script>
 <link rel="stylesheet" href="ecw-ergebnisse.css?v=3.1.29.171126">
 <script src="ecw-ergebnisse-daten.js?v=20261105-2"></script>
-<script src="ecw-ergebnisse.js?v=3.1.116.271126"></script>
+<script src="ecw-ergebnisse.js?v=3.1.117.271126"></script>
 <script src="ecw-nuetzliches.js?v=3.1.25.171126"></script>
 <script src="js/ecw-homepage-test.js?v=27"></script>
 <script src="ecw-checklists.js?v=20261121-ergaenzen"></script>
-<script src="ecw-hauptprogramm-v2956.js?v=3.1.116.271126-monatsindex1"></script>
-<script src="js/dokumente-drucken.js?v=3.1.116.271126"></script>
+<script src="ecw-hauptprogramm-v2956.js?v=3.1.117.271126b-monatsindex1"></script>
+<script src="js/dokumente-drucken.js?v=3.1.117.271126"></script>
 <script src="js/ecw-montags-solo.js?v=3.1.82"></script>
-<script src="js/ecw-rangliste-2025-26.js?v=3.1.113"></script>
-<script src="js/ecw-rangliste.js?v=3.1.113"></script>
+<script src="js/ecw-rangliste-2025-26.js?v=3.1.117"></script>
+<script src="js/ecw-rangliste.js?v=3.1.117b"></script>
 <script src="ecw-onedrive-store.js?v=onedrive-2"></script>
 <script src="ecw-onedrive-ordner.js?v=1"></script>
 <script src="js/ecw-onedrive.js?v=3.1.106"></script>
-<script src="js/ecw-ergebnis-assistent.js?v=3.1.111"></script>
+<script src="js/ecw-ergebnis-assistent.js?v=3.1.117"></script>
 <script src="js/ecw-meisterschaft-ergebnis.js?v=3.1.106"></script>
 
 <div id="teamTouchDragGhost"><img id="teamTouchDragGhostImg" alt=""></div>
@@ -602,12 +602,12 @@ function openECWHallActivity(preview=false){
     showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);
     return;
   }
-  if(preview){openExternalPage(new URL('ecw-aktivitaet-halle.html?v=3.1.116.271126&ansicht=1',location.href).href,'Aktivität Halle – Liveübersicht');return;}
+  if(preview){openExternalPage(new URL('ecw-aktivitaet-halle.html?v=3.1.117.271126&ansicht=1',location.href).href,'Aktivität Halle – Liveübersicht');return;}
   window.__adminBack=null;
   try{unloadMvAdmin()}catch(e){}
   const a=document.getElementById('adminMain');
   a.classList.remove('mv-mode');
-  a.innerHTML='<h2>Aktivität Halle – Liveübersicht</h2><iframe src="ecw-aktivitaet-halle.html?v=3.1.116.271126" title="Aktivität Halle" style="display:block;width:100%;height:78vh;min-height:480px;border:0;border-radius:10px;background:#101114"></iframe>';
+  a.innerHTML='<h2>Aktivität Halle – Liveübersicht</h2><iframe src="ecw-aktivitaet-halle.html?v=3.1.117.271126" title="Aktivität Halle" style="display:block;width:100%;height:78vh;min-height:480px;border:0;border-radius:10px;background:#101114"></iframe>';
 }
 </script>
 </body>
