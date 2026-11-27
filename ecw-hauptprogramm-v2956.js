@@ -2681,7 +2681,6 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="window.ECWRangliste&&ECWRangliste.open()">Vereinsrangliste</button>'
   +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide Herren</button>'
   +'<button type="button" onclick="openSoloPyramideAdmin(true)">Solo Pyramide Damen</button>'
-  +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
   +'<div class="card" id="ecwInternActiveCard" style="margin-top:14px"><h3>Auf der Startseite anzeigen</h3><p class="small">Wird geladen …</p></div>'
   ;
