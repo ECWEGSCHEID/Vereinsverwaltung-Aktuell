@@ -214,12 +214,13 @@ async function importFromApp(kind){
       const played=vals.filter(v=>v!==null).length,v=vals.map(x=>x??0),total=v.reduce((a,b)=>a+b,0);return {name:clean(p?.n),result:total-Math.min(...v),played};})
       .filter(r=>r.name&&r.played>0).sort((a,b)=>b.result-a.result);
     let rk=0,prev=null;add.push({category:'Ziel-JM',type:'jm',label:clean(st.title)||'Ziel-Jahresmeisterschaft',date:'',rows:rows.map((r,i)=>{if(r.result!==prev)rk=i+1;prev=r.result;return {rank:rk,team:r.name,players:[resolveName(r.name,ros)]};})});
-  }else if(kind==='pyr'){
-    const s=await getDoc('soloPyramide','state');if(!s?.players)return toast('Keine Solo Pyramide gespeichert.');
+  }else if(kind==='pyr'||kind==='pyrF'){
+    const women=kind==='pyrF',cat=women?'Frauen Solo Pyramide':'Solo Pyramide';
+    const s=await getDoc('soloPyramide',women?'frauen':'state');if(!s?.players)return toast('Keine '+cat+' gespeichert.');
     const list=s.players.filter(p=>typeof p==='string'&&clean(p)&&p!=='FREI');const games={};
     for(const line of s.hist||[]){const m=String(line).match(/^(.*?)\s+-\s+(.+?)\s+besiegte\s+(.+?)\s+(\d+):(\d+)\s*$/);if(!m)continue;
       for(const [nm,won] of [[m[2],true],[m[3],false]]){const who=resolveName(nm,ros);const g=games[who]||(games[who]={w:0,l:0});won?g.w++:g.l++;}}
-    add.push({category:'Solo Pyramide',type:'pyramid',label:'Solo Pyramide · Endstand',date:new Date().toISOString().slice(0,10),rows:list.map((p,i)=>({rank:i+1,team:p,players:[resolveName(p,ros)]})),games});
+    add.push({category:cat,type:'pyramid',label:cat+' · Endstand',date:new Date().toISOString().slice(0,10),rows:list.map((p,i)=>({rank:i+1,team:p,players:[resolveName(p,ros)]})),games});
   }
   if(!add.length)return toast('Keine Ergebnisse gefunden.');
   // gleiche Übernahme derselben Saison ersetzen
@@ -284,7 +285,7 @@ function render(){
     +'<label>StockTV-Datei (.skmr)<input id="rlNewFile" type="file" accept=".skmr,.xml"></label></div>'
     +'<label style="display:block;margin-top:8px">… oder Platzierungen eingeben (je Zeile: Platz und Name, Mannschaften mit „/“ oder „und“)<textarea id="rlNewText" placeholder="1. Höglinger Paul&#10;2. Höglinger Heinz&#10;3. Freund Heiner und Höglinger Paul"></textarea></label>'
     +'<div class="rl-row" style="margin-top:8px"><button type="button" class="primary" data-rl-add>Ergebnis speichern</button></div>'
-    +'<h4 style="margin:14px 0 4px">Aus dem Programm übernehmen (Saison '+esc(cfg.season)+')</h4><div class="rl-row"><button type="button" data-rl-app="ms">Montags Solo</button><button type="button" data-rl-app="pyr">Solo Pyramide (mit Spielen)</button><button type="button" data-rl-app="jm">Ziel-Jahresmeisterschaft</button></div>'
+    +'<h4 style="margin:14px 0 4px">Aus dem Programm übernehmen (Saison '+esc(cfg.season)+')</h4><div class="rl-row"><button type="button" data-rl-app="ms">Montags Solo</button><button type="button" data-rl-app="pyr">Solo Pyramide (mit Spielen)</button><button type="button" data-rl-app="pyrF">Frauen Solo Pyramide (mit Spielen)</button><button type="button" data-rl-app="jm">Ziel-Jahresmeisterschaft</button></div>'
     +(cfg.seeded||!window.ECW_RANGLISTE_2025_26?'':'<div class="rl-row" style="margin-top:12px"><button type="button" class="primary" data-rl-seed>Ergebnisse Saison 2025/26 übernehmen (Startstand)</button></div>')
     +'<div class="rl-row" style="margin-top:12px"><label class="small" style="display:flex;gap:6px;align-items:center;margin:0">Aktuelle Saison (Vorgabe für neue Einträge) <input type="text" data-rl-season value="'+esc(cfg.season)+'" style="width:90px"></label></div></div>'
     +'<div class="card"><h3 style="margin-top:0">Eingetragene Wettbewerbe</h3>'+(evHtml||'<div class="small">Noch keine Wettbewerbe eingetragen.</div>')+'<div class="small" style="margin-top:8px">Spieler, die nicht in der Spielerliste stehen, sind rot markiert. Bei Spitznamen (z. B. „Masy“) den richtigen Namen eintragen – die Zuordnung wird gemerkt und beim nächsten Einlesen automatisch verwendet.</div></div>'

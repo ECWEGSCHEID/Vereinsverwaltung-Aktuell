@@ -2462,9 +2462,9 @@ function renderOverviewAdmin(){
    +'<div class="card"><p class="small">Öffnet die jeweilige Seite in der Anzeige. Mit „Zurück zur Startseite“ kommst du wieder hierher in die Verwaltung.</p>'
    +'<div class="ovmenu">'+items.map(x=>'<button type="button" onclick="ovOpen(\''+x[1]+'\')">'+esc(x[0])+'</button>').join('')+'</div></div>';
 }
-function soloPyramideAdminUrl(){
+function soloPyramideAdminUrl(women){
  const base=getBaseUrl();
- return new URL('solo-pyramide.html?v=2.9.32&mode=admin-embedded',base).href;
+ return new URL('solo-pyramide.html?v=2.9.32&mode=admin-embedded'+(women?'&pyramide=frauen':''),base).href;
 }
 function soloPyramidePreviewUrl(){
  const base=getBaseUrl();
@@ -2477,11 +2477,11 @@ function soloPyramideSetAdminReturnButton(){
    b.onclick=returnToAdminManagementView;
  }
 }
-function openSoloPyramideAdmin(){
+function openSoloPyramideAdmin(women){
  if(appPermissions.admin!==true){showToast('Solo Pyramide · Admin ist nur für Administratoren freigegeben.',5000);return;}
  window.__adminBack='menu';
  window.__adminPreviewMode=false;
- openExternalPage(soloPyramideAdminUrl(),'Solo Pyramide · Admin');
+ openExternalPage(soloPyramideAdminUrl(women===true),(women===true?'Frauen Solo Pyramide':'Solo Pyramide')+' · Admin');
  soloPyramideSetAdminReturnButton();
 }
 function openSoloPyramidePreview(){
@@ -2532,6 +2532,7 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="window.ECWMontagsSolo&&ECWMontagsSolo.open()">Montags Solo</button>'
   +'<button type="button" onclick="window.ECWRangliste&&ECWRangliste.open()">Vereinsrangliste</button>'
   +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide</button>'
+  +'<button type="button" onclick="openSoloPyramideAdmin(true)">Frauen Solo Pyramide</button>'
   +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
   +'<div class="card" style="margin-top:14px"><h3>Datenübernahme</h3>'

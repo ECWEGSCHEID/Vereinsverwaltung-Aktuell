@@ -20,6 +20,12 @@ const WHITEBOARD_MODE = WHITEBOARD_REQUESTED && hasCentralWhiteboardParent();
 const ADMIN_EMBED_MODE = APP_URL_PARAMS.get('mode') === 'admin-embedded';
 const INFO_EMBED_MODE = APP_URL_PARAMS.get('mode') === 'infosystem';
 const INTEGRATED_HOSTED_MODE = /(?:^|\/)solo-pyramide\.html$/i.test(location.pathname);
+// Frauen Solo Pyramide: eigene Pyramide (?pyramide=frauen) mit eigenem Dokument, Status und Speicher.
+const WOMEN_PYRAMID = APP_URL_PARAMS.get('pyramide') === 'frauen';
+const STORE_SUFFIX = WOMEN_PYRAMID ? '_frauen' : '';
+if(WOMEN_PYRAMID){
+  document.title = 'Frauen Solo Pyramide';
+}
 
 
 function hasCentralWhiteboardParent(){
@@ -45,6 +51,7 @@ function hasCentralAdminParent(){
 // Informationssystem: mit E-Mail und Passwort eines Administrator-Kontos der Vereinsverwaltung.
 const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.8.0/';
 const INFO_EMAIL_KEY = 'soloPyramide_infosystem_email';
+const FALLBACK_KEY = 'pyramideData_fallback_v3' + STORE_SUFFIX;
 let autoLoginTried = false;
 let memberLoginMessage = '';
 
@@ -125,13 +132,13 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const MAX_VACATION_DAYS = 14;
 
-const defaultTitle = "Solo Pyramide 2026";
+const defaultTitle = WOMEN_PYRAMID ? "Frauen Solo Pyramide 2026/27" : "Solo Pyramide 2026";
 const defaultSubtitle = "EC Wegscheid";
 // Kein öffentlich bekanntes Admin-Standardpasswort mehr.
 const defaultPassword = null;
 // Kein öffentlich bekanntes Informationssystem-Standardpasswort mehr.
 const defaultInfoSystemPassword = null;
-const defaultPyramidSize = 28;
+const defaultPyramidSize = WOMEN_PYRAMID ? 15 : 28;
 
 const defaultRuleLockHoursAfterGame = 24; 
 const defaultRuleChallengeDays = 10;      
@@ -176,7 +183,7 @@ let currentSession = null;
 // V2.5.2: Keine privilegierten Sitzungen aus Browser-Speicher wiederherstellen.
 // Login-Session auf diesem Gerät merken.
 // Es wird nur Benutzername/Rolle gespeichert, niemals das Passwort.
-const SESSION_STORAGE_KEY = 'soloPyramide_session_v1';
+const SESSION_STORAGE_KEY = 'soloPyramide_session_v1' + STORE_SUFFIX;
 try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch(e) {}
 try {
   const savedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -227,12 +234,12 @@ const CENTRAL_FIREBASE_CONFIG = {
   appId: "1:558472054725:web:10145e2d8d6f168b056dac"
 };
 const CENTRAL_COLLECTION = 'soloPyramide';
-const CENTRAL_DOCUMENT = 'state';
+const CENTRAL_DOCUMENT = WOMEN_PYRAMID ? 'frauen' : 'state';
 // Status aktiv / nicht aktiv in einem eigenen Dokument (eigene Firestore-Regel,
 // siehe firebase-regelblock-solo-pyramide-status.txt). Nicht aktiv = noch nicht
 // gestartet: kein Platz unter "Meine Ergebnisse", kein Button im Smartphone-Menü.
 const STATUS_COLLECTION = 'smartphoneBetrieb';
-const STATUS_DOCUMENT = 'soloPyramide';
+const STATUS_DOCUMENT = WOMEN_PYRAMID ? 'soloPyramideFrauen' : 'soloPyramide';
 let pyramidActive = false;
 let pyramidStatusKnown = false;
 let pyramidStatusError = '';
@@ -289,7 +296,7 @@ function buildPayload(){
   };
 }
 
-const localFallback = localStorage.getItem('pyramideData_fallback_v3');
+const localFallback = localStorage.getItem(FALLBACK_KEY);
 if(localFallback){
   try { applyData(JSON.parse(localFallback)); } catch(e){}
 } else {
@@ -298,6 +305,7 @@ if(localFallback){
 }
 
 async function tryLegacyMigration(){
+  if(WOMEN_PYRAMID) return false; // die Frauen-Pyramide hat keine Altdaten
   if(legacyMigrationTried) return false;
   legacyMigrationTried = true;
   try{
@@ -306,7 +314,7 @@ async function tryLegacyMigration(){
     const data = await res.json();
     if(!data || !Array.isArray(data.players)) return false;
     applyData(data);
-    localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(data));
+    localStorage.setItem(FALLBACK_KEY, JSON.stringify(data));
     try{
       // Altdaten nur anzeigen; niemals ohne bestätigten Administrator-Import in Firestore überschreiben.
     }catch(e){
@@ -336,7 +344,7 @@ async function handleCentralSnapshot(exists, data){
   centralStateSeen = true;
   if(exists && data){
     applyData(data);
-    localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(data));
+    localStorage.setItem(FALLBACK_KEY, JSON.stringify(data));
     return;
   }
   // Beim ersten Einsatz automatisch die vorhandenen Daten aus dem früheren
@@ -412,14 +420,14 @@ async function initCentralFirebase(){
     return false;
   }
 }
-const soloStatusBanner=document.createElement('div');soloStatusBanner.id='soloStatusBanner';soloStatusBanner.textContent='Die Solo Pyramide ist noch nicht gestartet.';soloStatusBanner.style.cssText='background:#3a2a10;color:#ffd98a;text-align:center;font-weight:bold;padding:8px;border-radius:8px;margin:6px';document.body.prepend(soloStatusBanner);
+const soloStatusBanner=document.createElement('div');soloStatusBanner.id='soloStatusBanner';soloStatusBanner.textContent=WOMEN_PYRAMID?'Die Frauen Solo Pyramide ist noch nicht gestartet.':'Die Solo Pyramide ist noch nicht gestartet.';soloStatusBanner.style.cssText='background:#3a2a10;color:#ffd98a;text-align:center;font-weight:bold;padding:8px;border-radius:8px;margin:6px';document.body.prepend(soloStatusBanner);
 const soloWarning=document.createElement('div');soloWarning.id='soloDataError';soloWarning.style.cssText='color:#ffb3b3;text-align:center;font-weight:bold';document.body.prepend(soloWarning);
 await initCentralFirebase();
 
 window.save = function(){
   if(currentSession?.type==='infosystem')return;
   const payload = buildPayload();
-  localStorage.setItem('pyramideData_fallback_v3', JSON.stringify(payload));
+  localStorage.setItem(FALLBACK_KEY, JSON.stringify(payload));
 
   if(useFirebase && dbRef){
     centralWrite(payload).catch((error) => {
@@ -828,12 +836,13 @@ function openAdminMenu(activeTab = 'general'){
     <div id="tab_general" class="adminTabContent ${activeTab==='general'?'active':''}">
       <label><b>Status der Pyramide:</b></label>
       <p style="margin:4px 0 8px">${!pyramidStatusKnown
-        ? '⚠️ Status konnte nicht gelesen werden' + (pyramidStatusError ? ' (' + pyramidStatusError + ')' : '') + '. Ist die Firestore-Regel für smartphoneBetrieb/soloPyramide eingefügt?'
+        ? '⚠️ Status konnte nicht gelesen werden' + (pyramidStatusError ? ' (' + pyramidStatusError + ')' : '') + '. Ist die Firestore-Regel für smartphoneBetrieb/' + STATUS_DOCUMENT + ' eingefügt?'
         : pyramidActive ? '🟢 Aktiv – Platz unter „Meine Ergebnisse“ und Button im Smartphone-Menü sichtbar.'
         : '⚪ Nicht aktiv – noch nicht gestartet. Unter „Meine Ergebnisse“ und im Smartphone-Menü ausgeblendet.'}</p>
       <button type="button" class="adminTabBtn active" style="margin-bottom:14px" onclick="togglePyramidActive()">${pyramidActive ? 'Auf „nicht aktiv“ setzen' : 'Pyramide starten (aktiv setzen)'}</button>
       <label><b>Anzahl der Pyramiden-Plätze anzeigen:</b></label>
       <select id="adminMaxPlayers" class="adminSelect">
+        <option value="15" ${currentMaxPlayers===15?'selected':''}>15 Plätze (5 Reihen)</option>
         <option value="21" ${currentMaxPlayers===21?'selected':''}>21 Plätze (6 Reihen)</option>
         <option value="28" ${currentMaxPlayers===28?'selected':''}>28 Plätze (7 Reihen)</option>
         <option value="36" ${currentMaxPlayers===36?'selected':''}>36 Plätze (8 Reihen)</option>
@@ -857,6 +866,7 @@ function openAdminMenu(activeTab = 'general'){
     </div>
 
     <div id="tab_players" class="adminTabContent ${activeTab==='players'?'active':''}">
+      ${WOMEN_PYRAMID ? '<button type="button" class="btn" style="margin-bottom:10px" onclick="fillWomenFromRoster()">Spielerinnen aus der Spielerliste einsetzen (ausgelost)</button><p class="hint" id="womenFillHint">Setzt alle Spielerinnen (in der Spielerliste als „Dame“ zugeordnet) in zufälliger Reihenfolge ein. Danach „Änderungen speichern“.</p>' : ''}
       <label><b>Spieler verwalten (1 bis 44):</b></label>
       <div class="playerGridAdmin">${playerRowsHtml}</div>
     </div>
@@ -880,6 +890,24 @@ function openAdminMenu(activeTab = 'general'){
     </div>
   `);
 }
+
+// Frauen-Pyramide: Spielerinnen der Spielerliste (Vereinsverwaltung) ausgelost in die Felder eintragen
+window.fillWomenFromRoster = function(){
+  let women = [];
+  try {
+    const host = window.parent;
+    women = host.tpPlayers().filter(n => n && n !== 'X' && host.tpGender(n) === 'Dame');
+  } catch(e) {}
+  if(!women.length){ alert('Keine Spielerinnen gefunden. Bitte in der Vereinsverwaltung angemeldet öffnen und in der Spielerliste „Dame“ zuordnen.'); return; }
+  const already = players.some(p => p && p !== 'FREI') || hist.length;
+  if(already && !confirm('Die Pyramide ist schon belegt. Alle Plätze durch die ausgelosten Spielerinnen ersetzen?')) return;
+  for(let i = women.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [women[i], women[j]] = [women[j], women[i]]; }
+  const size = [15, 21, 28, 36, 44].find(n => n >= women.length) || 44;
+  for(let i = 0; i < ABSOLUTE_MAX_PLAYERS; i++){ const el = document.getElementById('adminPlayer_' + i); if(el) el.value = women[i] || 'FREI'; }
+  const sel = document.getElementById('adminMaxPlayers'); if(sel) sel.value = String(size);
+  const hint = document.getElementById('womenFillHint');
+  if(hint) hint.textContent = women.length + ' Spielerinnen ausgelost' + (size > 15 ? ' – dafür werden ' + size + ' Plätze benötigt' : '') + '. Zum Übernehmen „Änderungen speichern“.';
+};
 
 window.switchAdminTab = function(tabName){
   document.querySelectorAll('.adminTabContent').forEach(el => el.classList.remove('active'));
@@ -957,7 +985,7 @@ window.resetAllData = function(){
     if(pw !== adminPassword){ alert('Falsches Passwort'); return; }
   }
   
-  localStorage.removeItem('pyramideData_fallback_v3');
+  localStorage.removeItem(FALLBACK_KEY);
   players = [...defaults];
   passwords = {};
   defaults.forEach(p => { if(p !== 'FREI') passwords[p] = "1234"; });
@@ -987,7 +1015,7 @@ window.togglePyramidActive = function(){
   }).catch(error => {
     console.error('Solo-Pyramide: Status nicht gespeichert:', error);
     alert('Status wurde NICHT gespeichert: ' + (error?.code || error?.message || error) +
-      '\nBitte die Firestore-Regel aus firebase-regelblock-solo-pyramide-status.txt einfügen und als Administrator angemeldet sein.');
+      '\nBitte die Firestore-Regel aus ' + (WOMEN_PYRAMID ? 'firebase-regelblock-frauen-solo-pyramide.txt' : 'firebase-regelblock-solo-pyramide-status.txt') + ' einfügen und als Administrator angemeldet sein.');
   }).finally(() => openAdminMenu('general'));
 };
 

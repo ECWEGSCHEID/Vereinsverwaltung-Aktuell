@@ -1,0 +1,61 @@
+// Frauen Solo Pyramide – zusätzliche Firestore-Regeln
+// In die vorhandenen Firestore-Regeln unter match /databases/{database}/documents einfügen
+// (am besten direkt unter dem Block „match /soloPyramide/state“ und unter „match /smartphoneBetrieb/soloPyramide“).
+// Es sind dieselben Regeln wie bei der bestehenden Solo Pyramide, nur für das Dokument „frauen“.
+
+    match /soloPyramide/frauen {
+
+      allow read: if true;
+
+      // Erstanlage:
+      // - bevorzugt durch zentralen Admin
+      // - alternativ auch durch die öffentliche Solo-App, falls beim
+      //   allerersten Start noch kein Dokument vorhanden ist.
+      allow create: if isAdmin()
+        || request.resource.data.keys().hasOnly([
+          'players',
+          'passwords',
+          'hist',
+          'challengerLocks',
+          'opponentLocks',
+          'fixedChallenges',
+          'infoLines',
+          'customTitle',
+          'customSubtitle',
+          'currentMaxPlayers',
+          'vacations',
+          'ruleLockHoursAfterGame',
+          'ruleChallengeDays',
+          'ruleWithdrawHours',
+          'appVersion',
+          'updatedAt'
+        ]);
+
+      // Öffentlicher Spielbetrieb:
+      // Nur spielrelevante Felder dürfen ohne zentrale Adminanmeldung
+      // geändert werden. Admin-Einstellungen bleiben geschützt.
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'players',
+            'passwords',
+            'hist',
+            'challengerLocks',
+            'opponentLocks',
+            'fixedChallenges',
+            'vacations',
+            'appVersion',
+            'updatedAt'
+          ]);
+
+      allow delete: if isAdmin();
+    }
+
+    // Frauen Solo Pyramide: Status aktiv / nicht aktiv
+    match /smartphoneBetrieb/soloPyramideFrauen {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin()
+        && request.resource.data.keys().hasOnly(['aktiv', 'geaendertAm'])
+        && request.resource.data.aktiv is bool
+        && request.resource.data.geaendertAm is string;
+    }
