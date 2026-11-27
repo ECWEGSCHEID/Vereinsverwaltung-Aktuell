@@ -2744,7 +2744,7 @@ function openSoloPyramidePreview(){
 function internalCupUrl(mode='home',extra=''){
  const base=getBaseUrl();
  const u=new URL('turnierauswertung.html',base);
- u.searchParams.set('v','2.5.2');
+ u.searchParams.set('v',APP_RELEASE);
  u.searchParams.set('mode','admin-embedded');
  u.searchParams.set('seite',mode||'home');
  if(extra)u.searchParams.set(extra,'1');
@@ -2756,7 +2756,7 @@ function setInternalCupAdminReturnButton(){
 // V3.1.121: jeder Cup ein eigener Button (Admin-Menü nur für diesen Cup), „Neuen Cup hinzufügen“ extra
 function openCupSingle(id,name){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
- window.__adminBack='ic';window.__adminPreviewMode=false;
+ window.__adminBack='ic';window.__externalAdminReturn='ic';window.__adminPreviewMode=false;
  const u=new URL(internalCupUrl('cup','bearbeiten'));if(id)u.searchParams.set('turnier',id);else u.searchParams.set('neu','1');
  openExternalPage(u.href,id?(name||'Cup'):'Neuen Cup hinzufügen');
  setInternalCupAdminReturnButton();
@@ -2777,7 +2777,7 @@ async function renderCupButtons(){
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='ecw-cup-created')setTimeout(renderCupButtons,800);});
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
- window.__adminBack=document.getElementById('icCupButtons')?'ic':'menu';
+ window.__adminBack=document.getElementById('icCupButtons')?'ic':'menu';window.__externalAdminReturn=window.__adminBack==='ic'?'ic':null;
  window.__adminPreviewMode=false;
  const labels={doppelko:'Doppel KO System',home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
  openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
@@ -3544,7 +3544,8 @@ function returnToAdminManagementView(){
  document.body.classList.remove('tv-preview-open');
  try{leavePresentationFullscreen()}catch(e){}
  updateAdminPreviewBackButtons();
- window.__adminBack='menu';
+ // V3.1.124: Rücksprung in den Bereich, aus dem die externe Seite geöffnet wurde (z. B. Interne Cups)
+ window.__adminBack=window.__externalAdminReturn||'menu';window.__externalAdminReturn=null;
  showView('admin');
 }
 function returnFromAdminPreviewToMenu(){
