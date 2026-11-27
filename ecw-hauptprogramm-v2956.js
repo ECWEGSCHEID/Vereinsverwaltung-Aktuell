@@ -632,7 +632,8 @@ function centralApplyPhotos(snap,kind){
     });
   });
   photos.sort(comparePhotos);
-  data[cfg.items]=photos;data[cfg.albums]=albums;save();
+  const one=pSingleFolder(kind,photos,albums);
+  data[cfg.items]=one.images;data[cfg.albums]=one.albums;save();
   if(document.getElementById(cfg.view)?.classList.contains('active')){
     pCollection=kind;photoAlbumMonth=null;initPhotos();
   }
@@ -1268,7 +1269,7 @@ function adminPreviewOpen(kind){
   else if(kind==='m'){ openTeams().then(()=>{window.__adminPreviewMode=true}); }
   else if(kind==='sh'){ window.__ecwAdminHomeReturn=true; window.__adminPreviewMode=true; shOpen=-1; showView('startseite'); shRender(); shUpdateBack(); }
   else if(kind==='docs'){ window.__adminPreviewMode=true; ecwDocsOpen(null,true); }
-  else if(kind==='tv'){ window.__adminPreviewMode=true; showView('turnierverwaltung'); updateAdminPreviewBackButtons(); try{enterPresentationFullscreen()}catch(e){} }
+  else if(kind==='tv'){ window.__adminPreviewMode=true; showView('turnierverwaltung'); updateAdminPreviewBackButtons(); /* V3.1.130: kein Vollbildmodus mehr – wie alle anderen Bereiche */ }
   else if(kind==='mv'){ window.__adminPreviewMode=true; openMemberManagement(); }
   else if(kind==='zr'){ window.__adminPreviewMode=true; openTournamentSection('pressReports'); }
   updateAdminPreviewBackButtons();
@@ -3341,7 +3342,7 @@ function showView(id){
    if(id==='admin'&&firebaseAuthUser)sessionStorage.setItem('ecw_admin_view_url',ecwAdminViewUrl());
    else sessionStorage.removeItem('ecw_admin_view_url');
  }catch(e){}
- if(isWhiteboardUser()||['externalPage','tournamentMonths','tournaments','news','photos','sponsorPhotos','tournamentPlanner','teams','teamDetail','turnierverwaltung'].includes(id)){
+ if(isWhiteboardUser()||['externalPage','tournamentMonths','tournaments','news','photos','sponsorPhotos','tournamentPlanner','teams','teamDetail'].includes(id)){
    enterPresentationFullscreen();
  }else{
    leavePresentationFullscreen();
@@ -3887,6 +3888,7 @@ function wbLiveCardHtml(x){
 // Schrift so weit verkleinern, dass alle Startlisten ohne Scrollen in den Bereich passen.
 function wbFitLivePanel(){
  const box=document.getElementById('ownLiveStartlistButtons');if(!box)return;
+ if(box.classList.contains('own-live-hex-buttons')){box.style.fontSize='';const row=box.parentElement,n=box.querySelectorAll('.own-live-turnier-btn').length;if(row&&n){const h=row.clientHeight||150,w=Math.min(h/1.2,(row.clientWidth-(n-1)*16)/n);box.style.setProperty('--live-hex',Math.max(70,Math.floor(w))+'px');}return;}
  let size=16;box.style.fontSize=size+'px';
  while(size>8&&box.scrollHeight>box.clientHeight+1){size-=.5;box.style.fontSize=size+'px';}
 }
@@ -3898,7 +3900,7 @@ function wbRefreshLiveStartlistButtons(){
  if(key===wbLivePanelKey&&box.childElementCount)return;
  wbLivePanelKey=key;
  if(!list.length){box.innerHTML='<div class="own-live-empty">Noch keine Live-Startlisten vorhanden</div>';return;}
- box.classList.toggle('two-col',list.length>7);
+ box.classList.toggle('two-col',list.length>7&&!box.classList.contains('own-live-hex-buttons'));
  box.innerHTML=list.map(wbLiveCardHtml).join('');
  box.querySelectorAll('[data-live-id]').forEach(btn=>{
    btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openWhiteboardLiveStartlist(btn.dataset.liveId);});
@@ -3913,17 +3915,18 @@ function renderOwnTournaments(){
  wbStartLiveStartlistenListener();
  const items=activeOwnItems();
  const mEl=document.getElementById('tMonth');if(mEl)mEl.textContent='';
- const f=document.getElementById('tFooter');if(f)f.style.display='block';
+ const f=document.getElementById('tFooter');if(f)f.style.display='none';
  ['prevPageBtn','nextPageBtn','prevMonthBtn','nextMonthBtn','tMonthsBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display='none'});
  const c=document.getElementById('tContent');c.innerHTML='';
  // Nach den Zeitungsberichten ist der Bereich noch auf Mosaik-Darstellung (display:block) gestellt.
  c.classList.remove('press-mosaic-host');
 
- // Einladungen links in A4-Größe, rechts ein schmaler Bereich mit den Live-Startlisten.
+ // V3.1.130: Einladungen oben so groß wie möglich (bis zu 8 gut lesbar), darunter die Live-Startlisten
+ // als sechseckige Buttons mittig in einer Reihe – ohne dunklen Hintergrund.
+ const fullH=Math.max(200,c.clientHeight),fullW=Math.max(200,c.clientWidth),gap=8;
+ const liveH=Math.max(120,Math.min(200,Math.round(fullH*0.22)));
+ const availableH=Math.max(120,fullH-liveH-gap),availableW=fullW;
  const totalSlots=Math.max(1,items.length);
- const fullH=Math.max(200,c.clientHeight),fullW=Math.max(200,c.clientWidth),gap=6;
- const panelW=items.length?Math.max(260,Math.min(460,Math.round(fullW*0.3))):Math.min(900,fullW);
- const availableH=fullH,availableW=Math.max(120,fullW-(items.length?panelW+gap:0));
  let best={cols:1,rows:totalSlots,w:0,h:0};
  for(let cols=1;cols<=totalSlots;cols++){
    const rows=Math.ceil(totalSlots/cols);
@@ -3932,37 +3935,27 @@ function renderOwnTournaments(){
    const w=Math.max(40,Math.min(slotW,Math.floor(slotH*(210/297))));
    if(w>best.w)best={cols,rows,w,h:Math.round(w*(297/210))};
  }
- c.style.gridTemplateColumns=items.length?'repeat('+best.cols+','+best.w+'px) '+panelW+'px':panelW+'px';
- c.style.gridTemplateRows=items.length?'repeat('+best.rows+','+best.h+'px)':fullH+'px';
- c.style.alignContent='center';
- c.style.justifyContent='center';
- c.style.columnGap=gap+'px';
- c.style.rowGap=gap+'px';
-
- // Bestehende Einladungen unverändert anzeigen.
- items.forEach((x,i)=>{
+ c.style.display='flex';c.style.flexDirection='column';c.style.alignItems='center';c.style.justifyContent='space-between';c.style.gap=gap+'px';
+ c.style.gridTemplateColumns='';c.style.gridTemplateRows='';
+ const grid=document.createElement('div');grid.className='own-invite-grid';
+ grid.style.cssText='display:grid;gap:'+gap+'px;justify-content:center;align-content:center;flex:1 1 auto;min-height:0;width:100%;grid-template-columns:repeat('+best.cols+','+best.w+'px);grid-template-rows:repeat('+best.rows+','+best.h+'px)';
+ if(!items.length)grid.innerHTML='<div class="empty">Derzeit keine eigenen Turniereinladungen.</div>';
+ items.forEach(x=>{
    const slot=document.createElement('div');
    slot.className='page-slot';
-   slot.style.gridColumn=String(i%best.cols+1);
-   slot.style.gridRow=String(Math.floor(i/best.cols)+1);
    const img=document.createElement('img');
    img.alt=x.name||'Turniereinladung';
    img.src=x.data||'';
    slot.appendChild(img);
    slot.addEventListener('click',()=>openInvitationZoom(x));
-   c.appendChild(slot);
+   grid.appendChild(slot);
  });
+ c.appendChild(grid);
 
- // Rechts: Live-Startlisten direkt mit allen gemeldeten Mannschaften, ohne Scrollen.
  const live=document.createElement('div');
- live.className='own-live-startlist-tile';
- live.style.gridColumn=items.length?String(best.cols+1):'1';
- live.style.gridRow=items.length?'1 / span '+best.rows:'1';
- live.style.height='100%';
- live.innerHTML='<div class="own-live-startlist-inner">'
-   +'<div class="own-live-startlist-head">Live Startlisten</div>'
-   +'<div id="ownLiveStartlistButtons" class="own-live-startlist-buttons"></div>'
-   +'</div>';
+ live.className='own-live-hex-row';
+ live.style.height=liveH+'px';live.style.setProperty('--live-hex',Math.round(liveH/1.18)+'px');
+ live.innerHTML='<div id="ownLiveStartlistButtons" class="own-live-hex-buttons"></div>';
  c.appendChild(live);
  wbLivePanelKey='';
  wbRefreshLiveStartlistButtons();
@@ -7445,7 +7438,8 @@ async function syncPhotosToFirebase(){
    await fbTimeout(firestoreDb.collection(pCfg().fb).doc(docId).set({type:'photo',month:String(item.month||''),index:i,id:String(item.id||''),name:String(item.name||''),data:dataUrl,updatedAt:new Date().toISOString()}),90000,'Firebase');
    count++;
   }
-  await removeFirebaseDocsNotInSet(pCfg().fb,desired);
+  // Schutz: Wurde ein Foto übersprungen, bleiben die bisherigen Einträge in Firebase erhalten (kein Datenverlust)
+  if(!failed)await removeFirebaseDocsNotInSet(pCfg().fb,desired);
   const message=count+' Foto(s) und '+albums+' Ordner zu Firebase übertragen'+(failed?' · '+failed+' Foto(s) ohne Datei/zu groß übersprungen':'')+'.';
   if(info)info.textContent=message;
   return {ok:failed===0,count,failed,message};
@@ -7804,6 +7798,14 @@ function resizeImage(file,maxSide=1600,quality=.82){return new Promise((resolve,
 // ---------- Fotos für Diashow / Fotos Sponsoren: je genau ein Ordner („Diashow“ bzw. „Sponsoren“) ----------
 const SP_META={photos:{key:'diashow',name:'Diashow',title:'Fotos für Diashow',done:'Diashow-Fotos'},sponsorPhotos:{key:'sponsoren',name:'Sponsoren',title:'Fotos Sponsoren für Diashow',done:'Sponsorenfotos'}};
 function spM(){return SP_META[pCollection]||SP_META.photos}
+// V3.1.130: Diashow/Sponsoren haben genau einen Ordner. Ältere Fotos mit Monats-Ordner (z. B. 2026-09)
+// werden beim Anzeigen in diesen Ordner gelegt, damit Darstellung (Karussell usw.) und Titel stimmen.
+function pSingleFolder(kind,images,albums){
+ const m=SP_META[kind];if(!m)return {images,albums};
+ const al=albums[m.key]||Object.values(albums).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))[0]||{};
+ images.forEach(i=>{if(i)i.month=m.key;});
+ return {images,albums:{[m.key]:{name:m.name,mode:al.mode||'slideshow',duration:Number(al.duration)||5,savedAt:al.savedAt||''}}};
+}
 function spAlbum(){const albums=pAlbums();const keys=Object.keys(albums);const first=albums[spM().key]||albums[keys.sort().reverse()[0]]||{};return {name:spM().name,mode:first.mode||'slideshow',duration:first.duration||5,savedAt:first.savedAt||''};}
 // alle Sponsorenfotos in den einen Ordner legen (ältere Monats-Ordner werden zusammengeführt)
 function spConsolidate(){
@@ -7951,8 +7953,8 @@ async function loadPhotoPresentation(kind){
      if(item.type==='album'&&item.month)albums[item.month]={name:item.name||'',mode:item.mode||'slideshow',duration:Number(item.duration)||5};
      else if(source){const month=String(item.month||'all');images.push({id:item.id||doc.id,month,name:item.name||'',data:source,order:Number.isFinite(item.index)?item.index:0});}
     });
-    if(images.length){images.sort(comparePhotos);data[cfg.items]=images;data[cfg.albums]=albums;}
-    else if(!data[cfg.items]?.length){data[cfg.albums]=albums;}
+    if(images.length){images.sort(comparePhotos);const one=pSingleFolder(kind,images,albums);data[cfg.items]=one.images;data[cfg.albums]=one.albums;}
+    else if(!data[cfg.items]?.length){data[cfg.albums]=pSingleFolder(kind,[],albums).albums;}
    }catch(e){console.error('Fotoansicht '+kind+':',e);showToast('Fotos konnten nicht geladen werden: '+firebaseErrorText(e),6000);}
   }
   await hydrateMedia();
@@ -7977,7 +7979,7 @@ function renderPhotos(){
   while(seq.length<=k){let r=shuffle(photos);if(n>1&&r[0]===seq[seq.length-1])r.push(r.shift());seq.push(...r);}
   return seq[k];};
  const a=pAlbums()[photoAlbumMonth]||{};const mode=(a.mode||'static').toLowerCase();
- document.getElementById(pCfg().monthEl).textContent=photoAlbumMonth?(a.name||(photoAlbumMonth==='all'?'Fotos':monthLabel(photoAlbumMonth))):'Keine Fotos vorhanden';
+ document.getElementById(pCfg().monthEl).textContent=SP_META[pCollection]?'':(photoAlbumMonth?(a.name||(photoAlbumMonth==='all'?'Fotos':monthLabel(photoAlbumMonth))):'Keine Fotos vorhanden');
  if(!photos.length){c.innerHTML='<div class="empty">Keine Fotos verfügbar. Falls die Bilder noch im alten Firebase-Projekt liegen, müssen sie vom Administrator in das neue Projekt übertragen werden.</div>';document.getElementById(pCfg().prevBtn).style.display='none';document.getElementById(pCfg().nextBtn).style.display='none';return}
  const idx=ms.indexOf(photoAlbumMonth);document.getElementById(pCfg().prevBtn).style.display=idx>0?'inline-block':'none';document.getElementById(pCfg().nextBtn).style.display=idx>=0&&idx<ms.length-1?'inline-block':'none';
  const dur=Math.max(2,Number(a.duration)||5)*1000;
