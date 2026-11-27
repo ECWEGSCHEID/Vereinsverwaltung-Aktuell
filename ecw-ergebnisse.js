@@ -202,8 +202,7 @@ box.innerHTML='<div class="er-admin"><div class="er-admin-header"><h2>Ergebnisse
  +'<div class="er-cols"><aside class="er-col-left">'+saveButton
  +button('👁 Vorschau','preview()')
  +'<a class="er-home-btn" href="'+esc(testHomepageLink(n))+'" target="_blank" rel="noopener noreferrer">🌐 Ordner auf der Homepage öffnen</a>'
- +button('+ Unterordner','addFolder()')+(!intermediate()?button('+ Ergebnis-Link','addLink()'):'')+(path.length?'':button('Altes Homepage-Archiv importieren','importSeed()'))
- +saveButton+'</aside>'
+ +button('+ Unterordner','addFolder()')+(!intermediate()?button('+ Ergebnis-Link','addLink()'):'')+'</aside>'
  +'<section class="card er-text"><label>Überschrift<input maxlength="250" value="'+esc(n.t)+'" oninput="ecwResults.setNode(\'t\',this.value)"></label>'
  +'<label>Text auf der Homepage<textarea rows="4" maxlength="50000" oninput="ecwResults.setNode(\'body\',this.value)">'+esc(n.body)+'</textarea></label>'
  +(!intermediate()?'<label class="er-upload">📎 Ergebnislisten oder Fotos hinzufügen<input type="file" id="erUpload" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp" onchange="ecwResults.upload(this.files)" '+(busy?'disabled':'')+'></label> <span class="small">PDF oder Bild, höchstens 8 MB</span>':'')

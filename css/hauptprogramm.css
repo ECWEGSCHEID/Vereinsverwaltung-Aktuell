@@ -2275,3 +2275,5 @@ span.tp-result-open{cursor:default}
 .sh-prev-hex.dragging{opacity:.35}.sh-prev-hex.over::before{background:linear-gradient(160deg,#f0b429,#a86c00)}
 
 .zr-insert{position:absolute;width:4px;background:#f0b429;border-radius:2px;box-shadow:0 0 8px #f0b429;pointer-events:none;z-index:5}
+.sh-screen-wrap{position:relative;width:100%;overflow:hidden;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:#120507}
+.sh-screen-wrap iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0}

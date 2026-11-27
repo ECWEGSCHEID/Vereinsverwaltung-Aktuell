@@ -373,6 +373,8 @@ initFirebaseInfo();
 if(firebaseReady&&window.firebaseAuth){
  window.firebaseAuth.onAuthStateChanged(async user=>{
    firebaseAuthUser=user||null; window.firebaseAuthUser=firebaseAuthUser;
+   // Homepage automatisch verbinden (Speichern überträgt direkt, ohne „Homepage verbinden“)
+   try{if(user)window.ecwHomepageTest?.setTokenProvider(()=>window.firebaseAuth.currentUser?window.firebaseAuth.currentUser.getIdToken():null);}catch(e){}
    updateStartLoginStatus(firebaseAuthUser);
    if(window.__ecwVerifiedResultUid!==firebaseAuthUser?.uid){
      window.__ecwVerifiedResultUid=null;
@@ -1458,6 +1460,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  if(typeof j.bg==='string'&&j.bg.startsWith('data:image/'))d.bg=j.bg;
  if(Array.isArray(j.buttons))d.buttons=j.buttons.filter(b=>b&&typeof b.t==='string').map(b=>{const o={t:b.t,u:typeof b.u==='string'?b.u:''};
   if(b.whiteboardSlot===1||b.whiteboardSlot===2)o.whiteboardSlot=b.whiteboardSlot;
+  if(Number.isInteger(b.cell)&&b.cell>=0&&b.cell<200)o.cell=b.cell;
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>({t:x.t,u:typeof x.u==='string'?x.u:''}));if(sb.length)o.sub=sb}
   return o});
  if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
@@ -1735,6 +1738,27 @@ function shWhiteboardPosition(index, slot){
  const row=4+Math.floor(extra/4);
  return [row+1,2+2*(extra%4)+(row%2)];
 }
+// V3.1.120: feste Plätze für die Startseiten-Kacheln (5 pro Reihe, versetzt wie Bienenwaben).
+// cell = Reihe*5 + Platz. Freie Plätze bleiben auf der Startseite frei.
+const SH_CELLS_PER_ROW=5,SH_CELL_ROWS=4;
+function shCellPos(c){const r=Math.floor(c/SH_CELLS_PER_ROW),k=c%SH_CELLS_PER_ROW;return [r+1,(r%2?1:2)+2*k];}
+function shLegacyCells(){
+ // bisherige Anordnung (Reihenfolge + feste Plätze) in Platznummern umrechnen
+ const items=SH.buttons,occupied=new Set(),out=[];let regular=0;
+ const linksIndex=items.findIndex(b=>String(b.u).endsWith('#ecw-utility-links'));if(linksIndex>=0)occupied.add(1);
+ items.forEach((b,i)=>{const slot=i===linksIndex?1:b.whiteboardSlot;const reserved=i===linksIndex||((slot===1||slot===2)&&!occupied.has(slot));
+  const [row,col]=reserved?shWhiteboardPosition(0,slot):shWhiteboardPosition(regular++);if(reserved)occupied.add(slot);
+  const r=row-1;out.push(r*SH_CELLS_PER_ROW+(r%2?(col-1)/2:(col-2)/2));});
+ return out;
+}
+function shEnsureCells(){
+ const bs=SH.buttons;if(!bs.length)return;
+ if(!bs.some(b=>Number.isInteger(b.cell))){const c=shLegacyCells();bs.forEach((b,i)=>b.cell=c[i]);}
+ const used=new Set();
+ bs.forEach(b=>{if(Number.isInteger(b.cell)&&b.cell>=0&&!used.has(b.cell))used.add(b.cell);else b.cell=-1;});
+ bs.forEach(b=>{if(b.cell<0){let c=0;while(used.has(c))c++;b.cell=c;used.add(c);}});
+}
+function shSortByCell(){const order=new Map(SH.buttons.map((b,i)=>[b,i]));SH.buttons.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shRender(){
  const art=document.getElementById('shArt');if(!art)return;
  if(shOpen>=SH.buttons.length||(shOpen>=0&&!(SH.buttons[shOpen].sub||[]).length))shOpen=-1;
@@ -1790,6 +1814,8 @@ function shRender(){
    tile.style.setProperty('--sh-tile-column',column);
   });
  }else if(whiteboardLayout){
+  if(!grp){shEnsureCells();items.forEach((button,i)=>{const [row,column]=shCellPos(button.cell);els[i].style.setProperty('--sh-tile-row',row);els[i].style.setProperty('--sh-tile-column',column);});}
+  else{
   let regularIndex=0;
   const occupied=new Set();
   const linksIndex=grp?-1:items.findIndex(button=>String(button.u).endsWith('#ecw-utility-links'));
@@ -1802,8 +1828,9 @@ function shRender(){
    els[i].style.setProperty('--sh-tile-row',row);
    els[i].style.setProperty('--sh-tile-column',column);
   });
+  }
  }
- g.replaceChildren(...els);shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
+ g.replaceChildren(...els);shScreenFill();shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
 // ---------- Interne Cups: aktiv / nicht aktiv ----------
 const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
 const ECW_PYR_STATUS={soloHerren:'soloPyramide',soloDamen:'soloPyramideFrauen'};
@@ -1923,7 +1950,7 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
  +'<div id="shFirebaseStatus" class="small" style="margin:-4px 0 8px;font-weight:bold"></div>'
  +'<div class="card"><label>Text auf der Startseite</label><input type="text" value="'+esc(SH.title)+'" oninput="shSet(\'title\',this.value)">'
  +'<div class="row" style="margin-top:8px;align-items:center;gap:8px"><label class="sh-file">🖼 Hintergrundbild ändern<input type="file" accept="image/*" onchange="shBg(this)"></label><button onclick="shBgReset()">Originalbild wiederherstellen</button><span class="small">16:9, wird automatisch verkleinert</span></div></div>'
- +shDetails('shdLayout','Anordnung der Buttons',shLayoutPreviewHtml(),'so wie auf der Startseite – zum Verschieben ziehen')
+ +shDetails('shdLayout','Startbildschirm – Anordnung der Kacheln',shScreenHtml(),'auf freie Plätze ziehen')
  +shDetails('shdButtons','Buttons ('+SH.buttons.length+')',SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>','Namen, Links und Unterbuttons')
  +shDetails('shdUtility','Nützliches verwalten',window.ecwUtility?window.ecwUtility.adminHtml():'')
  +shDetails('shdExternal','Verbände, Regelwerk und Sonstiges',shExternalLinksAdminHtml())
@@ -1940,41 +1967,68 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
  const h=links?.querySelector('h2');if(h)h.remove();
  // Innere Überschriften, die jetzt im Aufklappkopf stehen, entfernen
  ['#utilityItemsAdmin > h3','#shExternalLinksAdmin > h3'].forEach(q=>a.querySelector(q)?.remove());
- shBindLayoutDrag();
+ shScreenInit();
 }
-// Übersicht der sechseckigen Buttons in derselben Anordnung wie auf der Startseite
-function shLayoutPositions(){
- const items=SH.buttons,occupied=new Set(),out=[];let regular=0;
- const linksIndex=items.findIndex(b=>String(b.u).endsWith('#ecw-utility-links'));if(linksIndex>=0)occupied.add(1);
- items.forEach((b,i)=>{const slot=i===linksIndex?1:b.whiteboardSlot;const reserved=i===linksIndex||((slot===1||slot===2)&&!occupied.has(slot));
-  const p=reserved?shWhiteboardPosition(0,slot):shWhiteboardPosition(regular++);if(reserved)occupied.add(slot);out.push({i,row:p[0],col:p[1],fixed:reserved});});
- return out;
+// Vorschau: der ganze Startbildschirm (Hintergrund, Logos, Laufschrift) mit allen Plätzen.
+// Kacheln lassen sich nur auf FREIE Plätze ziehen.
+const SH_SCREEN_W=1920,SH_SCREEN_H=1080;
+function shScreenHtml(){
+ return '<div class="sh-screen-wrap" id="shScreenWrap"><iframe id="shScreen" title="Vorschau Startbildschirm" tabindex="-1"></iframe></div>'
+  +'<p class="small" style="margin:6px 0 0">Eine Kachel auf einen <b>freien Platz</b> ziehen. Zum Tauschen zweier Kacheln zuerst eine davon auf einen freien Platz ziehen. Danach „Startseite speichern“.</p>';
 }
-function shLayoutPreviewHtml(){
- const w=96,g=8,step=w*.8399+g*.8661,h=w*1.135,pos=shLayoutPositions();
- const rows=Math.max(...pos.map(p=>p.row)),W=(w+g)*5.5,H=(rows-1)*step+h;
- return '<div class="sh-prev-wrap"><div class="sh-prev" style="width:'+W+'px;height:'+H+'px">'+pos.map(p=>{const b=SH.buttons[p.i];
-   return '<div class="sh-prev-hex'+((b.sub||[]).length?' sub':'')+(p.fixed?' fixed':'')+'" draggable="true" data-sh-i="'+p.i+'" title="'+esc(b.t.replace(/\n/g,' '))+(p.fixed?' (fester Platz)':'')+'" style="left:'+((p.col-1)*(w+g)/2).toFixed(1)+'px;top:'+((p.row-1)*step).toFixed(1)+'px;width:'+w+'px;height:'+h.toFixed(1)+'px"><span>'+esc(b.t).replace(/\n/g,'<br>')+'</span></div>';}).join('')+'</div></div>'
-  +'<p class="small" style="margin:6px 0 0">Einen Button auf einen anderen ziehen – er nimmt dessen Platz ein, die übrigen rücken nach. Buttons mit ▸ öffnen eine nächste Ebene. Danach „Startseite speichern“.</p>';
+function shScreenInit(){
+ const fr=document.getElementById('shScreen'),wrap=document.getElementById('shScreenWrap');if(!fr||!wrap)return;
+ const scale=()=>{const s=wrap.clientWidth/SH_SCREEN_W;fr.style.transform='scale('+s+')';wrap.style.height=Math.round(SH_SCREEN_H*s)+'px';};
+ scale();if(!window.__shScreenResize){window.__shScreenResize=true;window.addEventListener('resize',()=>{const f=document.getElementById('shScreen'),w=document.getElementById('shScreenWrap');if(f&&w){const s=w.clientWidth/SH_SCREEN_W;f.style.transform='scale('+s+')';w.style.height=Math.round(SH_SCREEN_H*s)+'px';}});}
+ const src=document.getElementById('startseite');if(!src)return;
+ const clone=src.cloneNode(true);clone.querySelectorAll('dialog,script').forEach(x=>x.remove());
+ clone.className='view active';clone.removeAttribute('style');
+ const head=[...document.querySelectorAll('link[rel="stylesheet"],style')].map(x=>x.outerHTML).join('');
+ fr.addEventListener('load',()=>{shScreenFill();},{once:true});
+ fr.srcdoc='<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><base href="'+esc(location.href.split('#')[0])+'">'+head
+  +'<style>html,body{margin:0;overflow:hidden;width:'+SH_SCREEN_W+'px;height:'+SH_SCREEN_H+'px}#shSubReturn{display:none!important}'
+  +'#startseite #shGrid.sh-whiteboard-hex>.shbtn{cursor:grab;user-select:none}'
+  +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-free{background:rgba(255,255,255,.13)!important;color:rgba(255,255,255,.55);font-weight:400;text-shadow:none;cursor:default}'
+  +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-free::before{content:none!important}'
+  +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-free.over{background:rgba(240,180,41,.75)!important;color:#000}'
+  +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.dragging{opacity:.35}</style></head><body class="'+esc(document.body.className)+'">'+clone.outerHTML+'</body></html>';
 }
-function shBindLayoutDrag(){
- let from=null;
- document.querySelectorAll('.sh-prev-hex').forEach(el=>{
-  el.addEventListener('dragstart',e=>{from=+el.dataset.shI;el.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
-  el.addEventListener('dragend',()=>el.classList.remove('dragging'));
-  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
-  el.addEventListener('dragleave',()=>el.classList.remove('over'));
-  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');const to=+el.dataset.shI;if(from===null||from===to)return;
-   if(!hasAppPermission('sh'))return;const [b]=SH.buttons.splice(from,1);SH.buttons.splice(to,0,b);from=null;shOpen=-1;shSave();shRender();renderStartseiteAdmin();showToast('Anordnung geändert – bitte „Startseite speichern“');});
- });
+function shScreenFill(){
+ const fr=document.getElementById('shScreen');const doc=fr&&fr.contentDocument;const g=doc&&doc.getElementById('shGrid');if(!g)return;
+ shEnsureCells();
+ const st=doc.getElementById('startseite');st.classList.remove('sh-submenu');
+ const art=doc.getElementById('shArt');if(art)art.style.backgroundImage='url("'+(SH.bg||SH_BG)+'")';
+ ['shTitle','shTitle2'].forEach(id=>{const h=doc.getElementById(id);if(h){h.textContent=SH.title;h.classList.remove('ecw-long-sh-title');}});
+ g.className='sh-whiteboard-hex';
+ const used=new Set(SH.buttons.map(b=>b.cell));
+ const maxCell=Math.max(SH_CELLS_PER_ROW*SH_CELL_ROWS-1,...SH.buttons.map(b=>b.cell));
+ const tiles=[];
+ SH.buttons.forEach((b,i)=>{let t;try{t=shMakeBtn(b,i)}catch(e){t=document.createElement('a');t.className='shbtn';t.textContent=b.t}
+  const x=doc.createElement('a');x.className=t.className;x.textContent=t.textContent;x.draggable=true;x.dataset.shI=i;x.title=String(b.t).replace(/\n/g,' ');
+  const [r,c]=shCellPos(b.cell);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',c);tiles.push(x);});
+ for(let c=0;c<=maxCell;c++){if(used.has(c))continue;const x=doc.createElement('div');x.className='shbtn sh-free';x.dataset.cell=c;x.textContent='frei';
+  const [r,col]=shCellPos(c);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',col);tiles.push(x);}
+ g.replaceChildren(...tiles);
+ if(!g.__shBound){g.__shBound=true;let from=null;
+  g.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();},true);
+  g.addEventListener('dragstart',e=>{const t=e.target.closest('[data-sh-i]');if(!t){e.preventDefault();return;}from=+t.dataset.shI;t.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
+  g.addEventListener('dragend',e=>{e.target.classList?.remove('dragging');from=null;});
+  g.addEventListener('dragover',e=>{const f=e.target.closest('.sh-free');if(f&&from!==null){e.preventDefault();g.querySelectorAll('.over').forEach(x=>x!==f&&x.classList.remove('over'));f.classList.add('over');}});
+  g.addEventListener('dragleave',e=>{const f=e.target.closest('.sh-free');if(f&&!f.contains(e.relatedTarget))f.classList.remove('over');});
+  g.addEventListener('drop',e=>{e.preventDefault();const f=e.target.closest('.sh-free');g.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
+   if(from===null)return;const b=SH.buttons[from];from=null;
+   if(!f){showToast('Bitte auf einen freien Platz ziehen. Zum Tauschen zuerst einen Button auf einen freien Platz ziehen.',6000);return;}
+   if(!hasAppPermission('sh')||!b)return;b.cell=+f.dataset.cell;shSortByCell();shOpen=-1;shSave();shRender();shRefreshButtonsList();showToast('Kachel verschoben – bitte „Startseite speichern“');});
+ }
 }
+function shRefreshButtonsList(){const d=document.querySelector('#shdButtons .sh-det-body');if(d)d.innerHTML=SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>';}
 var shAdminOpen=new WeakSet();
 function shAdminRow(b,i){
  const subs=b.sub||[],open=shAdminOpen.has(b);
  let h='<div class="sh-row"><div class="in"><textarea rows="2" placeholder="Name (Zeilenumbruch erlaubt)" oninput="shBtn('+i+',\'t\',this.value)">'+esc(b.t)+'</textarea><input type="text" placeholder="Link, z. B. https://…" value="'+esc(b.u)+'" oninput="shBtn('+i+',\'u\',this.value)">'
   +'<div><button onclick="shSubToggle('+i+')">Unterbuttons ('+subs.length+') '+(open?'\u25BE':'\u25B8')+'</button></div>'
   +(subs.length?'<p class="small" style="margin:0">Dieser Button öffnet die nächste Ebene – der Link oben wird dann nicht verwendet.</p>':'')
-  +'</div><div class="acts"><button onclick="shMove('+i+',-1)" title="Nach vorne">↑</button><button onclick="shMove('+i+',1)" title="Nach hinten">↓</button><button class="danger" onclick="shDel('+i+')" title="Löschen">✕</button></div></div>';
+  +'</div><div class="acts"><button class="danger" onclick="shDel('+i+')" title="Löschen">✕</button></div></div>';
  if(open){
   h+='<div class="sh-sub">'+subs.map((x,j)=>'<div class="sh-row"><div class="in"><textarea rows="2" placeholder="Name des Unterbuttons" oninput="shSub('+i+','+j+',\'t\',this.value)">'+esc(x.t)+'</textarea><input type="text" placeholder="Link, z. B. https://…" value="'+esc(x.u)+'" oninput="shSub('+i+','+j+',\'u\',this.value)"></div><div class="acts"><button onclick="shSubMove('+i+','+j+',-1)" title="Nach vorne">↑</button><button onclick="shSubMove('+i+','+j+',1)" title="Nach hinten">↓</button><button class="danger" onclick="shSubDel('+i+','+j+')" title="Löschen">✕</button></div></div>').join('')
    +'<div class="row" style="margin:6px 0 10px"><button onclick="shSubAdd('+i+')">+ Unterbutton hinzufügen</button></div></div>'}
@@ -1989,9 +2043,7 @@ function shBtn(i,k,v){if(!hasAppPermission('sh')){showToast('Startseite bearbeit
 function shMove(i,d){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}const j=i+d;if(j<0||j>=SH.buttons.length)return;const [b]=SH.buttons.splice(i,1);SH.buttons.splice(j,0,b);shOpen=-1;shSave();shRender();renderStartseiteAdmin()}
 function shDel(i){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}const b=SH.buttons[i],n=(b.sub||[]).length;if(confirm('Button „'+b.t.replace(/\n/g,' ')+'“'+(n?' mit '+n+' Unterbutton(s)':'')+' löschen?')){SH.buttons.splice(i,1);shOpen=-1;shSave();shRender();renderStartseiteAdmin()}}
 function shAdd(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}const button={t:'Neuer Button',u:''};
- const slot=[1,2].find(position=>!SH.buttons.some(b=>b.whiteboardSlot===position));
- if(slot)button.whiteboardSlot=slot;
- SH.buttons.push(button);shSave();shRender();renderStartseiteAdmin();const a=document.getElementById('adminMain');a.scrollTop=a.scrollHeight}
+ shEnsureCells();SH.buttons.push(button);shEnsureCells();shSortByCell();shSave();shRender();renderStartseiteAdmin();const a=document.getElementById('adminMain');a.scrollTop=a.scrollHeight}
 async function shBg(inp){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(!inp.files[0])return;try{SH.bg=await shImg(inp.files[0]);shSave();shRender();showToast('Hintergrundbild geändert')}catch(e){showToast('Bild konnte nicht geladen werden')}}
 function shBgReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}SH.bg=null;shSave();shRender()}
 function shReset(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}if(confirm('Alle Änderungen (Texte, Buttons, Links, Hintergrundbild) verwerfen?')){SH=shSane({});shSave();shRender();renderStartseiteAdmin()}}
@@ -5953,7 +6005,7 @@ function tpHomepageFormHtml(){
   return '<fieldset class="ecw-tp-homepage"><legend>Homepage</legend>'
     +'<label><input id="tpHomepageEnabled" type="checkbox" onchange="tpHomepageFields()"> Auf Homepage veröffentlichen</label>'
     +'<label>Homepage-Unterordner <select id="tpHomepageFolder" disabled></select></label>'
-    +'<button type="button" onclick="window.ecwHomepageTest.connect()">Homepage verbinden</button>'
+    +'<button type="button" id="tpHomepageConnect" hidden onclick="window.ecwHomepageTest.connect()">Homepage verbinden (Ersatzweg)</button>'
     +'<p id="tpHomepageStatus" class="small" role="status"></p></fieldset>';
 }
 function tpHomepageFields(selected){
@@ -5962,6 +6014,7 @@ function tpHomepageFields(selected){
   window.ecwHomepageTest.options(select,selected);
   select.disabled=!document.getElementById('tpHomepageEnabled').checked;
   document.getElementById('tpHomepageStatus').textContent=window.ecwHomepageTest.status();
+  const cb=document.getElementById('tpHomepageConnect');if(cb)cb.hidden=!!window.ecwHomepageTest.connected?.();
 }
 window.addEventListener('ecw-homepage-status',()=>tpHomepageFields());
 function tpHomepagePublish(item){
@@ -5973,6 +6026,7 @@ function tpHomepagePublish(item){
 }
 function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   return '<div class="card"><input id="tpEditId" type="hidden">'
+    +'<div class="row" style="justify-content:flex-end;margin-bottom:6px"><button class="primary" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Veranstaltung speichern</button></div>'
     +'<label>Veranstaltungsname</label><input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">'
     +'<div class="row"><div style="flex:1"><label>Datum (Pflichtfeld)</label><input id="tpDate" type="date"></div><div style="flex:1"><label>Uhrzeit (optional)</label><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></div></div>'
     +'<div class="row"><div style="flex:1"><label>Veranstaltungsart (Pflichtfeld)</label><select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></div><div style="flex:none;display:flex;align-items:flex-end"><button type="button" onclick="tpAddNewType()">+ Neue Art</button></div></div>'
@@ -7184,7 +7238,7 @@ function adminSection(s){
 
  }else if(s==='p'||s==='sp'){
   pCollection=(s==='sp')?'sponsorPhotos':'photos';
-  if(s==='sp'){renderSponsorPhotoAdmin();return}
+  renderSponsorPhotoAdmin();return;
   a.innerHTML='<h2>'+pCfg().label+'</h2><div class="card"><label>Fotos hinzufügen</label><input id="pfiles" type="file" multiple accept=".png,.bmp,.jpg,.jpeg,.webp"><label>Ordner / Monat</label><input id="pmonth" type="month" value="'+monthKey()+'"><label>Ordnername</label><input id="palbum" type="text" placeholder="z. B. Sommerfest 2026"><label>Darstellung</label><select id="pmode"><option value="slideshow" selected>Diashow – Karussell</option><option value="static">Feststehend – Fotowand</option><option value="fade">Verschwinden / Erscheinen</option><option value="scroll">Durchlaufen</option></select><label>Wechselzeit (Sekunden)</label><input id="pdur" type="number" min="2" value="5"></div><p class="small">Ordner-Einstellungen oben auswählen und ändern, anschließend unten speichern. Die Fotoübersicht zeigt nur Bilder und die Ordner-Löschfunktion.</p><h3>Gespeicherte Foto-Ordner</h3><div id="photoAdminList"></div><div class="card" style="margin-top:16px"><div id="firebasePhotosInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllPhotoChanges()">Speichern</button></div>';renderPhotoAdminList();updatePhotoAlbumForm();document.getElementById('pmonth').onchange=updatePhotoAlbumForm;
  }
 }
@@ -7553,24 +7607,25 @@ async function deleteTournament(m,i){
  showToast((tCollection==='pressReports'?'Zeitungsbericht':'Einladung')+' gelöscht. Bitte jetzt unten auf „Speichern“ drücken.');
 }
 function resizeImage(file,maxSide=1600,quality=.82){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{let w=img.naturalWidth,h=img.naturalHeight,scale=Math.min(1,maxSide/Math.max(w,h));w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
-// ---------- Fotos Sponsoren: genau ein Ordner „Sponsoren“ ----------
-const SP_KEY='sponsoren';
-function spAlbum(){const albums=pAlbums();const keys=Object.keys(albums);const first=albums[SP_KEY]||albums[keys.sort().reverse()[0]]||{};return {name:'Sponsoren',mode:first.mode||'slideshow',duration:first.duration||5,savedAt:first.savedAt||''};}
+// ---------- Fotos für Diashow / Fotos Sponsoren: je genau ein Ordner („Diashow“ bzw. „Sponsoren“) ----------
+const SP_META={photos:{key:'diashow',name:'Diashow',title:'Fotos für Diashow',done:'Diashow-Fotos'},sponsorPhotos:{key:'sponsoren',name:'Sponsoren',title:'Fotos Sponsoren für Diashow',done:'Sponsorenfotos'}};
+function spM(){return SP_META[pCollection]||SP_META.photos}
+function spAlbum(){const albums=pAlbums();const keys=Object.keys(albums);const first=albums[spM().key]||albums[keys.sort().reverse()[0]]||{};return {name:spM().name,mode:first.mode||'slideshow',duration:first.duration||5,savedAt:first.savedAt||''};}
 // alle Sponsorenfotos in den einen Ordner legen (ältere Monats-Ordner werden zusammengeführt)
 function spConsolidate(){
- const a=spAlbum();pItems().forEach(p=>{if(p)p.month=SP_KEY;});
- data[pCfg().albums]={[SP_KEY]:a};return a;
+ const a=spAlbum();pItems().forEach(p=>{if(p)p.month=spM().key;});
+ data[pCfg().albums]={[spM().key]:a};return a;
 }
 function renderSponsorPhotoAdmin(){
  const box=document.getElementById('adminMain');if(!box)return;
  const a=spConsolidate();
  const saved=a.savedAt?new Date(a.savedAt).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}):'noch nicht gespeichert';
  const saveBtn='<button type="button" class="primary" onclick="saveSponsorPhotos()">Speichern</button>';
- box.innerHTML='<div class="sp-admin"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><h2 style="margin:0">Fotos Sponsoren für Diashow</h2>'+saveBtn+'</div>'
+ box.innerHTML='<div class="sp-admin"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><h2 style="margin:0">'+esc(spM().title)+'</h2>'+saveBtn+'</div>'
   +'<div class="card sp-bar"><label class="sp-add">📷 Fotos hinzufügen<input id="pfiles" type="file" multiple accept=".png,.bmp,.jpg,.jpeg,.webp" onchange="spAddSelected()"></label>'
   +'<label>Darstellung<select id="pmode"><option value="slideshow">Diashow – Karussell</option><option value="static">Feststehend – Fotowand</option><option value="fade">Verschwinden / Erscheinen</option><option value="scroll">Durchlaufen</option></select></label>'
   +'<label>Wechselzeit (Sek.)<input id="pdur" type="number" min="2" value="'+(Number(a.duration)||5)+'" style="width:80px"></label></div>'
-  +'<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:8px"><b>Sponsoren</b><span class="small">Zuletzt gespeichert: '+esc(saved)+' · '+pItems().length+' Foto(s)</span></div><div class="thumb-grid" id="spThumbs"></div></div>'
+  +'<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:8px"><b>📁 '+esc(spM().name)+'</b><span class="small">Zuletzt gespeichert: '+esc(saved)+' · '+pItems().length+' Foto(s)</span></div><div class="thumb-grid" id="spThumbs"></div></div>'
   +'<div id="firebasePhotosInfo" class="small" style="margin:6px 0"></div><div class="row" style="justify-content:flex-end">'+saveBtn+'</div></div>';
  document.getElementById('pmode').value=a.mode||'slideshow';
  const grid=document.getElementById('spThumbs');
@@ -7584,19 +7639,19 @@ async function spAddSelected(){
  const files=[...(document.getElementById('pfiles')?.files||[])];if(!files.length)return;
  const info=document.getElementById('firebasePhotosInfo');if(info)info.textContent='Fotos werden vorbereitet …';
  let added=0,failed=0;
- for(const f of files){try{const img=await resizeImage(f);const id=String(Date.now())+'_'+Math.random().toString(36).slice(2);const stored=await storeMedia(pCfg().prefix,id,img);pItems().push({id,month:SP_KEY,name:f.name,mediaId:stored.id,data:stored.url});added++;}catch(e){failed++;console.error('Foto:',f.name,e)}}
+ for(const f of files){try{const img=await resizeImage(f);const id=String(Date.now())+'_'+Math.random().toString(36).slice(2);const stored=await storeMedia(pCfg().prefix,id,img);pItems().push({id,month:spM().key,name:f.name,mediaId:stored.id,data:stored.url});added++;}catch(e){failed++;console.error('Foto:',f.name,e)}}
  renderSponsorPhotoAdmin();
  const i2=document.getElementById('firebasePhotosInfo');if(i2)i2.textContent=added+' Foto(s) hinzugefügt'+(failed?', '+failed+' nicht lesbar':'')+' – bitte Speichern.';
 }
 async function saveSponsorPhotos(){
  const a=spConsolidate();
  a.mode=document.getElementById('pmode')?.value||a.mode;a.duration=Math.max(2,Number(document.getElementById('pdur')?.value)||5);a.savedAt=new Date().toISOString();
- data[pCfg().albums]={[SP_KEY]:a};
+ data[pCfg().albums]={[spM().key]:a};
  if(!save()){showToast('Lokales Speichern fehlgeschlagen');return}
  for(const id of pendingMediaDeletes.splice(0)){try{await mediaDelete(id)}catch(e){console.error('Medienlöschung:',e)}}
  const fb=(firebaseReady&&firestoreDb)?await syncPhotosToFirebase():null;
  renderSponsorPhotoAdmin();
- if(fb&&!fb.ok)showToast('Firebase: '+(fb.error||fb.message),8000);else showToast('Sponsorenfotos gespeichert'+(fb?' ✓':' (nur lokal)'));
+ if(fb&&!fb.ok)showToast('Firebase: '+(fb.error||fb.message),8000);else showToast(spM().done+' gespeichert'+(fb?' ✓':' (nur lokal)'));
 }
 function updatePhotoAlbumForm(){const m=document.getElementById('pmonth')?.value;if(!m)return;const a=pAlbums()[m]||{};document.getElementById('palbum').value=a.name||'';document.getElementById('pmode').value=a.mode||'slideshow';document.getElementById('pdur').value=a.duration||5}
 async function addPhotos(){

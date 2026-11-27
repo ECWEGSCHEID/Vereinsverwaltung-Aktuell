@@ -1594,7 +1594,7 @@ setTimeout(() => {
 <div><label for="tStock_headerPath">Bildpfad auf dem StockApp-Windows-PC (optional; beim Hallenbild einmal eintragen)</label><input id="tStock_headerPath" type="text" placeholder="C:\Bilder\Hallenbild.png"></div>
 <div><label><input type="checkbox" id="tStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
 </div></details><details class="ecw-stockapp-options tv-homepage-options" data-homepage="t"><summary>Veröffentlichung auf der Homepage</summary>
- <button type="button" data-hp-connect>Homepage verbinden</button>
+ <button type="button" data-hp-connect>Homepage verbinden (Ersatzweg)</button>
  <p data-hp-status role="status"></p>
  <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>
  <label><input type="checkbox" data-hp-invitation> Einladung</label>
@@ -1658,7 +1658,7 @@ setTimeout(() => {
           <div class="inline-actions"><button class="secondary" id="tdEditBtn">Turnier bearbeiten</button><button class="danger" type="button" id="tdDeleteBtn" title="Turnier mit allen Mannschaftsmeldungen löschen">🗑️ Turnier löschen</button><button class="secondary" id="tdLinkBtn">Turnierlink kopieren</button><button class="secondary" id="tdMobileLinkBtn">Smartphone-Link / QR-Code</button><button class="secondary" type="button" id="ecwStockExportBtn">StockApp-Datei speichern (.skmr)</button><span id="ecwStockExportStatus" role="status" aria-live="polite" class="meta" style="display:block;margin-top:8px"></span></div>
         </div>
         <details class="ecw-stockapp-options tv-homepage-options" data-homepage="tdEdit"><summary>Veröffentlichung auf der Homepage</summary>
- <button type="button" data-hp-connect>Homepage verbinden</button>
+ <button type="button" data-hp-connect>Homepage verbinden (Ersatzweg)</button>
  <p data-hp-status role="status"></p>
  <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>
  <label><input type="checkbox" data-hp-invitation> Einladung</label>
@@ -4618,7 +4618,7 @@ var qrcode = function() {
 }));
 </script>
 <script src="js/turnier-historie-core.js?v=history-20261103-1"></script>
-<script src="js/ecw-homepage-test.js?v=27"></script>
+<script src="js/ecw-homepage-test.js?v=28"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -5671,6 +5671,7 @@ window.addEventListener("ecw-homepage-status", () => {
     const key = form.dataset.homepage === "tdEdit" && aktuellesTurnier?.id ? "turnier:" + aktuellesTurnier.id : undefined;
     homepageField(form,"status").textContent = window.ecwHomepageTest?.status(key) || "";
     window.ecwHomepageTest?.options(homepageField(form,"folder"));
+    homepageField(form,"connect").hidden = !!window.ecwHomepageTest?.connected?.();
   }
 });
 const lastHomepageTournament = new Map();
