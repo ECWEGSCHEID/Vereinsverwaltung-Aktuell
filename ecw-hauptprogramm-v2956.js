@@ -6138,23 +6138,58 @@ function tpHomepagePublish(item){
   } : {key,remove:true});
 }
 function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
-  return '<div class="card"><input id="tpEditId" type="hidden">'
-    +'<div class="row" style="justify-content:flex-end;margin-bottom:6px"><button class="primary" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Veranstaltung speichern</button></div>'
-    +'<label>Veranstaltungsname</label><input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">'
-    +'<div class="row"><div style="flex:1"><label>Datum (Pflichtfeld)</label><input id="tpDate" type="date"></div><div style="flex:1"><label>Uhrzeit (optional)</label><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></div></div>'
-    +'<div class="row"><div style="flex:1"><label>Veranstaltungsart (Pflichtfeld)</label><select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></div><div style="flex:none;display:flex;align-items:flex-end"><button type="button" onclick="tpAddNewType()">+ Neue Art</button></div></div>'
-    +'<div id="tpContestRow" hidden><label>Wettkampfklasse (Pflichtfeld)</label><select id="tpContestClass" onchange="tpRefreshContestForm()"><option value="">– auswählen –</option></select></div>'
-    +'<div id="tpTwOption" style="display:none;margin:12px 0;padding:10px;border:1px solid #a94455;border-radius:8px"><label><input type="checkbox" id="tpAddToTw"> Zur Turnierwirtschaftlichkeit hinzufügen</label><small>Nur bei „Turnier als Ausrichter“. Vorhandene Finanzdaten bleiben erhalten.</small></div>'
-    +'<label>Gemeldet von</label><select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select>'
-    +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" onchange="tpRefreshContestForm()" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
-    +'<label>Veranstaltungsort</label><input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>'
-    +tpHomepageFormHtml()
-    +'<div class="row" style="margin-top:14px"><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
-    +'<div class="row" style="margin-top:10px"><button class="primary" style="width:100%" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">Veranstaltung speichern</button></div>'
-    +'<div class="small" style="margin-top:8px">Neue Veranstaltungen werden beim Speichern automatisch mit Google Kalender synchronisiert (bei bestehender Google-Verbindung). Bereits vorhandene Termine werden vor dem Erstellen geprüft.</div>'
+  // V3.1.121: geführte Eingabe – Schritt für Schritt mit „Weiter“, Pflichtfelder werden geprüft
+  const step=(n,title,body,opt)=>'<section class="tp-step" data-tp-step="'+n+'"><div class="tp-step-head" onclick="tpWizGo('+n+')"><span class="tp-step-num">'+n+'</span><b>'+title+'</b>'+(opt?'<span class="small"> · optional</span>':'')+'<span class="tp-step-sum" id="tpSum'+n+'"></span></div><div class="tp-step-body">'+body
+    +'<div class="tp-step-nav">'+(n>1?'<button type="button" onclick="tpWizGo('+(n-1)+')">‹ Zurück</button>':'')+(n<6?(opt?'<button type="button" onclick="tpWizGo('+(n+1)+',true)">Überspringen</button>':'')+'<button type="button" class="primary" onclick="tpWizNext('+n+')">Weiter ›</button>':'')+'</div></div></section>';
+  return '<div class="card tp-wizard"><input id="tpEditId" type="hidden">'
+    +step(1,'Veranstaltungsname','<input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">')
+    +step(2,'Datum und Uhrzeit','<div class="tp-inline"><label>Datum<input id="tpDate" type="date"></label><label>Uhrzeit <span class="small">(optional)</span><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></label></div>')
+    +step(3,'Veranstaltungsart','<div class="tp-inline"><label>Art<select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></label><button type="button" onclick="tpAddNewType()" style="align-self:flex-end">+ Neue Art</button></div>'
+      +'<div id="tpContestRow" hidden><label>Wettkampfklasse<select id="tpContestClass" onchange="tpRefreshContestForm()"><option value="">– auswählen –</option></select></label></div>'
+      +'<div id="tpTwOption" style="display:none;margin:8px 0;padding:8px;border:1px solid #a94455;border-radius:8px"><label><input type="checkbox" id="tpAddToTw"> Zur Turnierwirtschaftlichkeit hinzufügen</label><small>Nur bei „Turnier als Ausrichter“. Vorhandene Finanzdaten bleiben erhalten.</small></div>')
+    +step(4,'Veranstaltungsort','<input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>')
+    +step(5,'Gemeldet von und Mitspieler','<div class="tp-inline"><label>Gemeldet von<select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select></label></div>'
+      +'<div class="tp-players tp-players-grid">'+[0,1,2,3].map(i=>'<label>Spieler '+(i+1)+'<select id="tpPlayer'+i+'" onchange="tpRefreshContestForm()" disabled>'+tpPlayerOptionsHtml('')+'</select></label>').join('')+'</div>'
+      +'<div class="small">Kann auch später eingetragen werden.</div>',true)
+    +step(6,'Homepage und Speichern',tpHomepageFormHtml()
+      +'<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Veranstaltung speichern</button><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
+      +'<div class="small" style="margin-top:8px">Neue Veranstaltungen werden beim Speichern automatisch mit Google Kalender synchronisiert (bei bestehender Google-Verbindung). Bereits vorhandene Termine werden vor dem Erstellen geprüft.</div>')
     +'<div id="firebaseTpInfo" class="small" style="margin-top:10px"></div>'
     +'</div>';
 }
+// Pflichtfelder je Schritt prüfen
+function tpWizCheck(n){
+  const v=id=>String(document.getElementById(id)?.value||'').trim();
+  if(n===1&&!v('tpName'))return ['tpName','Bitte den Veranstaltungsnamen eingeben.'];
+  if(n===2&&!v('tpDate'))return ['tpDate','Bitte das Datum eingeben.'];
+  if(n===3){if(!v('tpType'))return ['tpType','Bitte die Veranstaltungsart wählen.'];
+    const cls=typeof tpContestClasses==='function'?tpContestClasses(v('tpType')):[];if(cls.length&&!cls.includes(v('tpContestClass')))return ['tpContestClass','Bitte die Wettkampfklasse wählen.'];}
+  if(n===4&&!v('tpLocation'))return ['tpLocation','Bitte den Veranstaltungsort eingeben.'];
+  return null;
+}
+function tpWizSummary(){
+  const v=id=>String(document.getElementById(id)?.value||'').trim();
+  const set=(n,t)=>{const e=document.getElementById('tpSum'+n);if(e)e.textContent=t?' – '+t:'';};
+  set(1,v('tpName'));set(2,v('tpDate')?v('tpDate').split('-').reverse().join('.')+(v('tpTime')?' · '+v('tpTime')+' Uhr':''):'');
+  set(3,v('tpType')+(v('tpContestClass')?' · '+v('tpContestClass'):''));set(4,v('tpLocation'));
+  const pl=[0,1,2,3].map(i=>v('tpPlayer'+i)).filter(Boolean);set(5,(v('tpReportedBy')?'gemeldet von '+v('tpReportedBy'):'')+(pl.length?(v('tpReportedBy')?' · ':'')+pl.join(', '):''));
+}
+function tpWizGo(n,skip){
+  const box=document.querySelector('.tp-wizard');if(!box)return;
+  if(box.classList.contains('tp-wiz-all')){const sec=box.querySelector('[data-tp-step="'+n+'"]');sec?.querySelector('input,select')?.focus();return;}
+  // nach vorne nur, wenn alle vorherigen Pflichtfelder passen
+  for(let k=1;k<n;k++){const err=tpWizCheck(k);if(err){n=k;showToast(err[1],4000);break;}}
+  box.dataset.step=n;
+  box.querySelectorAll('.tp-step').forEach(sec=>{const k=+sec.dataset.tpStep;sec.classList.toggle('open',k===n);sec.classList.toggle('done',k<n);sec.classList.toggle('todo',k>n);});
+  tpWizSummary();
+  const f=box.querySelector('[data-tp-step="'+n+'"] .tp-step-body').querySelector('input:not([type=hidden]):not([type=checkbox]):not([disabled]),select:not([disabled])');
+  if(f)setTimeout(()=>f.focus(),30);
+}
+function tpWizNext(n){const err=tpWizCheck(n);if(err){showToast(err[1],4000);document.getElementById(err[0])?.focus();return;}tpWizGo(n+1);}
+// Bearbeiten: alle Felder auf einmal zeigen; neue Eingabe: wieder bei Schritt 1
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.shiftKey)return;const sec=e.target?.closest?.('.tp-wizard:not(.tp-wiz-all) .tp-step.open');if(!sec||e.target.tagName==='TEXTAREA'||e.target.tagName==='BUTTON')return;const n=+sec.dataset.tpStep;if(n<6){e.preventDefault();tpWizNext(n);}});
+function tpWizAll(on){const box=document.querySelector('.tp-wizard');if(!box)return;box.classList.toggle('tp-wiz-all',!!on);
+  if(on){box.querySelectorAll('.tp-step').forEach(sec=>{sec.classList.add('open');sec.classList.remove('done','todo')});tpWizSummary();}else tpWizGo(1);}
 function tpUpdateTwOption(){const option=document.getElementById('tpTwOption'),sel=document.getElementById('tpType');if(!option)return;const allowed=tpCanonicalType(sel?.value||'')==='Turnier als Ausrichter';option.style.display=allowed?'block':'none';if(!allowed&&document.getElementById('tpAddToTw'))document.getElementById('tpAddToTw').checked=false;}
 function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   const nameEl=document.getElementById('tpName');if(!nameEl)return;
@@ -6166,6 +6201,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const missing=[];
   if(!(dateEl&&dateEl.value))missing.push('Datum');
   if(!(typeEl&&String(typeEl.value||'').trim()))missing.push('Veranstaltungsart');
+  if(!String(document.getElementById('tpLocation')?.value||'').trim())missing.push('Veranstaltungsort');
   const contestClass=document.getElementById('tpContestClass')?.value||'';
   if(tpContestClasses(typeEl?.value).length&&!tpContestClasses(typeEl?.value).includes(contestClass))missing.push('Wettkampfklasse');
   if(missing.length){
@@ -6173,6 +6209,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
     const i=document.getElementById('firebaseTpInfo');if(i)i.textContent=text;
     showToast(text,6000);
     (dateEl&&!dateEl.value?dateEl:typeEl).focus();
+    const st={Datum:2,Veranstaltungsart:3,Wettkampfklasse:3,Veranstaltungsort:4}[missing[0]];if(st)tpWizGo(st);
     return false;
   }
   const date=dateEl.value;
@@ -6257,6 +6294,7 @@ function tpEditEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spiel
   tpUpdateTwOption();
   const info=document.getElementById('firebaseTpInfo');
   if(info)info.textContent='Bearbeitung: '+String(x.name||'')+' – Änderungen mit „Veranstaltung speichern" übernehmen.';
+  tpWizAll(true);
   if(nameEl.scrollIntoView)nameEl.scrollIntoView({block:'center'});
   nameEl.focus();
 }
@@ -6274,6 +6312,7 @@ function tpCancelEdit(){
   document.getElementById('tpCancelBtn').style.display='none';
   const info=document.getElementById('firebaseTpInfo');if(info)info.textContent='';
   tpUpdateFormPlayerState();
+  tpWizAll(false);
 }
 async function tpDeleteEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   const sid=String(id),event=tpFindEvent(sid);
@@ -7336,6 +7375,7 @@ function adminSection(s){
    +'<div class="tp-toolbar tp-subnav" style="margin:0 0 16px">'
     +'<button type="button" id="tpSubBtn-plan" onclick="tpAdminSubSection(\'plan\')">Termin- und Turnierplaner</button>'
     +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
+    +'<button type="button" class="primary tp-save-top" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Speichern</button>'
     +'<button type="button" id="tpSubBtn-cal" onclick="tpAdminSubSection(\'cal\')">Kalendereinstellungen</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
@@ -7344,7 +7384,7 @@ function adminSection(s){
    +'<div id="tpSub-events"><div class="tp-events-header"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar"><label for="tpAdminPeriodFilter">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div></div><div id="tpAdminList"></div></div>';
   renderTpPlayersAdminList();
   renderTournamentPlannerAdminList();
-  tpAdminSubSection('plan');
+  tpAdminSubSection('plan');tpWizGo(1);
   Promise.resolve().then(()=>tpGooglePullLinkedChanges(false)).catch(e=>console.warn('Google-Abgleich:',e));
  }else if(s==='n'){
   a.innerHTML='<h2>Vereinsnachrichten</h2><div class="card"><input id="neditid" type="hidden"><label>Überschrift</label><input id="ntitle" type="text" placeholder="z. B. Vereinsmeisterschaft"><label style="margin-top:8px"><input id="nshowtitle" type="checkbox" style="width:auto;margin-right:8px"> Überschrift oben</label><label>Nachricht</label><textarea id="ntext" placeholder="Text der Nachricht..."></textarea><label>Anzeigeart</label><select id="nmode" onchange="updateNewsModeFields()"><option value="static">Feststehend</option><option value="fade">Ein-/Ausblenden</option><option value="ticker">Lauftext</option></select><div id="ndurWrap"><label>Anzeigedauer pro Nachricht (Sekunden)</label><input id="ndur" type="number" min="1" max="180" value="18"><div class="small">Bei „Lauftext“ bestimmt dieser Wert die Dauer eines kompletten Durchlaufs.</div></div><div id="ngapWrap"><label>Zeit zwischen den jeweiligen Texten (Sekunden)</label><input id="ngap" type="number" min="0" max="180" value="2"><div class="small">Diese Pause wird beim Wechsel zwischen mehreren Nachrichten verwendet.</div></div><div class="row"><div style="flex:1"><label>Startdatum</label><input id="nstart" type="date"></div><div style="flex:1"><label>Enddatum</label><input id="nend" type="date"></div></div><div class="small">Ohne Start- oder Enddatum ist die Nachricht zeitlich unbegrenzt aktiv.</div><div class="row" style="margin-top:14px"><button id="newsCancelBtn" style="display:none" onclick="cancelNewsEdit()">Bearbeitung abbrechen</button></div></div><h3>Gespeicherte Nachrichten</h3><p class="small">Nach Ablauf des Enddatums werden Nachrichten automatisch ausgeblendet. Sie bleiben zur Nachvollziehbarkeit gespeichert, bis du sie ausdrücklich löschst. „Löschen“ entfernt die Nachricht sofort aus Firebase.</p><div id="newsAdminList"></div><div class="card" style="margin-top:16px"><div id="firebaseNewsInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllNewsChanges()">Speichern</button></div>';renderNewsAdminList();updateNewsModeFields();
