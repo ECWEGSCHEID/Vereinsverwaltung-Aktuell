@@ -1394,6 +1394,8 @@ const SH_DEF={title:'Informationssystem',cols:3,bg:null,links:SH_DEFAULT_LINKS,b
 {t:'Sponsoren',u:SH_B+'#fotos-sponsoren'},{t:'Links',u:SH_B+'#links'},
 {t:'Ergebnisse\nTurniere Intern',u:'',sub:[
  {t:'Cupauswertung',u:new URL("turnierauswertung.html?v=2.5.2&seite=cup",window.ECW_SITE_BASE||location.href).href},
+ {t:'Duo Cup',u:SH_B+'turnierauswertung.html?seite=cup&cup=duo'},
+ {t:'Frauencup',u:SH_B+'turnierauswertung.html?seite=cup&cup=frauen'},
  {t:'Jahresmeisterschaft Ziel',u:new URL("turnierauswertung.html?v=2.5.2&seite=jahresmeisterschaft",window.ECW_SITE_BASE||location.href).href},
  {t:'Turnierauslosung',u:new URL("turnierauswertung.html?v=2.5.2&seite=auslosung",window.ECW_SITE_BASE||location.href).href},
  {t:'Stockdartauswertung',u:new URL("turnierauswertung.html?v=2.5.2&seite=stockdart",window.ECW_SITE_BASE||location.href).href},
@@ -1425,7 +1427,8 @@ function shEnsureSoloPyramide(d){
        || (/^(127\.0\.0\.1|localhost)$/i.test(u.hostname) && /\/turnierauswertung\.html$/i.test(u.pathname));
 
      if((legacy||local) && ['cup','doppelko','jahresmeisterschaft','auslosung','stockdart'].includes(mode)){
-       return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode);
+       const cup=mode==='cup'?(u.searchParams.get('cup')||'').toLowerCase():'';
+       return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode)+(['duo','frauen'].includes(cup)?'&cup='+cup:'');
      }
    }catch(e){}
    return value;
@@ -1451,6 +1454,13 @@ function shEnsureSoloPyramide(d){
  else target.sub.push({t:'Solo Pyramide Herren',u:SOLO_PYRAMIDE_PAGE});
  if(!target.sub.some(isWomenPyr)){const at=target.sub.indexOf(menPyr||target.sub.find(x=>norm(x?.t)==='solo pyramide herren'));target.sub.splice(at>=0?at+1:target.sub.length,0,{t:'Solo Pyramide Damen',u:SOLO_PYRAMIDE_PAGE+'&pyramide=frauen'});}
  if(!target.sub.some(x=>norm(x?.t)==='doppel ko system'||/seite=doppelko/i.test(String(x?.u||''))))target.sub.push({t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'});
+ // V3.1.121: Duo Cup und Frauencup als eigene Buttons (öffnen direkt die Tabelle des aktuellen Cups)
+ const cupAt=target.sub.findIndex(x=>/seite=cup/i.test(String(x?.u||''))&&!/[?&]cup=/i.test(String(x?.u||'')));
+ const used=new Set(target.sub.map(x=>x.cell).filter(Number.isInteger));const freeCell=()=>{let c=0;while(used.has(c))c++;used.add(c);return c;};
+ const hasCells=target.sub.some(x=>Number.isInteger(x.cell));
+ [['frauen','Frauencup'],['duo','Duo Cup']].forEach(([k,t])=>{if(target.sub.some(x=>new RegExp('[?&]cup='+k,'i').test(String(x?.u||''))))return;
+  const item={t,u:SH_B+'turnierauswertung.html?seite=cup&cup='+k};if(hasCells)item.cell=freeCell();
+  target.sub.splice(cupAt>=0?cupAt+1:target.sub.length,0,item);});
  return d;
 }
 function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
@@ -1807,7 +1817,7 @@ function shRender(){
  items.forEach((b,i)=>{
   try{
    const tile=shMakeBtn(b,grp?-1:i);
-   if(internalResults && (ecwInternalResultMode(b.u)==='cup' || /^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))) {
+   if(internalResults && ((ecwInternalResultMode(b.u)==='cup'&&!/[?&]cup=/i.test(String(b.u))) || /^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))) {
     tile.textContent='Cup\nErgebnisse';
    }else if(documentMenu || internalResults){
     tile.textContent=window.ecwTileLabel?.(b.t,documentMenu?'documents':'results')??b.t;
@@ -1860,15 +1870,16 @@ function shRender(){
  }
  g.replaceChildren(...els);shScreenFill();shIcFill();shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
 // ---------- Interne Cups: aktiv / nicht aktiv ----------
-const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
+const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['cupDuo','Duo Cup'],['cupFrauen','Frauencup'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
 const ECW_PYR_STATUS={soloHerren:'soloPyramide',soloDamen:'soloPyramideFrauen'};
 let ecwPyrActive=null,ecwPyrLoading=null;
 function ecwInternKey(item){
  const u=String(item?.u||'');let mode='';try{mode=ecwInternalResultMode(u)}catch(e){}
  if(mode==='soloPyramide')return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
+ if(mode==='cup'){const c=(u.match(/[?&]cup=(duo|frauen)/i)||[])[1];if(c)return c.toLowerCase()==='duo'?'cupDuo':'cupFrauen';}
  if(mode)return mode;
  // Adresse von einem anderen Rechner (z. B. 127.0.0.1) oder ohne erkannte Seite: über „seite=“ bzw. die Bezeichnung zuordnen
- const m=u.match(/turnierauswertung\.html[^#]*[?&]seite=(cup|doppelko|jahresmeisterschaft|auslosung|stockdart)/i);if(m)return m[1].toLowerCase();
+ const m=u.match(/turnierauswertung\.html[^#]*[?&]seite=(cup|doppelko|jahresmeisterschaft|auslosung|stockdart)/i);if(m){const c=m[1].toLowerCase()==='cup'&&(u.match(/[?&]cup=(duo|frauen)/i)||[])[1];if(c)return c.toLowerCase()==='duo'?'cupDuo':'cupFrauen';return m[1].toLowerCase();}
  if(/solo-pyramide/i.test(u))return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
  const t=String(item?.t||'').toLowerCase().replace(/\s+/g,' ');
  if(/doppel\s*ko/.test(t))return 'doppelko';if(/stockdart/.test(t))return 'stockdart';if(/auslosung/.test(t))return 'auslosung';
@@ -2078,7 +2089,7 @@ function shIcFill(){
  g.style.setProperty('--centered-submenu-rows',rows);
  const tiles=[];
  grp.sub.forEach((b,i)=>{const x=doc.createElement('a');x.className='shbtn'+(ecwInternActive(b)?'':' sh-inactive');
-  let text=b.t;try{text=(ecwInternalResultMode(b.u)==='cup'||/^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))?'Cup\nErgebnisse':(window.ecwTileLabel?.(b.t,'results')??b.t)}catch(e){}
+  let text=b.t;try{text=((ecwInternalResultMode(b.u)==='cup'&&!/[?&]cup=/i.test(String(b.u)))||/^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))?'Cup\nErgebnisse':(window.ecwTileLabel?.(b.t,'results')??b.t)}catch(e){}
   x.textContent=text;x.draggable=true;x.dataset.shI=i;x.title=String(b.t).replace(/\n/g,' ')+(ecwInternActive(b)?'':' – nicht aktiv');
   const [r,c]=shSubCellPos(b.cell);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',c);tiles.push(x);});
  for(let c=0;c<rows*SH_SUB_PER_ROW;c++){if(used.has(c))continue;const x=doc.createElement('div');x.className='shbtn sh-free';x.dataset.cell=c;x.textContent='frei';
