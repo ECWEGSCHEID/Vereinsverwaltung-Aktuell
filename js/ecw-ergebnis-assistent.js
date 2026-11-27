@@ -151,6 +151,25 @@ function odReady(){return !!(st.od&&(st.od.local||st.od.configured));}
 function odRootName(){return st.od?.local?(st.od.folder||'ECWegscheid'):(window.ECWOneDrive?.config?.root||'ECWegscheid');}
 function odPath(){const parts=folderLabel().split(' / ').filter(x=>x&&x!=='…');return [(st.kind2==='intern'||st.kind2==='veranstalter')?'Turniere':'Ergebnisse',...parts].join('/');}
 function folderLabel(){const f=folders().find(x=>x.path.join('>')===st?.folder);return [f?f.label:'',st?.subfolder||''].filter(Boolean).join(' / ')||'…';}
+// Spielernamen mit der Spielerliste abgleichen (nur für die Vereinsrangliste nötig)
+function rowPlayers(r){return (r.players&&r.players.length)?r.players:(window.ECWRangliste?.resolvePlayers?.(r.team)||[r.team]);}
+function nameIssues(){
+  if(!(st.internal&&st.toRanking)||!window.ECWRangliste?.matchName)return [];
+  const seen=new Set(),out=[];
+  st.rows.filter(r=>clean(r.team)).forEach(r=>rowPlayers(r).map(clean).filter(Boolean).forEach(n=>{
+    if(seen.has(n))return;seen.add(n);const m=ECWRangliste.matchName(n);if(!m.ok)out.push({raw:n,suggest:m.suggest});}));
+  return out;
+}
+function namesHtml(){
+  const list=nameIssues();if(!list.length)return '';
+  st.nameMap=st.nameMap||{};
+  const all=ECWRangliste.rosterNames?.()||[];
+  return '<div class="card"><h3 style="margin-top:0">Namen prüfen (Spielerliste)</h3><div class="small" style="margin-bottom:6px">Diese Namen stehen nicht genau so in der Spielerliste. Vorschläge sind schon ausgewählt – bitte prüfen. Ohne Zuordnung kann nicht gespeichert werden.</div>'
+    +list.map(x=>{if(st.nameMap[x.raw]===undefined&&x.suggest[0])st.nameMap[x.raw]=x.suggest[0];const cur=st.nameMap[x.raw]||'';
+      return '<div class="ea-row" style="align-items:center;margin:4px 0"><span style="min-width:170px;color:'+(cur?'#ffd27f':'#ff9b9b')+'"><b>'+esc(x.raw)+'</b>'+(cur?'':' – unbekannt')+'</span><select data-ea-namefix="'+esc(x.raw)+'"><option value="">– Spieler wählen –</option>'
+        +(x.suggest.length?'<optgroup label="Vorschläge">'+x.suggest.map(n=>'<option'+(n===cur?' selected':'')+'>'+esc(n)+'</option>').join('')+'</optgroup>':'')
+        +'<optgroup label="Spielerliste">'+all.map(n=>'<option'+(n===cur&&!x.suggest.includes(n)?' selected':'')+'>'+esc(n)+'</option>').join('')+'</optgroup></select></div>';}).join('')+'</div>';
+}
 function listText(rows){return rows.map(r=>r.rank+'. '+r.team+(r.players?.length&&r.players.join(', ')!==r.team?' ('+r.players.join(', ')+')':'')).join('\n');}
 
 /* ---------- Ablauf ---------- */
@@ -201,6 +220,7 @@ function render(){
     +'<div class="card"><h3 style="margin-top:0">3. Erkannte Platzierungen prüfen</h3><div class="small" style="margin-bottom:6px">'+(st.rows.length?st.rows.length+' Plätze erkannt. Bitte prüfen, korrigieren oder ergänzen.':'Aus dieser Datei konnte kein Text gelesen werden (z. B. eingescanntes Bild). Bitte die Plätze unten eintragen.')+'</div>'
     +'<div style="overflow:auto"><table class="ea-table"><thead><tr><th>Platz</th><th>Mannschaft / Name</th>'+(st.internal?'<th>Spieler (Spielerliste)</th>':'')+'<th></th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'
     +'<div class="ea-row" style="margin-top:6px"><button type="button" data-ea-addrow>+ Zeile</button>'+(st.internal?'':'')+'</div></div>'
+    +'<div id="eaNamesBox">'+namesHtml()+'</div>'
     +'<div class="card"><h3 style="margin-top:0">4. Wohin übernehmen?</h3>'
     +'<label class="ea-check"><input type="checkbox" id="eaToHomepage"'+(st.toHomepage?' checked':'')+'> <b>Ergebnisse</b> (Vereinsverwaltung → Homepage) – Listen (PDF + PNG), Fotos und die gesamte Liste als Text</label>'
     +'<div class="ea-grid" style="margin:4px 0 10px 26px"><label>Ordner<select id="eaFolder"><option value="">– bitte wählen –</option><option value="/"'+(st.folder==='/'?' selected':'')+'>Ergebnisse (Hauptebene – neuen Ordner rechts eintragen)</option>'+fl.map(f=>'<option value="'+esc(f.path.join('>'))+'"'+(st.folder===f.path.join('>')?' selected':'')+'>'+esc(f.label)+'</option>').join('')+'</select></label>'
@@ -308,6 +328,8 @@ async function saveAll(od){
   if(!st.name)return stop('Bitte eine Bezeichnung eingeben.');
   if(st.toHomepage&&!st.folder)return stop('Bitte einen Ergebnis-Ordner der Homepage wählen.');
   if(st.toOneDrive&&!st.folder)return stop('Bitte einen Ordner wählen (wird auch für OneDrive verwendet).');
+  const missing=nameIssues().filter(x=>!st.nameMap?.[x.raw]);
+  if(missing.length)return stop('Bitte bei „Namen prüfen“ zuordnen: '+missing.map(x=>x.raw).join(', '));
   st.busy=true;st.msg='Wird gespeichert …';render();const done=[];
   try{
     // 1. Homepage-Ergebnisse
@@ -345,7 +367,7 @@ async function saveAll(od){
     // 3. Vereinsrangliste
     if(st.internal&&st.toRanking){
       if(!window.ECWRangliste?.addEvent)throw Error('Vereinsrangliste nicht geladen.');
-      const res=await ECWRangliste.addEvent({category:st.category,type:st.type,season:st.season,label:st.name,date:st.date,rows:rows.map(r=>({rank:r.rank,team:r.team,players:r.players.length?r.players:(ECWRangliste.resolvePlayers?.(r.team)||[r.team])}))});
+      const res=await ECWRangliste.addEvent({category:st.category,type:st.type,season:st.season,label:st.name,date:st.date,rows:rows.map(r=>({rank:r.rank,team:r.team,players:rowPlayers(r).map(clean).filter(Boolean).map(n=>st.nameMap?.[n]||ECWRangliste.matchName?.(n)?.name||n)}))});
       done.push('Vereinsrangliste: eingetragen und neu berechnet'+(res?.replaced?' (Saison '+res.replaced+' dieser Kategorie zählt nicht mehr)':''));
     }
     st.msg='Fertig ✓\n'+done.join('\n');toast('Ergebnis gespeichert ✓');
@@ -376,7 +398,10 @@ function onChange(e){
   if(t.id==='eaRowsFrom'){readForm();useRowsFrom(+t.value);render();return;}
   if(t.id==='eaEvent'){readForm();st.eventId=t.value;const x=plannerEvents().find(v=>v.id===t.value);
     if(x){st.name=x.name;st.date=x.date;st.kind2=kindOf(x);applyKind();st.category='';st.season='';st.folder='';applyGuesses();}else{applyKind();}render();return;}
-  if(t.id==='eaFolder'||t.id==='eaSubfolder'||t.id==='eaToOneDrive'){readForm();render();return;}
+  // nur die Namensprüfung neu aufbauen – die Tabelle bleibt (Eingabefokus geht nicht verloren)
+  if(t.dataset&&('eaPlayers' in t.dataset||'eaTeam' in t.dataset)){const box=$('eaNamesBox');if(box)box.innerHTML=namesHtml();return;}
+  if(t.dataset&&'eaNamefix' in t.dataset){st.nameMap=st.nameMap||{};st.nameMap[t.dataset.eaNamefix]=t.value;const box=$('eaNamesBox');if(box)box.innerHTML=namesHtml();return;}
+  if(t.id==='eaFolder'||t.id==='eaSubfolder'||t.id==='eaToOneDrive'||t.id==='eaToRanking'){readForm();render();return;}
   if(['eaKind','eaName','eaDate','eaCat'].includes(t.id)){readForm();if(t.id!=='eaCat'){st.category='';}else st.type=guessType(st.category,st.name);if(t.id==='eaName'||t.id==='eaDate'){st.season=seasonOf(st.date);}applyGuesses();render();return;}
   readForm();
 }

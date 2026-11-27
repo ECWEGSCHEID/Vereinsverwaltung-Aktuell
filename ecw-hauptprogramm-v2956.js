@@ -2578,11 +2578,6 @@ function openInternalCupAdmin(mode='home'){
  openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
  setInternalCupAdminReturnButton();
 }
-function openInternalCupMigration(){
- if(appPermissions.admin!==true){showToast('Datenübernahme ist nur für Administratoren freigegeben.',5000);return;}
- openExternalPage(internalCupUrl('home','migration'),'Interne Cup · Datenübernahme');
- setInternalCupAdminReturnButton();
-}
 function renderInternalCupAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  a.classList.remove('mv-mode');
@@ -2602,9 +2597,7 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
   +'<div class="card" id="ecwInternActiveCard" style="margin-top:14px"><h3>Auf der Startseite anzeigen</h3><p class="small">Wird geladen …</p></div>'
-  +'<div class="card" style="margin-top:14px"><h3>Datenübernahme</h3>'
-  +'<p class="small">Einmalige Übernahme der Daten aus dem bisherigen Firebase-Projekt der Turnierauswertung. Danach wird nur noch das zentrale Firebase-Projekt der Vereinsverwaltung verwendet.</p>'
-  +'<button type="button" class="primary" style="width:100%" onclick="openInternalCupMigration()">Bisherige Turnierauswertung nach Vereinsverwaltung übernehmen</button></div>';
+  ;
  renderInternActiveCard();
 }
 

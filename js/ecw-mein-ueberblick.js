@@ -141,7 +141,12 @@ function competitions(status, sources, name) {
   cup('frauencup', 'frauen', 'Frauencup');
   if (status?.soloPyramide === true) {
     const p = sources.pyramid && M ? M.pyramidEntry(sources.pyramid, name) : null;
-    out.push({key: 'soloPyramide', title: 'Solo Pyramide', countable: !!sources.pyramid, joined: !!p});
+    out.push({key: 'soloPyramide', title: 'Solo Pyramide Herren', countable: !!sources.pyramid, joined: !!p});
+  }
+  if (status?.soloPyramideFrauen === true) {
+    const p = sources.pyramidWomen && M ? M.pyramidEntry(sources.pyramidWomen, name) : null;
+    // Für Herren zählt die Damen-Pyramide nicht als „nicht dabei“
+    if (p) out.push({key: 'soloPyramide', title: 'Solo Pyramide Damen', countable: true, joined: true});
   }
   if (status?.montagsSolo === true) {
     // Das Montags-Solo-Turnier wird noch erstellt; die Teilnahme kann noch nicht ausgewertet werden.

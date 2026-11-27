@@ -170,8 +170,8 @@ function pyramidEntry(state, name) {
 }
 
 // Öffentliche Leseschnittstelle; liefert nur die Spielerreihenfolge (keine Passwörter).
-async function loadPyramidPublic(signal) {
-  const url = 'https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/soloPyramide/state?mask.fieldPaths=players';
+async function loadPyramidPublic(signal, documentId = 'state') {
+  const url = 'https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/soloPyramide/' + documentId + '?mask.fieldPaths=players';
   const response = await fetch(url, {cache: 'no-store', signal});
   if (!response.ok) throw new Error('Firebase HTTP ' + response.status);
   const payload = await response.json();
@@ -308,7 +308,11 @@ function render(container, name, data) {
 
   const solo = data.pyramid;
   if (solo) {
-    row(container, 'Solo Pyramide', '', 'Platz ' + solo.position);
+    row(container, 'Solo Pyramide Herren', '', 'Platz ' + solo.position);
+    shown++;
+  }
+  if (data.pyramidWomen) {
+    row(container, 'Solo Pyramide Damen', '', 'Platz ' + data.pyramidWomen.position);
     shown++;
   }
 
@@ -334,7 +338,7 @@ function rankingEntry(doc, name, women) {
     rows: rows.map(slim), near: near.map(slim), nearStart, ownIndex: at};
 }
 
-async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, loadMontagsSolo, loadRanking, standings}) {
+async function load({name, signal, loadPlanner, loadCups, loadChampionship, loadPyramid, loadPyramidWomen, loadMontagsSolo, loadRanking, standings}) {
   const errors = [];
   const attempt = async (label, task) => {
     try { return await task(); } catch (error) {
@@ -344,19 +348,21 @@ async function load({name, signal, loadPlanner, loadCups, loadChampionship, load
       return null;
     }
   };
-  const [events, tournaments, jmState, soloState, msState, rankDoc] = await Promise.all([
+  const [events, tournaments, jmState, soloState, msState, rankDoc, soloWomen] = await Promise.all([
     attempt('Der Terminplaner', loadPlanner),
     attempt('Die Cup-Ergebnisse', loadCups),
     attempt('Die Ziel-Jahresmeisterschaft', loadChampionship),
     loadPyramid ? attempt('Die Solo Pyramide', loadPyramid) : null,
     loadMontagsSolo ? attempt('Das Montags Solo', loadMontagsSolo) : null,
-    loadRanking ? attempt('Die Vereinsrangliste', loadRanking) : null
+    loadRanking ? attempt('Die Vereinsrangliste', loadRanking) : null,
+    loadPyramidWomen ? attempt('Die Solo Pyramide Damen', loadPyramidWomen) : null
   ]);
   return {
     planner: events ? participations(events, name) : [],
     cups: tournaments ? cupEntries(tournaments, name, standings) : [],
     championship: jmState ? championshipEntry(jmState, name) : null,
     pyramid: soloState ? pyramidEntry(soloState, name) : null,
+    pyramidWomen: soloWomen ? pyramidEntry(soloWomen, name) : null,
     montagsSolo: msState ? montagsSoloEntries(msState, name) : [],
     ranking: rankDoc ? rankingEntry(rankDoc, name) : null,
     rankingWomen: rankDoc ? rankingEntry(rankDoc, name, true) : null,
