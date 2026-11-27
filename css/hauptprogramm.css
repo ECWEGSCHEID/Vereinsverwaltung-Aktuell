@@ -2226,3 +2226,33 @@ span.tp-result-open{cursor:default}
 .ms-erg-dialog button{width:auto;min-height:0;padding:8px 14px;border-radius:8px;border:1px solid #888;background:#fff;color:#111;font-weight:700;margin:0}
 .ms-erg-dialog button.primary{background:#b00000;color:#fff;border-color:#b00000}
 .ms-erg-big{font-size:1.6rem;font-weight:800;text-align:center;margin:6px 0}
+
+/* Fotos Sponsoren: kompakte Leiste */
+.sp-admin .sp-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}.sp-admin .sp-bar label{margin:0}.sp-admin .sp-add{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:8px;background:#3a3438;border:1px solid #6b5b62;cursor:pointer;font-weight:700}.sp-admin .sp-add input{display:none}.sp-admin .card{margin-bottom:10px}
+
+/* Verwaltung → Homepage */
+.hp-big{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 14px}
+.hp-big-btn{display:flex;align-items:center;justify-content:center;gap:12px;min-height:92px;font-size:22px;font-weight:800;border-radius:14px}
+.hp-big-btn span{font-size:30px}
+.hp-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.hp-group h3{margin:0 0 8px}
+.hp-tile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border-radius:10px}
+.hp-tile:last-child{margin-bottom:0}.hp-tile small{display:block;font-weight:400;opacity:.8;font-size:12px}
+.hp-ico{font-size:20px;width:26px;text-align:center}
+@media(max-width:700px){.hp-big{grid-template-columns:1fr}.hp-big-btn{min-height:70px;font-size:18px}}
+
+/* Verwaltung → Zeitungsberichte: echte Kachelansicht */
+.zr-admin{max-width:1400px}
+.zr-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}.zr-bar h2{margin:0 10px 0 0;flex:1;min-width:200px}
+.zr-bottom{justify-content:flex-end;margin-top:10px}
+.zr-add{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:8px;background:#3a3438;border:1px solid #6b5b62;cursor:pointer;font-weight:700;margin:0}.zr-add input{display:none}
+.zr-help{margin:4px 0 8px}
+.zr-page-label{font-size:12px;opacity:.8;margin:10px 0 4px}
+.zr-page{position:relative;width:100%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);border-radius:10px;overflow:hidden}
+.zr-page .press-tile{position:absolute;display:flex;overflow:hidden;border-radius:6px;box-shadow:0 3px 10px rgba(0,0,0,.45);background:#fff;cursor:grab;padding:0;border:0}
+.zr-page .press-tile .press-crop{position:relative;overflow:hidden;height:100%;flex:none}
+.zr-page .press-tile .press-crop img{position:absolute!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;height:auto!important;object-fit:contain!important;transform:none!important;margin:0!important;border:0!important;border-radius:0!important}
+.zr-page .press-tile.dragging{opacity:.4}.zr-page .press-tile.drag-over{outline:3px solid #f0b429;outline-offset:-3px}
+.zr-menu-btn{position:absolute;top:4px;right:4px;z-index:3;min-height:0!important;padding:2px 8px!important;border-radius:6px;background:rgba(0,0,0,.7)!important;color:#fff;font-weight:800;line-height:1.2;width:auto!important}
+.zr-menu{position:fixed;z-index:100000;display:flex;flex-direction:column;gap:4px;padding:8px;background:#222;border:1px solid #666;border-radius:10px;min-width:190px;box-shadow:0 8px 20px rgba(0,0,0,.6)}
+.zr-menu button{text-align:left;width:100%}

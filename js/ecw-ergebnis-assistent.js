@@ -202,12 +202,14 @@ function manualHtml(){
 function render(){
   const root=$('eaRoot');if(!root||!st)return;
   const evs=plannerEvents();
-  const head='<div class="card"><h3 style="margin-top:0">1. Wettkampf wählen</h3><div class="ea-grid">'
+  const step=(n,title,done,hint)=>'<section class="ea-step'+(done?' done':'')+'"><div class="ea-step-head"><span class="ea-num">'+(done?'✓':n)+'</span><div><h3>'+title+'</h3>'+(hint?'<div class="ea-hint">'+hint+'</div>':'')+'</div></div><div class="ea-step-body">';
+  const done1=!!(st.name&&st.date),done2=st.manual?!!(st.mPlatz&&st.mVon):st.files.length>0;
+  const head=step(1,'Wettkampf',done1,'Aus dem Terminplaner wählen oder frei eingeben')+'<div class="ea-grid">'
     +'<label>Aus dem Terminplaner<select id="eaEvent"><option value="">– frei eingeben –</option>'+evs.map(x=>'<option value="'+esc(x.id)+'"'+(st.eventId===x.id?' selected':'')+'>'+esc(deDate(x.date)+' · '+x.name+' ('+KINDS[kindOf(x)]+')')+'</option>').join('')+'</select></label>'
     +'<label>Bezeichnung<input id="eaName" type="text" value="'+esc(st.name)+'" placeholder="z. B. Duo Cup · Gruppe A"></label>'
     +'<label>Datum<input id="eaDate" type="date" value="'+esc(st.date)+'"></label>'
-    +'<label>Art<select id="eaKind">'+Object.entries(KINDS).map(([k,v])=>'<option value="'+k+'"'+(st.kind2===k?' selected':'')+'>'+esc(v)+(k==='intern'?' (zählt für die Vereinsrangliste)':'')+'</option>').join('')+'</select></label></div></div>'
-    +'<div class="card"><h3 style="margin-top:0">2. '+(st.manual?'Ergebnis manuell eingeben':'Ergebnisliste einfügen')+'</h3>'+(manualAllowed()?'<div class="ea-row" style="margin-bottom:8px"><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="list"'+(st.manual?'':' checked')+'> Ergebnisliste (SKMR, PDF, Bild)</label><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="manual"'+(st.manual?' checked':'')+'> Manuell eingeben (Platz von Teilnehmer)</label></div>':'')+(st.manual?manualHtml():filesHtml())+'</div>';
+    +'<label>Art<select id="eaKind">'+Object.entries(KINDS).map(([k,v])=>'<option value="'+k+'"'+(st.kind2===k?' selected':'')+'>'+esc(v)+(k==='intern'?' (zählt für die Vereinsrangliste)':'')+'</option>').join('')+'</select></label></div></div></section>'
+    +step(2,st.manual?'Ergebnis manuell eingeben':'Ergebnisliste und Fotos',done2,st.manual?'Nur der eigene Platz – wird im Terminplaner eingetragen':'StockTV-Datei (.skmr), PDF oder Bild – mehrere möglich')+(manualAllowed()?'<div class="ea-row" style="margin-bottom:8px"><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="list"'+(st.manual?'':' checked')+'> Ergebnisliste (SKMR, PDF, Bild)</label><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="manual"'+(st.manual?' checked':'')+'> Manuell eingeben (Platz von Teilnehmer)</label></div>':'')+(st.manual?manualHtml():filesHtml())+'</div></section>';
   if(st.manual||!st.files.length){root.innerHTML=head;return;}
   const rowsHtml=st.rows.map((r,i)=>'<tr><td><input type="number" min="1" data-ea-rank="'+i+'" value="'+r.rank+'" style="width:64px"></td><td><input type="text" data-ea-team="'+i+'" value="'+esc(r.team)+'"></td>'
     +(st.internal?'<td><input type="text" data-ea-players="'+i+'" value="'+esc((r.players||[]).join(' / '))+'" placeholder="Spieler mit / trennen"></td>':'')
@@ -217,25 +219,25 @@ function render(){
   const types={group:'Gruppe / Vorrunde (Mannschaft)',final:'Abschlussturnier / Endergebnis (Mannschaft)',round:'Vorrunde Einzel',soloFinal:'Finale / Endrunde Einzel',pyramid:'Solo Pyramide Endstand',jm:'Ziel-Jahresmeisterschaft',vm:'Vereinsmeisterschaft'};
   const own=st.rows.filter(r=>OWN.test(r.team));
   root.innerHTML=head
-    +'<div class="card"><h3 style="margin-top:0">3. Erkannte Platzierungen prüfen</h3><div class="small" style="margin-bottom:6px">'+(st.rows.length?st.rows.length+' Plätze erkannt. Bitte prüfen, korrigieren oder ergänzen.':'Aus dieser Datei konnte kein Text gelesen werden (z. B. eingescanntes Bild). Bitte die Plätze unten eintragen.')+'</div>'
+    +step(3,'Platzierungen prüfen',st.rows.some(r=>clean(r.team))&&!nameIssues().some(x=>!st.nameMap?.[x.raw]),st.rows.length?st.rows.length+(st.rows.length===1?' Platz':' Plätze')+' erkannt – bitte prüfen, korrigieren oder ergänzen':'Kein Text erkannt (z. B. eingescanntes Bild) – bitte die Plätze eintragen')
     +'<div style="overflow:auto"><table class="ea-table"><thead><tr><th>Platz</th><th>Mannschaft / Name</th>'+(st.internal?'<th>Spieler (Spielerliste)</th>':'')+'<th></th><th></th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'
-    +'<div class="ea-row" style="margin-top:6px"><button type="button" data-ea-addrow>+ Zeile</button>'+(st.internal?'':'')+'</div></div>'
-    +'<div id="eaNamesBox">'+namesHtml()+'</div>'
-    +'<div class="card"><h3 style="margin-top:0">4. Wohin übernehmen?</h3>'
-    +'<label class="ea-check"><input type="checkbox" id="eaToHomepage"'+(st.toHomepage?' checked':'')+'> <b>Ergebnisse</b> (Vereinsverwaltung → Homepage) – Listen (PDF + PNG), Fotos und die gesamte Liste als Text</label>'
-    +'<div class="ea-grid" style="margin:4px 0 10px 26px"><label>Ordner<select id="eaFolder"><option value="">– bitte wählen –</option><option value="/"'+(st.folder==='/'?' selected':'')+'>Ergebnisse (Hauptebene – neuen Ordner rechts eintragen)</option>'+fl.map(f=>'<option value="'+esc(f.path.join('>'))+'"'+(st.folder===f.path.join('>')?' selected':'')+'>'+esc(f.label)+'</option>').join('')+'</select></label>'
-    +'<label>Neuer Unterordner (optional)<input id="eaSubfolder" type="text" value="'+esc(st.subfolder)+'" placeholder="z. B. '+esc(String(st.date||'').slice(0,4)||'2027')+'"></label></div>'
-    +'<label class="ea-check"><input type="checkbox" id="eaToOneDrive"'+(st.toOneDrive?' checked':'')+(odReady()?'':' disabled')+'> <b>OneDrive</b> – Listen (PDF + PNG) und Fotos in „'+esc(odRootName()+'/'+odPath())+'“ '
-    +'<span class="small">('+(st.od?.local?(st.od.folder?'OneDrive-Ordner am PC':'beim ersten Speichern den Ordner „OneDrive\\ECWegscheid“ auswählen'):(st.od?.configured?'öffnet einen eigenen Tab mit Microsoft-Anmeldung':'nur am Computer mit Chrome oder Edge'))+')</span></label>'
-    +(st.eventId?'<label class="ea-check"><input type="checkbox" id="eaToPlanner"'+(st.toPlanner?' checked':'')+'> <b>Terminplaner</b> – Ergebnis beim Termin eintragen: Platz <input id="eaOwnPlace" type="number" min="1" value="'+esc(st.ownPlace)+'" style="width:64px;display:inline-block;margin:0 4px"> von '+st.rows.length+(own.length>1?' <span class="small">(mehrere EC-Wegscheid-Mannschaften: '+esc(own.map(r=>r.rank+'. '+r.team).join(', '))+')</span>':'')+'</label>':'')
-    +(st.internal?'<label class="ea-check"><input type="checkbox" id="eaToRanking"'+(st.toRanking?' checked':'')+'> <b>Vereinsrangliste</b></label><div class="ea-grid" style="margin:4px 0 0 26px"><label>Kategorie<select id="eaCat">'+cats.map(c=>'<option'+(st.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'
-      +'<label>Wertung<select id="eaType">'+Object.entries(types).map(([k,v])=>'<option value="'+k+'"'+(st.type===k?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label><label>Saison<input id="eaSeason" type="text" value="'+esc(st.season)+'"></label></div>':'')
-    +'<details style="margin-top:10px"><summary class="small">OneDrive-Einstellungen</summary>'
+    +'<div class="ea-row" style="margin-top:6px"><button type="button" data-ea-addrow>+ Zeile</button></div>'
+    +'<div id="eaNamesBox">'+namesHtml()+'</div></div></section>'
+    +step(4,'Wohin speichern?',false,'Ziele anhaken – die Einstellungen klappen dann auf')
+    +'<div class="ea-target'+(st.toHomepage?' on':'')+'"><label class="ea-check"><input type="checkbox" id="eaToHomepage"'+(st.toHomepage?' checked':'')+'> <b>🌐 Ergebnisse / Homepage</b><span class="ea-hint">Listen als PDF + PNG, Fotos und die Liste als Text</span></label>'
+    +'<div class="ea-grid ea-target-body"><label>Ordner<select id="eaFolder"><option value="">– bitte wählen –</option><option value="/"'+(st.folder==='/'?' selected':'')+'>Ergebnisse (Hauptebene – neuen Ordner rechts eintragen)</option>'+fl.map(f=>'<option value="'+esc(f.path.join('>'))+'"'+(st.folder===f.path.join('>')?' selected':'')+'>'+esc(f.label)+'</option>').join('')+'</select></label>'
+    +'<label>Neuer Unterordner (optional)<input id="eaSubfolder" type="text" value="'+esc(st.subfolder)+'" placeholder="z. B. '+esc(String(st.date||'').slice(0,4)||'2027')+'"></label></div></div>'
+    +'<div class="ea-target'+(st.toOneDrive?' on':'')+'"><label class="ea-check"><input type="checkbox" id="eaToOneDrive"'+(st.toOneDrive?' checked':'')+(odReady()?'':' disabled')+'> <b>☁ OneDrive</b><span class="ea-hint">„'+esc(odRootName()+'/'+odPath())+'“ · '+(st.od?.local?(st.od.folder?'OneDrive-Ordner am PC':'beim ersten Speichern den Ordner „OneDrive\\ECWegscheid“ auswählen'):(st.od?.configured?'öffnet einen eigenen Tab mit Microsoft-Anmeldung':'nur am Computer mit Chrome oder Edge'))+'</span></label></div>'
+    +(st.eventId?'<div class="ea-target'+(st.toPlanner?' on':'')+'"><label class="ea-check"><input type="checkbox" id="eaToPlanner"'+(st.toPlanner?' checked':'')+'> <b>📅 Terminplaner</b><span class="ea-hint">Ergebnis beim Termin: Platz <input id="eaOwnPlace" type="number" min="1" value="'+esc(st.ownPlace)+'" style="width:64px;display:inline-block;margin:0 4px"> von '+st.rows.length+(own.length>1?' <span class="small">(mehrere EC-Wegscheid-Mannschaften: '+esc(own.map(r=>r.rank+'. '+r.team).join(', '))+')</span>':'')+'</span></label></div>':'')
+    +(st.internal?'<div class="ea-target'+(st.toRanking?' on':'')+'"><label class="ea-check"><input type="checkbox" id="eaToRanking"'+(st.toRanking?' checked':'')+'> <b>🏆 Vereinsrangliste</b><span class="ea-hint">Punkte für die Rangliste Herren / Damen</span></label><div class="ea-grid ea-target-body"><label>Kategorie<select id="eaCat">'+cats.map(c=>'<option'+(st.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'
+      +'<label>Wertung<select id="eaType">'+Object.entries(types).map(([k,v])=>'<option value="'+k+'"'+(st.type===k?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label><label>Saison<input id="eaSeason" type="text" value="'+esc(st.season)+'"></label></div></div>':'')
+    +'</div></section>'
+    +'<section class="ea-final"><button type="button" class="primary ea-big" data-ea-save'+(st.busy?' disabled':'')+'>💾 Alles speichern und veröffentlichen</button>'
+    +(st.msg?'<div class="ea-result">'+esc(st.msg)+'</div>':'')+'</section>'
+    +'<details class="ea-od"><summary class="small">OneDrive-Einstellungen</summary>'
       +(st.od?.local?'<div class="small" style="margin:6px 0">OneDrive-Ordner auf diesem PC: <b>'+esc(st.od.folder||'noch nicht gewählt')+'</b> <button type="button" data-ea-odpick>Ordner wählen</button><br>Bitte den Ordner <b>ECWegscheid</b> in deinem OneDrive auswählen (z. B. C:\\Benutzer\\…\\OneDrive\\ECWegscheid). Die OneDrive-App lädt die Dateien automatisch hoch. Auf jedem PC einmal auswählen.</div>':'<div class="small" style="margin:6px 0">Speichern in den OneDrive-Ordner geht nur am Computer mit Chrome oder Edge.</div>')
       +'<details><summary class="small">Alternativ: Microsoft-Anmeldung (nur mit eigener Microsoft-App)</summary><div class="ea-grid" style="margin-top:6px"><label>Anwendungs-ID (Client-ID) aus der Microsoft-App-Registrierung<input id="eaOdClient" type="text" value="'+esc(window.ECWOneDrive?.config?.clientId||'')+'" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label><label>Hauptordner in OneDrive<input id="eaOdFolder" type="text" value="'+esc(window.ECWOneDrive?.config?.root||'ECWegscheid')+'"></label></div><div class="small">Umleitungs-URI: <b>'+esc(window.ECWOneDrive?.redirectUri?.()||'')+'</b> · Berechtigung: Files.ReadWrite</div><div class="ea-row" style="margin-top:6px"><button type="button" data-ea-odsave>Speichern</button></div></details>'
-      +'<div class="small" style="margin-top:6px">Ablage: Interne Wettbewerbe und Turniere als Veranstalter → Turniere/…, Meisterschaften und externe Turniere → Ergebnisse/…, Auslosungen → 02.Auslosungen</div></details>'
-    +'<div class="ea-row" style="margin-top:12px"><button type="button" class="primary" data-ea-save'+(st.busy?' disabled':'')+'>Alles speichern und veröffentlichen</button></div>'
-    +(st.msg?'<div class="small" style="margin-top:8px;white-space:pre-line">'+esc(st.msg)+'</div>':'')+'</div>';
+      +'<div class="small" style="margin-top:6px">Ablage: Interne Wettbewerbe und Turniere als Veranstalter → Turniere/…, Meisterschaften und externe Turniere → Ergebnisse/…, Auslosungen → 02.Auslosungen</div></details>';
 }
 function readForm(){
   const v=id=>$(id)?.value??'';const c=id=>!!$(id)?.checked;
@@ -376,7 +378,19 @@ async function saveAll(od){
 }
 function css(){
   if($('eaCss'))return;const s=document.createElement('style');s.id='eaCss';
-  s.textContent='.ea-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 12px}.ea-grid label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:.85rem}'
+  s.textContent='#eaRoot{max-width:900px}'
+   +'.ea-step{background:rgba(10,10,10,.55);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px 14px;margin:0 0 12px}'
+   +'.ea-step.done{border-color:rgba(127,209,127,.55)}'
+   +'.ea-step-head{display:flex;gap:12px;align-items:center;margin-bottom:10px}.ea-step-head h3{margin:0;font-size:1.1rem}'
+   +'.ea-num{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:#a31c28;color:#fff}'
+   +'.ea-step.done .ea-num{background:#2e9e5a}'
+   +'.ea-hint{display:block;font-size:.8rem;opacity:.75;font-weight:400}'
+   +'.ea-target{border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 12px;margin:0 0 8px;background:rgba(255,255,255,.03)}.ea-target.on{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.07)}'
+   +'.ea-target .ea-check{margin:0!important}.ea-target .ea-check b{min-width:200px}.ea-target-body{margin:8px 0 2px 28px}.ea-target:not(.on) .ea-target-body{display:none}'
+   +'.ea-final{margin:4px 0 12px}.ea-big{width:100%;padding:14px;font-size:1.1rem;border-radius:12px}'
+   +'.ea-result{white-space:pre-line;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(46,158,90,.18);border:1px solid rgba(46,158,90,.5)}'
+   +'.ea-od{margin:0 0 20px;opacity:.85}'
+   +'.ea-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 12px}.ea-grid label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:.85rem}'
    +'.ea-file{display:inline-flex!important;align-items:center;padding:10px 14px;border:1px dashed rgba(255,255,255,.5);border-radius:8px;cursor:pointer;margin:0}.ea-file input{display:none}'
    +'.ea-table{width:100%;border-collapse:collapse}.ea-table td,.ea-table th{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}.ea-table input{margin:0!important;width:100%}'
    +'.ea-filerow{display:flex;gap:10px;align-items:center;padding:6px;border:1px solid rgba(255,255,255,.15);border-radius:8px;margin-top:6px}.ea-filerow img,.ea-fileicon{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:4px;flex:none}.ea-fileicon{display:flex;align-items:center;justify-content:center;color:#333;font-weight:700;font-size:12px}.ea-filerow button{flex:none;width:auto}'
@@ -401,7 +415,7 @@ function onChange(e){
   // nur die Namensprüfung neu aufbauen – die Tabelle bleibt (Eingabefokus geht nicht verloren)
   if(t.dataset&&('eaPlayers' in t.dataset||'eaTeam' in t.dataset)){const box=$('eaNamesBox');if(box)box.innerHTML=namesHtml();return;}
   if(t.dataset&&'eaNamefix' in t.dataset){st.nameMap=st.nameMap||{};st.nameMap[t.dataset.eaNamefix]=t.value;const box=$('eaNamesBox');if(box)box.innerHTML=namesHtml();return;}
-  if(t.id==='eaFolder'||t.id==='eaSubfolder'||t.id==='eaToOneDrive'||t.id==='eaToRanking'){readForm();render();return;}
+  if(['eaFolder','eaSubfolder','eaToOneDrive','eaToRanking','eaToHomepage','eaToPlanner'].includes(t.id)){readForm();render();return;}
   if(['eaKind','eaName','eaDate','eaCat'].includes(t.id)){readForm();if(t.id!=='eaCat'){st.category='';}else st.type=guessType(st.category,st.name);if(t.id==='eaName'||t.id==='eaDate'){st.season=seasonOf(st.date);}applyGuesses();render();return;}
   readForm();
 }
