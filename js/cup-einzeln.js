@@ -82,6 +82,11 @@
         close();};w.__ecwDirect=true;window[n]=w;}});
     };
     hook();document.addEventListener('DOMContentLoaded',hook);
+    // Beim Öffnen nicht gleich die Tabelle, sondern die Auswahl „Ergebnis eingeben / Tabelle“ je Gruppe zeigen
+    let firstTable=true;
+    const hookTable=()=>{const f=window.openGroupTable;if(typeof f!=='function'||f.__ecwDirect)return;
+      const w=function(...a){const ev=window.event;if(firstTable&&!(ev&&ev.isTrusted)){firstTable=false;document.documentElement.classList.remove('ecw-opening-target','ecw-opening-cup');return;}firstTable=false;return f.apply(this,a);};w.__ecwDirect=true;window.openGroupTable=w;};
+    hookTable();document.addEventListener('DOMContentLoaded',hookTable);
     // Gruppenübersicht → Zurück verlässt ebenfalls den Cup
     const css=document.createElement('style');css.textContent='#ecwDirectAdminBtn{position:fixed;left:14px;bottom:14px;z-index:9999;padding:10px 16px;border-radius:10px;border:1px solid #e04a55;background:#a31c28;color:#fff;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)}';document.head.appendChild(css);
     const btn=document.createElement('button');btn.id='ecwDirectAdminBtn';btn.type='button';btn.hidden=true;btn.textContent='✍️ Ergebnisse eingeben';
