@@ -5,7 +5,7 @@ window.ecwLocalUrl=function(value){try{const u=new URL(value,location.href);if(u
 })();
 
 /* Gemeinsamer Versionsstand der aktiven Vereinsverwaltung. version.json führt denselben Stand für den Update-Check. */
-window.ECW_APP_VERSION = '3.1.131.271127';
+window.ECW_APP_VERSION = '3.1.132.271127';
 (function () {
   const page = location.pathname.split('/').pop();
   if (/^START_VEREINSVERWALTUNG_|^ecw-versammlungen-v295[56]\.html$/.test(page)) return;

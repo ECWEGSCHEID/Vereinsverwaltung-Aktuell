@@ -2316,9 +2316,9 @@ span.tp-result-open{cursor:default}
 .n-line select{width:auto;min-width:160px}.n-line input[type=number]{width:90px}.n-line input[type=date]{width:170px}
 
 /* Eigene Turniere: Live-Startlisten als Sechseck-Buttons unter den Einladungen (V3.1.130) */
-#tContent .own-live-hex-row{flex:none;width:100%;box-sizing:border-box;padding:0 clamp(150px,13vw,230px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;background:none!important;border:0!important;box-shadow:none!important}
+#tContent .own-live-hex-row{flex:none;width:100%;box-sizing:border-box;padding:0 clamp(150px,13vw,230px);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:clamp(10px,1.5vw,24px);background:none!important;border:0!important;box-shadow:none!important}
 #tContent .own-live-hex-title{color:#fff;font:800 clamp(16px,1.6vw,26px)/1.1 Arial,sans-serif;text-shadow:0 2px 4px #3d0000;letter-spacing:.03em}
-#tContent .own-live-hex-buttons{display:flex;flex-wrap:nowrap;justify-content:center;align-items:flex-end;gap:3px;width:100%;flex:1 1 auto;min-height:0;overflow:visible}
+#tContent .own-live-hex-buttons{display:flex;flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:3px;width:auto;flex:0 1 auto;min-width:0;height:100%;overflow:visible}
 #tContent .own-live-hex-buttons .own-live-turnier-btn{--w:var(--live-hex,150px);box-sizing:border-box!important;max-width:none!important;min-width:0!important;flex:none!important;width:var(--w)!important;height:calc(var(--w)*1.135)!important;min-height:0!important;padding:0 calc(var(--w)*.1)!important;border:0!important;border-radius:0!important;box-shadow:none!important;
  display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:.25em;text-align:center;color:#fff!important;font:600 calc(var(--w)*.1)/1.12 Arial,sans-serif!important;text-shadow:0 1px 3px #3d0000;
  background:transparent url("../bilder/whiteboard-wabe.svg?v=3.1.48.201126") center/100% 100% no-repeat!important;filter:drop-shadow(0 5px 10px rgba(0,0,0,.45));cursor:pointer}
