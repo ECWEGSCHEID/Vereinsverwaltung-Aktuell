@@ -2304,3 +2304,13 @@ span.tp-result-open{cursor:default}
 .tp-subnav .tp-save-top{margin-left:auto;font-size:.9em;padding:6px 14px!important;min-height:0}
 .tp-subnav .tp-save-top+#tpSubBtn-cal{margin-left:0}
 #tpContestRow label{display:flex;flex-direction:column;gap:3px;margin:8px 0 0}
+
+/* Vereinsnachrichten: platzsparend */
+.n-admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.n-admin-head h2{margin:0}.n-admin-head button{width:auto;padding:8px 16px}
+.n-admin{max-width:820px}
+.n-admin label{display:flex;flex-direction:column;gap:3px;margin:6px 0}
+.n-admin textarea{max-width:680px;min-height:90px}
+.n-line{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:flex-end}
+.n-line .n-grow{flex:1 1 280px;max-width:520px}
+.n-line .n-check{flex-direction:row!important;align-items:center;gap:6px!important;white-space:nowrap}.n-line .n-check input{width:auto}
+.n-line select{width:auto;min-width:160px}.n-line input[type=number]{width:90px}.n-line input[type=date]{width:170px}
