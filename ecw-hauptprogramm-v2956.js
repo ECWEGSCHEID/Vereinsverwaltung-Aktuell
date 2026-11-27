@@ -1394,6 +1394,8 @@ const SH_DEF={title:'Informationssystem',cols:3,bg:null,links:SH_DEFAULT_LINKS,b
 {t:'Sponsoren',u:SH_B+'#fotos-sponsoren'},{t:'Links',u:SH_B+'#links'},
 {t:'Ergebnisse\nTurniere Intern',u:'',sub:[
  {t:'Cupauswertung',u:new URL("turnierauswertung.html?v=2.5.2&seite=cup",window.ECW_SITE_BASE||location.href).href},
+ {t:'Duo Cup',u:SH_B+'turnierauswertung.html?seite=cup&cup=duo'},
+ {t:'Frauencup',u:SH_B+'turnierauswertung.html?seite=cup&cup=frauen'},
  {t:'Jahresmeisterschaft Ziel',u:new URL("turnierauswertung.html?v=2.5.2&seite=jahresmeisterschaft",window.ECW_SITE_BASE||location.href).href},
  {t:'Turnierauslosung',u:new URL("turnierauswertung.html?v=2.5.2&seite=auslosung",window.ECW_SITE_BASE||location.href).href},
  {t:'Stockdartauswertung',u:new URL("turnierauswertung.html?v=2.5.2&seite=stockdart",window.ECW_SITE_BASE||location.href).href},
@@ -1425,7 +1427,8 @@ function shEnsureSoloPyramide(d){
        || (/^(127\.0\.0\.1|localhost)$/i.test(u.hostname) && /\/turnierauswertung\.html$/i.test(u.pathname));
 
      if((legacy||local) && ['cup','doppelko','jahresmeisterschaft','auslosung','stockdart'].includes(mode)){
-       return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode);
+       const cup=mode==='cup'?(u.searchParams.get('cup')||'').toLowerCase():'';
+       return SH_B+'turnierauswertung.html?v=2.5.2&seite='+encodeURIComponent(mode)+(['duo','frauen'].includes(cup)?'&cup='+cup:'');
      }
    }catch(e){}
    return value;
@@ -1451,6 +1454,18 @@ function shEnsureSoloPyramide(d){
  else target.sub.push({t:'Solo Pyramide Herren',u:SOLO_PYRAMIDE_PAGE});
  if(!target.sub.some(isWomenPyr)){const at=target.sub.indexOf(menPyr||target.sub.find(x=>norm(x?.t)==='solo pyramide herren'));target.sub.splice(at>=0?at+1:target.sub.length,0,{t:'Solo Pyramide Damen',u:SOLO_PYRAMIDE_PAGE+'&pyramide=frauen'});}
  if(!target.sub.some(x=>norm(x?.t)==='doppel ko system'||/seite=doppelko/i.test(String(x?.u||''))))target.sub.push({t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'});
+ // V3.1.121: fehlende Standard-Bereiche wieder ergänzen (z. B. Stockdartauswertung war aus der gespeicherten Startseite verschwunden)
+ [['jahresmeisterschaft','Jahresmeisterschaft Ziel',/jahresmeister/],['auslosung','Turnierauslosung',/auslosung/],['stockdart','Stockdartauswertung',/stockdart/]].forEach(([mode,t,re])=>{
+  if(target.sub.some(x=>new RegExp('[?&#]seite='+mode+'\\b|#'+mode+'\\b','i').test(String(x?.u||''))||re.test(norm(x?.t))))return;
+  const item={t,u:SH_B+'turnierauswertung.html?v=2.5.2&seite='+mode};if(target.sub.some(x=>Number.isInteger(x.cell))){let c=0;const u=new Set(target.sub.map(x=>x.cell));while(u.has(c))c++;item.cell=c;}
+  target.sub.push(item);});
+ // V3.1.121: Duo Cup und Frauencup als eigene Buttons (öffnen direkt die Tabelle des aktuellen Cups)
+ const cupAt=target.sub.findIndex(x=>/seite=cup/i.test(String(x?.u||''))&&!/[?&]cup=/i.test(String(x?.u||'')));
+ const used=new Set(target.sub.map(x=>x.cell).filter(Number.isInteger));const freeCell=()=>{let c=0;while(used.has(c))c++;used.add(c);return c;};
+ const hasCells=target.sub.some(x=>Number.isInteger(x.cell));
+ [['frauen','Frauencup'],['duo','Duo Cup']].forEach(([k,t])=>{if(target.sub.some(x=>new RegExp('[?&]cup='+k,'i').test(String(x?.u||''))))return;
+  const item={t,u:SH_B+'turnierauswertung.html?seite=cup&cup='+k};if(hasCells)item.cell=freeCell();
+  target.sub.splice(cupAt>=0?cupAt+1:target.sub.length,0,item);});
  return d;
 }
 function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
@@ -1464,6 +1479,8 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>{const y={t:x.t,u:typeof x.u==='string'?x.u:''};if(Number.isInteger(x.cell)&&x.cell>=0&&x.cell<200)y.cell=x.cell;return y;});if(sb.length)o.sub=sb}
   return o});
  if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
+ if(Number.isInteger(+j.rows)&&+j.rows>=2&&+j.rows<=8)d.rows=+j.rows;
+ if(Number.isFinite(+j.tileScale)&&+j.tileScale>=.5&&+j.tileScale<=1.2)d.tileScale=+j.tileScale;
  if(j.docMenuInitialized===true)d.docMenuInitialized=true;
  if(!d.docMenuInitialized){
    if(!d.buttons.some(b=>String(b.u||'').includes('#druckdokumente')||b.sub?.some(x=>String(x.u||'').includes('#druckdokumente'))))
@@ -1741,6 +1758,14 @@ function shWhiteboardPosition(index, slot){
 // V3.1.120: feste Plätze für die Startseiten-Kacheln (5 pro Reihe, versetzt wie Bienenwaben).
 // cell = Reihe*5 + Platz. Freie Plätze bleiben auf der Startseite frei.
 const SH_CELLS_PER_ROW=5,SH_CELL_ROWS=4;
+// Anzahl der Reihen (mindestens so viele, wie belegt sind) und Kachelgröße (Anteil der größtmöglichen Größe)
+function shUsedRows(){return Math.max(1,...SH.buttons.map(b=>Number.isInteger(b.cell)?Math.floor(b.cell/SH_CELLS_PER_ROW)+1:1));}
+function shRows(){return Math.max(+SH.rows||SH_CELL_ROWS,shUsedRows());}
+function shTileScale(){const v=+SH.tileScale;return v>=.5&&v<=1.2?v:1;}
+function shApplyGridSize(g,on){
+ if(!on){g.style.removeProperty('--sh-rows-factor');g.style.removeProperty('--sh-rows-factor2');g.style.removeProperty('--sh-tile-scale');return;}
+ g.style.setProperty('--sh-rows-factor',(0.8399*shRows()+0.655).toFixed(4));g.style.setProperty('--sh-rows-factor2',(0.8399*shRows()+0.2953).toFixed(4));g.style.setProperty('--sh-tile-scale',shTileScale());
+}
 function shCellPos(c){const r=Math.floor(c/SH_CELLS_PER_ROW),k=c%SH_CELLS_PER_ROW;return [r+1,(r%2?1:2)+2*k];}
 function shLegacyCells(){
  // bisherige Anordnung (Reihenfolge + feste Plätze) in Platznummern umrechnen
@@ -1797,7 +1822,7 @@ function shRender(){
  items.forEach((b,i)=>{
   try{
    const tile=shMakeBtn(b,grp?-1:i);
-   if(internalResults && (ecwInternalResultMode(b.u)==='cup' || /^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))) {
+   if(internalResults && ((ecwInternalResultMode(b.u)==='cup'&&!/[?&]cup=/i.test(String(b.u))) || /^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))) {
     tile.textContent='Cup\nErgebnisse';
    }else if(documentMenu || internalResults){
     tile.textContent=window.ecwTileLabel?.(b.t,documentMenu?'documents':'results')??b.t;
@@ -1831,6 +1856,7 @@ function shRender(){
    tile.style.setProperty('--sh-tile-column',column);
   });
  }else if(whiteboardLayout){
+  shApplyGridSize(g,!grp);
   if(!grp){shEnsureCells();items.forEach((button,i)=>{const [row,column]=shCellPos(button.cell);els[i].style.setProperty('--sh-tile-row',row);els[i].style.setProperty('--sh-tile-column',column);});}
   else{
   let regularIndex=0;
@@ -1849,15 +1875,16 @@ function shRender(){
  }
  g.replaceChildren(...els);shScreenFill();shIcFill();shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
 // ---------- Interne Cups: aktiv / nicht aktiv ----------
-const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
+const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['cupDuo','Duo Cup'],['cupFrauen','Frauencup'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
 const ECW_PYR_STATUS={soloHerren:'soloPyramide',soloDamen:'soloPyramideFrauen'};
 let ecwPyrActive=null,ecwPyrLoading=null;
 function ecwInternKey(item){
  const u=String(item?.u||'');let mode='';try{mode=ecwInternalResultMode(u)}catch(e){}
  if(mode==='soloPyramide')return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
+ if(mode==='cup'){const c=(u.match(/[?&]cup=(duo|frauen)/i)||[])[1];if(c)return c.toLowerCase()==='duo'?'cupDuo':'cupFrauen';}
  if(mode)return mode;
  // Adresse von einem anderen Rechner (z. B. 127.0.0.1) oder ohne erkannte Seite: über „seite=“ bzw. die Bezeichnung zuordnen
- const m=u.match(/turnierauswertung\.html[^#]*[?&]seite=(cup|doppelko|jahresmeisterschaft|auslosung|stockdart)/i);if(m)return m[1].toLowerCase();
+ const m=u.match(/turnierauswertung\.html[^#]*[?&]seite=(cup|doppelko|jahresmeisterschaft|auslosung|stockdart)/i);if(m){const c=m[1].toLowerCase()==='cup'&&(u.match(/[?&]cup=(duo|frauen)/i)||[])[1];if(c)return c.toLowerCase()==='duo'?'cupDuo':'cupFrauen';return m[1].toLowerCase();}
  if(/solo-pyramide/i.test(u))return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
  const t=String(item?.t||'').toLowerCase().replace(/\s+/g,' ');
  if(/doppel\s*ko/.test(t))return 'doppelko';if(/stockdart/.test(t))return 'stockdart';if(/auslosung/.test(t))return 'auslosung';
@@ -1991,7 +2018,12 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
 // Kacheln lassen sich nur auf FREIE Plätze ziehen.
 const SH_SCREEN_W=1920,SH_SCREEN_H=1080;
 function shScreenHtml(){
- return '<div class="sh-screen-wrap" id="shScreenWrap"><iframe id="shScreen" title="Vorschau Startbildschirm" tabindex="-1"></iframe></div>'
+ const sc=Math.round(shTileScale()*100);
+ return '<div class="row sh-size-bar" style="align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">'
+  +'<span><b>Reihen:</b> <button type="button" onclick="shSetRows(-1)" title="Reihe entfernen">−</button> <b id="shRowsVal">'+shRows()+'</b> <button type="button" onclick="shSetRows(1)" title="Reihe mit 5 freien Plätzen hinzufügen">+</button> <span class="small">('+(shRows()*SH_CELLS_PER_ROW-SH.buttons.length)+' frei)</span></span>'
+  +'<label style="display:flex;align-items:center;gap:8px;margin:0"><b>Kachelgröße:</b><input type="range" min="50" max="120" step="5" value="'+sc+'" style="width:180px" oninput="shSetTileScale(this.value)"><b id="shScaleVal">'+sc+' %</b></label>'
+  +'<button type="button" onclick="shSetTileScale(100)">Standard</button></div>'
+  +'<div class="sh-screen-wrap" id="shScreenWrap"><iframe id="shScreen" title="Vorschau Startbildschirm" tabindex="-1"></iframe></div>'
   +'<p class="small" style="margin:6px 0 0">Eine Kachel auf einen <b>freien Platz</b> ziehen. Zum Tauschen zweier Kacheln zuerst eine davon auf einen freien Platz ziehen. Danach „Startseite speichern“.</p>';
 }
 function shScreenInit(){shFrameInit('shScreen','shScreenWrap',shScreenFill);}
@@ -2035,9 +2067,9 @@ function shScreenFill(){
  const st=doc.getElementById('startseite');st.classList.remove('sh-submenu');
  const art=doc.getElementById('shArt');if(art)art.style.backgroundImage='url("'+(SH.bg||SH_BG)+'")';
  ['shTitle','shTitle2'].forEach(id=>{const h=doc.getElementById(id);if(h){h.textContent=SH.title;h.classList.remove('ecw-long-sh-title');}});
- g.className='sh-whiteboard-hex';
+ g.className='sh-whiteboard-hex';shApplyGridSize(g,true);
  const used=new Set(SH.buttons.map(b=>b.cell));
- const maxCell=Math.max(SH_CELLS_PER_ROW*SH_CELL_ROWS-1,...SH.buttons.map(b=>b.cell));
+ const maxCell=Math.max(SH_CELLS_PER_ROW*shRows()-1,...SH.buttons.map(b=>b.cell));
  const tiles=[];
  SH.buttons.forEach((b,i)=>{let t;try{t=shMakeBtn(b,i)}catch(e){t=document.createElement('a');t.className='shbtn';t.textContent=b.t}
   const x=doc.createElement('a');x.className=t.className;x.textContent=t.textContent;x.draggable=true;x.dataset.shI=i;x.title=String(b.t).replace(/\n/g,' ');
@@ -2062,7 +2094,7 @@ function shIcFill(){
  g.style.setProperty('--centered-submenu-rows',rows);
  const tiles=[];
  grp.sub.forEach((b,i)=>{const x=doc.createElement('a');x.className='shbtn'+(ecwInternActive(b)?'':' sh-inactive');
-  let text=b.t;try{text=(ecwInternalResultMode(b.u)==='cup'||/^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))?'Cup\nErgebnisse':(window.ecwTileLabel?.(b.t,'results')??b.t)}catch(e){}
+  let text=b.t;try{text=((ecwInternalResultMode(b.u)==='cup'&&!/[?&]cup=/i.test(String(b.u)))||/^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))?'Cup\nErgebnisse':(window.ecwTileLabel?.(b.t,'results')??b.t)}catch(e){}
   x.textContent=text;x.draggable=true;x.dataset.shI=i;x.title=String(b.t).replace(/\n/g,' ')+(ecwInternActive(b)?'':' – nicht aktiv');
   const [r,c]=shSubCellPos(b.cell);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',c);tiles.push(x);});
  for(let c=0;c<rows*SH_SUB_PER_ROW;c++){if(used.has(c))continue;const x=doc.createElement('div');x.className='shbtn sh-free';x.dataset.cell=c;x.textContent='frei';
@@ -2070,6 +2102,13 @@ function shIcFill(){
  g.replaceChildren(...tiles);
  shBindFrameDrag(g,()=>shInternalGroup()?.sub);
 }
+function shSetRows(d){if(!hasAppPermission('sh'))return;const n=shRows()+d;
+ if(n<shUsedRows()){showToast('Die letzte Reihe ist belegt – zuerst die Kacheln daraus verschieben.',6000);return;}
+ if(n<2||n>8)return;SH.rows=n;shSave();shRender();
+ const v=document.getElementById('shRowsVal');if(v){v.textContent=n;const f=v.parentElement.querySelector('.small');if(f)f.textContent='('+(n*SH_CELLS_PER_ROW-SH.buttons.length)+' frei)';}}
+function shSetTileScale(v){if(!hasAppPermission('sh'))return;SH.tileScale=Math.max(.5,Math.min(1.2,(+v||100)/100));shSave();shRender();
+ const e=document.getElementById('shScaleVal');if(e)e.textContent=Math.round(SH.tileScale*100)+' %';
+ const r=document.querySelector('.sh-size-bar input[type=range]');if(r&&+r.value!==Math.round(SH.tileScale*100))r.value=Math.round(SH.tileScale*100);}
 function shRefreshButtonsList(){const d=document.querySelector('#shdButtons .sh-det-body');if(d)d.innerHTML=SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>';}
 var shAdminOpen=new WeakSet();
 function shAdminRow(b,i){
@@ -2706,6 +2745,28 @@ function internalCupUrl(mode='home',extra=''){
 function setInternalCupAdminReturnButton(){
  setExternalReturnButton();
 }
+// V3.1.121: jeder Cup ein eigener Button (Admin-Menü nur für diesen Cup), „Neuen Cup hinzufügen“ extra
+function openCupSingle(id,name){
+ if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
+ window.__adminBack='menu';window.__adminPreviewMode=false;
+ const u=new URL(internalCupUrl('cup','bearbeiten'));if(id)u.searchParams.set('turnier',id);else u.searchParams.set('neu','1');
+ openExternalPage(u.href,id?(name||'Cup'):'Neuen Cup hinzufügen');
+ setInternalCupAdminReturnButton();
+}
+async function renderCupButtons(){
+ const box=document.getElementById('icCupButtons');if(!box)return;
+ let t={};
+ try{
+  if(firestoreDb){const snap=await firestoreDb.collection('turnierauswertung').doc('cup').get();t=snap.data()?.tournaments||{};}
+  else if(window.ecwLoadCupTournaments)t=await window.ecwLoadCupTournaments();
+ }catch(e){console.warn('Cups:',e);try{if(window.ecwLoadCupTournaments)t=await window.ecwLoadCupTournaments()}catch(x){}}
+ if(!box.isConnected)return;
+ const list=Object.entries(t||{}).filter(([,x])=>x&&x.name).sort((a,b)=>String(b[0]).localeCompare(String(a[0]),'de',{numeric:true}));
+ box.innerHTML=list.map(([id,x])=>'<button type="button" class="ic-cup-btn" data-cup="'+esc(id)+'">🏆 '+esc(x.name)+'</button>').join('')
+  +(list.length?'':'<div class="small">Noch kein Cup angelegt.</div>');
+ box.querySelectorAll('[data-cup]').forEach(b=>b.onclick=()=>openCupSingle(b.dataset.cup,b.textContent.replace(/^🏆\s*/,'')));
+}
+window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='ecw-cup-created')setTimeout(renderCupButtons,800);});
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
  window.__adminBack='menu';
@@ -2720,8 +2781,9 @@ function renderInternalCupAdmin(){
  a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">'
   +'<div><h2 style="margin:0">Interne Cups</h2><div class="small">Cupauswertung, Doppel KO System, Solo Pyramide und weitere Auswertungen zentral in der Vereinsverwaltung · keine zweite Anmeldung erforderlich.</div></div>'
   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
-  +'<div class="card"><h3>Bereich auswählen</h3><div class="ovmenu">'
-  +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung bearbeiten</button>'
+  +'<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">Cups</h3><button type="button" class="primary" onclick="openCupSingle()">➕ Neuen Cup hinzufügen</button></div>'
+  +'<p class="small" style="margin:4px 0 8px">Jeder Cup hat seinen eigenen Bereich: Ergebnisse, Historie, Druck und Verwaltung nur für diesen Cup.</p><div class="ovmenu" id="icCupButtons"><div class="small">Cups werden geladen …</div></div></div>'
+  +'<div class="card" style="margin-top:14px"><h3>Weitere Bereiche</h3><div class="ovmenu">'
   +'<button type="button" onclick="openInternalCupAdmin(\'doppelko\')">Doppel KO System</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'stockdart\')">Stockdartauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
@@ -2736,7 +2798,7 @@ function renderInternalCupAdmin(){
   +shDetails('icdLayout','Buttonanordnung','<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><p class="small" style="margin:0">Kacheln auf einen <b>freien Platz</b> ziehen (zum Tauschen zuerst eine auf einen freien Platz). Graue Kacheln sind nicht aktiv und werden auf der Startseite nicht angezeigt.</p><button class="primary" onclick="shSaveToFirebase()">💾 Anordnung speichern</button></div>'
    +'<div class="sh-screen-wrap" id="icScreenWrap" style="margin-top:8px"><iframe id="icScreen" title="Vorschau Interne Cups" tabindex="-1"></iframe></div>','Ansicht wie auf der Startseite – Kacheln verschieben')
   ;
- renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);
+ renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);renderCupButtons();
 }
 
 function ovOpen(k){
@@ -6076,23 +6138,58 @@ function tpHomepagePublish(item){
   } : {key,remove:true});
 }
 function tpAdminFormHtml(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
-  return '<div class="card"><input id="tpEditId" type="hidden">'
-    +'<div class="row" style="justify-content:flex-end;margin-bottom:6px"><button class="primary" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Veranstaltung speichern</button></div>'
-    +'<label>Veranstaltungsname</label><input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">'
-    +'<div class="row"><div style="flex:1"><label>Datum (Pflichtfeld)</label><input id="tpDate" type="date"></div><div style="flex:1"><label>Uhrzeit (optional)</label><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></div></div>'
-    +'<div class="row"><div style="flex:1"><label>Veranstaltungsart (Pflichtfeld)</label><select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></div><div style="flex:none;display:flex;align-items:flex-end"><button type="button" onclick="tpAddNewType()">+ Neue Art</button></div></div>'
-    +'<div id="tpContestRow" hidden><label>Wettkampfklasse (Pflichtfeld)</label><select id="tpContestClass" onchange="tpRefreshContestForm()"><option value="">– auswählen –</option></select></div>'
-    +'<div id="tpTwOption" style="display:none;margin:12px 0;padding:10px;border:1px solid #a94455;border-radius:8px"><label><input type="checkbox" id="tpAddToTw"> Zur Turnierwirtschaftlichkeit hinzufügen</label><small>Nur bei „Turnier als Ausrichter“. Vorhandene Finanzdaten bleiben erhalten.</small></div>'
-    +'<label>Gemeldet von</label><select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select>'
-    +'<div class="tp-players" style="margin-top:6px">'+[0,1,2,3].map(i=>'<div><label>Spieler '+(i+1)+'</label><select id="tpPlayer'+i+'" onchange="tpRefreshContestForm()" disabled>'+tpPlayerOptionsHtml('')+'</select></div>').join('')+'</div>'
-    +'<label>Veranstaltungsort</label><input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>'
-    +tpHomepageFormHtml()
-    +'<div class="row" style="margin-top:14px"><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
-    +'<div class="row" style="margin-top:10px"><button class="primary" style="width:100%" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">Veranstaltung speichern</button></div>'
-    +'<div class="small" style="margin-top:8px">Neue Veranstaltungen werden beim Speichern automatisch mit Google Kalender synchronisiert (bei bestehender Google-Verbindung). Bereits vorhandene Termine werden vor dem Erstellen geprüft.</div>'
+  // V3.1.121: geführte Eingabe – Schritt für Schritt mit „Weiter“, Pflichtfelder werden geprüft
+  const step=(n,title,body,opt)=>'<section class="tp-step" data-tp-step="'+n+'"><div class="tp-step-head" onclick="tpWizGo('+n+')"><span class="tp-step-num">'+n+'</span><b>'+title+'</b>'+(opt?'<span class="small"> · optional</span>':'')+'<span class="tp-step-sum" id="tpSum'+n+'"></span></div><div class="tp-step-body">'+body
+    +'<div class="tp-step-nav">'+(n>1?'<button type="button" onclick="tpWizGo('+(n-1)+')">‹ Zurück</button>':'')+(n<6?(opt?'<button type="button" onclick="tpWizGo('+(n+1)+',true)">Überspringen</button>':'')+'<button type="button" class="primary" onclick="tpWizNext('+n+')">Weiter ›</button>':'')+'</div></div></section>';
+  return '<div class="card tp-wizard"><input id="tpEditId" type="hidden">'
+    +step(1,'Veranstaltungsname','<input id="tpName" type="text" placeholder="z. B. Turnier Hochwinkl" oninput="tpAutoDetectType()">')
+    +step(2,'Datum und Uhrzeit','<div class="tp-inline"><label>Datum<input id="tpDate" type="date"></label><label>Uhrzeit <span class="small">(optional)</span><select id="tpTime">'+tpTimeOptionsHtml('')+'</select></label></div>')
+    +step(3,'Veranstaltungsart','<div class="tp-inline"><label>Art<select id="tpType" onchange="this.dataset.manual=\'1\';tpUpdateFormPlayerState();tpUpdateTwOption()">'+tpTypeOptionsHtml('')+'</select></label><button type="button" onclick="tpAddNewType()" style="align-self:flex-end">+ Neue Art</button></div>'
+      +'<div id="tpContestRow" hidden><label>Wettkampfklasse<select id="tpContestClass" onchange="tpRefreshContestForm()"><option value="">– auswählen –</option></select></label></div>'
+      +'<div id="tpTwOption" style="display:none;margin:8px 0;padding:8px;border:1px solid #a94455;border-radius:8px"><label><input type="checkbox" id="tpAddToTw"> Zur Turnierwirtschaftlichkeit hinzufügen</label><small>Nur bei „Turnier als Ausrichter“. Vorhandene Finanzdaten bleiben erhalten.</small></div>')
+    +step(4,'Veranstaltungsort','<input id="tpLocation" type="text" list="tpLocationList" placeholder="z. B. Waldkirchen Eishalle"><datalist id="tpLocationList">'+tpLocationOptionsHtml()+'</datalist>')
+    +step(5,'Gemeldet von und Mitspieler','<div class="tp-inline"><label>Gemeldet von<select id="tpReportedBy" disabled>'+tpPlayerOptionsHtml('')+'</select></label></div>'
+      +'<div class="tp-players tp-players-grid">'+[0,1,2,3].map(i=>'<label>Spieler '+(i+1)+'<select id="tpPlayer'+i+'" onchange="tpRefreshContestForm()" disabled>'+tpPlayerOptionsHtml('')+'</select></label>').join('')+'</div>'
+      +'<div class="small">Kann auch später eingetragen werden.</div>',true)
+    +step(6,'Homepage und Speichern',tpHomepageFormHtml()
+      +'<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Veranstaltung speichern</button><button id="tpCancelBtn" style="display:none" onclick="tpCancelEdit()">Bearbeitung abbrechen</button></div>'
+      +'<div class="small" style="margin-top:8px">Neue Veranstaltungen werden beim Speichern automatisch mit Google Kalender synchronisiert (bei bestehender Google-Verbindung). Bereits vorhandene Termine werden vor dem Erstellen geprüft.</div>')
     +'<div id="firebaseTpInfo" class="small" style="margin-top:10px"></div>'
     +'</div>';
 }
+// Pflichtfelder je Schritt prüfen
+function tpWizCheck(n){
+  const v=id=>String(document.getElementById(id)?.value||'').trim();
+  if(n===1&&!v('tpName'))return ['tpName','Bitte den Veranstaltungsnamen eingeben.'];
+  if(n===2&&!v('tpDate'))return ['tpDate','Bitte das Datum eingeben.'];
+  if(n===3){if(!v('tpType'))return ['tpType','Bitte die Veranstaltungsart wählen.'];
+    const cls=typeof tpContestClasses==='function'?tpContestClasses(v('tpType')):[];if(cls.length&&!cls.includes(v('tpContestClass')))return ['tpContestClass','Bitte die Wettkampfklasse wählen.'];}
+  if(n===4&&!v('tpLocation'))return ['tpLocation','Bitte den Veranstaltungsort eingeben.'];
+  return null;
+}
+function tpWizSummary(){
+  const v=id=>String(document.getElementById(id)?.value||'').trim();
+  const set=(n,t)=>{const e=document.getElementById('tpSum'+n);if(e)e.textContent=t?' – '+t:'';};
+  set(1,v('tpName'));set(2,v('tpDate')?v('tpDate').split('-').reverse().join('.')+(v('tpTime')?' · '+v('tpTime')+' Uhr':''):'');
+  set(3,v('tpType')+(v('tpContestClass')?' · '+v('tpContestClass'):''));set(4,v('tpLocation'));
+  const pl=[0,1,2,3].map(i=>v('tpPlayer'+i)).filter(Boolean);set(5,(v('tpReportedBy')?'gemeldet von '+v('tpReportedBy'):'')+(pl.length?(v('tpReportedBy')?' · ':'')+pl.join(', '):''));
+}
+function tpWizGo(n,skip){
+  const box=document.querySelector('.tp-wizard');if(!box)return;
+  if(box.classList.contains('tp-wiz-all')){const sec=box.querySelector('[data-tp-step="'+n+'"]');sec?.querySelector('input,select')?.focus();return;}
+  // nach vorne nur, wenn alle vorherigen Pflichtfelder passen
+  for(let k=1;k<n;k++){const err=tpWizCheck(k);if(err){n=k;showToast(err[1],4000);break;}}
+  box.dataset.step=n;
+  box.querySelectorAll('.tp-step').forEach(sec=>{const k=+sec.dataset.tpStep;sec.classList.toggle('open',k===n);sec.classList.toggle('done',k<n);sec.classList.toggle('todo',k>n);});
+  tpWizSummary();
+  const f=box.querySelector('[data-tp-step="'+n+'"] .tp-step-body').querySelector('input:not([type=hidden]):not([type=checkbox]):not([disabled]),select:not([disabled])');
+  if(f)setTimeout(()=>f.focus(),30);
+}
+function tpWizNext(n){const err=tpWizCheck(n);if(err){showToast(err[1],4000);document.getElementById(err[0])?.focus();return;}tpWizGo(n+1);}
+// Bearbeiten: alle Felder auf einmal zeigen; neue Eingabe: wieder bei Schritt 1
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.shiftKey)return;const sec=e.target?.closest?.('.tp-wizard:not(.tp-wiz-all) .tp-step.open');if(!sec||e.target.tagName==='TEXTAREA'||e.target.tagName==='BUTTON')return;const n=+sec.dataset.tpStep;if(n<6){e.preventDefault();tpWizNext(n);}});
+function tpWizAll(on){const box=document.querySelector('.tp-wizard');if(!box)return;box.classList.toggle('tp-wiz-all',!!on);
+  if(on){box.querySelectorAll('.tp-step').forEach(sec=>{sec.classList.add('open');sec.classList.remove('done','todo')});tpWizSummary();}else tpWizGo(1);}
 function tpUpdateTwOption(){const option=document.getElementById('tpTwOption'),sel=document.getElementById('tpType');if(!option)return;const allowed=tpCanonicalType(sel?.value||'')==='Turnier als Ausrichter';option.style.display=allowed?'block':'none';if(!allowed&&document.getElementById('tpAddToTw'))document.getElementById('tpAddToTw').checked=false;}
 function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   const nameEl=document.getElementById('tpName');if(!nameEl)return;
@@ -6104,6 +6201,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
   const missing=[];
   if(!(dateEl&&dateEl.value))missing.push('Datum');
   if(!(typeEl&&String(typeEl.value||'').trim()))missing.push('Veranstaltungsart');
+  if(!String(document.getElementById('tpLocation')?.value||'').trim())missing.push('Veranstaltungsort');
   const contestClass=document.getElementById('tpContestClass')?.value||'';
   if(tpContestClasses(typeEl?.value).length&&!tpContestClasses(typeEl?.value).includes(contestClass))missing.push('Wettkampfklasse');
   if(missing.length){
@@ -6111,6 +6209,7 @@ function tpCommitFormIfFilled(){if(isWhiteboardUser()){showToast('Whiteboard: nu
     const i=document.getElementById('firebaseTpInfo');if(i)i.textContent=text;
     showToast(text,6000);
     (dateEl&&!dateEl.value?dateEl:typeEl).focus();
+    const st={Datum:2,Veranstaltungsart:3,Wettkampfklasse:3,Veranstaltungsort:4}[missing[0]];if(st)tpWizGo(st);
     return false;
   }
   const date=dateEl.value;
@@ -6195,6 +6294,7 @@ function tpEditEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spiel
   tpUpdateTwOption();
   const info=document.getElementById('firebaseTpInfo');
   if(info)info.textContent='Bearbeitung: '+String(x.name||'')+' – Änderungen mit „Veranstaltung speichern" übernehmen.';
+  tpWizAll(true);
   if(nameEl.scrollIntoView)nameEl.scrollIntoView({block:'center'});
   nameEl.focus();
 }
@@ -6212,6 +6312,7 @@ function tpCancelEdit(){
   document.getElementById('tpCancelBtn').style.display='none';
   const info=document.getElementById('firebaseTpInfo');if(info)info.textContent='';
   tpUpdateFormPlayerState();
+  tpWizAll(false);
 }
 async function tpDeleteEvent(id){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
   const sid=String(id),event=tpFindEvent(sid);
@@ -7243,8 +7344,12 @@ function adminSection(s){
  if(s==='t'){
   tCollection='tournaments';
   const tmonths=existingMonths(); const selectedAdminMonth=tmonths.includes(currentMonth)?currentMonth:(tmonths[0]||monthKey());
-  a.innerHTML='<h2>'+tCfg().label+'</h2><div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select><label style="margin-top:10px">Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="tfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><div id="firebaseTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die ausgewählten Dateien werden automatisch im Programm und in Firebase gespeichert. PDF-Dateien werden automatisch seitenweise übernommen.</p></div><h3>Vorhandene Einladungen</h3><div class="card"><label>Monat auswählen</label><select id="tadminmonth">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div><div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="saveTournamentFiles()">Speichern</button></div>';
-  renderTournamentAdminList(); renderTournamentAdminPreview();
+  a.innerHTML='<h2>'+tCfg().label+'</h2><div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select><label style="margin-top:10px">Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="tfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><div id="firebaseTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die ausgewählten Dateien werden automatisch im Programm und in Firebase gespeichert. PDF-Dateien werden automatisch seitenweise übernommen.</p></div>'
+   +shDetails('tdPresent','Präsentationsseite – alle gespeicherten Einladungen','<label>Monat auswählen</label><select id="tadminmonth">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div>','auch abgelaufene, zum Sortieren und Bearbeiten')
+   +shDetails('tdReal','Echte Ansicht – so erscheint es auf der Startseite','<div id="tRealView"></div>','nur die wirklich angezeigten Einladungen')
+   +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="saveTournamentFiles()">Speichern</button></div>';
+  renderTournamentAdminList(); renderTournamentAdminPreview(); renderTournamentRealView();
+  document.getElementById('tdReal')?.addEventListener('toggle',renderTournamentRealView);
   document.getElementById('tm').onchange=()=>{currentMonth=document.getElementById('tm').value};
   document.getElementById('tadminmonth').onchange=()=>{currentMonth=document.getElementById('tadminmonth').value;currentPage=0;adminTournamentPage=0;renderTournamentAdminPreview();renderTournamentAdminList();};
  }else if(s==='zr'){
@@ -7270,6 +7375,7 @@ function adminSection(s){
    +'<div class="tp-toolbar tp-subnav" style="margin:0 0 16px">'
     +'<button type="button" id="tpSubBtn-plan" onclick="tpAdminSubSection(\'plan\')">Termin- und Turnierplaner</button>'
     +'<button type="button" id="tpSubBtn-events" onclick="tpAdminSubSection(\'events\')">Vorhandene Veranstaltungen</button>'
+    +'<button type="button" class="primary tp-save-top" onclick="this.disabled=true;Promise.resolve(saveAllTournamentPlannerChanges()).finally(()=>{this.disabled=false})">💾 Speichern</button>'
     +'<button type="button" id="tpSubBtn-cal" onclick="tpAdminSubSection(\'cal\')">Kalendereinstellungen</button>'
    +'</div>'
    +'<div id="tpSub-plan">'+tpAdminFormHtml()+'</div>'
@@ -7278,10 +7384,10 @@ function adminSection(s){
    +'<div id="tpSub-events"><div class="tp-events-header"><h3>Vorhandene Veranstaltungen</h3><div class="tp-toolbar"><label for="tpAdminPeriodFilter">Zeitraum</label><select id="tpAdminPeriodFilter" onchange="renderTournamentPlannerAdminList()"></select></div></div><div id="tpAdminList"></div></div>';
   renderTpPlayersAdminList();
   renderTournamentPlannerAdminList();
-  tpAdminSubSection('plan');
+  tpAdminSubSection('plan');tpWizGo(1);
   Promise.resolve().then(()=>tpGooglePullLinkedChanges(false)).catch(e=>console.warn('Google-Abgleich:',e));
  }else if(s==='n'){
-  a.innerHTML='<h2>Vereinsnachrichten</h2><div class="card"><input id="neditid" type="hidden"><label>Überschrift</label><input id="ntitle" type="text" placeholder="z. B. Vereinsmeisterschaft"><label style="margin-top:8px"><input id="nshowtitle" type="checkbox" style="width:auto;margin-right:8px"> Überschrift oben</label><label>Nachricht</label><textarea id="ntext" placeholder="Text der Nachricht..."></textarea><label>Anzeigeart</label><select id="nmode" onchange="updateNewsModeFields()"><option value="static">Feststehend</option><option value="fade">Ein-/Ausblenden</option><option value="ticker">Lauftext</option></select><div id="ndurWrap"><label>Anzeigedauer pro Nachricht (Sekunden)</label><input id="ndur" type="number" min="1" max="180" value="18"><div class="small">Bei „Lauftext“ bestimmt dieser Wert die Dauer eines kompletten Durchlaufs.</div></div><div id="ngapWrap"><label>Zeit zwischen den jeweiligen Texten (Sekunden)</label><input id="ngap" type="number" min="0" max="180" value="2"><div class="small">Diese Pause wird beim Wechsel zwischen mehreren Nachrichten verwendet.</div></div><div class="row"><div style="flex:1"><label>Startdatum</label><input id="nstart" type="date"></div><div style="flex:1"><label>Enddatum</label><input id="nend" type="date"></div></div><div class="small">Ohne Start- oder Enddatum ist die Nachricht zeitlich unbegrenzt aktiv.</div><div class="row" style="margin-top:14px"><button id="newsCancelBtn" style="display:none" onclick="cancelNewsEdit()">Bearbeitung abbrechen</button></div></div><h3>Gespeicherte Nachrichten</h3><p class="small">Nach Ablauf des Enddatums werden Nachrichten automatisch ausgeblendet. Sie bleiben zur Nachvollziehbarkeit gespeichert, bis du sie ausdrücklich löschst. „Löschen“ entfernt die Nachricht sofort aus Firebase.</p><div id="newsAdminList"></div><div class="card" style="margin-top:16px"><div id="firebaseNewsInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllNewsChanges()">Speichern</button></div>';renderNewsAdminList();updateNewsModeFields();
+  a.innerHTML='<div class="n-admin-head"><h2>Vereinsnachrichten</h2><button class="primary" onclick="saveAllNewsChanges()">💾 Speichern</button></div><div class="card n-admin"><input id="neditid" type="hidden"><div class="n-line"><label class="n-grow">Überschrift<input id="ntitle" type="text" placeholder="z. B. Vereinsmeisterschaft"></label><label class="n-check"><input id="nshowtitle" type="checkbox"> Überschrift oben anzeigen</label></div><label>Nachricht<textarea id="ntext" rows="4" placeholder="Text der Nachricht ..."></textarea></label><div class="n-line"><label>Anzeigeart<select id="nmode" onchange="updateNewsModeFields()"><option value="static">Feststehend</option><option value="fade">Ein-/Ausblenden</option><option value="ticker">Lauftext</option></select></label><div id="ndurWrap"><label title="Bei „Lauftext“: Dauer eines kompletten Durchlaufs">Dauer (Sek.)<input id="ndur" type="number" min="1" max="180" value="18"></label></div><div id="ngapWrap"><label title="Pause beim Wechsel zwischen mehreren Nachrichten">Pause (Sek.)<input id="ngap" type="number" min="0" max="180" value="2"></label></div><label>Startdatum<input id="nstart" type="date"></label><label>Enddatum<input id="nend" type="date"></label></div><div class="small">Ohne Start- oder Enddatum ist die Nachricht zeitlich unbegrenzt aktiv. Bei „Lauftext“ gilt die Dauer für einen kompletten Durchlauf.</div><div class="row" style="margin-top:10px"><button id="newsCancelBtn" style="display:none" onclick="cancelNewsEdit()">Bearbeitung abbrechen</button></div></div><h3>Gespeicherte Nachrichten</h3><p class="small">Nach Ablauf des Enddatums werden Nachrichten automatisch ausgeblendet. Sie bleiben zur Nachvollziehbarkeit gespeichert, bis du sie ausdrücklich löschst. „Löschen“ entfernt die Nachricht sofort aus Firebase.</p><div id="newsAdminList"></div><div class="card" style="margin-top:16px"><div id="firebaseNewsInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllNewsChanges()">Speichern</button></div>';renderNewsAdminList();updateNewsModeFields();
  }else if(s==='s'){
   a.innerHTML='<h2>Speicher verwalten</h2>'+renderStorageAdminHtml();showStorageInfo();
  }else if(s==='u'){
@@ -7382,6 +7488,7 @@ function renderTournamentAdminList(){
  }else el.innerHTML='<div class="small">'+(tCollection==='pressReports'?'Noch keine Zeitungsberichte vorhanden.':'Für den ausgewählten Monat sind noch keine Einladungen vorhanden.')+'</div>';
 }
 function renderTournamentAdminPreview(){
+ if(tCollection==='tournaments')setTimeout(renderTournamentRealView,0);
  const el=document.getElementById('tAdminPreview'),m=tCollection==='pressReports'?PRESS_REPORTS_GROUP:(document.getElementById('tadminmonth')?.value||currentMonth);
  if(!el)return;
  if(tCollection==='pressReports'){renderPressAdminMosaic(el);return;}
@@ -7418,6 +7525,27 @@ function renderTournamentAdminPreview(){
  const help=document.createElement('div');help.className='small admin-preview-help';
  help.textContent=tCollection==='pressReports'?'Ein Platzhalter kann eine oder zwei zusammengehörige Zeitungsseiten enthalten. Per Drag & Drop können die Berichte frei sortiert werden.':'Die Platzhalter entsprechen den Positionen der Präsentationsseite. Per Drag & Drop können Einladungen frei umsortiert werden.';
  el.appendChild(help);
+}
+// Echte Ansicht: wie die Präsentationsseite für Besucher – nur sichtbare Einladungen (Anzeigen-bis beachtet), Monat für Monat, Seite für Seite
+function renderTournamentRealView(){
+ const el=document.getElementById('tRealView');if(!el||tCollection!=='tournaments')return;
+ const det=document.getElementById('tdReal');if(det&&!det.open){el.innerHTML='';return;}
+ const st=tStore(),months=presentationTournamentMonths(),perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12));
+ const hidden=Object.values(st).flat().filter(x=>x&&!tournamentInvitationVisible(x)).length;
+ if(!months.length){el.innerHTML='<div class="small">Auf der Startseite werden derzeit keine Einladungen angezeigt.</div>';return;}
+ const W=Math.max(320,el.clientWidth||900),H=Math.round(W*9/16),rows=2,cols=Math.ceil(perPage/2),gap=4,pad=10;
+ const slotH=Math.floor((H-2*pad-(rows-1)*gap)/rows),slotW=Math.max(40,Math.min(Math.floor(slotH*210/297),Math.floor((W-2*pad-(cols-1)*gap)/cols)));
+ let h='<div class="small" style="margin-bottom:8px">'+months.length+' Monat(e) mit Einladungen'+(hidden?' · '+hidden+' abgelaufene Einladung(en) werden nicht mehr angezeigt':'')+' · '+perPage+' pro Seite</div>';
+ months.forEach(m=>{
+  const items=(st[m]||[]).filter(tournamentInvitationVisible),pages=Math.max(1,Math.ceil(items.length/perPage));
+  for(let pg=0;pg<pages;pg++){
+   const shown=items.slice(pg*perPage,pg*perPage+perPage);
+   h+='<div class="t-real-label">'+esc(tGroupLabel(m))+(pages>1?' · Seite '+(pg+1)+' von '+pages:'')+' · '+items.length+' Einladung(en)</div>'
+    +'<div class="t-real-page" style="height:'+H+'px;padding:'+pad+'px;grid-template-columns:repeat('+cols+','+slotW+'px);grid-template-rows:repeat('+rows+','+slotH+'px);column-gap:'+Math.max(gap,Math.floor((W-2*pad-cols*slotW)/Math.max(1,cols-1)))+'px;row-gap:'+gap+'px">'
+    +shown.map(x=>'<div class="t-real-slot'+(x.data2?' pair':'')+'" title="'+esc(x.name)+(x.endDate?' · bis '+esc(x.endDate.split('-').reverse().join('.')):'')+'"><img src="'+x.data+'" alt="">'+(x.data2?'<img src="'+x.data2+'" alt="">':'')+'</div>').join('')+'</div>';
+  }
+ });
+ el.innerHTML=h;
 }
 function changeAdminTournamentPage(d){adminTournamentPage+=d;renderTournamentAdminPreview()}
 function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}

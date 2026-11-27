@@ -1593,7 +1593,7 @@ setTimeout(() => {
 <div><label for="tStock_header">Briefkopf für StockApp</label><select id="tStock_header"><option value="">Keiner / später in StockApp wählen</option><option value="halle">Hallenbild (gespeicherten Windows-Pfad verwenden)</option><option value="briefkopf">EC-Wegscheid-Briefkopf (automatisch übernehmen)</option></select></div>
 <div><label for="tStock_headerPath">Bildpfad auf dem StockApp-Windows-PC (optional; beim Hallenbild einmal eintragen)</label><input id="tStock_headerPath" type="text" placeholder="C:\Bilder\Hallenbild.png"></div>
 <div><label><input type="checkbox" id="tStock_stockTV"> StockTV gewünscht (in StockApp manuell aktivieren)</label></div>
-</div></details><details class="ecw-stockapp-options tv-homepage-options" data-homepage="t"><summary>Veröffentlichung auf der Homepage</summary>
+</div></details><!-- V3.1.121: Beim Anlegen keine Homepage-Veröffentlichung – erst wenn Einladung oder Startliste vorhanden ist (im Bereich „Turnier verwalten“). Feld bleibt unsichtbar, damit der Ablauf unverändert funktioniert. --><details hidden style="display:none" class="ecw-stockapp-options tv-homepage-options" data-homepage="t"><summary>Veröffentlichung auf der Homepage</summary>
  <button type="button" data-hp-connect>Homepage verbinden (Ersatzweg)</button>
  <p data-hp-status role="status"></p>
  <label><input type="checkbox" data-hp-enabled> Auf Homepage veröffentlichen</label>

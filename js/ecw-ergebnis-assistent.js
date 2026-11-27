@@ -199,33 +199,7 @@ function manualHtml(){
     +'<div class="ea-row" style="margin-top:10px"><button type="button" class="primary" data-ea-msave'+(st.busy||!st.eventId?' disabled':'')+'>Im Terminplaner speichern</button></div>'
     +(st.msg?'<div class="small" style="margin-top:8px;white-space:pre-line">'+esc(st.msg)+'</div>':'');
 }
-function render(){renderMain();preview();}
-// Vorschau rechts: so erscheint der Eintrag auf der Homepage (Ergebnisse) + was sonst gespeichert wird
-function preview(){
-  const box=$('eaPreview');if(!box||!st)return;
-  const fl=folders(),f=fl.find(x=>x.path.join('>')===st.folder);
-  const crumbs=['Ergebnisse'].concat(st.folder&&st.folder!=='/'&&f?f.label.split(' / '):[]).concat(st.subfolder?[st.subfolder]:[]);
-  const title=(st.name||'Bezeichnung')+(st.date?' · '+deDate(st.date):'');
-  const rows=(st.rows||[]).filter(r=>clean(r.team));
-  const imgs=st.files.filter(x=>x.previewUrl).map(x=>'<img src="'+x.previewUrl+'" alt="">').concat(st.photos.map(x=>'<img src="'+x.previewUrl+'" alt="">'));
-  const own=rows.filter(r=>OWN.test(r.team));
-  let h='<div class="ea-pv-head">👁 Vorschau</div>';
-  if(st.manual){
-    h+='<div class="ea-pv-card"><div class="ea-pv-crumb">📅 Terminplaner</div><h4>'+esc(title)+'</h4><p>'+(st.mPlatz&&st.mVon?'Platz <b>'+esc(st.mPlatz)+'</b> von '+esc(st.mVon):'Platz noch nicht eingetragen')+(st.mNotiz?'<br><span class="small">'+esc(st.mNotiz)+'</span>':'')+'</p></div>';
-    box.innerHTML=h;return;}
-  h+='<div class="ea-pv-card'+(st.toHomepage?'':' off')+'"><div class="ea-pv-crumb">🌐 '+crumbs.map(esc).join(' › ')+(st.folder?'':' › <i>Ordner wählen</i>')+'</div>'
-    +'<h4>'+esc(title)+'</h4>'
-    +(rows.length?'<ol class="ea-pv-list">'+rows.slice(0,40).map(r=>'<li value="'+esc(r.rank)+'"'+(OWN.test(r.team)?' class="own"':'')+'>'+esc(r.team)+(r.players?.length&&r.players.join(', ')!==r.team?' <span>('+esc(r.players.join(', '))+')</span>':'')+'</li>').join('')+'</ol>'+(rows.length>40?'<div class="small">… und '+(rows.length-40)+' weitere</div>':''):'<div class="small">Noch keine Platzierungen.</div>')
-    +(imgs.length?'<div class="ea-pv-imgs">'+imgs.join('')+'</div>':'')
-    +(st.toHomepage?'':'<div class="small">Wird nicht auf der Homepage gespeichert.</div>')+'</div>';
-  const more=[];
-  if(st.eventId&&st.toPlanner)more.push('📅 Terminplaner: Platz '+(st.ownPlace||'?')+' von '+rows.length);
-  if(st.internal&&st.toRanking)more.push('🏆 Vereinsrangliste: '+(st.category||'Kategorie?')+(st.season?' · '+st.season:''));
-  if(st.toOneDrive)more.push('☁ OneDrive: '+(typeof odPath==='function'?odPath():''));
-  if(own.length&&!st.internal)more.push('EC Wegscheid: '+own.map(r=>r.rank+'. '+r.team).join(', '));
-  if(more.length)h+='<div class="ea-pv-card"><div class="ea-pv-crumb">Außerdem</div>'+more.map(x=>'<div>'+esc(x)+'</div>').join('')+'</div>';
-  box.innerHTML=h;
-}
+function render(){renderMain();}
 function renderMain(){
   const root=$('eaRoot');if(!root||!st)return;
   const evs=plannerEvents();
@@ -418,11 +392,6 @@ function css(){
    +'.ea-final{margin:4px 0 12px}.ea-big{width:100%;padding:14px;font-size:1.1rem;border-radius:12px}'
    +'.ea-result{white-space:pre-line;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(46,158,90,.18);border:1px solid rgba(46,158,90,.5)}'
    +'.ea-od{margin:0 0 20px;opacity:.85}'
-   +'.ea-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,420px);gap:16px;align-items:start}@media(max-width:1100px){.ea-layout{grid-template-columns:1fr}}'
-   +'.ea-preview{position:sticky;top:8px;max-height:calc(100vh - 24px);overflow:auto;display:flex;flex-direction:column;gap:10px}.ea-pv-head{font-weight:800;font-size:1.05rem}'
-   +'.ea-pv-card{background:#fff;color:#222;border-radius:10px;padding:12px 14px;box-shadow:0 3px 12px rgba(0,0,0,.4)}.ea-pv-card.off{opacity:.45}.ea-pv-card h4{margin:4px 0 8px;color:#8b1018;font-size:1.05rem}.ea-pv-card .small{color:#555}'
-   +'.ea-pv-crumb{font-size:.78rem;color:#666}.ea-pv-list{margin:0;padding-left:2.2em;font-size:.88rem;line-height:1.35}.ea-pv-list li.own{font-weight:700;color:#8b1018}.ea-pv-list span{color:#666;font-size:.8rem}'
-   +'.ea-pv-imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:8px}.ea-pv-imgs img{width:100%;aspect-ratio:3/4;object-fit:contain;background:#f2f2f2;border-radius:4px}'
    +'.ea-grid{display:grid;grid-template-columns:1fr;gap:8px;max-width:640px}.ea-grid label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:.85rem}'
    +'.ea-file{display:inline-flex!important;align-items:center;padding:10px 14px;border:1px dashed rgba(255,255,255,.5);border-radius:8px;cursor:pointer;margin:0}.ea-file input{display:none}'
    +'.ea-table{width:100%;border-collapse:collapse}.ea-table td,.ea-table th{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}.ea-table input{margin:0!important;width:100%}'
@@ -475,11 +444,35 @@ function open(){
   const a=$('adminMain');if(!a)return;css();
   st={files:[],photos:[],rowsFrom:-1,kind2:'intern',manual:false,mPlatz:'',mVon:'',mNotiz:'',toOneDrive:undefined,od:null,eventId:'',name:'',date:new Date().toISOString().slice(0,10),internal:true,fileName:'',rows:[],toHomepage:true,toPlanner:false,toRanking:true,folder:'',subfolder:'',ownPlace:'',category:'',type:'group',season:'',msg:''};
   a.innerHTML='<h2 style="margin:0 0 10px">Ergebnisse eingeben</h2>'
-    +'<div class="small" style="margin-bottom:10px">Wettkampf wählen, Ergebnisliste einfügen, prüfen – dann wird alles in einem Schritt gespeichert: Ergebnisse (Homepage), OneDrive, Terminplaner und Vereinsrangliste.</div><div class="ea-layout"><div id="eaRoot"></div><aside id="eaPreview" class="ea-preview"></aside></div>';
+    +'<div class="small" style="margin-bottom:10px">Wettkampf wählen, Ergebnisliste einfügen, prüfen – dann wird alles in einem Schritt gespeichert: Ergebnisse (Homepage), OneDrive, Terminplaner und Vereinsrangliste.</div><div id="eaRoot"></div>';
   const root=$('eaRoot');root.addEventListener('input',onInput);root.addEventListener('change',onChange);root.addEventListener('click',onClick);
-  // Vorschau beim Tippen mitführen (Formular erst lesen, Eingabefokus bleibt erhalten)
-  root.addEventListener('input',()=>setTimeout(()=>{try{readForm()}catch(e){}preview()},0));
+
   render();refreshOd();
 }
-window.ECWErgebnisAssistent={open,_test:{parseLines,parseSkmrFile,guessCategory,guessType,seasonOf,imageToPdf}};
+/* ---------- Vorschau (👁 im Verwaltungsmenü): gesammelte Ergebnisse aus dem Terminplaner ---------- */
+function summary(){
+  const all=(typeof data!=='undefined'&&data.tournamentPlanner||[]).filter(x=>x&&x.date&&x.name&&Number(x.ergebnis?.platz)>0);
+  const seasons=[...new Set(all.map(x=>seasonOf(x.date)).filter(Boolean))].sort().reverse();
+  let dlg=$('eaSummary');
+  if(!dlg){dlg=document.createElement('dialog');dlg.id='eaSummary';dlg.className='ea-sum';document.body.appendChild(dlg);
+    const st2=document.createElement('style');st2.textContent='.ea-sum{width:min(880px,94vw);max-height:90vh;overflow:auto;border:0;border-radius:14px;padding:18px 20px;background:#1b1719;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.6)}.ea-sum::backdrop{background:rgba(0,0,0,.6)}'
+     +'.ea-sum-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.ea-sum h2{margin:0}.ea-sum-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}'
+     +'.ea-sum-card{border-radius:12px;padding:12px;text-align:center;background:#2b2427;border:1px solid #4a3d42}.ea-sum-card b{display:block;font-size:2rem}.ea-sum-card.p1{background:linear-gradient(160deg,#8a6a10,#4e3b05)}.ea-sum-card.p2{background:linear-gradient(160deg,#6d7278,#3a3d41)}.ea-sum-card.p3{background:linear-gradient(160deg,#7a4a24,#40260f)}'
+     +'.ea-sum h3{margin:16px 0 6px;font-size:1.05rem;border-bottom:1px solid #4a3d42;padding-bottom:4px}.ea-sum ul{margin:0;padding-left:1.2em;line-height:1.5}.ea-sum li span{opacity:.7;font-size:.9em}';
+    document.head.appendChild(st2);}
+  const draw=season=>{
+    const list=all.filter(x=>!season||seasonOf(x.date)===season).sort((a,b)=>Number(a.ergebnis.platz)-Number(b.ergebnis.platz)||b.date.localeCompare(a.date));
+    const cnt=k=>list.filter(x=>Number(x.ergebnis.platz)===k).length;
+    const places=[...new Set(list.map(x=>Number(x.ergebnis.platz)))].sort((a,b)=>a-b);
+    dlg.innerHTML='<div class="ea-sum-head"><h2>🏆 Gesammelte Ergebnisse</h2><div style="display:flex;gap:8px;align-items:center"><select id="eaSumSeason"><option value="">Alle Saisonen</option>'+seasons.map(x=>'<option'+(x===season?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select><button type="button" id="eaSumClose">Schließen</button></div></div>'
+      +'<div class="ea-sum-cards"><div class="ea-sum-card p1">🥇<b>'+cnt(1)+'</b>1. Plätze</div><div class="ea-sum-card p2">🥈<b>'+cnt(2)+'</b>2. Plätze</div><div class="ea-sum-card p3">🥉<b>'+cnt(3)+'</b>3. Plätze</div><div class="ea-sum-card"><b>'+list.length+'</b>Turniere mit Ergebnis</div></div>'
+      +(list.length?places.map(pl=>{const xs=list.filter(x=>Number(x.ergebnis.platz)===pl);return '<h3>'+(pl===1?'🥇 ':pl===2?'🥈 ':pl===3?'🥉 ':'')+pl+'. Platz ('+xs.length+')</h3><ul>'
+        +xs.map(x=>'<li>'+esc(deDate(x.date))+' · <b>'+esc(x.name)+'</b>'+(x.ergebnis.von?' <span>(von '+esc(x.ergebnis.von)+')</span>':'')+(x.ergebnis.notiz?' <span>– '+esc(x.ergebnis.notiz)+'</span>':'')+'</li>').join('')+'</ul>';}).join('')
+       :'<p class="small">Noch keine Ergebnisse eingetragen'+(season?' in der Saison '+esc(season):'')+'.</p>');
+    $('eaSumSeason').onchange=e=>draw(e.target.value);$('eaSumClose').onclick=()=>dlg.close();
+  };
+  draw(seasons[0]||'');
+  if(!dlg.open)dlg.showModal();
+}
+window.ECWErgebnisAssistent={open,preview:summary,_test:{parseLines,parseSkmrFile,guessCategory,guessType,seasonOf,imageToPdf}};
 })();
