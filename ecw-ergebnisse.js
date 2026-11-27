@@ -196,21 +196,21 @@ function breadcrumbs(){let n=root();const b=[button('Ergebnisse','go(-1)')];for(
 function fileHtml(l,i){return '<article class="card er-admin-file"><div class="er-edit-fields"><label>Bezeichnung<input maxlength="250" value="'+esc(l.t)+'" oninput="ecwResults.setLink('+i+',\'t\',this.value)"></label>'+(l.file?'<p class="small">'+esc(l.file.name)+' · '+Math.round(l.file.size/1024)+' KB · '+(l.file.pending?'nur lokal – Firebase ausstehend':'in Firebase gespeichert')+'</p>':'<label>Datei- oder Internetadresse<input type="url" value="'+esc(l.u)+'" onchange="ecwResults.setLink('+i+',\'u\',this.value)"></label>')+'</div><div class="row">'+button('Vorschau','previewFile('+i+')')+button('↑','moveLink('+i+',-1)','',i===0)+button('↓','moveLink('+i+',1)','',i===active().links.length-1)+button('Löschen','removeLink('+i+')','danger')+'</div></article>'}
 function renderAdmin(){if(!allowed())return;const box=document.getElementById('adminMain');if(!box)return;const n=active();
 const busy=uploadBusy||savingResults;
-const saveButton='<button type="button" class="primary er-save" onclick="ecwResults.saveFirebase()" '+(busy?'disabled':'')+'>💾 Speichern und auf der Homepage veröffentlichen</button>';
-const importButton=path.length?'':button('Altes Homepage-Archiv importieren','importSeed()');
-const folders=n.children.map((c,i)=>'<div class="er-fold" draggable="true" data-er-drag="children" data-er-index="'+i+'"><button class="er-folder-open" type="button" onclick="ecwResults.enter('+i+')">'+esc(c.t)+'</button>'+button('↑','moveFolder('+i+',-1)','',i===0)+button('↓','moveFolder('+i+',1)','',i===n.children.length-1)+button('✕','removeFolder('+i+')','danger')+'</div>').join('');
-box.innerHTML='<div class="er-admin"><header class="row er-admin-header"><h2>Ergebnisse verwalten</h2>'+button('👁 Vorschau','preview()')
- +'<a class="er-home-btn" href="'+esc(testHomepageLink(n))+'" target="_blank" rel="noopener noreferrer">🌐 Diesen Ordner auf der Homepage öffnen</a></header>'
- +'<nav class="er-breadcrumb">'+breadcrumbs()+'</nav>'
+const saveButton='<button type="button" class="primary er-save" onclick="ecwResults.saveFirebase()" '+(busy?'disabled':'')+'>💾 Speichern und veröffentlichen</button>';
+box.innerHTML='<div class="er-admin"><div class="er-admin-header"><h2>Ergebnisse verwalten</h2><nav class="er-breadcrumb">'+breadcrumbs()+'</nav></div>'
  +(resultSaveMessage?'<p class="small" id="erSaveStatus" role="status">'+esc(resultSaveMessage)+'</p>':'<p class="small" id="erSaveStatus" role="status" hidden></p>')
  +'<div class="er-cols"><aside class="er-col-left">'+saveButton
- +'<h3>Ordner</h3><div class="er-admin-folders">'+(folders||'<div class="small">Keine Unterordner.</div>')+'</div>'
- +'<div class="er-admin-tools">'+button('+ Unterordner','addFolder()','primary')+(!intermediate()?button('+ Ergebnis-Link','addLink()'):'')+importButton+'</div>'
+ +button('👁 Vorschau','preview()')
+ +'<a class="er-home-btn" href="'+esc(testHomepageLink(n))+'" target="_blank" rel="noopener noreferrer">🌐 Ordner auf der Homepage öffnen</a>'
+ +button('+ Unterordner','addFolder()')+(!intermediate()?button('+ Ergebnis-Link','addLink()'):'')+(path.length?'':button('Altes Homepage-Archiv importieren','importSeed()'))
  +saveButton+'</aside>'
- +'<section class="er-col-right"><div class="card er-text"><label>Überschrift<input maxlength="250" value="'+esc(n.t)+'" oninput="ecwResults.setNode(\'t\',this.value)"></label>'
- +'<label>Text auf der Homepage<textarea rows="5" maxlength="50000" oninput="ecwResults.setNode(\'body\',this.value)">'+esc(n.body)+'</textarea></label>'
- +(!intermediate()?'<label class="er-upload">📎 Ergebnislisten oder Fotos hinzufügen<input type="file" id="erUpload" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp" onchange="ecwResults.upload(this.files)" '+(busy?'disabled':'')+'></label><p class="small">PDF oder Bild, höchstens 8 MB pro Datei.</p>':'<p class="small">In dieser Ebene nur Ordner. Ergebnislisten und Fotos innerhalb eines Ordners hinzufügen.</p>')
- +'</div><div class="er-admin-files">'+n.links.map((l,i)=>'<div draggable="true" data-er-drag="links" data-er-index="'+i+'">'+fileHtml(l,i)+'</div>').join('')+'</div></section></div></div>';bindDrag(box)}
+ +'<section class="card er-text"><label>Überschrift<input maxlength="250" value="'+esc(n.t)+'" oninput="ecwResults.setNode(\'t\',this.value)"></label>'
+ +'<label>Text auf der Homepage<textarea rows="4" maxlength="50000" oninput="ecwResults.setNode(\'body\',this.value)">'+esc(n.body)+'</textarea></label>'
+ +(!intermediate()?'<label class="er-upload">📎 Ergebnislisten oder Fotos hinzufügen<input type="file" id="erUpload" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp" onchange="ecwResults.upload(this.files)" '+(busy?'disabled':'')+'></label> <span class="small">PDF oder Bild, höchstens 8 MB</span>':'')
+ +'</section></div>'
+ +(n.children.length?'<h3 class="er-h">Ordner</h3><div class="er-admin-folders">'+n.children.map((c,i)=>'<article class="card er-admin-folder" draggable="true" data-er-drag="children" data-er-index="'+i+'"><button class="er-folder-open" type="button" onclick="ecwResults.enter('+i+')">'+esc(c.t)+'</button><div class="row">'+button('↑','moveFolder('+i+',-1)','',i===0)+button('↓','moveFolder('+i+',1)','',i===n.children.length-1)+button('✕','removeFolder('+i+')','danger')+'</div></article>').join('')+'</div>':'')
+ +(n.links.length?'<h3 class="er-h">Dateien und Links</h3><div class="er-admin-files">'+n.links.map((l,i)=>'<div draggable="true" data-er-drag="links" data-er-index="'+i+'">'+fileHtml(l,i)+'</div>').join('')+'</div>':'')
+ +'</div>';bindDrag(box)}
 function bindDrag(box){let source=null;box.querySelectorAll('[data-er-drag]').forEach(el=>{el.addEventListener('dragstart',e=>{source={kind:el.dataset.erDrag,index:+el.dataset.erIndex};e.dataTransfer?.setData('text/plain',JSON.stringify(source));if(e.dataTransfer)e.dataTransfer.effectAllowed='move'});el.addEventListener('dragover',e=>e.preventDefault());el.addEventListener('drop',e=>{e.preventDefault();if(source&&source.kind===el.dataset.erDrag)reorder(source.kind,source.index,+el.dataset.erIndex);source=null})})}
 function setNode(k,v){if(!adminMode||!allowed()||savingResults||!['t','body'].includes(k))return;active()[k]=String(v).slice(0,k==='t'?250:50000);save()}
 function setLink(i,k,v){if(!adminMode||!allowed()||savingResults||!['t','u'].includes(k))return;const l=active().links[i];if(!l)return;if(k==='u'&&!safeUrl(v)){showToast('Bitte eine gültige http(s)-Adresse eingeben.');renderAdmin();return}l[k]=k==='u'?safeUrl(v):String(v).slice(0,250);save()}

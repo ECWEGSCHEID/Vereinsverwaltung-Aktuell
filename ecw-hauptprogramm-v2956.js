@@ -1913,25 +1913,60 @@ function shExternalLinkDel(i){
  if(!confirm('Link „'+SH.links[i].t+'“ entfernen?'))return;
  SH.links.splice(i,1);shSave();shRender();renderStartseiteAdmin();
 }
+// Aufklappbereiche merken (bleiben nach dem Neuzeichnen offen)
+var shDetailsOpen=new Set(['shdLayout']);
+function shDetails(id,title,body,hint){return '<details class="card sh-det" id="'+id+'"'+(shDetailsOpen.has(id)?' open':'')+' ontoggle="shDetailsToggle(this)"><summary><b>'+title+'</b>'+(hint?'<span class="small"> · '+hint+'</span>':'')+'</summary><div class="sh-det-body">'+body+'</div></details>';}
+function shDetailsToggle(el){if(el.open)shDetailsOpen.add(el.id);else shDetailsOpen.delete(el.id);}
 function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startseite bearbeiten ist nicht freigegeben.');return;}
  const a=document.getElementById('adminMain'),st=a.scrollTop;
- a.innerHTML='<h2>Startseite verwalten</h2>'
- +'<div class="card"><label>Link zur Startseite</label><div class="row"><input type="text" readonly id="shLinkField" value="'+esc(shLink())+'" onclick="this.select()" style="flex:3"><button onclick="shCopy(this)">Kopieren</button><button onclick="window.open(shLink(),\'_blank\')">Öffnen</button></div>'
- +'<p class="small">Änderungen werden sofort angezeigt und zunächst lokal in diesem Browser zwischengespeichert.</p></div>'
- +'<div class="card" style="margin-top:12px;border:2px solid rgba(255,255,255,.28)"><h3 style="margin-top:0">Zentrale Startseite</h3><p class="small">Mit „Startseite speichern“ wird dieser Stand zentral in Firebase gespeichert. Beim nächsten Anmelden lädt PC/Whiteboard automatisch genau diesen Stand.</p><div class="row"><button id="shFirebaseSaveBtn" class="primary" onclick="shSaveToFirebase()">Startseite speichern</button><button id="shFirebaseLoadBtn" onclick="shLoadFromFirebase(true)">Aus Firebase laden</button></div><div id="shFirebaseStatus" class="small" style="margin-top:10px;font-weight:bold"></div></div>'
- +shExternalLinksAdminHtml()
- +(window.ecwUtility?window.ecwUtility.adminHtml():'')
-
- +'<div class="card" style="margin-top:12px"><label>Text auf der Startseite</label><input type="text" value="'+esc(SH.title)+'" oninput="shSet(\'title\',this.value)">'
- +'<label>Buttons pro Reihe</label><select onchange="shSet(\'cols\',+this.value,true)">'+[2,3,4].map(n=>'<option'+(n===SH.cols?' selected':'')+'>'+n+'</option>').join('')+'</select>'
- +'<label>Hintergrundbild (16:9, wird automatisch verkleinert)</label><input type="file" accept="image/*" onchange="shBg(this)"><div style="margin-top:8px"><button onclick="shBgReset()">Originalbild wiederherstellen</button></div></div>'
- +'<h3 style="margin:18px 0 8px">Buttons ('+SH.buttons.length+')</h3>'
- +SH.buttons.map(shAdminRow).join('')
- +'<div class="row" style="margin:10px 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>'
- +'<div class="card"><div class="row"><button onclick="shExport()">Konfiguration exportieren</button><button class="danger" onclick="shReset()">Alles zurücksetzen</button></div><label>Konfiguration importieren (.json)</label><input type="file" accept=".json,application/json" onchange="shImport(this)"></div>' +'<div id="shLinksEmbedded" style="margin-top:20px"></div>';
+ a.innerHTML='<div class="sh-admin"><div class="sh-admin-head"><h2>Startseite verwalten</h2><button id="shFirebaseSaveBtn" class="primary" onclick="shSaveToFirebase()">💾 Startseite speichern</button></div>'
+ +'<div id="shFirebaseStatus" class="small" style="margin:-4px 0 8px;font-weight:bold"></div>'
+ +'<div class="card"><label>Text auf der Startseite</label><input type="text" value="'+esc(SH.title)+'" oninput="shSet(\'title\',this.value)">'
+ +'<div class="row" style="margin-top:8px;align-items:center;gap:8px"><label class="sh-file">🖼 Hintergrundbild ändern<input type="file" accept="image/*" onchange="shBg(this)"></label><button onclick="shBgReset()">Originalbild wiederherstellen</button><span class="small">16:9, wird automatisch verkleinert</span></div></div>'
+ +shDetails('shdLayout','Anordnung der Buttons',shLayoutPreviewHtml(),'so wie auf der Startseite – zum Verschieben ziehen')
+ +shDetails('shdButtons','Buttons ('+SH.buttons.length+')',SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>','Namen, Links und Unterbuttons')
+ +shDetails('shdUtility','Nützliches verwalten',window.ecwUtility?window.ecwUtility.adminHtml():'')
+ +shDetails('shdExternal','Verbände, Regelwerk und Sonstiges',shExternalLinksAdminHtml())
+ +shDetails('shdLinks','Links für die Startseite','<div id="shLinksEmbedded"></div>','Adressen der Bereiche')
+ +shDetails('shdExtOpen','Externe Links öffnen','<div id="shExtOpenBox"></div>','eingebettet oder in neuem Tab')
+ +shDetails('shdMore','Weiteres','<label>Link zur Startseite</label><div class="row"><input type="text" readonly id="shLinkField" value="'+esc(shLink())+'" onclick="this.select()" style="flex:3"><button onclick="shCopy(this)">Kopieren</button><button onclick="window.open(shLink(),\'_blank\')">Öffnen</button></div>'
+   +'<div class="row" style="margin-top:10px"><button id="shFirebaseLoadBtn" onclick="shLoadFromFirebase(true)">Aus Firebase laden</button><button onclick="shExport()">Konfiguration exportieren</button><button class="danger" onclick="shReset()">Alles zurücksetzen</button></div><label>Konfiguration importieren (.json)</label><input type="file" accept=".json,application/json" onchange="shImport(this)">','Link, Export, Import')
+ +'<div class="row" style="justify-content:flex-end;margin-top:10px"><button class="primary" onclick="shSaveToFirebase()">💾 Startseite speichern</button></div></div>';
  a.scrollTop=st;
  shUpdateFirebaseStatus();
- renderLinksAdmin(document.getElementById('shLinksEmbedded'));
+ // „Links für die Startseite“ und „Externe Links öffnen“ getrennt aufklappbar
+ const links=document.getElementById('shLinksEmbedded');renderLinksAdmin(links);
+ const ext=links?.lastElementChild;if(ext&&/Externe Links öffnen/.test(ext.querySelector('h3')?.textContent||'')){ext.querySelector('h3').remove();document.getElementById('shExtOpenBox').appendChild(ext);}
+ const h=links?.querySelector('h2');if(h)h.remove();
+ // Innere Überschriften, die jetzt im Aufklappkopf stehen, entfernen
+ ['#utilityItemsAdmin > h3','#shExternalLinksAdmin > h3'].forEach(q=>a.querySelector(q)?.remove());
+ shBindLayoutDrag();
+}
+// Übersicht der sechseckigen Buttons in derselben Anordnung wie auf der Startseite
+function shLayoutPositions(){
+ const items=SH.buttons,occupied=new Set(),out=[];let regular=0;
+ const linksIndex=items.findIndex(b=>String(b.u).endsWith('#ecw-utility-links'));if(linksIndex>=0)occupied.add(1);
+ items.forEach((b,i)=>{const slot=i===linksIndex?1:b.whiteboardSlot;const reserved=i===linksIndex||((slot===1||slot===2)&&!occupied.has(slot));
+  const p=reserved?shWhiteboardPosition(0,slot):shWhiteboardPosition(regular++);if(reserved)occupied.add(slot);out.push({i,row:p[0],col:p[1],fixed:reserved});});
+ return out;
+}
+function shLayoutPreviewHtml(){
+ const w=96,g=8,step=w*.8399+g*.8661,h=w*1.135,pos=shLayoutPositions();
+ const rows=Math.max(...pos.map(p=>p.row)),W=(w+g)*5.5,H=(rows-1)*step+h;
+ return '<div class="sh-prev-wrap"><div class="sh-prev" style="width:'+W+'px;height:'+H+'px">'+pos.map(p=>{const b=SH.buttons[p.i];
+   return '<div class="sh-prev-hex'+((b.sub||[]).length?' sub':'')+(p.fixed?' fixed':'')+'" draggable="true" data-sh-i="'+p.i+'" title="'+esc(b.t.replace(/\n/g,' '))+(p.fixed?' (fester Platz)':'')+'" style="left:'+((p.col-1)*(w+g)/2).toFixed(1)+'px;top:'+((p.row-1)*step).toFixed(1)+'px;width:'+w+'px;height:'+h.toFixed(1)+'px"><span>'+esc(b.t).replace(/\n/g,'<br>')+'</span></div>';}).join('')+'</div></div>'
+  +'<p class="small" style="margin:6px 0 0">Einen Button auf einen anderen ziehen – er nimmt dessen Platz ein, die übrigen rücken nach. Buttons mit ▸ öffnen eine nächste Ebene. Danach „Startseite speichern“.</p>';
+}
+function shBindLayoutDrag(){
+ let from=null;
+ document.querySelectorAll('.sh-prev-hex').forEach(el=>{
+  el.addEventListener('dragstart',e=>{from=+el.dataset.shI;el.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
+  el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
+  el.addEventListener('dragleave',()=>el.classList.remove('over'));
+  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');const to=+el.dataset.shI;if(from===null||from===to)return;
+   if(!hasAppPermission('sh'))return;const [b]=SH.buttons.splice(from,1);SH.buttons.splice(to,0,b);from=null;shOpen=-1;shSave();shRender();renderStartseiteAdmin();showToast('Anordnung geändert – bitte „Startseite speichern“');});
+ });
 }
 var shAdminOpen=new WeakSet();
 function shAdminRow(b,i){
@@ -3897,23 +3932,27 @@ async function pressDeleteDuplicate(i){
 }
 let pressMosaicToken=0;
 const PRESS_MIN_TILE=105; // kleinste Kachelbreite in Pixel, darunter wird auf weitere Seiten verteilt
-// Ordnet Kacheln in Spalten (größte zuerst in die kürzeste Spalte) und liefert die Höhe.
-function pressPack(tiles,W,cw,gap){
- const cols=Math.max(1,Math.floor((W+gap)/(cw+gap))),hs=new Array(cols).fill(0),pos=new Array(tiles.length);
- // Reihenfolge wie in der Verwaltung festgelegt (Drag & Drop) – jede Kachel in die gerade kürzeste Spalte
- const order=tiles.map((t,i)=>i);
- for(const i of order){const t=tiles[i];
-   const span=t.b2&&cols>1&&t.a>1.25?2:1;let best=0,bestH=Infinity;
-   for(let k=0;k+span<=cols;k++){const h=Math.max(...hs.slice(k,k+span));if(h<bestH-0.5){bestH=h;best=k}}
-   const w=cw*span+gap*(span-1),h=w/t.a;pos[i]={l:best*(cw+gap),t:bestH,w,h};
-   for(let k=best;k<best+span;k++)hs[k]=bestH+h+gap;}
- return {pos,cols,height:Math.max(...hs)-gap,width:cols*cw+(cols-1)*gap};
+// V3.1.119: Kacheln zeilenweise von links nach rechts (Reihenfolge aus der Verwaltung).
+// Jede volle Zeile wird auf die ganze Breite skaliert, die letzte Zeile behält die Zielhöhe.
+function pressRows(tiles,W,h,gap){
+ const pos=new Array(tiles.length);let y=0,i=0,minW=Infinity,width=0;
+ while(i<tiles.length){let j=i,sum=0;
+  while(j<tiles.length){const na=sum+tiles[j].a;if(j>i&&na*h+gap*(j-i)>W)break;sum=na;j++;}
+  const full=j<tiles.length||sum*h+gap*(j-i-1)>=W*.85;
+  let rh=full?(W-gap*(j-i-1))/sum:h;let x=0;
+  for(let k=i;k<j;k++){const w=tiles[k].a*rh;pos[k]={l:x,t:y,w,h:rh};minW=Math.min(minW,w);x+=w+gap;}
+  width=Math.max(width,x-gap);y+=rh+gap;i=j;}
+ return {pos,height:y-gap,width,minW};
 }
-// Größtmögliche Kachelbreite, bei der alles in den Bereich passt.
+// Größte Darstellung, die in den Bereich W×H passt (bei Bedarf gleichmäßig verkleinert).
 function pressFit(tiles,W,H,gap){
- let lo=20,hi=W,best=null;
- for(let k=0;k<26;k++){const mid=(lo+hi)/2,r=pressPack(tiles,W,mid,gap);if(r.height<=H){best=r;best.cw=mid;lo=mid}else hi=mid;}
- return best||Object.assign(pressPack(tiles,W,lo,gap),{cw:lo});
+ let best=null;
+ for(let k=0;k<=48;k++){const h=H*(0.06+0.94*k/48),r=pressRows(tiles,W,h,gap);
+  const sc=Math.min(1,(H+gap)/(r.height+gap)),area=sc*sc*tiles.reduce((s,t,i)=>s+r.pos[i].w*r.pos[i].h,0);
+  if(!best||area>best.area)best={r,sc,area};}
+ const {r,sc}=best;
+ const pos=r.pos.map(p=>({l:p.l*sc,t:p.t*sc,w:p.w*sc,h:p.h*sc}));
+ return {pos,height:r.height*sc,width:r.width*sc,cw:r.minW*sc};
 }
 let pressPages=null;
 // Verwaltung: dieselbe Kachelansicht wie auf der Startseite (Seitenformat 16:9), mit Drag & Drop
@@ -3936,12 +3975,23 @@ async function renderPressAdminMosaic(el){
       +pressCropHtml(t.x.data,t.b1,t.x.name,t.b1.a/t.a)+(t.b2?pressCropHtml(t.x.data2,t.b2,t.x.name2,t.b2.a/t.a):'')
       +'<button type="button" class="zr-menu-btn" data-zr-menu="'+t.i+'" title="Bearbeiten">⋯</button></div>';}).join('')+'</div>';}).join('');
  let from=null;
+ const line=document.createElement('div');line.className='zr-insert';
+ // Einfügeposition: Kachel unter/neben dem Mauszeiger, linke Hälfte = davor, rechte Hälfte = dahinter
+ const target=(page,e)=>{const ts=[...page.querySelectorAll('.zr-tile')];if(!ts.length)return null;
+  let best=null,bd=Infinity;for(const t of ts){const r=t.getBoundingClientRect();
+   const dy=e.clientY<r.top?r.top-e.clientY:e.clientY>r.bottom?e.clientY-r.bottom:0,dx=e.clientX<r.left?r.left-e.clientX:e.clientX>r.right?e.clientX-r.right:0,d=dy*4+dx;
+   if(d<bd){bd=d;best={t,r,after:e.clientX>r.left+r.width/2}}}
+  return best;};
  el.querySelectorAll('.zr-tile').forEach(tile=>{
   tile.addEventListener('dragstart',e=>{from=+tile.dataset.i;tile.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
-  tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
-  tile.addEventListener('dragover',e=>{e.preventDefault();tile.classList.add('drag-over')});
-  tile.addEventListener('dragleave',()=>tile.classList.remove('drag-over'));
-  tile.addEventListener('drop',e=>{e.preventDefault();tile.classList.remove('drag-over');const to=+tile.dataset.i;if(from===null||from===to)return;
+  tile.addEventListener('dragend',()=>{tile.classList.remove('dragging');line.remove();});
+ });
+ el.querySelectorAll('.zr-page').forEach(page=>{
+  page.addEventListener('dragover',e=>{if(from===null)return;e.preventDefault();const t=target(page,e);if(!t)return;const pr=page.getBoundingClientRect();
+   line.style.left=((t.after?t.r.right+2:t.r.left-4)-pr.left)+'px';line.style.top=(t.r.top-pr.top)+'px';line.style.height=t.r.height+'px';if(line.parentNode!==page)page.appendChild(line);});
+  page.addEventListener('dragleave',e=>{if(!page.contains(e.relatedTarget))line.remove();});
+  page.addEventListener('drop',e=>{e.preventDefault();line.remove();const t=target(page,e);if(from===null||!t)return;
+   let to=+t.t.dataset.i+(t.after?1:0);if(from<to)to--;if(to===from){from=null;return;}
    const a=data.pressReports[PRESS_REPORTS_GROUP];const [moved]=a.splice(from,1);a.splice(to,0,moved);from=null;save();renderPressAdminMosaic(el);showToast('Reihenfolge geändert – bitte Speichern');});
  });
  el.querySelectorAll('[data-zr-menu]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();pressTileMenu(+b.dataset.zrMenu,b);}));

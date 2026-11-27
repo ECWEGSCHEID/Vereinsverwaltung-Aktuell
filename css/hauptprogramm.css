@@ -2256,3 +2256,22 @@ span.tp-result-open{cursor:default}
 .zr-menu-btn{position:absolute;top:4px;right:4px;z-index:3;min-height:0!important;padding:2px 8px!important;border-radius:6px;background:rgba(0,0,0,.7)!important;color:#fff;font-weight:800;line-height:1.2;width:auto!important}
 .zr-menu{position:fixed;z-index:100000;display:flex;flex-direction:column;gap:4px;padding:8px;background:#222;border:1px solid #666;border-radius:10px;min-width:190px;box-shadow:0 8px 20px rgba(0,0,0,.6)}
 .zr-menu button{text-align:left;width:100%}
+
+/* Verwaltung → Startseite verwalten */
+.sh-admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}.sh-admin-head h2{margin:0}
+.sh-admin .card{margin:0 0 10px}
+.sh-det>summary{cursor:pointer;list-style:none;padding:2px 0;font-size:1.05rem}.sh-det>summary::-webkit-details-marker{display:none}
+.sh-det>summary::before{content:'▸ ';display:inline-block;width:1.1em}.sh-det[open]>summary::before{content:'▾ '}
+.sh-det-body{margin-top:10px}.sh-det-body>.card{border:0!important;background:none!important;padding:0!important;margin:0!important}
+.sh-file{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;background:#3a3438;border:1px solid #6b5b62;cursor:pointer;font-weight:700;margin:0}.sh-file input{display:none}
+.sh-prev-wrap{overflow:auto;padding:6px 0}
+.sh-prev{position:relative;margin:0 auto}
+.sh-prev-hex{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;box-sizing:border-box;cursor:grab;color:#fff;font:600 12px/1.12 Arial,sans-serif;text-shadow:0 1px 3px #3d0000;
+ clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%);background:conic-gradient(#ff9e8b 0deg,#e6402d 61deg,#991007 61deg,#570300 119deg,#9d130a 119deg,#310100 180deg,#610500 180deg,#aa1b10 241deg,#b32212 241deg,#f35239 299deg,#fff3e5 299deg,#ff8f79 360deg)}
+.sh-prev-hex span{position:relative;z-index:1}
+.sh-prev-hex::before{content:'';position:absolute;inset:4px;clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%);background:linear-gradient(160deg,#c01d12,#6d0703)}
+.sh-prev-hex.sub span::after{content:' ▸'}
+.sh-prev-hex.fixed::before{background:linear-gradient(160deg,#5a5a5a,#2b2b2b)}
+.sh-prev-hex.dragging{opacity:.35}.sh-prev-hex.over::before{background:linear-gradient(160deg,#f0b429,#a86c00)}
+
+.zr-insert{position:absolute;width:4px;background:#f0b429;border-radius:2px;box-shadow:0 0 8px #f0b429;pointer-events:none;z-index:5}
