@@ -185,5 +185,7 @@
     },
     report: (key,text) => status(text,key),
     status: key => (key && recordStatus.get(key)) || message,
+    // true, sobald die Homepage automatisch (oder über das Fenster) verbunden ist – dann ist „Homepage verbinden“ unnötig
+    connected: () => direct || (!!folders.length && !!popup && !popup.closed),
   };
 })();
