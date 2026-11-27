@@ -7822,7 +7822,17 @@ async function loadPhotoPresentation(kind){
 function initPhotos(){clearInterval(photoTimer);if(photoScrollTimer)clearInterval(photoScrollTimer);const ms=[...new Set(pItems().map(p=>p.month))].sort();photoAlbumMonth=photoAlbumMonth&&ms.includes(photoAlbumMonth)?photoAlbumMonth:(ms[0]||null);tpEnsureSinglePhotoNav();renderPhotos()}
 function renderPhotos(){
  clearInterval(photoTimer);if(photoScrollTimer)cancelAnimationFrame(photoScrollTimer);photoScrollTimer=null;
- const c=document.getElementById(pCfg().contentEl),photos=pItems().filter(p=>p.month===photoAlbumMonth&&readPhotoSource(p)),ms=[...new Set(pItems().map(p=>p.month))].sort();
+ const c=document.getElementById(pCfg().contentEl),ms=[...new Set(pItems().map(p=>p.month))].sort();
+ let photos=pItems().filter(p=>p.month===photoAlbumMonth&&readPhotoSource(p));
+ // Diashow: jedes Mal in zufälliger Reihenfolge; nach einem vollen Durchlauf neu gemischt (Sponsoren bleiben in fester Reihenfolge)
+ const shuffled=pCollection==='photos';
+ const shuffle=l=>{l=l.slice();for(let k=l.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[l[k],l[j]]=[l[j],l[k]];}return l;};
+ if(shuffled)photos=shuffle(photos);
+ // Endlose Bildfolge: Runde für Runde neu gemischt, ohne dasselbe Bild zweimal hintereinander
+ const seq=photos.slice();
+ const pic=k=>{const n=photos.length;if(!shuffled||k<0)return photos[((k%n)+n)%n];
+  while(seq.length<=k){let r=shuffle(photos);if(n>1&&r[0]===seq[seq.length-1])r.push(r.shift());seq.push(...r);}
+  return seq[k];};
  const a=pAlbums()[photoAlbumMonth]||{};const mode=(a.mode||'static').toLowerCase();
  document.getElementById(pCfg().monthEl).textContent=photoAlbumMonth?(a.name||(photoAlbumMonth==='all'?'Fotos':monthLabel(photoAlbumMonth))):'Keine Fotos vorhanden';
  if(!photos.length){c.innerHTML='<div class="empty">Keine Fotos verfügbar. Falls die Bilder noch im alten Firebase-Projekt liegen, müssen sie vom Administrator in das neue Projekt übertragen werden.</div>';document.getElementById(pCfg().prevBtn).style.display='none';document.getElementById(pCfg().nextBtn).style.display='none';return}
@@ -7847,7 +7857,7 @@ function renderPhotos(){
      },true);
    }
    const setImg=(el,p)=>{el.querySelector('img').src=p.data;el.querySelector('img').alt=esc(p.name)};
-   const paint=()=>{setImg(items[0],photos[(i-1+n)%n]);setImg(items[1],photos[i%n]);setImg(items[2],photos[(i+1)%n]);setImg(items[3],photos[(i+2)%n])};
+   const paint=()=>{setImg(items[0],pic(i-1));setImg(items[1],pic(i));setImg(items[2],pic(i+1));setImg(items[3],pic(i+2))};
    paint();
    sizeSponsorPreviews();
    if(n>1){
@@ -7856,9 +7866,9 @@ function renderPhotos(){
      // nach den ersten beiden Bildern.
      let leftEl=items[0], centerEl=items[1], rightEl=items[2], spareEl=items[3];
      const advance=()=>{
-       const next=(i+1)%n;
-       const nextRight=(i+2)%n;
-       const nextSpare=(i+3)%n;
+       const next=i+1;
+       const nextRight=i+2;
+       const nextSpare=i+3;
        const oldLeft=leftEl;
        const oldCenter=centerEl;
        const oldRight=rightEl;
@@ -7871,14 +7881,14 @@ function renderPhotos(){
        oldRight.className='photo-carousel-item center';
        sizeSponsorPreviews();
        oldSpare.className='photo-carousel-item side right';
-       setImg(oldSpare,photos[nextRight]);
+       setImg(oldSpare,pic(nextRight));
        i=next;
 
        // Das ausgeschiedene Element wird unsichtbar rechts für den nächsten
        // Umlauf vorbereitet. Ein erzwungener Reflow verhindert sichtbare Sprünge.
        setTimeout(()=>{
          oldLeft.className='photo-carousel-item incoming';
-         setImg(oldLeft,photos[nextSpare]);
+         setImg(oldLeft,pic(nextSpare));
          void oldLeft.offsetWidth;
        },850);
 
