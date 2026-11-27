@@ -34,6 +34,8 @@ data.tournaments=data.tournaments||{};data.ownTournaments=data.ownTournaments||{
 const TP_PLAYER_NAMES=[];
 const TP_SEED_EVENTS=[];
 data.tournamentPlanner=Array.isArray(data.tournamentPlanner)?data.tournamentPlanner:[];
+// Termine für die Cupauswertung (Abschlussturnier, Starttermin) – im eingebetteten Fenster lesbar
+window.ecwPlannerEvents=()=>Array.isArray(data?.tournamentPlanner)?data.tournamentPlanner:[];
 if(!data.settings.tpSeeded){data.settings.tpSeeded=true;}
 data.tournamentPlannerTypes=(Array.isArray(data.tournamentPlannerTypes)&&data.tournamentPlannerTypes.length)?data.tournamentPlannerTypes:['Turnier','Meisterschaft','Feier','Gremlins'];
 

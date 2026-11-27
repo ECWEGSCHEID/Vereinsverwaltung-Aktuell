@@ -335,9 +335,11 @@
       let sets = t.totalSets || 5;
       let desc = sets === 'bo3' ? 'Best of 3' : sets === 'bo5' ? 'Best of 5' : `${sets} Sätze`;
       document.getElementById('groupsTitle').textContent = t.name;
-      // V3.1.128: Zusatzzeile (Gruppen/Aufsteiger/Sätze) entfällt
-      document.getElementById('groupsSub').textContent = '';
-      document.getElementById('groupsSub').style.display = 'none';
+      // V3.1.129: statt Gruppen/Aufsteiger/Sätze – Spielstand, Abschlussturnier und Zeitplan
+      const sub = document.getElementById('groupsSub');
+      sub.innerHTML = cupProgressHtml(t, activeId);
+      sub.style.display = sub.innerHTML ? '' : 'none';
+      sub.classList.add('cup-progress');
       const c = document.getElementById('groupCardsContainer');
       c.innerHTML = '';
       
@@ -367,6 +369,42 @@
       showView('view-groups');
     }
 
+    // Termine aus dem Termin- und Turnierplaner der Vereinsverwaltung (gleiches Fenster oder übergeordnetes Fenster)
+    function cupPlannerEvents() {
+      for (const w of [window, window.parent, window.top]) {
+        try { const l = w && typeof w.ecwPlannerEvents === 'function' ? w.ecwPlannerEvents() : null; if (Array.isArray(l) && l.length) return l; } catch (e) {}
+      }
+      return [];
+    }
+    function cupProgressHtml(t, tId) {
+      let total = 0, played = 0;
+      Object.values(t.groups || {}).forEach(g => Object.values(g.matches || {}).forEach(m => { total++; if (m.completed) played++; }));
+      if (!total) return '';
+      const key = String(t.name || '').toLowerCase().replace(/[^a-zäöüß]/g, '');
+      const kw = /frauen|damen/.test(key) ? /frauen|damen/ : /duo/.test(key) ? /duo/ : new RegExp(key.replace(/cup.*$/, '').slice(0, 8) || 'cup');
+      const ev = cupPlannerEvents().filter(x => x && x.date && kw.test(String(x.name || '').toLowerCase()));
+      const created = /^t_(\d{12,})/.test(tId) ? new Date(Number(tId.slice(2))) : null;
+      const startEv = ev.filter(x => /start|auftakt|beginn/i.test(x.name)).sort((a, b) => a.date.localeCompare(b.date))[0];
+      const start = startEv ? new Date(startEv.date + 'T00:00') : created;
+      const finals = ev.filter(x => /abschluss|finale|endturnier|schluss/i.test(x.name) && (!start || new Date(x.date + 'T00:00') >= start)).sort((a, b) => a.date.localeCompare(b.date));
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const fin = finals.find(x => new Date(x.date + 'T00:00') >= today) || finals[finals.length - 1];
+      const de = d => d.split('-').reverse().join('.');
+      let h = `<span class="cup-prog-count"><b>${played}</b> von <b>${total}</b> Spielen gespielt</span>`;
+      if (fin) {
+        const end = new Date(fin.date + 'T00:00');
+        h += `<span class="cup-prog-final">🏁 Abschlussturnier am <b>${de(fin.date)}</b></span>`;
+        if (start && end > start && played < total) {
+          // Formel: verstrichene Zeit (Starttermin → Abschlussturnier) im Vergleich zu den gespielten Spielen
+          const soll = Math.min(1, Math.max(0, (today - start) / (end - start)));
+          const ist = played / total;
+          h += ist + 0.02 >= soll
+            ? '<span class="cup-prog-ok">✅ Wir sind in der Zeit</span>'
+            : '<span class="cup-prog-warn">⏩ Wir müssen etwas Gas geben, um fertig zu werden</span>';
+        } else if (played >= total) h += '<span class="cup-prog-ok">✅ Alle Spiele gespielt</span>';
+      }
+      return h;
+    }
     function openGroupTable(gKey) {
       activeGroup = gKey;
       const t = tournaments[activeId];
