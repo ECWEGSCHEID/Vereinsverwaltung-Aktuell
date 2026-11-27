@@ -1476,6 +1476,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  if(Array.isArray(j.buttons))d.buttons=j.buttons.filter(b=>b&&typeof b.t==='string').map(b=>{const o={t:b.t,u:typeof b.u==='string'?b.u:''};
   if(b.whiteboardSlot===1||b.whiteboardSlot===2)o.whiteboardSlot=b.whiteboardSlot;
   if(Number.isInteger(b.cell)&&b.cell>=0&&b.cell<200)o.cell=b.cell;
+  if(Number.isInteger(b.subRows)&&b.subRows>=1&&b.subRows<=8)o.subRows=b.subRows;
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>{const y={t:x.t,u:typeof x.u==='string'?x.u:''};if(Number.isInteger(x.cell)&&x.cell>=0&&x.cell<200)y.cell=x.cell;return y;});if(sb.length)o.sub=sb}
   return o});
  if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
@@ -1794,6 +1795,12 @@ function shEnsureListCells(list){
  list.forEach(b=>{if(Number.isInteger(b.cell)&&b.cell>=0&&!used.has(b.cell))used.add(b.cell);else b.cell=-1;});
  list.forEach(b=>{if(b.cell<0){let c=0;while(used.has(c))c++;b.cell=c;used.add(c);}});
 }
+// Reihen der Interne-Cups-Seite: gleich für Startseite und Vorschau (auch nicht aktive Kacheln behalten ihren Platz)
+function shSubUsedRows(grp){return Math.max(1,...(grp?.sub||[]).map(b=>Number.isInteger(b.cell)?Math.floor(b.cell/SH_SUB_PER_ROW)+1:1));}
+function shSubRows(grp){return Math.max(+grp?.subRows||0,shSubUsedRows(grp));}
+function shSetSubRows(d){const g=shInternalGroup();if(!g||!hasAppPermission('sh'))return;shEnsureListCells(g.sub);const n=shSubRows(g)+d;
+ if(n<shSubUsedRows(g)){showToast('Die letzte Reihe ist belegt – zuerst die Kacheln daraus verschieben.',6000);return;}
+ if(n<1||n>8)return;g.subRows=n;shSave();shRender();window.ecwMarkDirty?.();const v=document.getElementById('icRowsVal');if(v)v.textContent=n;}
 function shSortListByCell(list){const order=new Map(list.map((b,i)=>[b,i]));list.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shSortByCell(){const order=new Map(SH.buttons.map((b,i)=>[b,i]));SH.buttons.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shRender(){
@@ -1845,8 +1852,7 @@ function shRender(){
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
  if(internalGroup){
   shEnsureListCells(grp.sub);
-  const rows=Math.max(1,...items.map(b=>Math.floor(b.cell/SH_SUB_PER_ROW)+1));
-  g.style.setProperty('--centered-submenu-rows',rows);
+  g.style.setProperty('--centered-submenu-rows',shSubRows(grp));
   els.forEach((tile,i)=>{const [row,column]=shSubCellPos(items[i].cell);tile.style.setProperty('--sh-tile-row',row);tile.style.setProperty('--sh-tile-column',column);});
  }else if(centeredSubmenu){
   g.style.setProperty('--centered-submenu-rows',Math.max(1,Math.ceil(total/4)));
@@ -2016,7 +2022,8 @@ function renderStartseiteAdmin(){if(!hasAppPermission('sh')){showToast('Startsei
 }
 // Vorschau: der ganze Startbildschirm (Hintergrund, Logos, Laufschrift) mit allen Plätzen.
 // Kacheln lassen sich nur auf FREIE Plätze ziehen.
-const SH_SCREEN_W=1920,SH_SCREEN_H=1080;
+// Vorschaugröße = Bildschirmgröße dieses Geräts (Querformat), sonst Full HD
+const SH_SCREEN_W=(screen.width>=1000&&screen.width>screen.height)?screen.width:1920,SH_SCREEN_H=(screen.width>=1000&&screen.width>screen.height)?screen.height:1080;
 function shScreenHtml(){
  const sc=Math.round(shTileScale()*100);
  return '<div class="row sh-size-bar" style="align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">'
@@ -2029,6 +2036,7 @@ function shScreenHtml(){
 function shScreenInit(){shFrameInit('shScreen','shScreenWrap',shScreenFill);}
 function shFrameInit(frId,wrapId,fill){
  const fr=document.getElementById(frId),wrap=document.getElementById(wrapId);if(!fr||!wrap)return;
+ fr.style.width=SH_SCREEN_W+'px';fr.style.height=SH_SCREEN_H+'px';
  const scale=()=>{const f=document.getElementById(frId),w=document.getElementById(wrapId);if(!f||!w)return;const s=w.clientWidth/SH_SCREEN_W;f.style.transform='scale('+s+')';w.style.height=Math.round(SH_SCREEN_H*s)+'px';};
  scale();window.__shScaleFns=window.__shScaleFns||{};window.__shScaleFns[frId]=scale;
  if(!window.__shScreenResize){window.__shScreenResize=true;window.addEventListener('resize',()=>Object.values(window.__shScaleFns).forEach(f=>f()));}
@@ -2090,7 +2098,7 @@ function shIcFill(){
  const back=doc.getElementById('shSubReturn');if(back)back.hidden=false;
  g.className='sh-whiteboard-hex sh-centered-submenu-hex';
  const used=new Set(grp.sub.map(b=>b.cell));
- const rows=Math.max(3,Math.floor(Math.max(...grp.sub.map(b=>b.cell))/SH_SUB_PER_ROW)+2);
+ const rows=shSubRows(grp);
  g.style.setProperty('--centered-submenu-rows',rows);
  const tiles=[];
  grp.sub.forEach((b,i)=>{const x=doc.createElement('a');x.className='shbtn'+(ecwInternActive(b)?'':' sh-inactive');
@@ -2796,6 +2804,7 @@ function renderInternalCupAdmin(){
   +'<div style="margin-top:14px"></div>'
   +shDetails('icdActive','Auf der Startseite anzeigen','<div id="ecwInternActiveBody"><p class="small">Wird geladen …</p></div>','aktiv / nicht aktiv')
   +shDetails('icdLayout','Buttonanordnung','<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><p class="small" style="margin:0">Kacheln auf einen <b>freien Platz</b> ziehen (zum Tauschen zuerst eine auf einen freien Platz). Graue Kacheln sind nicht aktiv und werden auf der Startseite nicht angezeigt.</p><button class="primary" onclick="shSaveToFirebase()">💾 Anordnung speichern</button></div>'
+   +'<div style="margin-top:8px"><b>Reihen:</b> <button type="button" style="width:auto" onclick="shSetSubRows(-1)" title="Reihe entfernen">−</button> <b id="icRowsVal">'+(shInternalGroup()?shSubRows(shInternalGroup()):1)+'</b> <button type="button" style="width:auto" onclick="shSetSubRows(1)" title="Reihe mit 4 freien Plätzen hinzufügen">+</button> <span class="small">· die Vorschau entspricht genau der Startseite</span></div>'
    +'<div class="sh-screen-wrap" id="icScreenWrap" style="margin-top:8px"><iframe id="icScreen" title="Vorschau Interne Cups" tabindex="-1"></iframe></div>','Ansicht wie auf der Startseite – Kacheln verschieben')
   ;
  renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);renderCupButtons();
