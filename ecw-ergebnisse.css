@@ -122,3 +122,14 @@
 .er-admin .er-admin-folder .row{gap:4px}.er-admin .er-admin-folder .row button{flex:1;padding:3px 0;min-height:0}
 .er-admin .er-admin-files{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
 @media(max-width:900px){.er-cols{grid-template-columns:1fr}}
+
+/* V3.1.120: Ordnerstruktur als Treppe, Ordnerkacheln größer und mittig */
+.er-structure{margin-top:14px}
+.er-tree{display:flex;flex-direction:column;gap:6px}
+.er-tree-item{display:block;text-align:left;width:auto;box-sizing:border-box;padding:7px 10px;border-radius:8px;background:#2a2428;border:1px solid #5a4a50;color:#fff;font-weight:600;white-space:normal}
+.er-tree-item.current{background:#7d1018;border-color:#c43a44}
+.er-tree-line{opacity:.6;margin-right:4px}
+.er-h-center{text-align:center}
+.er-admin .er-admin-folders{grid-template-columns:repeat(auto-fill,minmax(210px,230px));justify-content:center;gap:12px}
+.er-admin .er-admin-folder{padding:8px}
+.er-admin .er-folder-open{font-size:17px;min-height:64px;padding:8px 10px}

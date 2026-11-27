@@ -1461,7 +1461,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
  if(Array.isArray(j.buttons))d.buttons=j.buttons.filter(b=>b&&typeof b.t==='string').map(b=>{const o={t:b.t,u:typeof b.u==='string'?b.u:''};
   if(b.whiteboardSlot===1||b.whiteboardSlot===2)o.whiteboardSlot=b.whiteboardSlot;
   if(Number.isInteger(b.cell)&&b.cell>=0&&b.cell<200)o.cell=b.cell;
-  if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>({t:x.t,u:typeof x.u==='string'?x.u:''}));if(sb.length)o.sub=sb}
+  if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>{const y={t:x.t,u:typeof x.u==='string'?x.u:''};if(Number.isInteger(x.cell)&&x.cell>=0&&x.cell<200)y.cell=x.cell;return y;});if(sb.length)o.sub=sb}
   return o});
  if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
  if(j.docMenuInitialized===true)d.docMenuInitialized=true;
@@ -1758,6 +1758,18 @@ function shEnsureCells(){
  bs.forEach(b=>{if(Number.isInteger(b.cell)&&b.cell>=0&&!used.has(b.cell))used.add(b.cell);else b.cell=-1;});
  bs.forEach(b=>{if(b.cell<0){let c=0;while(used.has(c))c++;b.cell=c;used.add(c);}});
 }
+// Interne Cups (Untermenü „Ergebnisse Turniere Intern“): 4 Plätze pro Reihe, versetzt
+const SH_SUB_PER_ROW=4;
+function shSubCellPos(c){const r=Math.floor(c/SH_SUB_PER_ROW),k=c%SH_SUB_PER_ROW;return [r+1,(r%2?2:1)+2*k];}
+function shInternalGroup(){return SH.buttons.find(b=>/ergebnisse\s+turniere\s+intern/i.test(String(b.t).replace(/\n/g,' '))&&Array.isArray(b.sub));}
+function shEnsureListCells(list){
+ if(!list||!list.length)return;
+ if(!list.some(b=>Number.isInteger(b.cell)))list.forEach((b,i)=>b.cell=i);
+ const used=new Set();
+ list.forEach(b=>{if(Number.isInteger(b.cell)&&b.cell>=0&&!used.has(b.cell))used.add(b.cell);else b.cell=-1;});
+ list.forEach(b=>{if(b.cell<0){let c=0;while(used.has(c))c++;b.cell=c;used.add(c);}});
+}
+function shSortListByCell(list){const order=new Map(list.map((b,i)=>[b,i]));list.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shSortByCell(){const order=new Map(SH.buttons.map((b,i)=>[b,i]));SH.buttons.sort((a,b)=>a.cell-b.cell||order.get(a)-order.get(b));}
 function shRender(){
  const art=document.getElementById('shArt');if(!art)return;
@@ -1806,7 +1818,12 @@ function shRender(){
  const whiteboardLayout=!grp||centeredSubmenu;
  g.classList.toggle('sh-centered-submenu-hex',centeredSubmenu);
  g.classList.toggle('sh-whiteboard-hex',whiteboardLayout);
- if(centeredSubmenu){
+ if(internalGroup){
+  shEnsureListCells(grp.sub);
+  const rows=Math.max(1,...items.map(b=>Math.floor(b.cell/SH_SUB_PER_ROW)+1));
+  g.style.setProperty('--centered-submenu-rows',rows);
+  els.forEach((tile,i)=>{const [row,column]=shSubCellPos(items[i].cell);tile.style.setProperty('--sh-tile-row',row);tile.style.setProperty('--sh-tile-column',column);});
+ }else if(centeredSubmenu){
   g.style.setProperty('--centered-submenu-rows',Math.max(1,Math.ceil(total/4)));
   els.forEach((tile,i)=>{
    const [row,column]=shStaggeredPosition(i,total,4);
@@ -1830,7 +1847,7 @@ function shRender(){
   });
   }
  }
- g.replaceChildren(...els);shScreenFill();shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
+ g.replaceChildren(...els);shScreenFill();shIcFill();shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
 // ---------- Interne Cups: aktiv / nicht aktiv ----------
 const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
 const ECW_PYR_STATUS={soloHerren:'soloPyramide',soloDamen:'soloPyramideFrauen'};
@@ -1882,9 +1899,10 @@ async function ecwSetInternActive(key,on){
  renderInternActiveCard();
 }
 async function renderInternActiveCard(){
- const box=document.getElementById('ecwInternActiveCard');if(!box)return;
+ const box=document.getElementById('ecwInternActiveBody');if(!box)return;
  if(!ecwPyrActive)await ecwLoadPyrActive();
- box.innerHTML='<h3>Auf der Startseite anzeigen</h3><p class="small">Nicht aktive Bereiche werden unter „Ergebnisse Turniere Intern“ ausgeblendet. Die Pyramiden gelten zugleich für das Smartphone.</p>'
+ setTimeout(shIcFill,0);
+ box.innerHTML='<p class="small">Nicht aktive Bereiche werden unter „Ergebnisse Turniere Intern“ ausgeblendet. Die Pyramiden gelten zugleich für das Smartphone.</p>'
   +ECW_INTERN_ITEMS.map(([key,label])=>{const on=key in ECW_PYR_STATUS?ecwPyrActive?.[key]===true:SH.internActive?.[key]!==false;
    return '<div class="row" style="justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.12)"><span>'+esc(label)+'</span><button type="button" style="min-width:150px;background:'+(on?'#1f7a3a':'#555')+'" onclick="ecwSetInternActive(\''+key+'\','+(!on)+')">'+(on?'🟢 Aktiv':'⚪ Nicht aktiv')+'</button></div>';}).join('');
 }
@@ -1976,22 +1994,40 @@ function shScreenHtml(){
  return '<div class="sh-screen-wrap" id="shScreenWrap"><iframe id="shScreen" title="Vorschau Startbildschirm" tabindex="-1"></iframe></div>'
   +'<p class="small" style="margin:6px 0 0">Eine Kachel auf einen <b>freien Platz</b> ziehen. Zum Tauschen zweier Kacheln zuerst eine davon auf einen freien Platz ziehen. Danach „Startseite speichern“.</p>';
 }
-function shScreenInit(){
- const fr=document.getElementById('shScreen'),wrap=document.getElementById('shScreenWrap');if(!fr||!wrap)return;
- const scale=()=>{const s=wrap.clientWidth/SH_SCREEN_W;fr.style.transform='scale('+s+')';wrap.style.height=Math.round(SH_SCREEN_H*s)+'px';};
- scale();if(!window.__shScreenResize){window.__shScreenResize=true;window.addEventListener('resize',()=>{const f=document.getElementById('shScreen'),w=document.getElementById('shScreenWrap');if(f&&w){const s=w.clientWidth/SH_SCREEN_W;f.style.transform='scale('+s+')';w.style.height=Math.round(SH_SCREEN_H*s)+'px';}});}
+function shScreenInit(){shFrameInit('shScreen','shScreenWrap',shScreenFill);}
+function shFrameInit(frId,wrapId,fill){
+ const fr=document.getElementById(frId),wrap=document.getElementById(wrapId);if(!fr||!wrap)return;
+ const scale=()=>{const f=document.getElementById(frId),w=document.getElementById(wrapId);if(!f||!w)return;const s=w.clientWidth/SH_SCREEN_W;f.style.transform='scale('+s+')';w.style.height=Math.round(SH_SCREEN_H*s)+'px';};
+ scale();window.__shScaleFns=window.__shScaleFns||{};window.__shScaleFns[frId]=scale;
+ if(!window.__shScreenResize){window.__shScreenResize=true;window.addEventListener('resize',()=>Object.values(window.__shScaleFns).forEach(f=>f()));}
+ // aufgeklappter Bereich: Breite erst nach dem Öffnen bekannt
+ wrap.closest('details')?.addEventListener('toggle',scale);
  const src=document.getElementById('startseite');if(!src)return;
  const clone=src.cloneNode(true);clone.querySelectorAll('dialog,script').forEach(x=>x.remove());
  clone.className='view active';clone.removeAttribute('style');
  const head=[...document.querySelectorAll('link[rel="stylesheet"],style')].map(x=>x.outerHTML).join('');
- fr.addEventListener('load',()=>{shScreenFill();},{once:true});
+ fr.addEventListener('load',()=>fill(),{once:true});
  fr.srcdoc='<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><base href="'+esc(location.href.split('#')[0])+'">'+head
-  +'<style>html,body{margin:0;overflow:hidden;width:'+SH_SCREEN_W+'px;height:'+SH_SCREEN_H+'px}#shSubReturn{display:none!important}'
+  +'<style>html,body{margin:0;overflow:hidden;width:'+SH_SCREEN_W+'px;height:'+SH_SCREEN_H+'px}#shSubReturn{pointer-events:none}'
   +'#startseite #shGrid.sh-whiteboard-hex>.shbtn{cursor:grab;user-select:none}'
   +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-free{background:rgba(255,255,255,.13)!important;color:rgba(255,255,255,.55);font-weight:400;text-shadow:none;cursor:default}'
   +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-free::before{content:none!important}'
+  +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-inactive{filter:grayscale(1) brightness(.75);opacity:.6}'
   +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.sh-free.over{background:rgba(240,180,41,.75)!important;color:#000}'
   +'#startseite #shGrid.sh-whiteboard-hex>.shbtn.dragging{opacity:.35}</style></head><body class="'+esc(document.body.className)+'">'+clone.outerHTML+'</body></html>';
+}
+// Ziehen nur auf freie Plätze; list() liefert die Liste, deren .cell geändert wird
+function shBindFrameDrag(g,list,done){
+ if(g.__shBound)return;g.__shBound=true;let from=null;
+ g.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();},true);
+ g.addEventListener('dragstart',e=>{const t=e.target.closest('[data-sh-i]');if(!t){e.preventDefault();return;}from=+t.dataset.shI;t.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
+ g.addEventListener('dragend',e=>{e.target.classList?.remove('dragging');from=null;});
+ g.addEventListener('dragover',e=>{const f=e.target.closest('.sh-free');if(f&&from!==null){e.preventDefault();g.querySelectorAll('.over').forEach(x=>x!==f&&x.classList.remove('over'));f.classList.add('over');}});
+ g.addEventListener('dragleave',e=>{const f=e.target.closest('.sh-free');if(f&&!f.contains(e.relatedTarget))f.classList.remove('over');});
+ g.addEventListener('drop',e=>{e.preventDefault();const f=e.target.closest('.sh-free');g.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
+  if(from===null)return;const l=list(),b=l&&l[from];from=null;
+  if(!f){showToast('Bitte auf einen freien Platz ziehen. Zum Tauschen zuerst einen Button auf einen freien Platz ziehen.',6000);return;}
+  if(!hasAppPermission('sh')||!b)return;b.cell=+f.dataset.cell;shSortListByCell(l);shOpen=-1;shSave();shRender();done&&done();showToast('Kachel verschoben – bitte speichern');});
 }
 function shScreenFill(){
  const fr=document.getElementById('shScreen');const doc=fr&&fr.contentDocument;const g=doc&&doc.getElementById('shGrid');if(!g)return;
@@ -2009,17 +2045,30 @@ function shScreenFill(){
  for(let c=0;c<=maxCell;c++){if(used.has(c))continue;const x=doc.createElement('div');x.className='shbtn sh-free';x.dataset.cell=c;x.textContent='frei';
   const [r,col]=shCellPos(c);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',col);tiles.push(x);}
  g.replaceChildren(...tiles);
- if(!g.__shBound){g.__shBound=true;let from=null;
-  g.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();},true);
-  g.addEventListener('dragstart',e=>{const t=e.target.closest('[data-sh-i]');if(!t){e.preventDefault();return;}from=+t.dataset.shI;t.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
-  g.addEventListener('dragend',e=>{e.target.classList?.remove('dragging');from=null;});
-  g.addEventListener('dragover',e=>{const f=e.target.closest('.sh-free');if(f&&from!==null){e.preventDefault();g.querySelectorAll('.over').forEach(x=>x!==f&&x.classList.remove('over'));f.classList.add('over');}});
-  g.addEventListener('dragleave',e=>{const f=e.target.closest('.sh-free');if(f&&!f.contains(e.relatedTarget))f.classList.remove('over');});
-  g.addEventListener('drop',e=>{e.preventDefault();const f=e.target.closest('.sh-free');g.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
-   if(from===null)return;const b=SH.buttons[from];from=null;
-   if(!f){showToast('Bitte auf einen freien Platz ziehen. Zum Tauschen zuerst einen Button auf einen freien Platz ziehen.',6000);return;}
-   if(!hasAppPermission('sh')||!b)return;b.cell=+f.dataset.cell;shSortByCell();shOpen=-1;shSave();shRender();shRefreshButtonsList();showToast('Kachel verschoben – bitte „Startseite speichern“');});
- }
+ shBindFrameDrag(g,()=>SH.buttons,shRefreshButtonsList);
+}
+function shIcFill(){
+ const fr=document.getElementById('icScreen');const doc=fr&&fr.contentDocument;const g=doc&&doc.getElementById('shGrid');if(!g)return;
+ const grp=shInternalGroup();if(!grp){g.replaceChildren();return;}
+ shEnsureListCells(grp.sub);
+ const st=doc.getElementById('startseite');st.classList.add('sh-submenu');
+ const art=doc.getElementById('shArt');if(art)art.style.backgroundImage='url("'+(SH.bg||SH_BG)+'")';
+ const label=String(grp.t).replace(/\n/g,' ');
+ ['shTitle','shTitle2'].forEach(id=>{const h=doc.getElementById(id);if(h){h.textContent=label;h.classList.toggle('ecw-long-sh-title',label.length>22);}});
+ const back=doc.getElementById('shSubReturn');if(back)back.hidden=false;
+ g.className='sh-whiteboard-hex sh-centered-submenu-hex';
+ const used=new Set(grp.sub.map(b=>b.cell));
+ const rows=Math.max(3,Math.floor(Math.max(...grp.sub.map(b=>b.cell))/SH_SUB_PER_ROW)+2);
+ g.style.setProperty('--centered-submenu-rows',rows);
+ const tiles=[];
+ grp.sub.forEach((b,i)=>{const x=doc.createElement('a');x.className='shbtn'+(ecwInternActive(b)?'':' sh-inactive');
+  let text=b.t;try{text=(ecwInternalResultMode(b.u)==='cup'||/^cup\s*(?:ergebnisse|auswertung)$/i.test(b.t.trim()))?'Cup\nErgebnisse':(window.ecwTileLabel?.(b.t,'results')??b.t)}catch(e){}
+  x.textContent=text;x.draggable=true;x.dataset.shI=i;x.title=String(b.t).replace(/\n/g,' ')+(ecwInternActive(b)?'':' – nicht aktiv');
+  const [r,c]=shSubCellPos(b.cell);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',c);tiles.push(x);});
+ for(let c=0;c<rows*SH_SUB_PER_ROW;c++){if(used.has(c))continue;const x=doc.createElement('div');x.className='shbtn sh-free';x.dataset.cell=c;x.textContent='frei';
+  const [r,col]=shSubCellPos(c);x.style.setProperty('--sh-tile-row',r);x.style.setProperty('--sh-tile-column',col);tiles.push(x);}
+ g.replaceChildren(...tiles);
+ shBindFrameDrag(g,()=>shInternalGroup()?.sub);
 }
 function shRefreshButtonsList(){const d=document.querySelector('#shdButtons .sh-det-body');if(d)d.innerHTML=SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>';}
 var shAdminOpen=new WeakSet();
@@ -2682,9 +2731,12 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide Herren</button>'
   +'<button type="button" onclick="openSoloPyramideAdmin(true)">Solo Pyramide Damen</button>'
   +'</div></div>'
-  +'<div class="card" id="ecwInternActiveCard" style="margin-top:14px"><h3>Auf der Startseite anzeigen</h3><p class="small">Wird geladen …</p></div>'
+  +'<div style="margin-top:14px"></div>'
+  +shDetails('icdActive','Auf der Startseite anzeigen','<div id="ecwInternActiveBody"><p class="small">Wird geladen …</p></div>','aktiv / nicht aktiv')
+  +shDetails('icdLayout','Buttonanordnung','<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><p class="small" style="margin:0">Kacheln auf einen <b>freien Platz</b> ziehen (zum Tauschen zuerst eine auf einen freien Platz). Graue Kacheln sind nicht aktiv und werden auf der Startseite nicht angezeigt.</p><button class="primary" onclick="shSaveToFirebase()">💾 Anordnung speichern</button></div>'
+   +'<div class="sh-screen-wrap" id="icScreenWrap" style="margin-top:8px"><iframe id="icScreen" title="Vorschau Interne Cups" tabindex="-1"></iframe></div>','Ansicht wie auf der Startseite – Kacheln verschieben')
   ;
- renderInternActiveCard();
+ renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);
 }
 
 function ovOpen(k){
