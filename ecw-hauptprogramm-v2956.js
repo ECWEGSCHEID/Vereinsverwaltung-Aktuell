@@ -2104,9 +2104,9 @@ function shIcFill(){
 }
 function shSetRows(d){if(!hasAppPermission('sh'))return;const n=shRows()+d;
  if(n<shUsedRows()){showToast('Die letzte Reihe ist belegt – zuerst die Kacheln daraus verschieben.',6000);return;}
- if(n<2||n>8)return;SH.rows=n;shSave();shRender();
+ if(n<2||n>8)return;SH.rows=n;shSave();shRender();window.ecwMarkDirty?.();
  const v=document.getElementById('shRowsVal');if(v){v.textContent=n;const f=v.parentElement.querySelector('.small');if(f)f.textContent='('+(n*SH_CELLS_PER_ROW-SH.buttons.length)+' frei)';}}
-function shSetTileScale(v){if(!hasAppPermission('sh'))return;SH.tileScale=Math.max(.5,Math.min(1.2,(+v||100)/100));shSave();shRender();
+function shSetTileScale(v){if(!hasAppPermission('sh'))return;SH.tileScale=Math.max(.5,Math.min(1.2,(+v||100)/100));shSave();shRender();window.ecwMarkDirty?.();
  const e=document.getElementById('shScaleVal');if(e)e.textContent=Math.round(SH.tileScale*100)+' %';
  const r=document.querySelector('.sh-size-bar input[type=range]');if(r&&+r.value!==Math.round(SH.tileScale*100))r.value=Math.round(SH.tileScale*100);}
 function shRefreshButtonsList(){const d=document.querySelector('#shdButtons .sh-det-body');if(d)d.innerHTML=SH.buttons.map(shAdminRow).join('')+'<div class="row" style="margin:10px 0 0"><button class="primary" onclick="shAdd()">+ Button hinzufügen</button></div>';}
@@ -2748,7 +2748,7 @@ function setInternalCupAdminReturnButton(){
 // V3.1.121: jeder Cup ein eigener Button (Admin-Menü nur für diesen Cup), „Neuen Cup hinzufügen“ extra
 function openCupSingle(id,name){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
- window.__adminBack='menu';window.__adminPreviewMode=false;
+ window.__adminBack='ic';window.__adminPreviewMode=false;
  const u=new URL(internalCupUrl('cup','bearbeiten'));if(id)u.searchParams.set('turnier',id);else u.searchParams.set('neu','1');
  openExternalPage(u.href,id?(name||'Cup'):'Neuen Cup hinzufügen');
  setInternalCupAdminReturnButton();
@@ -2769,7 +2769,7 @@ async function renderCupButtons(){
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='ecw-cup-created')setTimeout(renderCupButtons,800);});
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
- window.__adminBack='menu';
+ window.__adminBack=document.getElementById('icCupButtons')?'ic':'menu';
  window.__adminPreviewMode=false;
  const labels={doppelko:'Doppel KO System',home:'Interne Cup',cup:'Cupauswertung',stockdart:'Stockdartauswertung',jahresmeisterschaft:'Ziel Jahresmeisterschaft',auslosung:'Turnierauslosung'};
  openExternalPage(internalCupUrl(mode,mode==='cup'?'bearbeiten':''),labels[mode]||'Interne Cup');
@@ -7344,9 +7344,9 @@ function adminSection(s){
  if(s==='t'){
   tCollection='tournaments';
   const tmonths=existingMonths(); const selectedAdminMonth=tmonths.includes(currentMonth)?currentMonth:(tmonths[0]||monthKey());
-  a.innerHTML='<h2>'+tCfg().label+'</h2><div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select><label style="margin-top:10px">Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="tfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><div id="firebaseTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die ausgewählten Dateien werden automatisch im Programm und in Firebase gespeichert. PDF-Dateien werden automatisch seitenweise übernommen.</p></div>'
+  a.innerHTML='<div class="n-admin-head"><h2>'+tCfg().label+'</h2><button class="primary" onclick="saveTournamentFiles()">💾 Speichern</button></div><div class="card"><label>Monat</label><select id="tm">'+tournamentMonthOptions().map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select><label style="margin-top:10px">Einladungen hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="tfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg"><div id="firebaseTournamentInfo" class="small" style="margin-top:10px"></div><p class="small" style="margin-top:10px">Die ausgewählten Dateien werden automatisch im Programm und in Firebase gespeichert. PDF-Dateien werden automatisch seitenweise übernommen.</p></div>'
    +shDetails('tdPresent','Präsentationsseite – alle gespeicherten Einladungen','<label>Monat auswählen</label><select id="tadminmonth">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div>','auch abgelaufene, zum Sortieren und Bearbeiten')
-   +shDetails('tdReal','Echte Ansicht – so erscheint es auf der Startseite','<div id="tRealView"></div>','nur die wirklich angezeigten Einladungen')
+   +shDetails('tdReal','Echte Ansicht – so erscheint es auf der Startseite','<label>Monat auswählen</label><select id="tRealMonth" data-no-dirty onchange="renderTournamentRealView()">'+(tmonths.length?tmonths.map(m=>'<option value="'+m+'" '+(m===selectedAdminMonth?'selected':'')+'>'+monthLabel(m)+'</option>').join(''):'<option value="'+monthKey()+'">'+monthLabel(monthKey())+'</option>')+'</select><div id="tRealView" style="margin-top:8px"></div>','nur die wirklich angezeigten Einladungen')
    +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="saveTournamentFiles()">Speichern</button></div>';
   renderTournamentAdminList(); renderTournamentAdminPreview(); renderTournamentRealView();
   document.getElementById('tdReal')?.addEventListener('toggle',renderTournamentRealView);
@@ -7518,7 +7518,7 @@ function renderTournamentAdminPreview(){
    d.ondragend=()=>d.style.opacity='1';
    d.ondragover=e=>{e.preventDefault();d.classList.add('drag-over')};
    d.ondragleave=()=>d.classList.remove('drag-over');
-   d.ondrop=e=>{e.preventDefault();d.classList.remove('drag-over');const from=Number(e.dataTransfer.getData('text/plain')),to=Number(d.dataset.pos);if(!Number.isFinite(from)||from===to)return;const arr=tStore()[m]||[];if(from<0||from>=arr.length||!arr[from])return;const moved=arr[from];arr[from]=null;if(to>=arr.length)arr.length=to+1;arr[to]=moved;while(arr.length&&arr[arr.length-1]==null)arr.pop();renderTournamentAdminPreview();renderTournamentAdminList();showToast('Reihenfolge geändert – bitte Speichern')};
+   d.ondrop=e=>{e.preventDefault();d.classList.remove('drag-over');const from=Number(e.dataTransfer.getData('text/plain')),to=Number(d.dataset.pos);if(!Number.isFinite(from)||from===to)return;const arr=tStore()[m]||[];if(from<0||from>=arr.length||!arr[from])return;const moved=arr[from];if(to>=arr.length)arr.length=to+1;const other=arr[to]??null;arr[to]=moved;arr[from]=other; /* belegter Platz: tauschen statt überschreiben */while(arr.length&&arr[arr.length-1]==null)arr.pop();renderTournamentAdminPreview();renderTournamentAdminList();showToast('Reihenfolge geändert – bitte Speichern')};
    page.appendChild(d);
  }
  el.appendChild(page);
@@ -7530,12 +7530,12 @@ function renderTournamentAdminPreview(){
 function renderTournamentRealView(){
  const el=document.getElementById('tRealView');if(!el||tCollection!=='tournaments')return;
  const det=document.getElementById('tdReal');if(det&&!det.open){el.innerHTML='';return;}
- const st=tStore(),months=presentationTournamentMonths(),perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12));
- const hidden=Object.values(st).flat().filter(x=>x&&!tournamentInvitationVisible(x)).length;
- if(!months.length){el.innerHTML='<div class="small">Auf der Startseite werden derzeit keine Einladungen angezeigt.</div>';return;}
+ const st=tStore(),selM=document.getElementById('tRealMonth')?.value,months=selM?[selM]:presentationTournamentMonths(),perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12));
+ const hidden=months.flatMap(m=>st[m]||[]).filter(x=>x&&!tournamentInvitationVisible(x)).length;
+ if(!months.length||!months.some(m=>(st[m]||[]).some(tournamentInvitationVisible))){el.innerHTML='<div class="small">In diesem Monat wird auf der Startseite keine Einladung angezeigt'+(months.length&&(st[months[0]]||[]).some(Boolean)?' (alle Einladungen sind abgelaufen)':'')+'.</div>';return;}
  const W=Math.max(320,el.clientWidth||900),H=Math.round(W*9/16),rows=2,cols=Math.ceil(perPage/2),gap=4,pad=10;
  const slotH=Math.floor((H-2*pad-(rows-1)*gap)/rows),slotW=Math.max(40,Math.min(Math.floor(slotH*210/297),Math.floor((W-2*pad-(cols-1)*gap)/cols)));
- let h='<div class="small" style="margin-bottom:8px">'+months.length+' Monat(e) mit Einladungen'+(hidden?' · '+hidden+' abgelaufene Einladung(en) werden nicht mehr angezeigt':'')+' · '+perPage+' pro Seite</div>';
+ let h='<div class="small" style="margin-bottom:8px">'+(hidden?hidden+' abgelaufene Einladung(en) werden nicht mehr angezeigt':'Alle Einladungen dieses Monats werden angezeigt')+' · '+perPage+' pro Seite</div>';
  months.forEach(m=>{
   const items=(st[m]||[]).filter(tournamentInvitationVisible),pages=Math.max(1,Math.ceil(items.length/perPage));
   for(let pg=0;pg<pages;pg++){
