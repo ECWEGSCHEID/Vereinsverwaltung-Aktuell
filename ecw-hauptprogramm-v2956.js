@@ -2729,6 +2729,28 @@ function internalCupUrl(mode='home',extra=''){
 function setInternalCupAdminReturnButton(){
  setExternalReturnButton();
 }
+// V3.1.121: jeder Cup ein eigener Button (Admin-Menü nur für diesen Cup), „Neuen Cup hinzufügen“ extra
+function openCupSingle(id,name){
+ if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
+ window.__adminBack='menu';window.__adminPreviewMode=false;
+ const u=new URL(internalCupUrl('cup','bearbeiten'));if(id)u.searchParams.set('turnier',id);else u.searchParams.set('neu','1');
+ openExternalPage(u.href,id?(name||'Cup'):'Neuen Cup hinzufügen');
+ setInternalCupAdminReturnButton();
+}
+async function renderCupButtons(){
+ const box=document.getElementById('icCupButtons');if(!box)return;
+ let t={};
+ try{
+  if(firestoreDb){const snap=await firestoreDb.collection('turnierauswertung').doc('cup').get();t=snap.data()?.tournaments||{};}
+  else if(window.ecwLoadCupTournaments)t=await window.ecwLoadCupTournaments();
+ }catch(e){console.warn('Cups:',e);try{if(window.ecwLoadCupTournaments)t=await window.ecwLoadCupTournaments()}catch(x){}}
+ if(!box.isConnected)return;
+ const list=Object.entries(t||{}).filter(([,x])=>x&&x.name).sort((a,b)=>String(b[0]).localeCompare(String(a[0]),'de',{numeric:true}));
+ box.innerHTML=list.map(([id,x])=>'<button type="button" class="ic-cup-btn" data-cup="'+esc(id)+'">🏆 '+esc(x.name)+'</button>').join('')
+  +(list.length?'':'<div class="small">Noch kein Cup angelegt.</div>');
+ box.querySelectorAll('[data-cup]').forEach(b=>b.onclick=()=>openCupSingle(b.dataset.cup,b.textContent.replace(/^🏆\s*/,'')));
+}
+window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='ecw-cup-created')setTimeout(renderCupButtons,800);});
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
  window.__adminBack='menu';
@@ -2743,8 +2765,9 @@ function renderInternalCupAdmin(){
  a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">'
   +'<div><h2 style="margin:0">Interne Cups</h2><div class="small">Cupauswertung, Doppel KO System, Solo Pyramide und weitere Auswertungen zentral in der Vereinsverwaltung · keine zweite Anmeldung erforderlich.</div></div>'
   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück zur Verwaltung</button></div>'
-  +'<div class="card"><h3>Bereich auswählen</h3><div class="ovmenu">'
-  +'<button type="button" onclick="openInternalCupAdmin(\'cup\')">Cupauswertung bearbeiten</button>'
+  +'<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">Cups</h3><button type="button" class="primary" onclick="openCupSingle()">➕ Neuen Cup hinzufügen</button></div>'
+  +'<p class="small" style="margin:4px 0 8px">Jeder Cup hat seinen eigenen Bereich: Ergebnisse, Historie, Druck und Verwaltung nur für diesen Cup.</p><div class="ovmenu" id="icCupButtons"><div class="small">Cups werden geladen …</div></div></div>'
+  +'<div class="card" style="margin-top:14px"><h3>Weitere Bereiche</h3><div class="ovmenu">'
   +'<button type="button" onclick="openInternalCupAdmin(\'doppelko\')">Doppel KO System</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'stockdart\')">Stockdartauswertung</button>'
   +'<button type="button" onclick="openInternalCupAdmin(\'jahresmeisterschaft\')">Ziel Jahresmeisterschaft</button>'
@@ -2759,7 +2782,7 @@ function renderInternalCupAdmin(){
   +shDetails('icdLayout','Buttonanordnung','<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><p class="small" style="margin:0">Kacheln auf einen <b>freien Platz</b> ziehen (zum Tauschen zuerst eine auf einen freien Platz). Graue Kacheln sind nicht aktiv und werden auf der Startseite nicht angezeigt.</p><button class="primary" onclick="shSaveToFirebase()">💾 Anordnung speichern</button></div>'
    +'<div class="sh-screen-wrap" id="icScreenWrap" style="margin-top:8px"><iframe id="icScreen" title="Vorschau Interne Cups" tabindex="-1"></iframe></div>','Ansicht wie auf der Startseite – Kacheln verschieben')
   ;
- renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);
+ renderInternActiveCard();shFrameInit('icScreen','icScreenWrap',shIcFill);renderCupButtons();
 }
 
 function ovOpen(k){
