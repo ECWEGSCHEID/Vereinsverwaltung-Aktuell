@@ -15,7 +15,7 @@
       }
     })();
   </script>
-  <script src="ecw-site-base.js?v=3.1.128.271127"></script>
+  <script src="ecw-site-base.js?v=3.1.129.271127"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>EC Wegscheid Turnierauswertung – Version 2.9.27 · Vereinsverwaltung</title>
@@ -751,14 +751,16 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
     /* Gruppenseite: sechseckige Buttons wie auf der Startseite */
     #groupCardsContainer .cup-hex-card{display:block;width:100%;max-width:none;grid-column:1/-1;background:transparent!important;border:0!important;box-shadow:none!important;text-align:center}#groupCardsContainer:has(.cup-hex-card){display:block}
     #groupCardsContainer .cup-hex-card h3{margin:0 0 6px}
-    .cup-hex-actions{display:flex!important;width:100%;justify-content:center;gap:clamp(14px,3vw,36px);flex-wrap:wrap;padding:6px 0 10px}
+    .cup-hex-actions{display:flex!important;width:100%;margin-top:clamp(20px,7vh,80px);justify-content:center;gap:clamp(14px,3vw,36px);flex-wrap:wrap;padding:6px 0 10px}
     .cup-hex{--w:150px;width:var(--w);height:calc(var(--w)*1.135);border:0;padding:0;cursor:pointer;position:relative;color:#fff;font:800 calc(var(--w)*.11)/1.15 Arial,sans-serif;text-shadow:0 2px 4px #3d0000;
       clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%);background:conic-gradient(#ff9e8b 0deg,#e6402d 61deg,#991007 61deg,#570300 119deg,#9d130a 119deg,#310100 180deg,#610500 180deg,#aa1b10 241deg,#b32212 241deg,#f35239 299deg,#fff3e5 299deg,#ff8f79 360deg);filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
     .cup-hex::before{content:'';position:absolute;inset:calc(var(--w)*.04);clip-path:inherit;background:linear-gradient(160deg,#c01d12,#6d0703)}
     .cup-hex span{position:relative;z-index:1}
-    .cup-hex-alt::before{background:linear-gradient(160deg,#2f4f7a,#14233d)}
+    
     .cup-hex:hover::before{filter:brightness(1.15)}
     .cup-hex-card.single .cup-hex{--w:min(34vw,290px)}
+    #groupsSub.cup-progress{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;color:#fff!important;font-size:clamp(.9rem,1.6vw,1.15rem)!important;margin-top:6px!important}
+    .cup-prog-ok{color:#7dff9a;font-weight:800}.cup-prog-warn{color:#ffd24a;font-weight:800}
     /* Eingabe wie Spielkarte */
     .cup-entry-player small{display:block;font-size:.62em;font-weight:600;opacity:.75;text-transform:uppercase;letter-spacing:.04em}
     .cup-ansch{display:inline-flex;width:1.4em;justify-content:center;font-weight:900;color:#ffd24a}
@@ -1273,7 +1275,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div id="printArea"></div>
 
-  <script src="js/auswertung-teil-02.js?v=3.1.128.271127"></script>
+  <script src="js/auswertung-teil-02.js?v=3.1.129.271127"></script>
 
   <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
   <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
