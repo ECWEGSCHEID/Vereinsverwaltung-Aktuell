@@ -306,8 +306,8 @@ main:has(#menu:not([hidden])){
 <button type="button" data-mobile-feature="games">Spiele<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="tables">Tabellen<span class="arrow" aria-hidden="true">›</span></button>
 <button type="button" data-mobile-feature="myresults">Meine Ergebnisse<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button" data-mobile-feature="solo">Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
-<button type="button" data-mobile-feature="soloFrauen">Frauen Solo Pyramide<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="solo">Solo Pyramide Herren<span class="arrow" aria-hidden="true">›</span></button>
+<button type="button" data-mobile-feature="soloFrauen">Solo Pyramide Damen<span class="arrow" aria-hidden="true">›</span></button>
 </nav>
 </section>
 <section id="detail" aria-labelledby="detail-title" hidden>
@@ -1485,11 +1485,11 @@ menu.querySelectorAll('nav button').forEach(button => {
       showModule(title, reservationAddress());
       return;
     }
-    if (title === 'Solo Pyramide') {
+    if (title === 'Solo Pyramide Herren' || title === 'Solo Pyramide') {
       showModule(title, soloUrl, false, true);
       return;
     }
-    if (title === 'Frauen Solo Pyramide') {
+    if (title === 'Solo Pyramide Damen') {
       showModule(title, soloWomenUrl, false, true);
       return;
     }

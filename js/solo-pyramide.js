@@ -24,7 +24,7 @@ const INTEGRATED_HOSTED_MODE = /(?:^|\/)solo-pyramide\.html$/i.test(location.pat
 const WOMEN_PYRAMID = APP_URL_PARAMS.get('pyramide') === 'frauen';
 const STORE_SUFFIX = WOMEN_PYRAMID ? '_frauen' : '';
 if(WOMEN_PYRAMID){
-  document.title = 'Frauen Solo Pyramide';
+  document.title = 'Solo Pyramide Damen';
 }
 
 
@@ -132,7 +132,7 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const MAX_VACATION_DAYS = 14;
 
-const defaultTitle = WOMEN_PYRAMID ? "Frauen Solo Pyramide 2026/27" : "Solo Pyramide 2026";
+const defaultTitle = WOMEN_PYRAMID ? "Solo Pyramide Damen 2026/27" : "Solo Pyramide 2026";
 const defaultSubtitle = "EC Wegscheid";
 // Kein öffentlich bekanntes Admin-Standardpasswort mehr.
 const defaultPassword = null;
@@ -420,7 +420,7 @@ async function initCentralFirebase(){
     return false;
   }
 }
-const soloStatusBanner=document.createElement('div');soloStatusBanner.id='soloStatusBanner';soloStatusBanner.textContent=WOMEN_PYRAMID?'Die Frauen Solo Pyramide ist noch nicht gestartet.':'Die Solo Pyramide ist noch nicht gestartet.';soloStatusBanner.style.cssText='background:#3a2a10;color:#ffd98a;text-align:center;font-weight:bold;padding:8px;border-radius:8px;margin:6px';document.body.prepend(soloStatusBanner);
+const soloStatusBanner=document.createElement('div');soloStatusBanner.id='soloStatusBanner';soloStatusBanner.textContent=WOMEN_PYRAMID?'Die Solo Pyramide Damen ist noch nicht gestartet.':'Die Solo Pyramide ist noch nicht gestartet.';soloStatusBanner.style.cssText='background:#3a2a10;color:#ffd98a;text-align:center;font-weight:bold;padding:8px;border-radius:8px;margin:6px';document.body.prepend(soloStatusBanner);
 const soloWarning=document.createElement('div');soloWarning.id='soloDataError';soloWarning.style.cssText='color:#ffb3b3;text-align:center;font-weight:bold';document.body.prepend(soloWarning);
 await initCentralFirebase();
 
