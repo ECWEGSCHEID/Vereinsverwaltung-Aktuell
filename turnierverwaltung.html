@@ -502,6 +502,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 .mobile-mode #startlisteBody td{display:block!important;border:0!important;padding:0!important;overflow-wrap:anywhere;white-space:normal!important;}
 .mobile-mode #startlisteBody td:nth-child(1){grid-row:1/3;grid-column:1;display:flex!important;align-items:flex-start;justify-content:center;font-weight:800;padding-top:2px!important;}
 .mobile-mode #startlisteBody td:nth-child(2){grid-column:2;font-size:.95rem;line-height:1.25;}
+#startlisteBody td{padding-top:10px;padding-bottom:10px;vertical-align:top}#startlisteBody tr+tr td{border-top:1px solid rgba(255,255,255,.12)}#startlisteBody td:nth-child(2) .meldung-per{display:block;margin-top:4px;font-size:.82rem;color:var(--muted)}
 .mobile-mode #startlisteBody td:nth-child(2) .meldung-per{display:block;margin-top:3px;font-size:.76rem;color:var(--muted);}
 .mobile-mode #startlisteBody td:nth-child(3){grid-column:2;font-size:.78rem;color:var(--muted)!important;margin-top:2px;}
 .mobile-mode #startlisteBody td:nth-child(4){grid-column:1/-1;margin-top:7px;}
@@ -1731,6 +1732,8 @@ setTimeout(() => {
         <label for="tdAngemeldetPer">Angemeldet per</label>
         <select id="tdAngemeldetPer"><option value="">– Bitte auswählen –</option><option value="WhatsApp">WhatsApp</option><option value="Telefonisch">Telefonisch</option><option value="E-Mail">E-Mail</option><option value="Mündlich">Mündlich</option></select>
         <div class="mobile-only" id="quickChannels" role="group" aria-label="Angemeldet per"><button class="secondary" data-channel="WhatsApp" aria-pressed="false">WhatsApp</button><button class="secondary" data-channel="Telefonisch" aria-pressed="false">Telefonisch</button><button class="secondary" data-channel="E-Mail" aria-pressed="false">E-Mail</button><button class="secondary" data-channel="Mündlich" aria-pressed="false">Mündlich</button></div>
+        <label for="tdAngemeldetDurch">Angemeldet durch <span class="meta">(optional)</span></label>
+        <input type="text" id="tdAngemeldetDurch" placeholder="z. B. Name der Person, die angemeldet hat" maxlength="120" autocomplete="off" autocapitalize="words" />
         <p class="mobile-only meta">Anmeldedatum ist heute. Weitere Angaben sind optional.</p>
         <details id="quickOptional" open><summary>Weitere Angaben: Bezeichnung / Datum</summary><label for="tdTeamZusatz">Mannschaftsbezeichnung (optional)</label><input id="tdTeamZusatz" placeholder="z. B. II, Damen oder Duo 1" maxlength="100" /><label for="tdAnmeldedatum">Anmeldedatum</label><input type="date" id="tdAnmeldedatum" /></details>
         <p id="quickSaved" class="mobile-only" role="status" aria-live="polite"></p>
@@ -6116,6 +6119,7 @@ function resetStartlisteEingabe() {
   document.getElementById('meldungTitel').textContent='Mannschaft hinzufügen';
   document.getElementById('meldungCancelBtn').classList.add('hidden');
   document.getElementById('tdTeamZusatz').value='';
+  document.getElementById('tdAngemeldetDurch').value='';
   document.getElementById("tdVereinSelect").value = "";
   document.getElementById("tdManuellName").value = "";
   document.getElementById("tdAngemeldetPer").value = "";
@@ -6132,7 +6136,7 @@ function editMeldung(m) {
   else document.getElementById('tdManuellName').value=m.vereinName||'';
   document.getElementById('tdTeamZusatz').value=m.teamZusatz||'';
   document.getElementById('tdAnmeldedatum').value=m.anmeldedatum||localToday();
-  document.getElementById('tdAngemeldetPer').value=m.angemeldetPer||'';syncQuickChannel();document.getElementById('quickOptional').open=true;
+  document.getElementById('tdAngemeldetPer').value=m.angemeldetPer||'';document.getElementById('tdAngemeldetDurch').value=m.angemeldetDurch||'';syncQuickChannel();document.getElementById('quickOptional').open=true;
   if(mobileMode){document.getElementById('teamListDetails').open=false;}
   updateKapazitaetsAnzeige(); document.getElementById('registrationCard').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -6152,6 +6156,7 @@ document.getElementById("tdAddMeldungBtn").addEventListener("click", () => saveA
   const auswahlId = document.getElementById("tdVereinSelect").value;
   const manuellName = document.getElementById("tdManuellName").value.trim();
   const angemeldetPer = document.getElementById("tdAngemeldetPer").value;
+  const angemeldetDurch = document.getElementById("tdAngemeldetDurch").value.trim();
   const anmeldedatum = document.getElementById("tdAnmeldedatum").value;
   if (!auswahlId && !manuellName) { alert("Bitte einen Verein auswählen oder eine Mannschaft manuell eingeben."); return; }
   if (!angemeldetPer) { notify("Bitte zuerst „Angemeldet per“ auswählen (WhatsApp, Telefonisch, E-Mail oder Mündlich).",true); document.getElementById("tdAngemeldetPer").focus(); return; }
@@ -6181,19 +6186,28 @@ document.getElementById("tdAddMeldungBtn").addEventListener("click", () => saveA
 
   const duplicate = meldungenCache.find(m=>m.id!==editMeldungId && (m.vereinName||'').trim().toLowerCase()===vereinName.trim().toLowerCase() && (m.teamZusatz||'').trim().toLowerCase()===teamZusatz.toLowerCase());
   if(duplicate) {if(mobileMode)document.getElementById('quickOptional').open=true; notify('Diese Mannschaft ist bereits gemeldet. Für eine weitere Mannschaft bitte eine eigene Bezeichnung angeben, z. B. II.',true); return; }
-  const payload={turnierId:aktuellesTurnier.id,vereinId,vereinName,teamZusatz,anmeldedatum,angemeldetPer};
+  const payload={turnierId:aktuellesTurnier.id,vereinId,vereinName,teamZusatz,anmeldedatum,angemeldetPer,...(angemeldetDurch||editMeldungId?{angemeldetDurch}:{})};
   // Im eingebetteten Modus stammt die Firestore-Compat-Instanz aus dem Hauptfenster.
   // Die Nutzdaten muessen deshalb als Plain Object im Hauptfenster erzeugt werden.
   // Firestore-Sentinels erst nach der Konvertierung hinzufuegen.
   const savePayload=embeddedInMain
     ? window.parent.JSON.parse(window.parent.JSON.stringify(payload))
     : payload;
-  if(editMeldungId) await updateDoc(doc(db,'meldungen',editMeldungId),savePayload);
-  else {
-    savePayload.erstelltAm=serverTimestamp();
-    await addDoc(collection(db,'meldungen'),savePayload);
+  let durchWarnung=false;
+  const writeMeldung=async p=>{
+    if(editMeldungId) await updateDoc(doc(db,'meldungen',editMeldungId),p);
+    else { p.erstelltAm=serverTimestamp(); await addDoc(collection(db,'meldungen'),p); }
+  };
+  try { await writeMeldung(savePayload); }
+  catch(err) {
+    // Falls die Firebase-Regeln das neue Feld noch nicht kennen: ohne „Angemeldet durch“ speichern
+    if(err?.code!=='permission-denied' || !('angemeldetDurch' in savePayload)) throw err;
+    delete savePayload.angemeldetDurch; delete savePayload.erstelltAm;
+    await writeMeldung(savePayload);
+    durchWarnung=true;
   }
-  notify(editMeldungId?'Mannschaft gespeichert.':'Mannschaft hinzugefügt.');
+  if(durchWarnung) notify('Mannschaft gespeichert – „Angemeldet durch“ konnte nicht gespeichert werden (Firebase-Regel für Meldungen ergänzen).',true);
+  else notify(editMeldungId?'Mannschaft gespeichert.':'Mannschaft hinzugefügt.');
   resetStartlisteEingabe();
   if(mobileMode){document.getElementById('tdAngemeldetPer').value=angemeldetPer;syncQuickChannel();document.getElementById('quickSaved').textContent=vereinName+(teamZusatz?' · '+teamZusatz:'')+' erfolgreich angemeldet.';document.getElementById('tdManuellName').focus();}
 }));
@@ -6217,7 +6231,7 @@ function listenMeldungen(turnierId) {
     if(editMeldungId && !meldungenCache.some(m=>m.id===editMeldungId)) resetStartlisteEingabe();
     meldungenCache.forEach((m,i)=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td><strong>${escapeHtml(m.vereinName||'')}</strong>${m.teamZusatz?' · '+escapeHtml(m.teamZusatz):''}<span class="meldung-per">Angemeldet per: ${escapeHtml(m.angemeldetPer||'Nicht erfasst')}</span></td><td>${escapeHtml(m.anmeldedatum?formatDatum(m.anmeldedatum):'')}</td><td><div class="inline-actions"><button class="secondary" data-edit>Bearbeiten</button><button class="danger" data-remove>Entfernen</button></div></td>`;
+      tr.innerHTML=`<td>${i+1}</td><td><strong>${escapeHtml(m.vereinName||'')}</strong>${m.teamZusatz?' · '+escapeHtml(m.teamZusatz):''}<span class="meldung-per">Angemeldet per: ${escapeHtml(m.angemeldetPer||'Nicht erfasst')}${m.angemeldetDurch?' · durch '+escapeHtml(m.angemeldetDurch):''}</span></td><td>${escapeHtml(m.anmeldedatum?formatDatum(m.anmeldedatum):'')}</td><td><div class="inline-actions"><button class="secondary" data-edit>Bearbeiten</button><button class="danger" data-remove>Entfernen</button></div></td>`;
       tr.querySelector('[data-edit]').addEventListener('click',()=>editMeldung(m));
       tr.querySelector('[data-remove]').addEventListener('click',e=>{if(confirm('Mannschaft wirklich aus diesem Turnier entfernen?')) saveAction(e.currentTarget,async()=>{await deleteDoc(doc(db,'meldungen',m.id)); notify('Mannschaft entfernt.');});});
       body.appendChild(tr);
