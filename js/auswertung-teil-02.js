@@ -335,8 +335,9 @@
       let sets = t.totalSets || 5;
       let desc = sets === 'bo3' ? 'Best of 3' : sets === 'bo5' ? 'Best of 5' : `${sets} Sätze`;
       document.getElementById('groupsTitle').textContent = t.name;
-      document.getElementById('groupsSub').textContent =
-        `${t.groupCount} Gruppe(n) | ${t.advancing || 2} Aufsteiger | ${desc} ${t.hasReturnLeg ? '| Mit Rückrunde' : ''}`;
+      // V3.1.128: Zusatzzeile (Gruppen/Aufsteiger/Sätze) entfällt
+      document.getElementById('groupsSub').textContent = '';
+      document.getElementById('groupsSub').style.display = 'none';
       const c = document.getElementById('groupCardsContainer');
       c.innerHTML = '';
       
@@ -346,11 +347,12 @@
         c.style.setProperty('--cup-group-cols', 1);
         cupSortedGroups(t.groups).forEach(([gKey, gData]) => {
           const div = document.createElement('div');
-          div.className = 'group-card';
-          div.innerHTML = `<h3>${gData.name || gKey}</h3>
-            <div class="cup-group-actions">
-              <button class="btn" style="padding:6px; font-size:0.8rem;" onclick="openMatchSelection('${gKey}')">✏️ Ergebnis eingeben</button>
-              <button class="btn btn-secondary" style="padding:6px; font-size:0.8rem;" onclick="openGroupTable('${gKey}')">📊 Tabelle</button>
+          div.className = 'group-card cup-hex-card' + (groupCount < 2 ? ' single' : '');
+          // Gruppenname nur bei mehreren Gruppen; Buttons sechseckig wie auf der Startseite
+          div.innerHTML = (groupCount >= 2 ? `<h3>${gData.name || gKey}</h3>` : '') + `
+            <div class="cup-hex-actions">
+              <button class="cup-hex" onclick="openMatchSelection('${gKey}')"><span>✏️<br>Ergebnis<br>eingeben</span></button>
+              <button class="cup-hex cup-hex-alt" onclick="openGroupTable('${gKey}')"><span>📊<br>Tabelle</span></button>
             </div>`;
           c.appendChild(div);
         });
@@ -621,7 +623,7 @@
       const t = tournaments[activeId];
       const g = t.groups[activeGroup];
 
-      selB.innerHTML = '<option value="">-- Offenes Spiel wählen --</option>';
+      selB.innerHTML = '<option value="">-- Gegner wählen --</option>';
       const hint = document.getElementById('noOpenMatchesHint');
       hint.style.display = 'none';
       if (!valA) {
@@ -635,6 +637,9 @@
         !m.completed && (String(m.teamA) === String(valA) || String(m.teamB) === String(valA))
       );
 
+      // Nur der Gegner (noch nicht gespielt); bei Hin- und Rückrunde gegen denselben Gegner mit Zusatz
+      const oppCount = {};
+      openMatches.forEach(([, m]) => { const o = String(String(m.teamA) === String(valA) ? m.teamB : m.teamA); oppCount[o] = (oppCount[o] || 0) + 1; });
       openMatches.forEach(([mId, m]) => {
         const opponentId = String(m.teamA) === String(valA) ? m.teamB : m.teamA;
         const opponent = teamMap.get(String(opponentId));
@@ -643,9 +648,7 @@
         const o = document.createElement('option');
         o.value = mId;
         const leg = m.leg || (String(m.teamA) === String(valA) ? 'Hinrunde' : 'Rückrunde');
-        const homeTeam = teamMap.get(String(m.teamA));
-        const awayTeam = teamMap.get(String(m.teamB));
-        o.textContent = leg + ': ' + (homeTeam ? homeTeam.name : m.teamA) + ' - ' + (awayTeam ? awayTeam.name : m.teamB);
+        o.textContent = opponent.name + (oppCount[String(opponentId)] > 1 ? ' (' + leg + ')' : '');
         selB.appendChild(o);
       });
 
@@ -677,8 +680,8 @@
       const teamBObj = g.teams.find(x => String(x.id) === String(selectedMatch.teamB));
       if (!teamAObj || !teamBObj) return;
 
-      document.getElementById('teamAName').textContent = teamAObj.name;
-      document.getElementById('teamBName').textContent = teamBObj.name;
+      document.getElementById('teamAName').innerHTML = '<small>Heimmannschaft</small>' + escHtmlCup(teamAObj.name);
+      document.getElementById('teamBName').innerHTML = '<small>Auswärtsmannschaft</small>' + escHtmlCup(teamBObj.name);
 
       let totalSets = t.totalSets || 5;
       
@@ -702,6 +705,9 @@
       if (emptyHint) emptyHint.style.display = 'none';
     }
 
+    function escHtmlCup(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    // Spielpunkte eines Durchgangs wie auf der Spielkarte (2 = Sieg, 1 = Unentschieden, 0 = Niederlage)
+    function cupRowPoints(gm) { if (gm.sA > gm.sB) return [2, 0]; if (gm.sB > gm.sA) return [0, 2]; if (gm.sA > 0 || gm.sB > 0) return [1, 1]; return ['', '']; }
     function renderMatchSteppers() {
       const container = document.getElementById('gamesContainer');
       container.innerHTML = '';
@@ -710,17 +716,21 @@
         const row = document.createElement('div');
         row.className = 'game-row';
         row.innerHTML = `
-          <div class="game-title">Satz ${idx+1}</div>
+          <div class="game-title">Durchg. ${idx+1}</div>
           <div class="stepper">
+            <span class="cup-ansch" title="Anschuss">${idx % 2 === 0 ? 'X' : ''}</span>
             <button class="btn-step" onclick="changeScore(${idx}, 'A', -1)">-</button>
             <span class="score-disp" id="scoreA_${idx}">${gm.sA}</span>
             <button class="btn-step" onclick="changeScore(${idx}, 'A', 1)">+</button>
+            <span class="cup-sp" id="spA_${idx}" title="Spielpunkte">${cupRowPoints(gm)[0]}</span>
           </div>
           <div class="game-separator" aria-hidden="true"></div>
           <div class="stepper">
+            <span class="cup-ansch" title="Anschuss">${idx % 2 === 1 ? 'X' : ''}</span>
             <button class="btn-step" onclick="changeScore(${idx}, 'B', -1)">-</button>
             <span class="score-disp" id="scoreB_${idx}">${gm.sB}</span>
             <button class="btn-step" onclick="changeScore(${idx}, 'B', 1)">+</button>
+            <span class="cup-sp" id="spB_${idx}" title="Spielpunkte">${cupRowPoints(gm)[1]}</span>
           </div>
         `;
         container.appendChild(row);
@@ -736,6 +746,9 @@
         currentMatchGames[idx].sB = Math.max(0, currentMatchGames[idx].sB + delta);
         document.getElementById(`scoreB_${idx}`).textContent = currentMatchGames[idx].sB;
       }
+      const rp = cupRowPoints(currentMatchGames[idx]);
+      const a = document.getElementById(`spA_${idx}`), b = document.getElementById(`spB_${idx}`);
+      if (a) a.textContent = rp[0]; if (b) b.textContent = rp[1];
       updateMatchSummary();
     }
 
