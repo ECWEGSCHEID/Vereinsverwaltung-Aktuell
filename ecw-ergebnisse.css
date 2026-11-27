@@ -102,24 +102,23 @@
 .er-zoom > img { width: 100%; height: 100dvh; max-width: 100vw; object-fit: contain; }
 .er-zoom-close { position: absolute; top: 12px; right: 18px; width: 48px; height: 48px; min-width: 0; padding: 0; border-radius: 50%; font-size: 24px; background: #000b; border: 1px solid white; color: white; cursor: pointer; }
 
-/* Verwaltung → Ergebnisse: kompakt in zwei Spalten */
-.er-admin h2{margin:0}.er-admin .card{padding:12px;margin:0 0 10px}
-.er-admin .er-breadcrumb{margin:8px 0}
-.er-home-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;background:#1f5f8b;color:#fff!important;font-weight:700;text-decoration:none;border:1px solid #5fa8d8}
+/* Verwaltung → Ergebnisse: Buttons links, Überschrift/Text rechts, Ordner darunter */
+.er-admin h2{margin:0}.er-admin .card{padding:10px 12px;margin:0}
+.er-admin-header{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-bottom:8px}
+.er-admin .er-breadcrumb{margin:0}
+.er-home-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:8px;background:#1f5f8b;color:#fff!important;font-weight:700;text-decoration:none;border:1px solid #5fa8d8;text-align:center}
 .er-home-btn:hover{background:#2673a8}
-.er-cols{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,720px);gap:16px;align-items:start}
-.er-col-left{display:flex;flex-direction:column;gap:8px}
-.er-col-left h3{margin:6px 0 0;font-size:16px}
-.er-save{width:100%;padding:11px}
-.er-admin .er-admin-folders{display:flex;flex-direction:column;gap:6px}
-.er-fold{display:flex;gap:4px;align-items:stretch}
-.er-fold .er-folder-open{flex:1;font-size:15px;min-height:42px;padding:6px 10px}
-.er-fold button:not(.er-folder-open){min-width:36px;padding:4px 8px}
-.er-admin .er-admin-tools{margin:4px 0;display:flex;flex-wrap:wrap;gap:6px}
-.er-admin label{margin:6px 0 4px}
-.er-text textarea{min-height:110px}
-.er-upload{display:inline-flex!important;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;background:#3a3438;border:1px solid #6b5b62;cursor:pointer;font-weight:700;margin-top:10px!important}
+.er-cols{display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px;align-items:start;margin-bottom:10px}
+.er-col-left{display:flex;flex-direction:column;gap:6px}.er-col-left button{width:100%;padding:8px 10px;margin:0}
+.er-save{padding:10px}
+.er-h{margin:8px 0 6px;font-size:15px}
+.er-admin label{margin:4px 0 3px}
+.er-text textarea{min-height:90px}.er-text input{padding:7px 10px;border-radius:8px;font-size:16px}
+.er-upload{display:inline-flex!important;align-items:center;gap:6px;padding:8px 12px;border-radius:8px;background:#3a3438;border:1px solid #6b5b62;cursor:pointer;font-weight:700;margin-top:8px!important}
 .er-upload input{display:none}
-.er-admin .er-admin-files{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:6px}
+.er-admin .er-admin-folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.er-admin .er-admin-folder{gap:6px;padding:6px}
+.er-admin .er-folder-open{font-size:14px;min-height:44px;padding:6px 8px}
+.er-admin .er-admin-folder .row{gap:4px}.er-admin .er-admin-folder .row button{flex:1;padding:3px 0;min-height:0}
+.er-admin .er-admin-files{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
 @media(max-width:900px){.er-cols{grid-template-columns:1fr}}
-.er-text input{padding:8px 10px;border-radius:8px;font-size:16px}

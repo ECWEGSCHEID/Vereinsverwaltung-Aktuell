@@ -206,8 +206,9 @@ function render(){
   const done1=!!(st.name&&st.date),done2=st.manual?!!(st.mPlatz&&st.mVon):st.files.length>0;
   const head=step(1,'Wettkampf',done1,'Aus dem Terminplaner wählen oder frei eingeben')+'<div class="ea-grid">'
     +'<label>Aus dem Terminplaner<select id="eaEvent"><option value="">– frei eingeben –</option>'+evs.map(x=>'<option value="'+esc(x.id)+'"'+(st.eventId===x.id?' selected':'')+'>'+esc(deDate(x.date)+' · '+x.name+' ('+KINDS[kindOf(x)]+')')+'</option>').join('')+'</select></label>'
-    +'<label>Bezeichnung<input id="eaName" type="text" value="'+esc(st.name)+'" placeholder="z. B. Duo Cup · Gruppe A"></label>'
-    +'<label>Datum<input id="eaDate" type="date" value="'+esc(st.date)+'"></label>'
+    +(st.eventId?'<div class="ea-hint">Bezeichnung und Datum kommen aus dem Termin: <b>'+esc(st.name)+'</b> · '+esc(deDate(st.date))+'</div>'
+      :'<label>Bezeichnung<input id="eaName" type="text" value="'+esc(st.name)+'" placeholder="z. B. Duo Cup · Gruppe A"></label>'
+      +'<label>Datum<input id="eaDate" type="date" value="'+esc(st.date)+'"></label>')
     +'<label>Art<select id="eaKind">'+Object.entries(KINDS).map(([k,v])=>'<option value="'+k+'"'+(st.kind2===k?' selected':'')+'>'+esc(v)+(k==='intern'?' (zählt für die Vereinsrangliste)':'')+'</option>').join('')+'</select></label></div></div></section>'
     +step(2,st.manual?'Ergebnis manuell eingeben':'Ergebnisliste und Fotos',done2,st.manual?'Nur der eigene Platz – wird im Terminplaner eingetragen':'StockTV-Datei (.skmr), PDF oder Bild – mehrere möglich')+(manualAllowed()?'<div class="ea-row" style="margin-bottom:8px"><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="list"'+(st.manual?'':' checked')+'> Ergebnisliste (SKMR, PDF, Bild)</label><label class="ea-check" style="margin:0!important"><input type="radio" name="eaMode" value="manual"'+(st.manual?' checked':'')+'> Manuell eingeben (Platz von Teilnehmer)</label></div>':'')+(st.manual?manualHtml():filesHtml())+'</div></section>';
   if(st.manual||!st.files.length){root.innerHTML=head;return;}
@@ -390,7 +391,7 @@ function css(){
    +'.ea-final{margin:4px 0 12px}.ea-big{width:100%;padding:14px;font-size:1.1rem;border-radius:12px}'
    +'.ea-result{white-space:pre-line;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(46,158,90,.18);border:1px solid rgba(46,158,90,.5)}'
    +'.ea-od{margin:0 0 20px;opacity:.85}'
-   +'.ea-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 12px}.ea-grid label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:.85rem}'
+   +'.ea-grid{display:grid;grid-template-columns:1fr;gap:8px;max-width:640px}.ea-grid label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:.85rem}'
    +'.ea-file{display:inline-flex!important;align-items:center;padding:10px 14px;border:1px dashed rgba(255,255,255,.5);border-radius:8px;cursor:pointer;margin:0}.ea-file input{display:none}'
    +'.ea-table{width:100%;border-collapse:collapse}.ea-table td,.ea-table th{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}.ea-table input{margin:0!important;width:100%}'
    +'.ea-filerow{display:flex;gap:10px;align-items:center;padding:6px;border:1px solid rgba(255,255,255,.15);border-radius:8px;margin-top:6px}.ea-filerow img,.ea-fileicon{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:4px;flex:none}.ea-fileicon{display:flex;align-items:center;justify-content:center;color:#333;font-weight:700;font-size:12px}.ea-filerow button{flex:none;width:auto}'
