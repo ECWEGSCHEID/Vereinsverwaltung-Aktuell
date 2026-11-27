@@ -14,7 +14,7 @@ const TYPES={
   round:{label:'Vorrunde Einzel (nur beste zählt)',max:100},
   soloFinal:{label:'Finale / Endrunde Einzel',max:150},
   pyramid:{label:'Solo Pyramide Endstand',max:150},
-  jm:{label:'Ziel-Jahresmeisterschaft',max:150},
+  jm:{label:'Ziel-Jahresmeisterschaft (Punkte = Durchschnitt)',max:150},
   vm:{label:'Vereinsmeisterschaft (zusammengelost)',max:40}
 };
 const CATEGORIES=['Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft','Frauencup','Frauen Solo Pyramide'];
@@ -96,7 +96,11 @@ const sameSlot=(a,b)=>a.category===b.category&&a.season===b.season&&(clean(a.lab
 // Startstand 2025/26 einmalig ergänzen (fehlende Wettbewerbe), ohne vorhandene doppelt zu zählen
 function mergeSeed(){
   const seed=window.ECW_RANGLISTE_2025_26,ver=Number(seed?.version)||1;if(!seed||(cfg.seeded&&cfg.seedVersion>=ver))return 0;let n=0;
-  seed.events.forEach((e,i)=>{if(cfg.events.some(x=>sameSlot(x,e)))return;cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+e.category.replace(/\W/g,'')+'_'+i});n++;});
+  seed.events.forEach((e,i)=>{
+    const have=cfg.events.find(x=>sameSlot(x,e));
+    // neue Werte aus dem Startstand übernehmen (z. B. Ziel-JM-Durchschnitt), nur bei Wettbewerben aus dem Startstand
+    if(have&&(seed.replaceRows||[]).includes(e.category)&&String(have.id).startsWith('ev_2526_')){have.rows=JSON.parse(JSON.stringify(e.rows));have.label=e.label;n++;return;}
+    if(have)return;cfg.events.push({...JSON.parse(JSON.stringify(e)),id:'ev_2526_'+e.category.replace(/\W/g,'')+'_'+i});n++;});
   cfg.aliases={...(seed.aliases||{}),...cfg.aliases};
   // nicht mehr verwendete Spitznamen entfernen
   for(const k of seed.removeAliases||[])delete cfg.aliases[k];
@@ -152,7 +156,8 @@ function compute(scope){
     if(!inScope(ev.category,scope)||!counts(ev,latest)||!(ev.rows||[]).length&&!Object.keys(ev.games||{}).length)continue;
     const t=TYPES[ev.type]||TYPES.group,n=Number(ev.n)||ev.rows.length;
     for(const r of ev.rows){
-      const pts=ev.type==='pyramid'?pyramidPoints(Number(r.rank),n):placePoints(t.max,Number(r.rank),n);
+      // Ziel-JM: Punkte = Endergebnis (Durchschnitt laut Wertungsregeln); ohne Wert nach Platz
+      const pts=ev.type==='jm'&&Number.isFinite(Number(r.value))&&r.value!==''&&r.value!==null?Math.round(Number(r.value)):ev.type==='pyramid'?pyramidPoints(Number(r.rank),n):placePoints(t.max,Number(r.rank),n);
       const seen=new Set(),names=r.players.map(x=>resolveName(x,ros)).map(clean).filter(Boolean);
       // einzelne Wörter, die nur Teil eines vollen Namens derselben Zeile sind (ältere StockTV-Einlesung), überspringen
       const words=new Set(names.filter(n=>/\s/.test(n)).flatMap(n=>n.toLocaleLowerCase('de-DE').split(' ')));
@@ -245,9 +250,11 @@ async function importFromApp(kind){
   }else if(kind==='jm'){
     const st=(await getDoc('turnierauswertung','jahresmeisterschaft'))?.state;if(!st?.players)return toast('Keine Ziel-Jahresmeisterschaft gespeichert.');
     const rows=st.players.map(p=>{const vals=Array.from({length:6},(_,i)=>{const r=p?.r?.[i];const s=Array.isArray(r)?r:(r&&r.__ecwNestedArrayV1);return Array.isArray(s)&&s.every(Number.isFinite)?s.reduce((a,b)=>a+b,0):null;});
-      const played=vals.filter(v=>v!==null).length,v=vals.map(x=>x??0),total=v.reduce((a,b)=>a+b,0);return {name:clean(p?.n),result:total-Math.min(...v),played};})
+      // Wertungsregel: schlechtestes von 6 Ergebnissen streichen (nur wenn alle 6 gespielt), Summe durch 5, aufrunden
+      const got=vals.filter(v=>v!==null),played=got.length,total=got.reduce((a,b)=>a+b,0);
+      const result=Math.ceil((played>=6?total-Math.min(...got):total)/5);return {name:clean(p?.n),result,played};})
       .filter(r=>r.name&&r.played>0).sort((a,b)=>b.result-a.result);
-    let rk=0,prev=null;add.push({category:'Ziel-JM',type:'jm',label:clean(st.title)||'Ziel-Jahresmeisterschaft',date:'',rows:rows.map((r,i)=>{if(r.result!==prev)rk=i+1;prev=r.result;return {rank:rk,team:r.name,players:[resolveName(r.name,ros)]};})});
+    let rk=0,prev=null;add.push({category:'Ziel-JM',type:'jm',label:clean(st.title)||'Ziel-Jahresmeisterschaft',date:'',rows:rows.map((r,i)=>{if(r.result!==prev)rk=i+1;prev=r.result;return {rank:rk,team:r.name,players:[resolveName(r.name,ros)],value:r.result};})});
   }else if(kind==='pyr'||kind==='pyrF'){
     const women=kind==='pyrF',cat=women?'Frauen Solo Pyramide':'Solo Pyramide';
     const s=await getDoc('soloPyramide',women?'frauen':'state');if(!s?.players)return toast('Keine '+cat+' gespeichert.');

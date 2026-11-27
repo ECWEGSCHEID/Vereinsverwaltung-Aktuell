@@ -621,7 +621,7 @@ function centralApplyPhotos(snap,kind){
   const cfg=P_COLLECTIONS[kind],photos=[],albums={};
   snap.forEach(doc=>{
     const x=doc.data()||{};
-    if(x.type==='album'&&x.month)albums[x.month]={name:x.name||'',mode:x.mode||'slideshow',duration:Number(x.duration)||5};
+    if(x.type==='album'&&x.month)albums[x.month]={name:x.name||'',mode:x.mode||'slideshow',duration:Number(x.duration)||5,savedAt:String(x.savedAt||x.updatedAt||'')};
     else if(x.type==='photo'&&x.data)photos.push({
       id:x.id||doc.id,month:String(x.month||'all'),name:x.name||'',data:x.data,
       order:Number.isFinite(x.index)?x.index:0
@@ -3900,7 +3900,8 @@ const PRESS_MIN_TILE=105; // kleinste Kachelbreite in Pixel, darunter wird auf w
 // Ordnet Kacheln in Spalten (größte zuerst in die kürzeste Spalte) und liefert die Höhe.
 function pressPack(tiles,W,cw,gap){
  const cols=Math.max(1,Math.floor((W+gap)/(cw+gap))),hs=new Array(cols).fill(0),pos=new Array(tiles.length);
- const order=tiles.map((t,i)=>i).sort((a,b)=>(cw/tiles[b].a)-(cw/tiles[a].a));
+ // Reihenfolge wie in der Verwaltung festgelegt (Drag & Drop) – jede Kachel in die gerade kürzeste Spalte
+ const order=tiles.map((t,i)=>i);
  for(const i of order){const t=tiles[i];
    const span=t.b2&&cols>1&&t.a>1.25?2:1;let best=0,bestH=Infinity;
    for(let k=0;k+span<=cols;k++){const h=Math.max(...hs.slice(k,k+span));if(h<bestH-0.5){bestH=h;best=k}}
@@ -3915,6 +3916,58 @@ function pressFit(tiles,W,H,gap){
  return best||Object.assign(pressPack(tiles,W,lo,gap),{cw:lo});
 }
 let pressPages=null;
+// Verwaltung: dieselbe Kachelansicht wie auf der Startseite (Seitenformat 16:9), mit Drag & Drop
+let pressAdminToken=0;
+async function renderPressAdminMosaic(el){
+ const token=++pressAdminToken;
+ const arr=data.pressReports[PRESS_REPORTS_GROUP]||[];
+ const list=arr.map((x,i)=>({x,i})).filter(o=>o.x);
+ if(!list.length){el.innerHTML='<div class="small">Noch keine Zeitungsberichte vorhanden.</div>';return;}
+ el.innerHTML='<div class="small">Ansicht wird aufgebaut …</div>';
+ try{await hydrateMedia()}catch(e){}
+ const all=await Promise.all(list.map(async o=>{const b1=await pressCrop(o.x.data,(o.x.id||o.x.name)+'|1');const b2=o.x.data2?await pressCrop(o.x.data2,(o.x.id||o.x.name)+'|2'):null;return {x:o.x,i:o.i,b1,b2,a:b1.a+(b2?b2.a:0)};}));
+ if(token!==pressAdminToken||!el.isConnected)return;
+ const W=Math.max(320,el.clientWidth),H=Math.round(W*9/16),gap=Math.max(3,Math.round(6*W/1600)),minTile=PRESS_MIN_TILE*W/1600;
+ const pages=[];let start=0;
+ while(start<all.length){let lo=1,hi=all.length-start;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(pressFit(all.slice(start,start+mid),W,H,gap).cw>=minTile)lo=mid;else hi=mid-1;}pages.push(all.slice(start,start+lo));start+=lo;}
+ el.innerHTML=pages.map((tiles,pi)=>{const res=pressFit(tiles,W,H,gap),offX=Math.max(0,(W-res.width)/2),offY=Math.max(0,(H-res.height)/2);
+   return '<div class="zr-page-label">Seite '+(pi+1)+' von '+pages.length+'</div><div class="zr-page" style="height:'+H+'px">'+tiles.map((t,k)=>{const p=res.pos[k];
+     return '<div class="press-tile zr-tile'+(t.b2?' pair':'')+'" draggable="true" data-i="'+t.i+'" style="left:'+(p.l+offX).toFixed(1)+'px;top:'+(p.t+offY).toFixed(1)+'px;width:'+p.w.toFixed(1)+'px;height:'+p.h.toFixed(1)+'px">'
+      +pressCropHtml(t.x.data,t.b1,t.x.name,t.b1.a/t.a)+(t.b2?pressCropHtml(t.x.data2,t.b2,t.x.name2,t.b2.a/t.a):'')
+      +'<button type="button" class="zr-menu-btn" data-zr-menu="'+t.i+'" title="Bearbeiten">⋯</button></div>';}).join('')+'</div>';}).join('');
+ let from=null;
+ el.querySelectorAll('.zr-tile').forEach(tile=>{
+  tile.addEventListener('dragstart',e=>{from=+tile.dataset.i;tile.classList.add('dragging');try{e.dataTransfer.setData('text/plain',String(from));e.dataTransfer.effectAllowed='move'}catch(x){}});
+  tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
+  tile.addEventListener('dragover',e=>{e.preventDefault();tile.classList.add('drag-over')});
+  tile.addEventListener('dragleave',()=>tile.classList.remove('drag-over'));
+  tile.addEventListener('drop',e=>{e.preventDefault();tile.classList.remove('drag-over');const to=+tile.dataset.i;if(from===null||from===to)return;
+   const a=data.pressReports[PRESS_REPORTS_GROUP];const [moved]=a.splice(from,1);a.splice(to,0,moved);from=null;save();renderPressAdminMosaic(el);showToast('Reihenfolge geändert – bitte Speichern');});
+ });
+ el.querySelectorAll('[data-zr-menu]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();pressTileMenu(+b.dataset.zrMenu,b);}));
+}
+function pressTileMenu(i,anchor){
+ document.getElementById('zrMenu')?.remove();
+ const x=(data.pressReports[PRESS_REPORTS_GROUP]||[])[i];if(!x)return;
+ const m=document.createElement('div');m.id='zrMenu';m.className='zr-menu';
+ const r=anchor.getBoundingClientRect();m.style.left=Math.min(window.innerWidth-210,r.left)+'px';m.style.top=(r.bottom+4)+'px';
+ m.innerHTML='<div class="small">'+esc(x.name||'Bericht')+'</div><button type="button" data-a="zoom">🔍 Ansehen</button><button type="button" data-a="crop">✂ Zuschneiden</button>'+((x.data2||x.mediaId2)?'<button type="button" data-a="split">⇆ Paar trennen</button>':'')+'<button type="button" class="danger" data-a="del">🗑 Löschen</button>';
+ document.body.appendChild(m);
+ const close=()=>{m.remove();document.removeEventListener('click',close);};
+ setTimeout(()=>document.addEventListener('click',close),0);
+ m.addEventListener('click',async e=>{const a=e.target.dataset.a;if(!a)return;close();
+  if(a==='zoom')openInvitationZoom(x);
+  else if(a==='crop')cropOpenTournament(PRESS_REPORTS_GROUP,i);
+  else if(a==='del')await deleteTournament(PRESS_REPORTS_GROUP,i);
+  else if(a==='split')pressSplitPair(i);
+ });
+}
+function pressSplitPair(i){
+ const arr=data.pressReports[PRESS_REPORTS_GROUP]||[],x=arr[i];if(!x||!(x.data2||x.mediaId2))return;
+ const second={id:String(x.id||'zr')+'_2_'+Date.now().toString(36),name:x.name2||((x.name||'Bericht')+' Seite 2'),mediaId:x.mediaId2,data:x.data2};
+ delete x.data2;delete x.mediaId2;delete x.name2;
+ arr.splice(i+1,0,second);save();renderTournamentAdminPreview();showToast('Paar getrennt – bitte Speichern');
+}
 async function renderPressMosaic(c,items){
  const token=++pressMosaicToken;
  c.style.gridTemplateColumns='1fr';c.style.gridTemplateRows='1fr';c.style.columnGap='0';c.style.rowGap='0';c.style.justifyContent='stretch';c.style.alignContent='stretch';
@@ -6987,27 +7040,18 @@ function openHomepageEditor(area=''){
 function openHomepagePreview(){
  window.open(new URL('/Startseite/',ECW_HOMEPAGE_EDITOR).href,'_blank','noopener,noreferrer');
 }
-function ecwHomepageCalendarCount(){
- try{return localStorage.getItem('ecw_homepage_calendar_count')||'10'}catch(e){return '10'}
-}
-function ecwSaveHomepageCalendarCount(value){
- if(!['5','10','15','20','30','all'].includes(String(value)))return;
- try{localStorage.setItem('ecw_homepage_calendar_count',String(value));showToast('Einstellung lokal gespeichert. Die externe Homepage ist noch nicht angebunden.');}
- catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
-}
 function renderHomepageAdmin(){
  const box=document.getElementById('adminMain');
  if(!box)return;
- const choices=[['5','5 Termine'],['10','10 Termine (Standard)'],['15','15 Termine'],['20','20 Termine'],['30','30 Termine'],['all','Alle kommenden Termine']];
- box.innerHTML='<h2>Homepage</h2><div class="card">'
-  +'<p>Homepage-Pflege und Vorschau der privaten Homepage.</p>'
-  +'<div class="row"><button type="button" onclick="openHomepagePreview()">👁 Homepage-Vorschau</button><button type="button" onclick="openHomepageEditor()">Homepage verwalten ↗</button></div>'
-  +'<div class="row"><button type="button" onclick="openHomepageEditor(\'Hintergrund\')">Hintergrund ↗</button><button type="button" onclick="openHomepageEditor(\'Fotos\')">Fotos und Videos ↗</button><button type="button" onclick="openHomepageEditor(\'Links\')">Links ↗</button><button type="button" onclick="openHomepageEditor(\'Kontakt\')">Kontakt ↗</button><button type="button" onclick="openHomepageEditor(\'Gästebuch\')">Gästebuch ↗</button><button type="button" onclick="openHomepageEditor(\'Vorstand\')">Vorstand bearbeiten ↗</button></div>'
-  +'<h3>Kalender – Anzahl der Termine</h3><label for="ecwHpCalendarCount">Anzahl anzeigen: </label>'
-  +'<select id="ecwHpCalendarCount" onchange="ecwSaveHomepageCalendarCount(this.value)">'
-  +choices.map(x=>'<option value="'+x[0]+'"'+(ecwHomepageCalendarCount()===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select>'
-  +'<p class="small">Die Einstellung wird vorerst nur lokal gespeichert. Die Synchronisierung mit dem Homepage-Kalender ist noch nicht angebunden.</p>'
-  +'<p class="small">Die Homepage-Pflege ist eine externe private Testseite. Scrollverhalten, separate Seitenkopfbilder, Kontaktformular und Gästebuch können erst nach Bereitstellung ihres Quellcodes zuverlässig angepasst und geprüft werden.</p></div>';
+ const tile=(icon,label,area,sub)=>'<button type="button" class="hp-tile" onclick="openHomepageEditor('+(area?'\''+area+'\'':'')+')"><span class="hp-ico">'+icon+'</span><span><b>'+label+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span></button>';
+ box.innerHTML='<h2>Homepage</h2>'
+  +'<div class="hp-big"><button type="button" class="hp-big-btn" onclick="openHomepagePreview()"><span>👁</span>Homepage-Vorschau</button>'
+  +'<button type="button" class="hp-big-btn primary" onclick="openHomepageEditor()"><span>✎</span>Homepage bearbeiten</button></div>'
+  +'<div class="hp-groups">'
+  +'<section class="card hp-group"><h3>Einstellungen</h3>'+tile('👥','Vorstand bearbeiten','Vorstand')+tile('📅','Kalender','Kalender','Anzahl der Termine, Google-Kalender')+'</section>'
+  +'<section class="card hp-group"><h3>Links, Kontakt und Gästebuch</h3>'+tile('🔗','Links','Links')+tile('✉','Kontakt','Kontakt','Empfänger der Kontaktnachrichten')+tile('📖','Gästebuch','Gaestebuch')+'</section>'
+  +'<section class="card hp-group"><h3>Optik</h3>'+tile('🖼','Hintergrund','Hintergrund')+tile('🎨','Gestaltung','Design','Schrift und Farben')+tile('📷','Fotos und Videos','Fotos')+'</section>'
+  +'</div><p class="small">Alle Bereiche öffnen die Homepage-Pflege in einem neuen Fenster direkt an der richtigen Stelle.</p>';
 }
 
 function adminSection(s){
@@ -7052,17 +7096,15 @@ function adminSection(s){
   tCollection='pressReports';
   normalizePressReportsFlat();
   currentMonth=PRESS_REPORTS_GROUP;
-  const directUrl=getBaseUrl()+'#zeitungsberichte';
-  a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Zeitungsberichte EC Wegscheid</h2><button type="button" onclick="returnToAdminManagementView()">← Zurück zum Verwaltungsmenü</button></div>'
-   +'<div class="card"><label>Direktlink</label><div class="row"><input type="text" readonly value="'+esc(directUrl)+'" onclick="this.select()" style="flex:1"><button type="button" onclick="navigator.clipboard?.writeText('+jsArg(directUrl)+');showToast(\'Link kopiert\')">Link kopieren</button></div></div>'
-   +'<div class="card"><label>Zeitungsberichte hinzufügen (PDF, PNG, JPG oder BMP)</label><input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg">'
-   +'<label class="checkbox-row" style="margin-top:12px"><input id="zrPairPages" type="checkbox"><span>Aktuellen Upload paarweise zusammenfassen (1+2, 3+4, …)</span></label>'
-   +'<div class="small" style="margin-top:6px">Alle Berichte werden gemeinsam gespeichert. Standard: jede Seite einzeln. Wenn aktiviert, werden die Seiten dieses Uploads paarweise zusammengefasst: 1+2, 3+4 usw.</div>'
-   +'<div class="row" style="margin-top:10px"><button type="button" onclick="pressRecoverOrphanedLocalMedia()">Lokale Berichte wiederherstellen</button><button type="button" onclick="pressFindDuplicates()">Doppelte Berichte suchen</button></div>'
-   +'<div id="zrDupResult" style="margin-top:10px"></div>'
-   +'<div id="firebasePressReportInfo" class="small" style="margin-top:10px"></div></div>'
-   +'<h3>Vorhandene Zeitungsberichte</h3><div class="card"><div id="tAdminPreview" class="admin-preview"></div><div id="tAdminList" style="margin-top:10px"></div></div>'
-   +'<div class="card" style="margin-top:16px"><button class="primary" style="width:100%" onclick="savePressReportFiles()">Zeitungsberichte speichern</button></div>';
+  const saveBtn='<button type="button" class="primary" onclick="savePressReportFiles()">💾 Speichern</button>';
+  a.innerHTML='<div class="zr-admin"><div class="zr-bar"><h2>Zeitungsberichte</h2>'+saveBtn
+   +'<label class="zr-add">📰 Berichte hinzufügen<input id="zrfiles" type="file" multiple accept="application/pdf,.pdf,.png,.bmp,.jpg,.jpeg,image/png,image/bmp,image/jpeg" onchange="savePressReportFiles()"></label>'
+   +'<button type="button" onclick="pressFindDuplicates()">Doppelte suchen</button>'
+   +'<button type="button" onclick="returnToAdminManagementView()">← Zurück</button></div>'
+   +'<div id="zrDupResult"></div><div id="firebasePressReportInfo" class="small"></div>'
+   +'<div class="small zr-help">So erscheinen die Berichte auf der Startseite. Kachel ziehen und auf einer anderen ablegen, um die Reihenfolge zu ändern; ⋯ für Zuschneiden, Paar trennen oder Löschen. Danach Speichern.</div>'
+   +'<div id="tAdminPreview" class="zr-pages"></div><div id="tAdminList" hidden></div>'
+   +'<div class="zr-bar zr-bottom">'+saveBtn+'</div></div>';
   renderTournamentAdminList();renderTournamentAdminPreview();
  }else if(s==='o'){
   tCollection='ownTournaments';
@@ -7092,6 +7134,7 @@ function adminSection(s){
 
  }else if(s==='p'||s==='sp'){
   pCollection=(s==='sp')?'sponsorPhotos':'photos';
+  if(s==='sp'){renderSponsorPhotoAdmin();return}
   a.innerHTML='<h2>'+pCfg().label+'</h2><div class="card"><label>Fotos hinzufügen</label><input id="pfiles" type="file" multiple accept=".png,.bmp,.jpg,.jpeg,.webp"><label>Ordner / Monat</label><input id="pmonth" type="month" value="'+monthKey()+'"><label>Ordnername</label><input id="palbum" type="text" placeholder="z. B. Sommerfest 2026"><label>Darstellung</label><select id="pmode"><option value="slideshow" selected>Diashow – Karussell</option><option value="static">Feststehend – Fotowand</option><option value="fade">Verschwinden / Erscheinen</option><option value="scroll">Durchlaufen</option></select><label>Wechselzeit (Sekunden)</label><input id="pdur" type="number" min="2" value="5"></div><p class="small">Ordner-Einstellungen oben auswählen und ändern, anschließend unten speichern. Die Fotoübersicht zeigt nur Bilder und die Ordner-Löschfunktion.</p><h3>Gespeicherte Foto-Ordner</h3><div id="photoAdminList"></div><div class="card" style="margin-top:16px"><div id="firebasePhotosInfo" class="small" style="margin-bottom:10px"></div><button class="primary" style="width:100%" onclick="saveAllPhotoChanges()">Speichern</button></div>';renderPhotoAdminList();updatePhotoAlbumForm();document.getElementById('pmonth').onchange=updatePhotoAlbumForm;
  }
 }
@@ -7110,7 +7153,7 @@ async function syncPhotosToFirebase(){
   for(const month of Object.keys(pAlbums()).sort()){
    const a=pAlbums()[month]||{};
    const albumId='album_'+String(month).replace(/[^0-9-]/g,'_');
-   await fbTimeout(firestoreDb.collection(pCfg().fb).doc(albumId).set({type:'album',month,name:String(a.name||''),mode:String(a.mode||'slideshow'),duration:Number(a.duration)||5,updatedAt:new Date().toISOString()}),60000,'Firebase');
+   await fbTimeout(firestoreDb.collection(pCfg().fb).doc(albumId).set({type:'album',month,name:String(a.name||''),mode:String(a.mode||'slideshow'),duration:Number(a.duration)||5,savedAt:String(a.savedAt||''),updatedAt:new Date().toISOString()}),60000,'Firebase');
    desired.add(albumId);albums++;
   }
   const arr=pItems();
@@ -7143,7 +7186,7 @@ async function loadPhotosFromFirebase(){
  try{
   const snap=await firestoreDb.collection(pCfg().fb).get();
   const photos=[],albums={};
-  snap.forEach(doc=>{const x=doc.data()||{};if(x.type==='album'&&x.month){albums[x.month]={name:x.name||'',mode:x.mode||'slideshow',duration:Number(x.duration)||5};}else if(x.type==='photo'&&x.data&&x.month){photos.push({id:x.id||doc.id,month:x.month,name:x.name||'',data:x.data,order:Number.isFinite(x.index)?x.index:0});}});
+  snap.forEach(doc=>{const x=doc.data()||{};if(x.type==='album'&&x.month){albums[x.month]={name:x.name||'',mode:x.mode||'slideshow',duration:Number(x.duration)||5,savedAt:String(x.savedAt||x.updatedAt||'')};}else if(x.type==='photo'&&x.data&&x.month){photos.push({id:x.id||doc.id,month:x.month,name:x.name||'',data:x.data,order:Number.isFinite(x.index)?x.index:0});}});
   photos.sort(comparePhotos);
   data[pCfg().items]=photos;data[pCfg().albums]=albums;save();await hydrateMedia();
   photoAlbumMonth=null;renderPhotoAdminList();
@@ -7162,6 +7205,7 @@ function saveTournamentPerPage(){
 }
 function renderTournamentAdminList(){
  const el=document.getElementById('tAdminList');if(!el)return;
+ if(tCollection==='pressReports'){el.innerHTML='';return;}
  const m=tCollection==='pressReports'?PRESS_REPORTS_GROUP:(document.getElementById('tadminmonth')?.value||currentMonth);
  el.innerHTML='';
  if(!m){el.innerHTML='<div class="small">Kein Zeitraum ausgewählt.</div>';return;}
@@ -7185,6 +7229,7 @@ function renderTournamentAdminList(){
 function renderTournamentAdminPreview(){
  const el=document.getElementById('tAdminPreview'),m=tCollection==='pressReports'?PRESS_REPORTS_GROUP:(document.getElementById('tadminmonth')?.value||currentMonth);
  if(!el)return;
+ if(tCollection==='pressReports'){renderPressAdminMosaic(el);return;}
  if(!m){el.innerHTML='<div class="small">Kein Zeitraum ausgewählt.</div>';return;}
  const items=tStore()[m]||[],perPage=Math.max(1,Math.min(30,Number(data.settings.tournamentPerPage)||12)),totalPages=Math.max(1,Math.ceil(items.length/perPage));
  adminTournamentPage=Math.max(0,Math.min(adminTournamentPage,totalPages-1));
@@ -7458,6 +7503,51 @@ async function deleteTournament(m,i){
  showToast((tCollection==='pressReports'?'Zeitungsbericht':'Einladung')+' gelöscht. Bitte jetzt unten auf „Speichern“ drücken.');
 }
 function resizeImage(file,maxSide=1600,quality=.82){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{let w=img.naturalWidth,h=img.naturalHeight,scale=Math.min(1,maxSide/Math.max(w,h));w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
+// ---------- Fotos Sponsoren: genau ein Ordner „Sponsoren“ ----------
+const SP_KEY='sponsoren';
+function spAlbum(){const albums=pAlbums();const keys=Object.keys(albums);const first=albums[SP_KEY]||albums[keys.sort().reverse()[0]]||{};return {name:'Sponsoren',mode:first.mode||'slideshow',duration:first.duration||5,savedAt:first.savedAt||''};}
+// alle Sponsorenfotos in den einen Ordner legen (ältere Monats-Ordner werden zusammengeführt)
+function spConsolidate(){
+ const a=spAlbum();pItems().forEach(p=>{if(p)p.month=SP_KEY;});
+ data[pCfg().albums]={[SP_KEY]:a};return a;
+}
+function renderSponsorPhotoAdmin(){
+ const box=document.getElementById('adminMain');if(!box)return;
+ const a=spConsolidate();
+ const saved=a.savedAt?new Date(a.savedAt).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}):'noch nicht gespeichert';
+ const saveBtn='<button type="button" class="primary" onclick="saveSponsorPhotos()">Speichern</button>';
+ box.innerHTML='<div class="sp-admin"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><h2 style="margin:0">Fotos Sponsoren für Diashow</h2>'+saveBtn+'</div>'
+  +'<div class="card sp-bar"><label class="sp-add">📷 Fotos hinzufügen<input id="pfiles" type="file" multiple accept=".png,.bmp,.jpg,.jpeg,.webp" onchange="spAddSelected()"></label>'
+  +'<label>Darstellung<select id="pmode"><option value="slideshow">Diashow – Karussell</option><option value="static">Feststehend – Fotowand</option><option value="fade">Verschwinden / Erscheinen</option><option value="scroll">Durchlaufen</option></select></label>'
+  +'<label>Wechselzeit (Sek.)<input id="pdur" type="number" min="2" value="'+(Number(a.duration)||5)+'" style="width:80px"></label></div>'
+  +'<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:8px"><b>Sponsoren</b><span class="small">Zuletzt gespeichert: '+esc(saved)+' · '+pItems().length+' Foto(s)</span></div><div class="thumb-grid" id="spThumbs"></div></div>'
+  +'<div id="firebasePhotosInfo" class="small" style="margin:6px 0"></div><div class="row" style="justify-content:flex-end">'+saveBtn+'</div></div>';
+ document.getElementById('pmode').value=a.mode||'slideshow';
+ const grid=document.getElementById('spThumbs');
+ if(!pItems().length)grid.innerHTML='<div class="small">Noch keine Fotos. Oben „Fotos hinzufügen“ wählen.</div>';
+ pItems().forEach(p=>{if(!p)return;const t=document.createElement('div');t.className='thumb';const img=document.createElement('img');img.src=p.data||'';img.alt=p.name||'';
+  const b=document.createElement('button');b.type='button';b.className='danger';b.title='Foto löschen';b.textContent='✕';
+  b.onclick=()=>{if(!confirm('Dieses Foto wirklich löschen?'))return;const i=pItems().indexOf(p);if(i<0)return;if(p.mediaId)pendingMediaDeletes.push(p.mediaId);pItems().splice(i,1);renderSponsorPhotoAdmin();showToast('Foto entfernt – bitte Speichern');};
+  t.append(img,b);grid.appendChild(t);});
+}
+async function spAddSelected(){
+ const files=[...(document.getElementById('pfiles')?.files||[])];if(!files.length)return;
+ const info=document.getElementById('firebasePhotosInfo');if(info)info.textContent='Fotos werden vorbereitet …';
+ let added=0,failed=0;
+ for(const f of files){try{const img=await resizeImage(f);const id=String(Date.now())+'_'+Math.random().toString(36).slice(2);const stored=await storeMedia(pCfg().prefix,id,img);pItems().push({id,month:SP_KEY,name:f.name,mediaId:stored.id,data:stored.url});added++;}catch(e){failed++;console.error('Foto:',f.name,e)}}
+ renderSponsorPhotoAdmin();
+ const i2=document.getElementById('firebasePhotosInfo');if(i2)i2.textContent=added+' Foto(s) hinzugefügt'+(failed?', '+failed+' nicht lesbar':'')+' – bitte Speichern.';
+}
+async function saveSponsorPhotos(){
+ const a=spConsolidate();
+ a.mode=document.getElementById('pmode')?.value||a.mode;a.duration=Math.max(2,Number(document.getElementById('pdur')?.value)||5);a.savedAt=new Date().toISOString();
+ data[pCfg().albums]={[SP_KEY]:a};
+ if(!save()){showToast('Lokales Speichern fehlgeschlagen');return}
+ for(const id of pendingMediaDeletes.splice(0)){try{await mediaDelete(id)}catch(e){console.error('Medienlöschung:',e)}}
+ const fb=(firebaseReady&&firestoreDb)?await syncPhotosToFirebase():null;
+ renderSponsorPhotoAdmin();
+ if(fb&&!fb.ok)showToast('Firebase: '+(fb.error||fb.message),8000);else showToast('Sponsorenfotos gespeichert'+(fb?' ✓':' (nur lokal)'));
+}
 function updatePhotoAlbumForm(){const m=document.getElementById('pmonth')?.value;if(!m)return;const a=pAlbums()[m]||{};document.getElementById('palbum').value=a.name||'';document.getElementById('pmode').value=a.mode||'slideshow';document.getElementById('pdur').value=a.duration||5}
 async function addPhotos(){
  const month=document.getElementById('pmonth')?.value||monthKey(),files=[...(document.getElementById('pfiles')?.files||[])];
