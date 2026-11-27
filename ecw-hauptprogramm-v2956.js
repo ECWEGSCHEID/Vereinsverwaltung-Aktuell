@@ -3888,14 +3888,15 @@ function wbLiveCardHtml(x){
 // Schrift so weit verkleinern, dass alle Startlisten ohne Scrollen in den Bereich passen.
 function wbFitLivePanel(){
  const box=document.getElementById('ownLiveStartlistButtons');if(!box)return;
- if(box.classList.contains('own-live-hex-buttons')){box.style.fontSize='';const row=box.parentElement,n=box.querySelectorAll('.own-live-turnier-btn').length;if(row&&n){const h=row.clientHeight||150,w=Math.min(h/1.2,(row.clientWidth-(n-1)*16)/n);box.style.setProperty('--live-hex',Math.max(70,Math.floor(w))+'px');}return;}
+ if(box.classList.contains('own-live-hex-buttons')){box.style.fontSize='';const row=box.parentElement,n=box.querySelectorAll('.own-live-turnier-btn').length;if(row&&n){const t=row.querySelector('.own-live-hex-title');const h=(row.clientHeight||170)-(t?t.offsetHeight+4:0),w=Math.min(h/1.14,(box.clientWidth-(n-1)*3)/n);box.style.setProperty('--live-hex',Math.max(70,Math.floor(w))+'px');}return;}
  let size=16;box.style.fontSize=size+'px';
  while(size>8&&box.scrollHeight>box.clientHeight+1){size-=.5;box.style.fontSize=size+'px';}
 }
 function wbRefreshLiveStartlistButtons(){
  const box=document.getElementById('ownLiveStartlistButtons');
  if(!box)return;
- const list=wbLiveStartlisten.filter(wbLiveStartlistVisible).sort((a,b)=>String(a.datum||'9999').localeCompare(String(b.datum||'9999'))||String(a.name||'').localeCompare(String(b.name||'')));
+ const seen=new Set();
+ const list=wbLiveStartlisten.filter(wbLiveStartlistVisible).filter(x=>{const k=String(x.id||'')||(String(x.name||'')+'|'+String(x.datum||''));const k2=String(x.name||'').trim().toLowerCase()+'|'+String(x.datum||'');if(seen.has(k)||seen.has(k2))return false;seen.add(k);seen.add(k2);return true;}).sort((a,b)=>String(a.datum||'9999').localeCompare(String(b.datum||'9999'))||String(a.name||'').localeCompare(String(b.name||'')));
  const key=JSON.stringify(list.map(x=>[x.id,x.name,x.datum,x.uhrzeit,x.maxMannschaften,x.entries]));
  if(key===wbLivePanelKey&&box.childElementCount)return;
  wbLivePanelKey=key;
@@ -3924,7 +3925,7 @@ function renderOwnTournaments(){
  // V3.1.130: Einladungen oben so groß wie möglich (bis zu 8 gut lesbar), darunter die Live-Startlisten
  // als sechseckige Buttons mittig in einer Reihe – ohne dunklen Hintergrund.
  const fullH=Math.max(200,c.clientHeight),fullW=Math.max(200,c.clientWidth),gap=8;
- const liveH=Math.max(120,Math.min(200,Math.round(fullH*0.22)));
+ const liveH=Math.max(150,Math.min(250,Math.round(fullH*0.26)));
  const availableH=Math.max(120,fullH-liveH-gap),availableW=fullW;
  const totalSlots=Math.max(1,items.length);
  let best={cols:1,rows:totalSlots,w:0,h:0};
@@ -3955,7 +3956,7 @@ function renderOwnTournaments(){
  const live=document.createElement('div');
  live.className='own-live-hex-row';
  live.style.height=liveH+'px';live.style.setProperty('--live-hex',Math.round(liveH/1.18)+'px');
- live.innerHTML='<div id="ownLiveStartlistButtons" class="own-live-hex-buttons"></div>';
+ live.innerHTML='<div class="own-live-hex-title">Startlisten</div><div id="ownLiveStartlistButtons" class="own-live-hex-buttons"></div>';
  c.appendChild(live);
  wbLivePanelKey='';
  wbRefreshLiveStartlistButtons();
@@ -7344,7 +7345,11 @@ function adminSection(s){
  if(s==='tw'){renderTurnierWirtschaftlichkeitAdmin();return}
  if(s==='mv'){renderMemberAdmin();return}
  if(s==='ov'){renderOverviewAdmin();return}
- if(s==='tv'){adminPreviewOpen('tv');return}
+ if(s==='tv'){ // V3.1.131: wie alle anderen Bereiche rechts neben dem Menü, kein Vollbild
+  const am=document.getElementById('adminMain');if(!am)return;am.classList.remove('mv-mode');
+  const src=document.getElementById('turnierverwaltungFrame')?.dataset.src||('turnierverwaltung.html?v='+APP_RELEASE);
+  am.innerHTML='<div class="tv-admin-embed"><iframe id="tvAdminFrame" title="Turnierverwaltung" src="'+esc(src)+'"></iframe></div>';
+  return}
  if(s==='m'){renderTeamsAdmin();return}
  if(s==='lk'){renderLinksAdmin();return}
   if(s==='sh'){renderStartseiteAdmin();return}
