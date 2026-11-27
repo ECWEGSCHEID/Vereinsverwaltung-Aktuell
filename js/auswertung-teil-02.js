@@ -353,8 +353,8 @@
           // Gruppenname nur bei mehreren Gruppen; Buttons sechseckig wie auf der Startseite
           div.innerHTML = (groupCount >= 2 ? `<h3>${gData.name || gKey}</h3>` : '') + `
             <div class="cup-hex-actions">
-              <button class="cup-hex" onclick="openMatchSelection('${gKey}')"><span>✏️<br>Ergebnis<br>eingeben</span></button>
-              <button class="cup-hex cup-hex-alt" onclick="openGroupTable('${gKey}')"><span>📊<br>Tabelle</span></button>
+              <button class="cup-hex" onclick="openMatchSelection('${gKey}')"><span>Ergebnis<br>eingeben</span></button>
+              <button class="cup-hex" onclick="openGroupTable('${gKey}')"><span>Tabelle</span></button>
             </div>`;
           c.appendChild(div);
         });
