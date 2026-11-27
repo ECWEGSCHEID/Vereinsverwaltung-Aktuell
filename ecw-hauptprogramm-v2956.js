@@ -2171,7 +2171,7 @@ async function teamsSyncToFirebase(){
 
     const unexplainedMissing=[...remoteIds].filter(id=>!localIds.has(id)&&!teamsPendingDeletes.has(id));
     if(unexplainedMissing.length){
-      return {ok:false,error:'Sicherheitsstopp: '+unexplainedMissing.length+' Firebase-Mannschaft(en) fehlen im lokalen Bearbeitungsstand. Es wurde nichts gelöscht. Bitte zuerst „Aus Firebase laden“ oder den Bestand wiederherstellen.'};
+      return {ok:false,error:'Sicherheitsstopp: '+unexplainedMissing.length+' Firebase-Mannschaft(en) fehlen im lokalen Bearbeitungsstand. Es wurde nichts gelöscht. Bitte zuerst die Seite neu laden (Strg+Umschalt+R) oder den Bestand wiederherstellen.'};
     }
 
     let photos=0,failed=0;
@@ -2338,7 +2338,7 @@ function renderTeamsAdmin(){
   teamsAdminEnsure();
   const a=document.getElementById('adminMain');
   let h='<h2>Mannschaften</h2><div class="card"><p class="small">Pro Mannschaft: Name, Liga, Spieler (ein Name pro Zeile) und Fotos. Nach dem Ändern auf „Speichern“ klicken. Mannschaften werden nur nach ausdrücklichem Löschen entfernt; vor jeder Firebase-Änderung wird der aktuelle Bestand gesichert.</p>'
-    +'<div class="row"><button class="primary" onclick="teamAdd()">+ Mannschaft hinzufügen</button><button class="primary" onclick="teamsSaveAll()">Speichern</button><button onclick="teamsReloadFromFirebase()">Aus Firebase laden</button><button type="button" onclick="openHomepageEditor(\'Mannschaften\')">Für Website speichern …</button></div>'
+    +'<div class="row"><button class="primary" onclick="teamAdd()">+ Mannschaft hinzufügen</button><button class="primary" onclick="teamsSaveAll()">Speichern</button><button type="button" onclick="openHomepageEditor(\'Mannschaften\')">Für Website speichern …</button></div>'
     +'<div id="teamsInfo" class="small" style="margin-top:10px"></div></div>';
   teamsData.forEach((t,i)=>{
     h+='<div class="card" style="margin-top:12px"><div class="row" style="align-items:flex-end">'
