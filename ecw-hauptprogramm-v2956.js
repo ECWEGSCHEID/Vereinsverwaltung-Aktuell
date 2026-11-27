@@ -3888,7 +3888,7 @@ function wbLiveCardHtml(x){
 // Schrift so weit verkleinern, dass alle Startlisten ohne Scrollen in den Bereich passen.
 function wbFitLivePanel(){
  const box=document.getElementById('ownLiveStartlistButtons');if(!box)return;
- if(box.classList.contains('own-live-hex-buttons')){box.style.fontSize='';const row=box.parentElement,n=box.querySelectorAll('.own-live-turnier-btn').length;if(row&&n){const t=row.querySelector('.own-live-hex-title');const h=(row.clientHeight||170)-(t?t.offsetHeight+4:0),w=Math.min(h/1.14,(box.clientWidth-(n-1)*3)/n);box.style.setProperty('--live-hex',Math.max(70,Math.floor(w))+'px');}return;}
+ if(box.classList.contains('own-live-hex-buttons')){box.style.fontSize='';const row=box.parentElement,n=box.querySelectorAll('.own-live-turnier-btn').length;if(row&&n){const t=row.querySelector('.own-live-hex-title');const cs=getComputedStyle(row);const inner=row.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-(t?t.offsetWidth+24:0);const h=(row.clientHeight||170),w=Math.min(h/1.14,(inner-(n-1)*3)/n);box.style.setProperty('--live-hex',Math.max(70,Math.floor(w))+'px');}return;}
  let size=16;box.style.fontSize=size+'px';
  while(size>8&&box.scrollHeight>box.clientHeight+1){size-=.5;box.style.fontSize=size+'px';}
 }
