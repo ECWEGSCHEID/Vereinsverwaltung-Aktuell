@@ -2775,6 +2775,9 @@ async function renderCupButtons(){
  box.querySelectorAll('[data-cup]').forEach(b=>b.onclick=()=>openCupSingle(b.dataset.cup,b.textContent.replace(/^🏆\s*/,'')));
 }
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='ecw-cup-created')setTimeout(renderCupButtons,800);});
+// Cup-Tabelle von der Startseite: „Zurück“ führt zurück zu „Ergebnisse Turniere Intern“
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.data?.type!=='ecw-close-external')return;const f=document.getElementById('externalFrame');if(!f||e.source!==f.contentWindow)return;
+ if(externalPreviousView==='admin')closeExternalPage();else backExternalPrevious();});
 function openInternalCupAdmin(mode='home'){
  if(appPermissions.admin!==true){showToast('Interne Cup ist nur für Administratoren freigegeben.',5000);return;}
  window.__adminBack=document.getElementById('icCupButtons')?'ic':'menu';window.__externalAdminReturn=window.__adminBack==='ic'?'ic':null;
