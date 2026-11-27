@@ -88,11 +88,20 @@
       const w=function(...a){const ev=window.event;if(firstTable&&!(ev&&ev.isTrusted)){firstTable=false;document.documentElement.classList.remove('ecw-opening-target','ecw-opening-cup');return;}firstTable=false;return f.apply(this,a);};w.__ecwDirect=true;window.openGroupTable=w;};
     hookTable();document.addEventListener('DOMContentLoaded',hookTable);
     // Gruppenübersicht → Zurück verlässt ebenfalls den Cup
-    const css=document.createElement('style');css.textContent='#ecwDirectAdminBtn{position:fixed;left:14px;bottom:14px;z-index:9999;padding:10px 16px;border-radius:10px;border:1px solid #e04a55;background:#a31c28;color:#fff;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)}';document.head.appendChild(css);
-    const btn=document.createElement('button');btn.id='ecwDirectAdminBtn';btn.type='button';btn.hidden=true;btn.textContent='✍️ Ergebnisse eingeben';
-    btn.onclick=()=>{const id=typeof activeId!=='undefined'?activeId:null;if(!id)return;fixedId=id;enableSingle();window.checkAdminAccess('matchEdit');};
+    const css=document.createElement('style');css.textContent='#ecwDirectAdminBtn{position:fixed;left:14px;bottom:14px;z-index:9999;padding:10px 16px;border-radius:10px;border:1px solid #777;background:#3a3a3a;color:#ddd;font-weight:700;cursor:pointer;opacity:.35;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}#ecwDirectAdminBtn.hold{opacity:.9}#ecwDirectAdminBtn i{position:absolute;left:0;bottom:0;height:4px;width:0;background:#e04a55}#ecwDirectAdminBtn.hold i{width:100%;transition:width 5s linear}';document.head.appendChild(css);
+    // Blasser Admin-Button: öffnet nur nach 5 Sekunden Gedrückthalten (auf jeder Oberfläche sichtbar)
+    const btn=document.createElement('button');btn.id='ecwDirectAdminBtn';btn.type='button';btn.hidden=true;btn.innerHTML='✍️ Ergebnisse eingeben<i></i>';
+    btn.title='5 Sekunden gedrückt halten (nur Administratoren)';
     const role=()=>{try{return String(window.getEffectiveRole?window.getEffectiveRole():(window.currentRole||'guest')).toLowerCase()}catch(e){return 'guest'}};
-    setInterval(()=>{const adm=document.getElementById('view-admin')?.classList.contains('active');btn.hidden=adm||!['admin','turnierauswertung'].includes(role())||typeof activeId==='undefined'||!activeId;},700);
+    let timer=null;
+    const stop=()=>{clearTimeout(timer);timer=null;btn.classList.remove('hold');};
+    const open=()=>{stop();const id=typeof activeId!=='undefined'?activeId:null;if(!id)return;
+      if(!['admin','turnierauswertung'].includes(role())){alert('Dieser Bereich ist nur für Administratoren freigegeben.');return;}
+      fixedId=id;enableSingle();window.checkAdminAccess('matchEdit');};
+    btn.addEventListener('pointerdown',e=>{e.preventDefault();btn.classList.add('hold');timer=setTimeout(open,5000);});
+    ['pointerup','pointerleave','pointercancel'].forEach(t=>btn.addEventListener(t,stop));
+    btn.addEventListener('contextmenu',e=>e.preventDefault());
+    setInterval(()=>{const adm=document.getElementById('view-admin')?.classList.contains('active');btn.hidden=adm||typeof activeId==='undefined'||!activeId;},700);
     document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(btn));
     if(document.body)document.body.appendChild(btn);
   }

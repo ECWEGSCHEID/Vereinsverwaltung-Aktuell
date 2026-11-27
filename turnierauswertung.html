@@ -15,7 +15,7 @@
       }
     })();
   </script>
-  <script src="ecw-site-base.js?v=3.1.127.271127"></script>
+  <script src="ecw-site-base.js?v=3.1.128.271127"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>EC Wegscheid Turnierauswertung – Version 2.9.27 · Vereinsverwaltung</title>
@@ -746,6 +746,24 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 </style>
 
   <script type="module" src="ecw-auswertung-firebase-transfer.js?v=3.1.25.171126"></script>
+
+  <style id="ecw-cup-optik-3-1-128">
+    /* Gruppenseite: sechseckige Buttons wie auf der Startseite */
+    #groupCardsContainer .cup-hex-card{display:block;width:100%;max-width:none;grid-column:1/-1;background:transparent!important;border:0!important;box-shadow:none!important;text-align:center}#groupCardsContainer:has(.cup-hex-card){display:block}
+    #groupCardsContainer .cup-hex-card h3{margin:0 0 6px}
+    .cup-hex-actions{display:flex!important;width:100%;justify-content:center;gap:clamp(14px,3vw,36px);flex-wrap:wrap;padding:6px 0 10px}
+    .cup-hex{--w:150px;width:var(--w);height:calc(var(--w)*1.135);border:0;padding:0;cursor:pointer;position:relative;color:#fff;font:800 calc(var(--w)*.11)/1.15 Arial,sans-serif;text-shadow:0 2px 4px #3d0000;
+      clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%);background:conic-gradient(#ff9e8b 0deg,#e6402d 61deg,#991007 61deg,#570300 119deg,#9d130a 119deg,#310100 180deg,#610500 180deg,#aa1b10 241deg,#b32212 241deg,#f35239 299deg,#fff3e5 299deg,#ff8f79 360deg);filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
+    .cup-hex::before{content:'';position:absolute;inset:calc(var(--w)*.04);clip-path:inherit;background:linear-gradient(160deg,#c01d12,#6d0703)}
+    .cup-hex span{position:relative;z-index:1}
+    .cup-hex-alt::before{background:linear-gradient(160deg,#2f4f7a,#14233d)}
+    .cup-hex:hover::before{filter:brightness(1.15)}
+    .cup-hex-card.single .cup-hex{--w:min(34vw,290px)}
+    /* Eingabe wie Spielkarte */
+    .cup-entry-player small{display:block;font-size:.62em;font-weight:600;opacity:.75;text-transform:uppercase;letter-spacing:.04em}
+    .cup-ansch{display:inline-flex;width:1.4em;justify-content:center;font-weight:900;color:#ffd24a}
+    .cup-sp{display:inline-flex;min-width:1.6em;justify-content:center;font-weight:800;border-radius:6px;background:rgba(255,255,255,.12);padding:0 4px;margin-left:4px}
+  </style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -948,34 +966,34 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
           <select id="selectTeamA" onchange="onTeamASelected()">
             <option value="">-- Mannschaft wählen --</option>
           </select>
-          <label for="selectTeamB">2. Offenes Spiel wählen</label>
+          <label for="selectTeamB">2. Gegner wählen</label>
           <select id="selectTeamB" onchange="onTeamBSelected()" disabled>
             <option value="">-- Zuerst Mannschaft wählen --</option>
           </select>
           <div id="noOpenMatchesHint" style="display:none; margin:8px 0; color:var(--text-muted); font-size:.95rem;">
             Für diese Mannschaft sind keine offenen Spiele mehr vorhanden.
           </div>
-          <p class="cup-selection-note">Die Spielernamen und die Reihenfolge werden automatisch aus der Spielkarte übernommen.</p>
+          <p class="cup-selection-note">Die Eingabe ist wie auf der gedruckten Spielkarte aufgebaut: Heimmannschaft links, Auswärtsmannschaft rechts, X = Anschuss.</p>
         </aside>
         <div id="scoreArea" class="cup-score-area" style="display:none;">
           <div class="cup-entry-head">
-            <div class="cup-entry-caption">Satz</div>
+            <div class="cup-entry-caption">Durchgang</div>
             <div id="teamAName" class="cup-entry-player">Spieler 1</div>
             <div class="cup-entry-separator" aria-hidden="true"></div>
             <div id="teamBName" class="cup-entry-player">Spieler 2</div>
           </div>
           <div id="gamesContainer"></div>
           <div class="cup-total-panel cup-stock-points">
-            <div class="cup-total-label">GESAMTE STOCKPUNKTE</div>
+            <div class="cup-total-label">GESAMTSUMME STOCKPUNKTE (GES.-STÖCKE)</div>
             <div id="matchStockTotal" class="cup-total-number" aria-live="polite">0 : 0</div>
           </div>
           <div class="cup-total-panel cup-match-points">
-            <div class="cup-total-label">SPIELERGEBNIS · SATZPUNKTE</div>
+            <div class="cup-total-label">GESAMTSUMME SPIELPUNKTE</div>
             <div id="matchSummary" class="cup-total-number" aria-live="polite">0 : 0</div>
           </div>
           <button class="btn btn-success cup-confirm-button" onclick="saveMatchResult()">Ergebnis mit Gegner kontrollieren und bestätigen.</button>
         </div>
-        <div id="cupEmptySelection" class="cup-empty-selection">Links Spieler und offene Begegnung auswählen, um die Satzeingabe zu öffnen.</div>
+        <div id="cupEmptySelection" class="cup-empty-selection">Links zuerst die eigene Mannschaft und dann den Gegner wählen.</div>
       </div>
       <!-- Navigation rechts unten über die festen Programmbuttons. -->
     </div>
@@ -1255,7 +1273,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
 
   <div id="printArea"></div>
 
-  <script src="js/auswertung-teil-02.js?v=3.1.65.241126"></script>
+  <script src="js/auswertung-teil-02.js?v=3.1.128.271127"></script>
 
   <!-- StockDart-Auswertung (komplette Seite, wird beim ersten Öffnen in den Rahmen geladen) -->
   <!-- Turnierauslosung (Live-Auslosung, wird beim ersten Öffnen in den Rahmen geladen) -->
@@ -1264,7 +1282,7 @@ html.embedded-admin .btn-section-start-fixed {right:22px!important;bottom:82px!i
   <script src="js/auswertung-teil-05.js?v=jm-20261124-zeit"></script>
   <script src="js/auswertung-teil-06.js?v=3.1.31.171126"></script>
   <script src="js/cup-finale-siegerliste.js?v=2.9.29"></script>
-  <script src="js/cup-einzeln.js?v=6"></script>
+  <script src="js/cup-einzeln.js?v=7"></script>
 
 <div id="centralBackupOverlay" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);padding:18px;overflow:auto;">
     <div style="max-width:760px;margin:45px auto;background:rgba(25,29,35,.98);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);">
