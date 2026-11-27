@@ -1395,7 +1395,8 @@ const SH_DEF={title:'Informationssystem',cols:3,bg:null,links:SH_DEFAULT_LINKS,b
  {t:'Jahresmeisterschaft Ziel',u:new URL("turnierauswertung.html?v=2.5.2&seite=jahresmeisterschaft",window.ECW_SITE_BASE||location.href).href},
  {t:'Turnierauslosung',u:new URL("turnierauswertung.html?v=2.5.2&seite=auslosung",window.ECW_SITE_BASE||location.href).href},
  {t:'Stockdartauswertung',u:new URL("turnierauswertung.html?v=2.5.2&seite=stockdart",window.ECW_SITE_BASE||location.href).href},
- {t:'Solo Pyramide',u:SOLO_PYRAMIDE_PAGE},
+ {t:'Solo Pyramide Herren',u:SOLO_PYRAMIDE_PAGE},
+ {t:'Solo Pyramide Damen',u:SOLO_PYRAMIDE_PAGE+'&pyramide=frauen'},
  {t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'}
 ]},
 {t:'Fotos\nVerein',u:SH_B+'#fotos'},
@@ -1440,8 +1441,12 @@ function shEnsureSoloPyramide(d){
  }
  if(!target)return d;
  if(!Array.isArray(target.sub))target.sub=[];
- const exists=target.sub.some(x=>norm(x?.t)==='solo pyramide'||String(x?.u||'').toLowerCase().includes('solo-pyramide'));
- if(!exists)target.sub.push({t:'Solo Pyramide',u:SOLO_PYRAMIDE_PAGE});
+ // Solo Pyramide: getrennt in Herren und Damen
+ const isWomenPyr=x=>/pyramide=frauen/i.test(String(x?.u||''));
+ const menPyr=target.sub.find(x=>String(x?.u||'').toLowerCase().includes('solo-pyramide')&&!isWomenPyr(x))||target.sub.find(x=>norm(x?.t)==='solo pyramide');
+ if(menPyr){if(norm(menPyr.t)==='solo pyramide')menPyr.t='Solo Pyramide Herren';}
+ else target.sub.push({t:'Solo Pyramide Herren',u:SOLO_PYRAMIDE_PAGE});
+ if(!target.sub.some(isWomenPyr)){const at=target.sub.indexOf(menPyr||target.sub.find(x=>norm(x?.t)==='solo pyramide herren'));target.sub.splice(at>=0?at+1:target.sub.length,0,{t:'Solo Pyramide Damen',u:SOLO_PYRAMIDE_PAGE+'&pyramide=frauen'});}
  if(!target.sub.some(x=>norm(x?.t)==='doppel ko system'||/seite=doppelko/i.test(String(x?.u||''))))target.sub.push({t:'Doppel KO System',u:SH_B+'turnierauswertung.html?seite=doppelko'});
  return d;
 }
@@ -1454,6 +1459,7 @@ function shSane(j){const d=JSON.parse(JSON.stringify(SH_DEF));j=j||{};
   if(b.whiteboardSlot===1||b.whiteboardSlot===2)o.whiteboardSlot=b.whiteboardSlot;
   if(Array.isArray(b.sub)){const sb=b.sub.filter(x=>x&&typeof x.t==='string').map(x=>({t:x.t,u:typeof x.u==='string'?x.u:''}));if(sb.length)o.sub=sb}
   return o});
+ if(j.internActive&&typeof j.internActive==='object')d.internActive=Object.fromEntries(Object.entries(j.internActive).filter(([k,v])=>/^[a-z]{2,20}$/i.test(k)&&typeof v==='boolean'));
  if(j.docMenuInitialized===true)d.docMenuInitialized=true;
  if(!d.docMenuInitialized){
    if(!d.buttons.some(b=>String(b.u||'').includes('#druckdokumente')||b.sub?.some(x=>String(x.u||'').includes('#druckdokumente'))))
@@ -1741,7 +1747,9 @@ function shRender(){
  document.getElementById('shTitle2').textContent=label;
  document.getElementById('shSubReturn').hidden=!grp;
  document.getElementById('startseite').classList.toggle('sh-submenu',!!grp);
- const items=grp?grp.sub:SH.buttons;
+ const internalGroup=!!grp && /ergebnisse\s+turniere\s+intern/i.test(label);
+ // Ergebnisse Turniere Intern: nicht aktive Bereiche ausblenden (Verwaltung → Interne Cups → aktiv / nicht aktiv)
+ const items=grp?(internalGroup?grp.sub.filter(ecwInternActive):grp.sub):SH.buttons;
  const total=items.length;
  const g=document.getElementById('shGrid'),rows=Math.max(1,Math.ceil(total/SH.cols));
  g.style.setProperty('--cd',SH.cols);g.style.setProperty('--rd',rows);g.style.setProperty('--rp',Math.ceil(total/2)||1);
@@ -1795,6 +1803,56 @@ function shRender(){
   });
  }
  g.replaceChildren(...els);shRenderExternalLinks();shUpdateBack();updateWhiteboardScreenControls()}
+// ---------- Interne Cups: aktiv / nicht aktiv ----------
+const ECW_INTERN_ITEMS=[['cup','Cup Ergebnisse'],['jahresmeisterschaft','Jahresmeisterschaft Ziel'],['auslosung','Turnierauslosung'],['stockdart','Stockdartauswertung'],['soloHerren','Solo Pyramide Herren'],['soloDamen','Solo Pyramide Damen'],['doppelko','Doppel KO System']];
+const ECW_PYR_STATUS={soloHerren:'soloPyramide',soloDamen:'soloPyramideFrauen'};
+let ecwPyrActive=null,ecwPyrLoading=null;
+function ecwInternKey(item){
+ const u=String(item?.u||'');let mode='';try{mode=ecwInternalResultMode(u)}catch(e){}
+ if(mode==='soloPyramide')return /pyramide=frauen/i.test(u)?'soloDamen':'soloHerren';
+ return mode||'';
+}
+function ecwLoadPyrActive(force){
+ if(ecwPyrLoading&&!force)return ecwPyrLoading;
+ ecwPyrLoading=(async()=>{
+  const out={};
+  for(const [key,doc] of Object.entries(ECW_PYR_STATUS)){
+   try{
+    const r=await fetch('https://firestore.googleapis.com/v1/projects/ec-wegscheid-verwaltung-neu/databases/(default)/documents/smartphoneBetrieb/'+doc,{cache:'no-store'});
+    out[key]=r.ok&&(await r.json()).fields?.aktiv?.booleanValue===true;
+   }catch(e){out[key]=false}
+  }
+  ecwPyrActive=out;try{if(document.getElementById('shArt'))shRender()}catch(e){}
+  return out;
+ })();
+ return ecwPyrLoading;
+}
+function ecwInternActive(item){
+ const key=ecwInternKey(item);if(!key)return true;
+ if(ECW_PYR_STATUS[key]){if(!ecwPyrActive){ecwLoadPyrActive();return key==='soloHerren';}return ecwPyrActive[key]===true;}
+ return SH.internActive?.[key]!==false;
+}
+async function ecwSetInternActive(key,on){
+ if(appPermissions.admin!==true){showToast('Nur für Administratoren.');return}
+ try{
+  if(ECW_PYR_STATUS[key]){
+   await firestoreDb.collection('smartphoneBetrieb').doc(ECW_PYR_STATUS[key]).set({aktiv:!!on,geaendertAm:new Date().toISOString()});
+   ecwPyrActive={...(ecwPyrActive||{}),[key]:!!on};
+  }else{
+   SH.internActive={...(SH.internActive||{}),[key]:!!on};shSave();
+   if(!(await shSaveToFirebase()))throw Error('Startseite konnte nicht gespeichert werden.');
+  }
+  showToast((ECW_INTERN_ITEMS.find(x=>x[0]===key)||[key,key])[1]+': '+(on?'aktiv':'nicht aktiv'));
+ }catch(e){showToast('Nicht gespeichert: '+(e.code||e.message)+(key==='soloDamen'?' – Firestore-Regel für die Damen-Pyramide eingefügt?':''),8000)}
+ renderInternActiveCard();
+}
+async function renderInternActiveCard(){
+ const box=document.getElementById('ecwInternActiveCard');if(!box)return;
+ if(!ecwPyrActive)await ecwLoadPyrActive();
+ box.innerHTML='<h3>Auf der Startseite anzeigen</h3><p class="small">Nicht aktive Bereiche werden unter „Ergebnisse Turniere Intern“ ausgeblendet. Die Pyramiden gelten zugleich für das Smartphone.</p>'
+  +ECW_INTERN_ITEMS.map(([key,label])=>{const on=key in ECW_PYR_STATUS?ecwPyrActive?.[key]===true:SH.internActive?.[key]!==false;
+   return '<div class="row" style="justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.12)"><span>'+esc(label)+'</span><button type="button" style="min-width:150px;background:'+(on?'#1f7a3a':'#555')+'" onclick="ecwSetInternActive(\''+key+'\','+(!on)+')">'+(on?'🟢 Aktiv':'⚪ Nicht aktiv')+'</button></div>';}).join('');
+}
 function shNorm(u){return String(u).split('#')[0].split('?')[0].replace(/index\.html$/i,'')}
 function shInternalHash(u){let x;try{x=new URL(u,location.href)}catch(e){return ''}
  if(x.hostname==='ecwegscheid.github.io'&&/^\/Mitglieder(?:\/|$)/i.test(x.pathname))return '#mitglieder';
@@ -2462,9 +2520,9 @@ function renderOverviewAdmin(){
    +'<div class="card"><p class="small">Öffnet die jeweilige Seite in der Anzeige. Mit „Zurück zur Startseite“ kommst du wieder hierher in die Verwaltung.</p>'
    +'<div class="ovmenu">'+items.map(x=>'<button type="button" onclick="ovOpen(\''+x[1]+'\')">'+esc(x[0])+'</button>').join('')+'</div></div>';
 }
-function soloPyramideAdminUrl(){
+function soloPyramideAdminUrl(women){
  const base=getBaseUrl();
- return new URL('solo-pyramide.html?v=2.9.32&mode=admin-embedded',base).href;
+ return new URL('solo-pyramide.html?v=2.9.32&mode=admin-embedded'+(women?'&pyramide=frauen':''),base).href;
 }
 function soloPyramidePreviewUrl(){
  const base=getBaseUrl();
@@ -2477,11 +2535,11 @@ function soloPyramideSetAdminReturnButton(){
    b.onclick=returnToAdminManagementView;
  }
 }
-function openSoloPyramideAdmin(){
+function openSoloPyramideAdmin(women){
  if(appPermissions.admin!==true){showToast('Solo Pyramide · Admin ist nur für Administratoren freigegeben.',5000);return;}
  window.__adminBack='menu';
  window.__adminPreviewMode=false;
- openExternalPage(soloPyramideAdminUrl(),'Solo Pyramide · Admin');
+ openExternalPage(soloPyramideAdminUrl(women===true),(women===true?'Solo Pyramide Damen':'Solo Pyramide Herren')+' · Admin');
  soloPyramideSetAdminReturnButton();
 }
 function openSoloPyramidePreview(){
@@ -2531,12 +2589,15 @@ function renderInternalCupAdmin(){
   +'<button type="button" onclick="openInternalCupAdmin(\'auslosung\')">Turnierauslosung</button>'
   +'<button type="button" onclick="window.ECWMontagsSolo&&ECWMontagsSolo.open()">Montags Solo</button>'
   +'<button type="button" onclick="window.ECWRangliste&&ECWRangliste.open()">Vereinsrangliste</button>'
-  +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide</button>'
+  +'<button type="button" onclick="openSoloPyramideAdmin()">Solo Pyramide Herren</button>'
+  +'<button type="button" onclick="openSoloPyramideAdmin(true)">Solo Pyramide Damen</button>'
   +'<button type="button" onclick="openSoloPyramidePreview()">Solo Pyramide · Anzeige</button>'
   +'</div></div>'
+  +'<div class="card" id="ecwInternActiveCard" style="margin-top:14px"><h3>Auf der Startseite anzeigen</h3><p class="small">Wird geladen …</p></div>'
   +'<div class="card" style="margin-top:14px"><h3>Datenübernahme</h3>'
   +'<p class="small">Einmalige Übernahme der Daten aus dem bisherigen Firebase-Projekt der Turnierauswertung. Danach wird nur noch das zentrale Firebase-Projekt der Vereinsverwaltung verwendet.</p>'
   +'<button type="button" class="primary" style="width:100%" onclick="openInternalCupMigration()">Bisherige Turnierauswertung nach Vereinsverwaltung übernehmen</button></div>';
+ renderInternActiveCard();
 }
 
 function ovOpen(k){
@@ -2955,6 +3016,7 @@ async function openExternalPage(value,title){
    try{
      const localSolo=new URL('solo-pyramide.html',location.href);
      localSolo.searchParams.set('v','2.9.29');
+     if(new URL(url,location.href).searchParams.get('pyramide')==='frauen')localSolo.searchParams.set('pyramide','frauen');
      if(new URL(url).searchParams.get('mode')==='admin-embedded')localSolo.searchParams.set('mode','admin-embedded');
      else if(firebaseAuthUser && !isWhiteboardUser())localSolo.searchParams.set('mode',appPermissions.admin===true?'admin-embedded':'infosystem');
      frameUrl=localSolo.href;

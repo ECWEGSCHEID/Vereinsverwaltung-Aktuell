@@ -7,7 +7,7 @@
       entry: 'smartphone-mitglieder.html',
       items: {
         reservation: 'Reservierungssystem', invitations: 'Turniereinladungen', planner: 'Terminplaner', hall: 'Halle',
-        games: 'Spiele', tables: 'Tabellen', myresults: 'Meine Ergebnisse', overview: 'Mein Überblick', solo: 'Solo Pyramide'
+        games: 'Spiele', tables: 'Tabellen', myresults: 'Meine Ergebnisse', overview: 'Mein Überblick', solo: 'Solo Pyramide Herren', soloFrauen: 'Solo Pyramide Damen'
       }
     },
     admin: {
@@ -87,7 +87,7 @@
 
   const memberPermissionFields = {
     reservation: 'reservierungenLesen', planner: 'terminplaner', hall: 'halle',
-    games: 'spiele', tables: 'tabellen', solo: 'soloPyramide'
+    games: 'spiele', tables: 'tabellen', solo: 'soloPyramide', soloFrauen: 'soloPyramide'
   };
 
   const invitationsPermissionKey = 'ecw:standard:turniereinladungen';
