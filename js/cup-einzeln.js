@@ -73,6 +73,8 @@
     const hook=()=>{
       ['goToMainMenu','goBackToStartMenu','showHome'].forEach(n=>{const f=window[n];if(typeof f==='function'&&!f.__ecwDirect){const w=function(...a){
         // im Admin-Bereich normal zurück, sonst Cup verlassen
+        // Nur ein echter Klick auf „Zurück“ verlässt den Cup – interne Aufrufe beim Laden (openCup → goToMainMenu) laufen normal
+        const ev=window.event;if(!(ev&&ev.isTrusted&&(ev.type==='click'||ev.type==='keydown'||ev.type==='pointerup')))return f.apply(this,a);
         if(document.getElementById('view-admin')?.classList.contains('active')){
           // aus „Ergebnisse eingeben“ zurück zur Tabelle dieses Cups
           try{const t=tournaments[fixedId];const g=cupSortedGroups(t.groups)[0]?.[0];if(t&&g){openGroupSelection(fixedId);openGroupTable(g);return;}}catch(e){}
