@@ -14,7 +14,7 @@ const TYPES={
   round:{label:'Vorrunde Einzel (nur beste zählt)',max:100},
   soloFinal:{label:'Finale / Endrunde Einzel',max:150},
   pyramid:{label:'Solo Pyramide Endstand',max:150},
-  jm:{label:'Ziel-Jahresmeisterschaft',max:120},
+  jm:{label:'Ziel-Jahresmeisterschaft',max:150},
   vm:{label:'Vereinsmeisterschaft (zusammengelost)',max:40}
 };
 const CATEGORIES=['Duo Cup','Montags Solo','Solo Cup','Solo Pyramide','Ziel-JM','Vereinsmeisterschaft','Frauencup','Frauen Solo Pyramide'];
